@@ -15,7 +15,6 @@
 - country VARCHAR(50)
 - primary_phone VARCHAR(30)
 - primary_email VARCHAR(255)
-- brand_id BIGINT REFERENCES brand(id)
 - client_rating SMALLINT
 - tax_rate DECIMAL(5,2)
 - tax_exempt BOOLEAN NOT NULL DEFAULT FALSE
@@ -92,7 +91,6 @@
 - lead_source_id BIGINT REFERENCES lead_source(id)
 - assigned_estimator_id BIGINT REFERENCES employee(id)
 - call_client BOOLEAN NOT NULL DEFAULT FALSE
-- brand_id BIGINT REFERENCES brand(id)
 - referral_source_id BIGINT REFERENCES referral_source(id)
 - details TEXT
 - created_by BIGINT REFERENCES employee(id)
@@ -149,7 +147,6 @@
 - pdf_url TEXT
 - portal_link_token VARCHAR(255)
 - wisetack_eligible BOOLEAN NOT NULL DEFAULT FALSE
-- brand_id BIGINT REFERENCES brand(id)
 - notes_crew TEXT
 - notes_office TEXT
 - created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -287,7 +284,6 @@
 - late_fee_amount DECIMAL(12,2) NOT NULL DEFAULT 0
 - pdf_url TEXT
 - portal_link_token VARCHAR(255)
-- brand_id BIGINT REFERENCES brand(id)
 - auto_reminder_days SMALLINT
 - mailing_status VARCHAR(20) — sent | opened | clicked
 - customer_review_text TEXT
@@ -334,21 +330,6 @@
 - transacted_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 ---
-
-## brand
-
-- id BIGINT NOT NULL
-- name VARCHAR(100) NOT NULL
-- logo_url TEXT
-- address_line_1 VARCHAR(255)
-- city VARCHAR(100)
-- state VARCHAR(50)
-- zip VARCHAR(20)
-- phone VARCHAR(30)
-- template_id BIGINT REFERENCES document_template(id)
-- review_thank_you_message TEXT
-- review_prompt_text TEXT
-- review_link_url TEXT
 
 ## document_template
 
@@ -1003,7 +984,6 @@
 - is_default BOOLEAN NOT NULL DEFAULT TRUE
 - custom_fields_json JSONB
 - sort_criteria VARCHAR(50)
-- brand_id BIGINT REFERENCES brand(id)
 - created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 
 ---
