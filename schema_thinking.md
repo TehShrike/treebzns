@@ -136,19 +136,6 @@ add actual permission scheme
 - longitude DECIMAL(10,7)
 - uploaded_at DATETIME NOT NULL DEFAULT now()
 
-## project_scheme
-
-- id BIGINT NOT NULL
-- estimate_id BIGINT REFERENCES estimate(id)
-- work_order_id BIGINT REFERENCES work_order(id)
-- satellite_image_url TEXT
-- pin_latitude DECIMAL(10,7)
-- pin_longitude DECIMAL(10,7)
-- annotations_json JSONB — icons, drawings, arrows, circles, labels
-- screen_capture_url TEXT
-- created_at DATETIME NOT NULL DEFAULT now()
-- updated_at DATETIME NOT NULL DEFAULT now()
-
 ---
 
 ## work_order
@@ -189,11 +176,6 @@ add actual permission scheme
 - name VARCHAR(50) NOT NULL
 - sort_order SMALLINT NOT NULL DEFAULT 0
 - is_terminal BOOLEAN NOT NULL DEFAULT FALSE
-
-## work_order_vehicle
-
-- work_order_id BIGINT NOT NULL REFERENCES work_order(id)
-- vehicle_id BIGINT NOT NULL REFERENCES vehicle(id)
 
 ## work_order_tag
 
@@ -309,11 +291,6 @@ add actual permission scheme
 - crew_id BIGINT NOT NULL REFERENCES crew(id)
 - employee_id BIGINT NOT NULL REFERENCES employee(id)
 
-## crew_vehicle
-
-- crew_id BIGINT NOT NULL REFERENCES crew(id)
-- vehicle_id BIGINT NOT NULL REFERENCES vehicle(id)
-
 ---
 
 ## schedule
@@ -380,31 +357,6 @@ add actual permission scheme
 
 ---
 
-## vehicle
-
-- id BIGINT NOT NULL
-- vehicle_type VARCHAR(50)
-- name VARCHAR(150) NOT NULL
-- cost_per_vehicle DECIMAL(10,2)
-- condition VARCHAR(30)
-- fuel_type VARCHAR(20)
-- fuel_consumption_rate DECIMAL(6,2)
-- current_latitude DECIMAL(10,7)
-- current_longitude DECIMAL(10,7)
-- next_maintenance_date DATE
-- created_at DATETIME NOT NULL DEFAULT now()
-
-## vehicle_fuel_log
-
-- id BIGINT NOT NULL
-- vehicle_id BIGINT NOT NULL REFERENCES vehicle(id)
-- gallons DECIMAL(8,2) NOT NULL
-- cost DECIMAL(10,2) NOT NULL
-- odometer_reading INT
-- fueled_at DATE NOT NULL
-
----
-
 ## route
 
 - id BIGINT NOT NULL
@@ -437,9 +389,8 @@ add actual permission scheme
 ## gps_location_record
 
 - id BIGINT NOT NULL
-- entity_type VARCHAR(15) NOT NULL — employee | vehicle
+- entity_type VARCHAR(15) NOT NULL — employee
 - employee_id BIGINT REFERENCES employee(id)
-- vehicle_id BIGINT REFERENCES vehicle(id)
 - latitude DECIMAL(10,7) NOT NULL
 - longitude DECIMAL(10,7) NOT NULL
 - recorded_at DATETIME NOT NULL
