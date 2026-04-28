@@ -127,11 +127,6 @@ add actual permission scheme
 - markup_pct DECIMAL(5,2)
 - overhead_pct DECIMAL(5,2)
 
-## estimate_line_item_equipment
-
-- estimate_line_item_id BIGINT NOT NULL REFERENCES estimate_line_item(id)
-- equipment_type_id BIGINT NOT NULL REFERENCES equipment_type(id)
-
 ## estimate_line_item_photo
 
 - id BIGINT NOT NULL
@@ -194,11 +189,6 @@ add actual permission scheme
 - name VARCHAR(50) NOT NULL
 - sort_order SMALLINT NOT NULL DEFAULT 0
 - is_terminal BOOLEAN NOT NULL DEFAULT FALSE
-
-## work_order_equipment
-
-- work_order_id BIGINT NOT NULL REFERENCES work_order(id)
-- equipment_id BIGINT NOT NULL REFERENCES equipment(id)
 
 ## work_order_vehicle
 
@@ -319,11 +309,6 @@ add actual permission scheme
 - crew_id BIGINT NOT NULL REFERENCES crew(id)
 - employee_id BIGINT NOT NULL REFERENCES employee(id)
 
-## crew_equipment
-
-- crew_id BIGINT NOT NULL REFERENCES crew(id)
-- equipment_id BIGINT NOT NULL REFERENCES equipment(id)
-
 ## crew_vehicle
 
 - crew_id BIGINT NOT NULL REFERENCES crew(id)
@@ -395,49 +380,6 @@ add actual permission scheme
 
 ---
 
-## equipment_type
-
-- id BIGINT NOT NULL
-- name VARCHAR(100) NOT NULL
-- default_cost DECIMAL(10,2)
-
-## equipment
-
-- id BIGINT NOT NULL
-- equipment_type_id BIGINT NOT NULL REFERENCES equipment_type(id)
-- name VARCHAR(150) NOT NULL
-- description TEXT
-- cost_value DECIMAL(12,2)
-- condition VARCHAR(30) — good | fair | needs_repair | out_of_service
-- status VARCHAR(20) NOT NULL DEFAULT 'available' — available | assigned | maintenance
-- current_latitude DECIMAL(10,7)
-- current_longitude DECIMAL(10,7)
-- next_maintenance_date DATE
-- total_usage_hours DECIMAL(8,1) NOT NULL DEFAULT 0
-- created_at DATETIME NOT NULL DEFAULT now()
-
-## equipment_maintenance_log
-
-- id BIGINT NOT NULL
-- equipment_id BIGINT NOT NULL REFERENCES equipment(id)
-- maintenance_type VARCHAR(50) NOT NULL
-- description TEXT
-- cost DECIMAL(10,2)
-- performed_at DATE NOT NULL
-- performed_by BIGINT REFERENCES employee(id)
-
-## equipment_repair_request
-
-- id BIGINT NOT NULL
-- equipment_id BIGINT NOT NULL REFERENCES equipment(id)
-- requested_by BIGINT NOT NULL REFERENCES employee(id)
-- description TEXT NOT NULL
-- status VARCHAR(20) NOT NULL DEFAULT 'open' — open | in_progress | resolved
-- created_at DATETIME NOT NULL DEFAULT now()
-- resolved_at DATETIME
-
----
-
 ## vehicle
 
 - id BIGINT NOT NULL
@@ -495,10 +437,9 @@ add actual permission scheme
 ## gps_location_record
 
 - id BIGINT NOT NULL
-- entity_type VARCHAR(15) NOT NULL — employee | vehicle | equipment
+- entity_type VARCHAR(15) NOT NULL — employee | vehicle
 - employee_id BIGINT REFERENCES employee(id)
 - vehicle_id BIGINT REFERENCES vehicle(id)
-- equipment_id BIGINT REFERENCES equipment(id)
 - latitude DECIMAL(10,7) NOT NULL
 - longitude DECIMAL(10,7) NOT NULL
 - recorded_at DATETIME NOT NULL
