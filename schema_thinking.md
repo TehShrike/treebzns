@@ -40,11 +40,13 @@ add actual permission scheme
 - review time_entry – should be clocking in to projects, nothing else
 - a permission for being able to edit project line items without needing customer approval
 
+Do next time: add a role table and permissions table
+
 ---
 
 ## company
 
-- id BIGINT NOT NULL
+- company_id BIGINT NOT NULL
 - name VARCHAR(500) NOT NULL
 - logo BLOB
 - brand_color VARCHAR(20)
@@ -53,7 +55,7 @@ add actual permission scheme
 
 ## client
 
-- id BIGINT NOT NULL
+- client_id BIGINT NOT NULL
 - name VARCHAR(500) NOT NULL
 - primary_client_address_id BIGINT NOT NULL
 - billing_client_address_id BIGINT NOT NULL
@@ -67,8 +69,8 @@ add actual permission scheme
 
 ## client_contact
 
-- id BIGINT NOT NULL
-- client_id BIGINT NOT NULL REFERENCES client(id)
+- client_contact_id BIGINT NOT NULL
+- client_id BIGINT NOT NULL REFERENCES client(client_id)
 - contact_name VARCHAR(200) NOT NULL
 - phone VARCHAR(30)
 - email VARCHAR(500)
@@ -76,8 +78,8 @@ add actual permission scheme
 - sort_order SMALLINT NOT NULL DEFAULT 0
 
 ## client_address
-- id BIGINT NOT NULL
-- client_id BIGINT NOT NULL REFERENCES client(id)
+- client_address_id BIGINT NOT NULL
+- client_id BIGINT NOT NULL REFERENCES client(client_id)
 - name
 - address_line_1 VARCHAR(500)
 - address_line_2 VARCHAR(500)
@@ -92,8 +94,8 @@ add actual permission scheme
 
 ## project
 
-- id BIGINT NOT NULL
-- client_id BIGINT NOT NULL REFERENCES client(id)
+- project_id BIGINT NOT NULL
+- client_id BIGINT NOT NULL REFERENCES client(client_id)
 - client_address_id BIGINT NOT NULL
 - address_line_1 VARCHAR(500)
 - address_line_2 VARCHAR(500)
@@ -102,9 +104,9 @@ add actual permission scheme
 - zip VARCHAR(20)
 - due date DATE
 - emergency BOOLEAN
-- assigned_estimator_id BIGINT REFERENCES employee(id)
+- assigned_estimator_employee_id BIGINT REFERENCES employee(employee_id)
 - details TEXT
-- created_by BIGINT REFERENCES employee(id)
+- created_by_employee_id BIGINT REFERENCES employee(employee_id)
 - created_at DATETIME NOT NULL DEFAULT now()
 - updated_at DATETIME NOT NULL DEFAULT now()
 - needs_client_approval BOOLEAN NOT NULL
@@ -143,7 +145,7 @@ Work Order, Invoice, ready_to_bill
 
 ## project_line_item
 
-- project_line_item BIGINT NOT NULL
+- project_line_item_id BIGINT NOT NULL
 - project_id BIGINT NOT NULL
 - description
 - item_type_id
@@ -163,15 +165,15 @@ Work Order, Invoice, ready_to_bill
 - project_client_approval_id BIGINT NOT NULL
 - customer_signature BLOB
 - verbal_approval BOOLEAN NOT NULL
-- added_by_user_id BIGINT
+- added_by_employee_id BIGINT
 - created_at DATETIME NOT NULL DEFAULT now()
 
 ---
 
 ## payment
 
-- id BIGINT NOT NULL
-- invoice_id BIGINT NOT NULL REFERENCES invoice(id)
+- payment_id BIGINT NOT NULL
+- work_order_id BIGINT NOT NULL REFERENCES work_order(work_order_id)
 - amount DECIMAL(12,2) NOT NULL
 - tip_amount DECIMAL(12,2) NOT NULL DEFAULT 0
 - payment_method VARCHAR(20) NOT NULL — cash | check | credit_card
@@ -185,13 +187,13 @@ Work Order, Invoice, ready_to_bill
 
 ## employee
 
-- id BIGINT NOT NULL
+- employee_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL
 - name VARCHAR(100) NOT NULL
 - email VARCHAR(500) NOT NULL
 - phone VARCHAR(30)
 - password_hash VARCHAR(500) NOT NULL
-- role_id BIGINT NOT NULL REFERENCES role(id)
+- role_id BIGINT NOT NULL REFERENCES role(role_id)
 - avatar_url TEXT
 - created_at DATETIME NOT NULL DEFAULT now()
 - updated_at DATETIME NOT NULL DEFAULT now()
@@ -200,22 +202,22 @@ Work Order, Invoice, ready_to_bill
 
 ## crew
 
-- id BIGINT NOT NULL
-- crew_leader_id BIGINT NOT NULL REFERENCES employee(id)
+- crew_id BIGINT NOT NULL
+- crew_leader_id BIGINT NOT NULL REFERENCES employee(employee_id)
 - color VARCHAR(7) — hex code
 - created_at DATETIME NOT NULL DEFAULT now()
 
 ## crew_member
 
-- crew_id BIGINT NOT NULL REFERENCES crew(id)
-- employee_id BIGINT NOT NULL REFERENCES employee(id)
+- crew_id BIGINT NOT NULL REFERENCES crew(crew_id)
+- employee_id BIGINT NOT NULL REFERENCES employee(employee_id)
 
 ---
 
 ## time_entry
 
-- id BIGINT NOT NULL
-- employee_id BIGINT NOT NULL REFERENCES employee(id)
+- time_entry_id BIGINT NOT NULL
+- employee_id BIGINT NOT NULL REFERENCES employee(employee_id)
 - work_date DATE NOT NULL
 - clock_in DATETIME NOT NULL
 - clock_out DATETIME
@@ -234,9 +236,9 @@ Work Order, Invoice, ready_to_bill
 
 ## sms_message
 
-- id BIGINT NOT NULL
-- client_id BIGINT REFERENCES client(id)
-- employee_id BIGINT REFERENCES employee(id)
+- sms_message_id BIGINT NOT NULL
+- client_id BIGINT REFERENCES client(client_id)
+- employee_id BIGINT REFERENCES employee(employee_id)
 - direction VARCHAR(10) NOT NULL — inbound | outbound
 - from_number VARCHAR(30) NOT NULL
 - to_number VARCHAR(30) NOT NULL
@@ -246,15 +248,14 @@ Work Order, Invoice, ready_to_bill
 
 ## email_log
 
-- id BIGINT NOT NULL
-- client_id BIGINT REFERENCES client(id)
-- employee_id BIGINT REFERENCES employee(id)
+- email_log_id BIGINT NOT NULL
+- client_id BIGINT REFERENCES client(client_id)
+- employee_id BIGINT REFERENCES employee(employee_id)
 - direction VARCHAR(10) NOT NULL — inbound | outbound
 - from_address VARCHAR(500) NOT NULL
 - to_address VARCHAR(500) NOT NULL
 - subject VARCHAR(500)
 - body_html TEXT
-- template_id BIGINT REFERENCES email_template(id)
 - status VARCHAR(15) — sent | opened | clicked | bounced
 - sent_at DATETIME NOT NULL
 
