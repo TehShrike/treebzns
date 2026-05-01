@@ -50,6 +50,7 @@ Do next time: add a role table and permissions table
 - name VARCHAR(500) NOT NULL
 - logo BLOB
 - brand_color VARCHAR(20)
+- default_initial_project_document_id BIGINT NOT NULL (Lead, Unqualified)
 
 ---
 
@@ -95,6 +96,7 @@ Do next time: add a role table and permissions table
 ## project
 
 - project_id BIGINT NOT NULL
+- project_document BIGINT NOT NULL
 - client_id BIGINT NOT NULL REFERENCES client(client_id)
 - client_address_id BIGINT NOT NULL
 - address_line_1 VARCHAR(500)
@@ -102,7 +104,7 @@ Do next time: add a role table and permissions table
 - city VARCHAR(100)
 - state VARCHAR(50)
 - zip VARCHAR(20)
-- due date DATE
+- due_date DATE
 - emergency BOOLEAN
 - assigned_estimator_employee_id BIGINT REFERENCES employee(employee_id)
 - details TEXT
@@ -115,33 +117,49 @@ Do next time: add a role table and permissions table
 - tax_rate DECIMAL(6,4)
 - notes_for_crew TEXT
 - notes_for_office TEXT
+- closed: BOOLEAN
+- closed_at DATETIME
+- closed_date DATE
 
-## project_status
+## project_document
 
-- project_status_id BIGINT NOT NULL
+- project_document_id BIGINT NOT NULL
 - group_name
 - name
-- requires_client_approval_to_move_to_next_status BOOLEAN
-- next_project_status_id BIGINT
+- needs_estimate_to_move_on
+- needs_client_approval_to_move_on BOOLEAN
+- can_expire
+- expire_days
+- next_project_document_id BIGINT
 - should_be_worked BOOLEAN
-- needs_review
-- needs_estimate
-- ready_to_bill BOOLEAN
+- needs_to_be_contacted_by_lead_qualifier
+- can_be_closed
+- represents_billable_sale_when_closed
 
 ```
 Example:
 
-Lead, Unqualified, needs_review
-Lead, Qualified, needs_estimate
-Estimate, '', requires_client_approval_to_move_to_next_status
-Work Order, Workable, should_be_worked
-Work Order, Invoice, ready_to_bill
+Lead, Unqualified, needs_to_be_contacted_by_lead_qualifier, next_project_document: Qualified Lead
+Lead, Qualified, needs_estimate_to_move_on, next_project_document: Estimate
+Estimate, '', needs_client_approval_to_move_on, can_expire, next_project_document: Work Order
+Work Order, '', should_be_worked, can_be_closed, represents_billable_sale_when_closed
+Work Order, Errand, should_be_worked, can_be_closed
+Work Order, Customer Sat, should_be_worked, can_be_closed
+Void, ''
+
+maybe estimate "needs double-checked by foreman" and "sent to customer"?  Nah, those probably go on the documents, at least the "sent to customer" does.
+
+Current thought is that documents would have a "move on" action, which can be done by anyone who can work the current document type, and either turns it into the next_project_document, or finalizes it.
 ```
 
 ## item_type
 
 - item_type_id BIGINT NOT NULL
 - name
+
+```
+Stump grinding, limb removal, tree removal, tree planting, injecting
+```
 
 ## project_line_item
 
@@ -212,6 +230,32 @@ Work Order, Invoice, ready_to_bill
 - crew_id BIGINT NOT NULL REFERENCES crew(crew_id)
 - employee_id BIGINT NOT NULL REFERENCES employee(employee_id)
 
+## role
+
+- role_id
+- name
+
+## role_permission
+
+- role_id
+- permission_id
+
+## permission
+
+- permission_id
+- code
+- name
+
+```
+CAN_CREATE_ORDER
+CAN_CREATE_CLIENT
+CAN_EDIT_CLIENT
+CAN_QUALIFY_LEAD
+CAN_ESTIMATE
+CAN_WORK_CREW
+CAN_CHOOSE_ANY_DOCUMENT_STATUS
+```
+
 ---
 
 ## time_entry
@@ -266,3 +310,4 @@ Work Order, Invoice, ready_to_bill
 - tax_rate_id: BIGINT NOT NULL
 - name: VARCHAR(200)
 - tax_rate: DECIMAL(6,4)
+
