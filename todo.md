@@ -1,7 +1,3 @@
-- passable project/document schema
-	- user
-	- permission
-- SQL for schema in a migration directory
 - export types and metadata from schema
 - tool to build select queries in a type-safe way
 	- generate a format that is safe to accept from untrusted sources
@@ -27,3 +23,15 @@
 	- client-side, generate a function for each of those server-side functions, that can be called with the signature of the server-side function, that makes a query to a `function` endpoint with everything relevant as the body
 	- server-side `function` endpoint that uses the validator to validate the argument, then calls the underlying function and returns the value
 - a select_query endpoint that takes the shape of a safe query, and iterates over it adding `AND company_id = ?` to every relevant clause
+
+## export types and metadata from schema
+
+Data used to validate queries are reasonable server-side.
+
+Identifiers in the data can be referenced directly when building queries.
+
+The type of the data can be used to type-check queries as they are written.
+
+```ts
+
+```
