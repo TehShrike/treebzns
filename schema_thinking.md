@@ -37,10 +37,7 @@ add actual permission scheme
 - special projects like "pick up battery pack from this guy's place"
 	- project with a special status
 	- projects of different statuses are visible based on roles of the person
-- review time_entry – should be clocking in to projects, nothing else
 - a permission for being able to edit project line items without needing customer approval
-
-Do next time: add a role table and permissions table
 
 ---
 
@@ -161,6 +158,7 @@ Current thought is that documents would have a "move on" action, which can be do
 
 - item_type_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
+- taxable BOOLEAN
 - name
 
 ```
@@ -174,6 +172,7 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 - project_id BIGINT NOT NULL
 - description
 - item_type_id
+- estimated_hours UNSIGNED INT NOT NULL
 - taxable BOOLEAN
 - quantity DECIMAL(10,2) NOT NULL
 - price DECIMAL(10,2) NOT NULL
@@ -195,21 +194,46 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 - added_by_employee_id BIGINT
 - created_at DATETIME NOT NULL DEFAULT now()
 
+## project_work_skill
+
+- project_work_skill_id
+- company_id
+- project_id
+- work_skill_id
+
+## project_number
+
+- project_number_id
+- company_id
+- last_number INT UNSIGNED
+
+---
+
+## work_skill
+
+- work_skill_id
+- company_id
+- name
+- hourly_rate
+
 ---
 
 ## payment
 
 - payment_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
-- work_order_id BIGINT NOT NULL REFERENCES work_order(work_order_id)
+- client_id BIGINT NOT NULL REFERENCES client(client_id)
 - amount DECIMAL(12,2) NOT NULL
-- tip_amount DECIMAL(12,2) NOT NULL DEFAULT 0
 - payment_method VARCHAR(20) NOT NULL — cash | check | credit_card
-- payment_provider VARCHAR(30) — authorize_net | cardpointe | xero | wisetack
-- transaction_id VARCHAR(500)
-- is_deposit BOOLEAN NOT NULL DEFAULT FALSE
 - status VARCHAR(20) NOT NULL DEFAULT 'completed'
-- transacted_at DATETIME NOT NULL DEFAULT now()
+- created_at DATETIME NOT NULL DEFAULT now()
+
+## payment_project
+
+- payment_project_id
+- payment_id
+- project_id
+- amount DECIMAL(12,2)
 
 ---
 
@@ -221,10 +245,47 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 - email VARCHAR(500) NOT NULL
 - phone VARCHAR(30)
 - password_hash VARCHAR(500) NOT NULL
-- role_id BIGINT NOT NULL REFERENCES role(role_id)
 - avatar_url TEXT
 - created_at DATETIME NOT NULL DEFAULT now()
 - updated_at DATETIME NOT NULL DEFAULT now()
+- is_owner BOOLEAN NOT NULL <!-- can not have permissions removed -->
+
+## employee_software_role
+
+- employee_software_role_id
+- employee_id
+- software_role_id
+
+## software_role
+
+- software_role_id
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
+- name
+
+## software_role_permission
+
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
+- software_role_id
+- permission_id
+
+## permission
+
+- permission_id
+- code
+- name
+
+```
+CAN_CREATE_ORDER
+CAN_CREATE_CLIENT
+CAN_EDIT_CLIENT
+CAN_QUALIFY_LEAD
+CAN_ESTIMATE
+CAN_WORK_PROJECTS
+CAN_CHANGE_WORK_ORDERS_WITHOUT_CUSTOMER_APPROVAL
+CAN_SET_ANY_DOCUMENT_STATUS
+CAN_MANAGE_USERS
+CAN_EDIT_PAYMENTS
+```
 
 ---
 
@@ -242,35 +303,6 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 - crew_id BIGINT NOT NULL REFERENCES crew(crew_id)
 - employee_id BIGINT NOT NULL REFERENCES employee(employee_id)
 
-## role
-
-- role_id
-- company_id BIGINT NOT NULL REFERENCES company(company_id)
-- name
-
-## role_permission
-
-- company_id BIGINT NOT NULL REFERENCES company(company_id)
-- role_id
-- permission_id
-
-## permission
-
-- permission_id
-- company_id BIGINT NOT NULL REFERENCES company(company_id)
-- code
-- name
-
-```
-CAN_CREATE_ORDER
-CAN_CREATE_CLIENT
-CAN_EDIT_CLIENT
-CAN_QUALIFY_LEAD
-CAN_ESTIMATE
-CAN_WORK_CREW
-CAN_CHOOSE_ANY_DOCUMENT_STATUS
-```
-
 ---
 
 ## time_entry
@@ -278,48 +310,12 @@ CAN_CHOOSE_ANY_DOCUMENT_STATUS
 - time_entry_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
 - employee_id BIGINT NOT NULL REFERENCES employee(employee_id)
+- project_id BIGINT NOT NULL
 - work_date DATE NOT NULL
 - clock_in DATETIME NOT NULL
 - clock_out DATETIME
 - regular_hours DECIMAL(5,2) NOT NULL DEFAULT 0
-- ot_hours DECIMAL(5,2) NOT NULL DEFAULT 0
-- pw_hours DECIMAL(5,2) NOT NULL DEFAULT 0
-- pw_ot_hours DECIMAL(5,2) NOT NULL DEFAULT 0
-- expenses DECIMAL(10,2) NOT NULL DEFAULT 0
-- deductions DECIMAL(10,2) NOT NULL DEFAULT 0
-- total_hours DECIMAL(5,2) GENERATED ALWAYS AS (regular_hours + ot_hours + pw_hours + pw_ot_hours)
-- total_pay DECIMAL(10,2)
-- manually_adjusted BOOLEAN NOT NULL DEFAULT FALSE
 - created_at DATETIME NOT NULL DEFAULT now()
-
----
-
-## sms_message
-
-- sms_message_id BIGINT NOT NULL
-- company_id BIGINT NOT NULL REFERENCES company(company_id)
-- client_id BIGINT REFERENCES client(client_id)
-- employee_id BIGINT REFERENCES employee(employee_id)
-- direction VARCHAR(10) NOT NULL — inbound | outbound
-- from_number VARCHAR(30) NOT NULL
-- to_number VARCHAR(30) NOT NULL
-- body TEXT NOT NULL
-- status VARCHAR(15) NOT NULL — sent | delivered | failed
-- sent_at DATETIME NOT NULL
-
-## email_log
-
-- email_log_id BIGINT NOT NULL
-- company_id BIGINT NOT NULL REFERENCES company(company_id)
-- client_id BIGINT REFERENCES client(client_id)
-- employee_id BIGINT REFERENCES employee(employee_id)
-- direction VARCHAR(10) NOT NULL — inbound | outbound
-- from_address VARCHAR(500) NOT NULL
-- to_address VARCHAR(500) NOT NULL
-- subject VARCHAR(500)
-- body_html TEXT
-- status VARCHAR(15) — sent | opened | clicked | bounced
-- sent_at DATETIME NOT NULL
 
 ---
 
