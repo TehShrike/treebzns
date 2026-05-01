@@ -57,6 +57,7 @@ Do next time: add a role table and permissions table
 ## client
 
 - client_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - name VARCHAR(500) NOT NULL
 - primary_client_address_id BIGINT NOT NULL
 - billing_client_address_id BIGINT NOT NULL
@@ -71,6 +72,7 @@ Do next time: add a role table and permissions table
 ## client_contact
 
 - client_contact_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - client_id BIGINT NOT NULL REFERENCES client(client_id)
 - contact_name VARCHAR(200) NOT NULL
 - phone VARCHAR(30)
@@ -80,6 +82,7 @@ Do next time: add a role table and permissions table
 
 ## client_address
 - client_address_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - client_id BIGINT NOT NULL REFERENCES client(client_id)
 - name
 - address_line_1 VARCHAR(500)
@@ -96,6 +99,7 @@ Do next time: add a role table and permissions table
 ## project
 
 - project_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - project_document BIGINT NOT NULL
 - client_id BIGINT NOT NULL REFERENCES client(client_id)
 - client_address_id BIGINT NOT NULL
@@ -124,6 +128,7 @@ Do next time: add a role table and permissions table
 ## project_document
 
 - project_document_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - group_name
 - name
 - needs_estimate_to_move_on
@@ -155,6 +160,7 @@ Current thought is that documents would have a "move on" action, which can be do
 ## item_type
 
 - item_type_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - name
 
 ```
@@ -164,6 +170,7 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 ## project_line_item
 
 - project_line_item_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - project_id BIGINT NOT NULL
 - description
 - item_type_id
@@ -174,6 +181,7 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 ## project_line_item_image
 
 - project_line_item_image_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - project_line_item_id
 - image BLOB
 - description
@@ -181,6 +189,7 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 ## project_client_approval
 
 - project_client_approval_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - customer_signature BLOB
 - verbal_approval BOOLEAN NOT NULL
 - added_by_employee_id BIGINT
@@ -191,6 +200,7 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 ## payment
 
 - payment_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - work_order_id BIGINT NOT NULL REFERENCES work_order(work_order_id)
 - amount DECIMAL(12,2) NOT NULL
 - tip_amount DECIMAL(12,2) NOT NULL DEFAULT 0
@@ -221,28 +231,33 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 ## crew
 
 - crew_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - crew_leader_id BIGINT NOT NULL REFERENCES employee(employee_id)
 - color VARCHAR(7) — hex code
 - created_at DATETIME NOT NULL DEFAULT now()
 
 ## crew_member
 
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - crew_id BIGINT NOT NULL REFERENCES crew(crew_id)
 - employee_id BIGINT NOT NULL REFERENCES employee(employee_id)
 
 ## role
 
 - role_id
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - name
 
 ## role_permission
 
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - role_id
 - permission_id
 
 ## permission
 
 - permission_id
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - code
 - name
 
@@ -261,6 +276,7 @@ CAN_CHOOSE_ANY_DOCUMENT_STATUS
 ## time_entry
 
 - time_entry_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - employee_id BIGINT NOT NULL REFERENCES employee(employee_id)
 - work_date DATE NOT NULL
 - clock_in DATETIME NOT NULL
@@ -281,6 +297,7 @@ CAN_CHOOSE_ANY_DOCUMENT_STATUS
 ## sms_message
 
 - sms_message_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - client_id BIGINT REFERENCES client(client_id)
 - employee_id BIGINT REFERENCES employee(employee_id)
 - direction VARCHAR(10) NOT NULL — inbound | outbound
@@ -293,6 +310,7 @@ CAN_CHOOSE_ANY_DOCUMENT_STATUS
 ## email_log
 
 - email_log_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - client_id BIGINT REFERENCES client(client_id)
 - employee_id BIGINT REFERENCES employee(employee_id)
 - direction VARCHAR(10) NOT NULL — inbound | outbound
@@ -308,6 +326,7 @@ CAN_CHOOSE_ANY_DOCUMENT_STATUS
 ## tax_rate
 
 - tax_rate_id: BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - name: VARCHAR(200)
 - tax_rate: DECIMAL(6,4)
 
