@@ -74,14 +74,14 @@ add actual permission scheme
 - contact_name VARCHAR(200) NOT NULL
 - phone VARCHAR(30)
 - email VARCHAR(500)
-- is_primary BOOLEAN NOT NULL DEFAULT FALSE
+- is_primary BIT(1) NOT NULL DEFAULT 0
 - sort_order SMALLINT NOT NULL DEFAULT 0
 
 ## client_address
 - client_address_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
 - client_id BIGINT NOT NULL REFERENCES client(client_id)
-- name
+- name VARCHAR(200)
 - address_line_1 VARCHAR(500)
 - address_line_2 VARCHAR(500)
 - city VARCHAR(100)
@@ -106,19 +106,19 @@ add actual permission scheme
 - state VARCHAR(50)
 - zip VARCHAR(20)
 - due_date DATE
-- emergency BOOLEAN
+- emergency BIT(1)
 - assigned_estimator_employee_id BIGINT REFERENCES employee(employee_id)
 - details TEXT
 - created_by_employee_id BIGINT REFERENCES employee(employee_id)
 - created_at DATETIME NOT NULL DEFAULT now()
 - updated_at DATETIME NOT NULL DEFAULT now()
-- needs_client_approval BOOLEAN NOT NULL
-- sent_for_client_approval BOOLEAN NOT NULL
+- needs_client_approval BIT(1) NOT NULL
+- sent_for_client_approval BIT(1) NOT NULL
 - tax_rate_id BIGINT
 - tax_rate DECIMAL(6,4)
 - notes_for_crew TEXT
 - notes_for_office TEXT
-- closed: BOOLEAN
+- closed BIT(1)
 - closed_at DATETIME
 - closed_date DATE
 
@@ -126,17 +126,17 @@ add actual permission scheme
 
 - project_document_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
-- group_name
-- name
-- needs_estimate_to_move_on
-- needs_client_approval_to_move_on BOOLEAN
-- can_expire
-- expire_days
+- group_name VARCHAR(100)
+- name VARCHAR(200)
+- needs_estimate_to_move_on BIT(1)
+- needs_client_approval_to_move_on BIT(1)
+- can_expire BIT(1)
+- expire_days SMALLINT UNSIGNED
 - next_project_document_id BIGINT
-- should_be_worked BOOLEAN
-- needs_to_be_contacted_by_lead_qualifier
-- can_be_closed
-- represents_billable_sale_when_closed
+- should_be_worked BIT(1)
+- needs_to_be_contacted_by_lead_qualifier BIT(1)
+- can_be_closed BIT(1)
+- represents_billable_sale_when_closed BIT(1)
 
 ```
 Example:
@@ -158,8 +158,8 @@ Current thought is that documents would have a "move on" action, which can be do
 
 - item_type_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
-- taxable BOOLEAN
-- name
+- taxable BIT(1)
+- name VARCHAR(100)
 
 ```
 Stump grinding, limb removal, tree removal, tree planting, injecting
@@ -169,11 +169,11 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 
 - project_line_item_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
-- project_id BIGINT NOT NULL
-- description
-- item_type_id
-- estimated_hours UNSIGNED INT NOT NULL
-- taxable BOOLEAN
+- project_id BIGINT NOT NULL REFERENCES project(project_id)
+- description TEXT
+- item_type_id BIGINT REFERENCES item_type(item_type_id)
+- estimated_hours INT UNSIGNED NOT NULL
+- taxable BIT(1)
 - quantity DECIMAL(10,2) NOT NULL
 - price DECIMAL(10,2) NOT NULL
 
@@ -181,40 +181,40 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 
 - project_line_item_image_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
-- project_line_item_id
+- project_line_item_id BIGINT NOT NULL REFERENCES project_line_item(project_line_item_id)
 - image BLOB
-- description
+- description TEXT
 
 ## project_client_approval
 
 - project_client_approval_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
 - customer_signature BLOB
-- verbal_approval BOOLEAN NOT NULL
-- added_by_employee_id BIGINT
+- verbal_approval BIT(1) NOT NULL
+- added_by_employee_id BIGINT REFERENCES employee(employee_id)
 - created_at DATETIME NOT NULL DEFAULT now()
 
 ## project_work_skill
 
-- project_work_skill_id
-- company_id
-- project_id
-- work_skill_id
+- project_work_skill_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
+- project_id BIGINT NOT NULL REFERENCES project(project_id)
+- work_skill_id BIGINT NOT NULL REFERENCES work_skill(work_skill_id)
 
 ## project_number
 
-- project_number_id
-- company_id
+- project_number_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - last_number INT UNSIGNED
 
 ---
 
 ## work_skill
 
-- work_skill_id
-- company_id
-- name
-- hourly_rate
+- work_skill_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
+- name VARCHAR(100) NOT NULL
+- hourly_rate DECIMAL(10,2)
 
 ---
 
@@ -230,9 +230,10 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 
 ## payment_project
 
-- payment_project_id
-- payment_id
-- project_id
+- payment_project_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
+- payment_id BIGINT NOT NULL REFERENCES payment(payment_id)
+- project_id BIGINT NOT NULL REFERENCES project(project_id)
 - amount DECIMAL(12,2)
 
 ---
@@ -240,7 +241,7 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 ## employee
 
 - employee_id BIGINT NOT NULL
-- company_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
 - name VARCHAR(100) NOT NULL
 - email VARCHAR(500) NOT NULL
 - phone VARCHAR(30)
@@ -248,31 +249,32 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 - avatar_url TEXT
 - created_at DATETIME NOT NULL DEFAULT now()
 - updated_at DATETIME NOT NULL DEFAULT now()
-- is_owner BOOLEAN NOT NULL <!-- can not have permissions removed -->
+- is_owner BIT(1) NOT NULL <!-- can not have permissions removed -->
 
 ## employee_software_role
 
-- employee_software_role_id
-- employee_id
-- software_role_id
+- employee_software_role_id BIGINT NOT NULL
+- company_id BIGINT NOT NULL REFERENCES company(company_id)
+- employee_id BIGINT NOT NULL REFERENCES employee(employee_id)
+- software_role_id BIGINT NOT NULL REFERENCES software_role(software_role_id)
 
 ## software_role
 
-- software_role_id
+- software_role_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
-- name
+- name VARCHAR(100) NOT NULL
 
 ## software_role_permission
 
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
-- software_role_id
-- permission_id
+- software_role_id BIGINT NOT NULL REFERENCES software_role(software_role_id)
+- permission_id BIGINT NOT NULL REFERENCES permission(permission_id)
 
 ## permission
 
-- permission_id
-- code
-- name
+- permission_id BIGINT NOT NULL
+- code VARCHAR(100) NOT NULL
+- name VARCHAR(200)
 
 ```
 CAN_CREATE_ORDER
@@ -321,8 +323,8 @@ CAN_EDIT_PAYMENTS
 
 ## tax_rate
 
-- tax_rate_id: BIGINT NOT NULL
+- tax_rate_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
-- name: VARCHAR(200)
-- tax_rate: DECIMAL(6,4)
+- name VARCHAR(200)
+- tax_rate DECIMAL(6,4)
 
