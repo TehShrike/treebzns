@@ -10,13 +10,19 @@
 		"type": "git",
 		"url": "git+ssh://git@github.com/TehShrike/treebzns.git"
 	},
+	"imports": {
+		"#shared/*": "./shared/*",
+		"#schema/*": "./schema/*"
+	},
 	"license": "UNLICENSED",
 	"author": "TehShrike",
 	"type": "module",
 	"main": "index.js",
 	"scripts": {
 		"test": "run-p test:*",
-		"test:unit": "node --test lib/**/*.test.ts embed/**/*.test.ts companies/**/*.test.ts",
+		"test:types:everything_else": "tsc --noEmit",
+		"test:types": "run-s -c test:types:* --parallel",
+		"test:unit": "node --test shared/**/*.test.ts scripts/**/*.test.ts",
 		"export_schema": "dotenv -- node shared/schema_dumper/index.ts",
 		"db:reset": "dotenv -- bash scripts/reset-db.sh"
 	},
