@@ -21,7 +21,7 @@
 	"scripts": {
 		"test": "run-p test:*",
 		"test:types:everything_else": "tsc --noEmit",
-		"test:types": "run-s -c test:types:* --parallel",
+		"test:types": "run-p -c test:types:*",
 		"test:unit": "node --test shared/**/*.test.ts scripts/**/*.test.ts",
 		"export_schema": "dotenv -- node shared/schema_dumper/index.ts",
 		"db:reset": "dotenv -- bash scripts/reset-db.sh"
