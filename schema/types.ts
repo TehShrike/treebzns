@@ -1,0 +1,26 @@
+export type Schema = {
+	client: DbClient
+	client_address: DbClientAddress
+	client_contact: DbClientContact
+	company: DbCompany
+	crew: DbCrew
+	crew_member: DbCrewMember
+	employee: DbEmployee
+	employee_software_role: DbEmployeeSoftwareRole
+	item_type: DbItemType
+	payment: DbPayment
+	payment_project: DbPaymentProject
+	permission: DbPermission
+	project: DbProject
+	project_client_approval: DbProjectClientApproval
+	project_document: DbProjectDocument
+	project_line_item: DbProjectLineItem
+	project_line_item_image: DbProjectLineItemImage
+	project_number: DbProjectNumber
+	project_work_skill: DbProjectWorkSkill
+	software_role: DbSoftwareRole
+	software_role_permission: DbSoftwareRolePermission
+	tax_rate: DbTaxRate
+	time_entry: DbTimeEntry
+	work_skill: DbWorkSkill
+}
