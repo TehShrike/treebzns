@@ -188,7 +188,7 @@ test('valid query', () => {
 	const validated_query = validator(valid_query)
 
 	assert.strictEqual(validated_query.valid, true)
-	assert.strictEqual(validated_query.sql, 'SELECT `project`.`project_id`, COUNT(`project`.`project_id`) AS `count_project_id`\nFROM `project` AS `p`\nJOIN `client` AS `c` ON `project`.`client_id` = `client`.`client_id`\n\tAND `project`.`client_id` IS NOT NULL\nWHERE `project`.`company_id` = ?')
+	assert.strictEqual(validated_query.sql, 'SELECT `project`.`project_id`, COUNT(`project`.`project_id`) AS `count_project_id`\nFROM `project` AS `p`\nJOIN `client` AS `c` ON `project`.`client_id` = `client`.`client_id`\n\tAND `project`.`client_id` IS NOT NULL\nWHERE `project`.`client_id` = ?')
 	assert.deepStrictEqual(validated_query.parameters, [1])
 })
 
