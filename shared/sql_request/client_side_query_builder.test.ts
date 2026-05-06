@@ -185,6 +185,24 @@ test('client_side_query_builder: where after join with and', () => {
 	assert_valid_query_output(built)
 })
 
+test('client_side_query_builder: select with column refs and aliases', () => {
+	const built = q.from('project', 'p')
+		.select(
+			{ table: 'p', column: 'project_id' },
+			{ table: 'p', column: 'company_id', alias: 'co' },
+		)
+		.build()
+	assert_valid_query_output(built)
+})
+
+test('client_side_query_builder: group_by with column refs', () => {
+	const built = q.from('project', 'p')
+		.join('project_line_item', 'pli', on => on.comparison({ table: 'pli', column: 'project_id' }, '=', { table: 'p', column: 'project_id' }))
+		.group_by({ table: 'p', column: 'project_id' })
+		.build()
+	assert_valid_query_output(built)
+})
+
 test.skip('client_side_query_builder: type errors on invalid references', () => {
 	// @ts-expect-error: projectz is not a valid table name
 	q.from('projectz', 'project')
@@ -206,4 +224,16 @@ test.skip('client_side_query_builder: type errors on invalid references', () => 
 			q.comparison({ table: 'pli', column: 'item_type_id' }, '=', { value: 3 }),
 			q.comparison({ table: 'p', column: 'company_id' }, '=', { value: 4 }),
 		))
+
+	// @ts-expect-error: project was aliased to p, so 'project' is not a valid table identifier in select
+	q.from('project', 'p').select({ table: 'project', column: 'project_id' })
+
+	// @ts-expect-error: 'not_a_column' is not a column on project
+	q.from('project', 'p').select({ table: 'p', column: 'not_a_column' })
+
+	// @ts-expect-error: project was aliased to p, so 'project' is not a valid table identifier in group_by
+	q.from('project', 'p').group_by({ table: 'project', column: 'project_id' })
+
+	// @ts-expect-error: 'not_a_column' is not a column on project
+	q.from('project', 'p').group_by({ table: 'p', column: 'not_a_column' })
 })
