@@ -180,6 +180,36 @@ q.from('project', 'projectz')
 q.from('projectz', 'project')
 
 // valid: project_line_item is a valid table name, project_id is a column on project_line_item (pli in this query), and project_id is a column on project (p in this query)
-q.from('project', 'p').join('project_line_item', 'pli', on => on.comparison('pli', 'project_id', '=', 'p', 'project_id'))
+q.from('project', 'p')
+	.join('project_line_item', 'pli', on => on.comparison({ table: 'pli', column: 'project_id'}, '=', { table: 'p', column: 'project_id'}))
+	.join('project_document', 'pd', on => on.comparison({ table: 'p', column: 'project_document_id'}, '=', { table: 'pd', column: 'project_document_id' }))
 
-q.from('project_line_item')
+q.from('project', 'p')
+	// @ts-expect-error: project was aliased to p
+	.join('project_line_item', 'pli', on => on.comparison({ table: 'pli', column: 'project_id'}, '=', { table: 'project', column: 'project_id'}))
+
+q.from('project', 'p')
+	// @ts-expect-error: project_line_item was aliased to pli
+	.join('project_line_item', 'pli', on => on.comparison({ table: 'project_line_item', column: 'project_id'}, '=', { table: 'p', column: 'project_id'}))
+
+
+// valid
+q.from('project_line_item', 'pli').where(q => q.comparison({ table: 'pli', column: 'product_id' }, '=', { value: 2 }))
+
+// @ts-expect-error: pli is valid in this context, project_line_item is not
+q.from('project_line_item', 'pli').where(q => q.comparison({ table: 'project_line_item', column: 'product_id' }, '=', { value: 2 }))
+
+// valid
+q.from('project', 'p')
+	.join('project_line_item', 'pli', on => on.comparison({ table: 'pli', column: 'project_id'}, '=', { table: 'p', column: 'project_id'}))
+	.where(q => q.and(
+		q.comparison({ table: 'pli', column: 'item_type_id' }, '=', { value: 3 }),
+		q.comparison({ table: 'p', column: 'company_id' }, '=', { value: 4 })
+	))
+
+q.from('project', 'p')
+	.where(q => q.and(
+		// @ts-expect-error: pli is not a valid reference here
+		q.comparison({ table: 'pli', column: 'item_type_id' }, '=', { value: 3 }),
+		q.comparison({ table: 'p', column: 'company_id' }, '=', { value: 4 })
+	))
