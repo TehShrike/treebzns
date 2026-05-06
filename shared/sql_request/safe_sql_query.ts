@@ -1,4 +1,5 @@
 import assert from '#shared/assert.ts'
+import { for_each, map } from '#shared/array.ts'
 import type {
 	ColumnReference,
 	UserProvidedValue,
@@ -121,7 +122,7 @@ const select_item_to_chunk = (sel: SelectExpression): SqlChunk => {
 }
 
 const merge_chunks = (chunks: SqlChunk[], separator: string): SqlChunk => ({
-	sql: chunks.map(c => c.sql).join(separator),
+	sql: map(chunks, c => c.sql).join(separator),
 	parameters: chunks.flatMap(c => c.parameters),
 })
 
@@ -139,7 +140,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 		}
 
 		register_table(query.from.table_name, query.from.alias)
-		for (const join of query.joins) register_table(join.table_name, join.alias)
+		for_each(query.joins, join => register_table(join.table_name, join.alias))
 
 		const check_col_ref = (ref: ColumnReference) => {
 			if (alias_to_table_name.has(ref.table_identifier)) {
@@ -162,38 +163,38 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 
 		const check_select_or_group_by = (expr: SelectExpression) => {
 			if (expr.type === 'column reference') check_col_ref(expr)
-			else for (const arg of expr.arguments) check_arg(arg)
+			else for_each(expr.arguments, check_arg)
 		}
 
-		for (const sel of query.select) check_select_or_group_by(sel)
+		for_each(query.select, check_select_or_group_by)
 
-		for (const join of query.joins) {
-			for (const clause of join.on_clause) {
+		for_each(query.joins, join => {
+			for_each(join.on_clause, clause => {
 				if (clause.type === 'comparison') {
 					check_arg(clause.left)
 					check_arg(clause.right)
 				} else {
-					for (const arg of clause.arguments) check_arg(arg)
+					for_each(clause.arguments, check_arg)
 				}
-			}
-		}
+			})
+		})
 
-		for (const comp of query.where) {
+		for_each(query.where, comp => {
 			check_arg(comp.left)
 			check_arg(comp.right)
-		}
+		})
 
-		for (const expr of query.group_by) check_select_or_group_by(expr)
+		for_each(query.group_by, check_select_or_group_by)
 
 		if (messages.length > 0) return { valid: false, messages }
 		return { valid: true }
 	}
 
 	const to_sql = (query: SafeSqlQuery): { sql: string, parameters: any[] } => {
-		const select_chunk = merge_chunks(query.select.map(select_item_to_chunk), ', ')
+		const select_chunk = merge_chunks(map(query.select, select_item_to_chunk), ', ')
 
-		const join_chunks = query.joins.map(join => {
-			const on = merge_chunks(join.on_clause.map(on_clause_item_to_chunk), '\n\tAND ')
+		const join_chunks = map(query.joins, join => {
+			const on = merge_chunks(map(join.on_clause, on_clause_item_to_chunk), '\n\tAND ')
 			return {
 				sql: `JOIN \`${join.table_name}\` AS \`${join.alias}\` ON ${on.sql}`,
 				parameters: on.parameters,
@@ -201,11 +202,11 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 		})
 
 		const where_chunk = query.where.length > 0
-			? merge_chunks(query.where.map(comparison_to_chunk), '\n\tAND ')
+			? merge_chunks(map(query.where, comparison_to_chunk), '\n\tAND ')
 			: null
 
 		const group_by_chunk = query.group_by.length > 0
-			? merge_chunks(query.group_by.map(select_item_to_chunk), ', ')
+			? merge_chunks(map(query.group_by, select_item_to_chunk), ', ')
 			: null
 
 		const all_params = [
@@ -219,11 +220,11 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			sql: [
 				`SELECT ${select_chunk.sql}`,
 				`FROM \`${query.from.table_name}\` AS \`${query.from.alias}\``,
-				...join_chunks.map(c => c.sql),
+				...map(join_chunks, c => c.sql),
 				...(where_chunk ? [`WHERE ${where_chunk.sql}`] : []),
 				...(group_by_chunk ? [`GROUP BY ${group_by_chunk.sql}`] : []),
 			].join('\n'),
-			parameters: all_params.map(p => p.value),
+			parameters: map(all_params, p => p.value),
 		}
 	}
 

@@ -1,3 +1,4 @@
+import { map } from '#shared/array.ts'
 import type {
 	Comparator,
 	SafeSqlQuery,
@@ -144,11 +145,11 @@ const make_stage = (state: State): any => ({
 		return make_stage(next)
 	},
 	select: (...exprs: SelectColumnInputRuntime[]) => {
-		const next: State = { ...state, selects: [...state.selects, ...exprs.map(to_select_expression)] }
+		const next: State = { ...state, selects: [...state.selects, ...map(exprs, to_select_expression)] }
 		return make_stage(next)
 	},
 	group_by: (...exprs: SelectColumnInputRuntime[]) => {
-		const next: State = { ...state, group_bys: [...state.group_bys, ...exprs.map(to_select_expression)] }
+		const next: State = { ...state, group_bys: [...state.group_bys, ...map(exprs, to_select_expression)] }
 		return make_stage(next)
 	},
 	build: (): SafeSqlQuery => ({

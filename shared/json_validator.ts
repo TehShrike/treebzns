@@ -1,4 +1,5 @@
 import assert from '#shared/assert.ts'
+import { map, filter } from '#shared/array.ts'
 
 type MessageReturningFunction = (input: unknown, name: string) => string[]
 
@@ -87,7 +88,7 @@ const make_object_validator = <const OBJECT extends { [key: string]: any }>(shap
 			return [`${quoted_name} is not an object`]
 		}
 
-		const keys_that_dont_exist_in_shape = keys_plz(input).filter((key) => !(key in shape))
+		const keys_that_dont_exist_in_shape = filter(keys_plz(input), (key) => !(key in shape))
 		const property_messages = keys_plz(shape).flatMap((key) => {
 			const validator = shape[key]
 			assert(validator)
@@ -96,9 +97,7 @@ const make_object_validator = <const OBJECT extends { [key: string]: any }>(shap
 		})
 
 		return [
-			...keys_that_dont_exist_in_shape.map(
-				(key) => `${quoted_name} should not have a property named ${double_quote(key)} `,
-			),
+			...map(keys_that_dont_exist_in_shape, (key) => `${quoted_name} should not have a property named ${double_quote(key)} `),
 			...property_messages,
 		]
 	}
@@ -146,9 +145,8 @@ const make_object_values_validator = <T>(element_validator: NonOptionalValidator
 			return [`${double_quote(name)} is not an object`]
 		}
 
-		return Object.entries(input)
-			.filter(([_key, value]) => !element_validator.is_valid(value))
-			.flatMap(([key, value]) => element_validator.get_messages(value, `${name}.${key}`))
+		const failing_entries = filter(Object.entries(input), ([_key, value]) => !element_validator.is_valid(value))
+		return failing_entries.flatMap(([key, value]) => element_validator.get_messages(value, `${name}.${key}`))
 	}
 
 	return {
@@ -167,12 +165,11 @@ const one_of = <T extends Validator<any>[]>(...validators: T): Validator<UnpackV
 
 	const get_messages = (input: unknown, name: string) => {
 		if (!is_valid(input)) {
-			const messages = validators
-				.filter((validator) => !validator.is_valid(input))
-				.map((validator) => {
-					const messages = validator.get_messages(input, name)
-					return messages.length > 1 ? `(${messages.join(`, and `)})` : messages[0]
-				})
+			const failing_validators = filter(validators, (validator) => !validator.is_valid(input))
+			const messages = map(failing_validators, (validator) => {
+				const messages = validator.get_messages(input, name)
+				return messages.length > 1 ? `(${messages.join(`, and `)})` : messages[0]
+			})
 
 			return [messages.join(`, or `)]
 		}
