@@ -1,4 +1,4 @@
-import { assert } from '#shared/assert.ts'
+import assert from '#shared/assert.ts'
 
 type ColumnReference = {
 	type: 'column reference'

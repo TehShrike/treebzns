@@ -122,7 +122,7 @@ export type TestSchema = {
 
 
 
-test('valid query', () => {
+test('sql_request: valid query', () => {
 	const valid_query = {
 		select: [{
 			type: 'column reference',
@@ -192,7 +192,7 @@ test('valid query', () => {
 	assert.deepStrictEqual(parameters, [1])
 })
 
-test('invalid table', () => {
+test('sql_request: invalid table', () => {
 	const query = {
 		select: [{
 			type: 'column reference',
@@ -215,7 +215,7 @@ test('invalid table', () => {
 	assert.strictEqual(result.messages.length, 1)
 })
 
-test('invalid column', () => {
+test('sql_request: invalid column', () => {
 	const query = {
 		select: [{
 			type: 'column reference',
