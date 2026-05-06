@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert'
-import { make_query_validator, type TrustableSelectQuery } from './index.ts'
+import { make_safe_query_builder, type TrustableSelectQuery } from './index.ts'
 import { type FinancialNumber } from 'financial-number'
 import { Temporal } from '@js-temporal/polyfill'
 
@@ -183,9 +183,9 @@ test('sql_request: valid query', () => {
 		}]
 	} satisfies TrustableSelectQuery
 
-	const { validate, to_sql } = make_query_validator(test_schema)
+	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
 
-	assert.strictEqual(validate(valid_query).valid, true)
+	assert.strictEqual(validate_table_and_column_names(valid_query).valid, true)
 
 	const { sql, parameters } = to_sql(valid_query)
 	assert.strictEqual(sql, 'SELECT `project`.`project_id`, COUNT(`project`.`project_id`) AS `count_project_id`\nFROM `project` AS `p`\nJOIN `client` AS `c` ON `project`.`client_id` = `client`.`client_id`\n\tAND `project`.`client_id` IS NOT NULL\nWHERE `project`.`client_id` = ?')
@@ -207,8 +207,8 @@ test('sql_request: invalid table', () => {
 		where: [],
 	} satisfies TrustableSelectQuery
 
-	const { validate } = make_query_validator(test_schema)
-	const result = validate(query)
+	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
+	const result = validate_table_and_column_names(query)
 
 	assert.strictEqual(result.valid, false)
 	console.log(result.messages)
@@ -230,8 +230,8 @@ test('sql_request: invalid column', () => {
 		where: [],
 	} satisfies TrustableSelectQuery
 
-	const { validate } = make_query_validator(test_schema)
-	const result = validate(query)
+	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
+	const result = validate_table_and_column_names(query)
 
 	assert.strictEqual(result.valid, false)
 	console.log(result.messages)

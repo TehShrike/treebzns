@@ -1,42 +1,24 @@
 import assert from '#shared/assert.ts'
+import type {
+	ColumnReference,
+	UserProvidedValue,
+	Comparison,
+	FunctionName,
+	FunctionExpression,
+	SelectExpression,
+	TableAddition,
+	Join,
+	TrustableSelectQuery,
+} from './trustable_select_query.ts'
 
-type ColumnReference = {
-	type: 'column reference'
-	table_identifier: string
-	column: string
-}
-
-type SelectExpression = (ColumnReference & {
-	alias?: string
-}) | FunctionExpression & {
-	alias: string
-}
-
-type TableAddition = {
-	table_name: string
-	alias: string
-}
-
-type Comparator = '>' | '>=' | '<' | '!=' | '<=' | '<=>' | '='
-
-type UserProvidedValue = {
-	type: 'user provided value'
-	value: any
-}
-
-type Comparison = {
-	type: 'comparison'
-	left: ColumnReference | UserProvidedValue
-	comparator: Comparator
-	right: ColumnReference | UserProvidedValue
-}
+export type { TrustableSelectQuery }
 
 type SqlChunk = {
 	sql: string
 	parameters: Array<UserProvidedValue>
 }
 
-const value_to_sql_chunk = (value: SomeFunctionArgument) => {
+const value_to_sql_chunk = (value: ColumnReference | UserProvidedValue) => {
 	if (value.type === 'column reference') {
 		return {
 			sql: `\`${value.table_identifier}\`.\`${value.column}\``,
@@ -50,8 +32,7 @@ const value_to_sql_chunk = (value: SomeFunctionArgument) => {
 	}
 }
 
-type SomeFunctionArgument = UserProvidedValue | ColumnReference
-type SomeFunctionArguments = [SomeFunctionArgument, SomeFunctionArgument] | [SomeFunctionArgument]
+type SomeFunctionArguments = [ColumnReference | UserProvidedValue, ColumnReference | UserProvidedValue] | [ColumnReference | UserProvidedValue]
 const to_sql_chunk = (builder: {
 	build_sql_1?: (value: string) => string,
 	build_sql_2?: (value_a: string, value_b: string) => string,
@@ -78,7 +59,6 @@ const to_sql_chunk = (builder: {
 	}
 }
 
-type FunctionArgument = ColumnReference | UserProvidedValue
 const FUNCTIONS = {
 	'IS NOT NULL': (args: SomeFunctionArguments) => to_sql_chunk({
 		build_sql_1: (value: string) => `${value} IS NOT NULL`
@@ -92,26 +72,7 @@ const FUNCTIONS = {
 	'COUNT DISTINCT': (args: SomeFunctionArguments) => to_sql_chunk({
 		build_sql_1: (value: string) => `COUNT(DISTINCT ${value})`
 	}, args),
-} as const satisfies { [key in string]: (args: SomeFunctionArguments) => SqlChunk }
-
-type FunctionName = keyof typeof FUNCTIONS
-
-type FunctionExpression = {
-	type: 'function'
-	function: FunctionName
-	arguments: Array<ColumnReference | UserProvidedValue>
-}
-
-type Join = TableAddition & {
-	on_clause: Array<Comparison | FunctionExpression>
-}
-
-export type TrustableSelectQuery = {
-	select: Array<SelectExpression>
-	from: TableAddition
-	joins: Array<Join>
-	where: Array<Comparison>
-}
+} as const satisfies { [key in FunctionName]: (args: SomeFunctionArguments) => SqlChunk }
 
 function assertOneOrTwoArguments<T>(args: T[]): asserts args is [T] | [T, T] {
 	if (args.length !== 1 && args.length !== 2) {
@@ -164,8 +125,8 @@ const merge_chunks = (chunks: SqlChunk[], separator: string): SqlChunk => ({
 	parameters: chunks.flatMap(c => c.parameters),
 })
 
-export const make_query_validator = <ThisSchema extends SchemaColumns>(schema: ThisSchema) => {
-	const validate = (query: TrustableSelectQuery): QueryValidationResult => {
+export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema: ThisSchema) => {
+	const validate_table_and_column_names = (query: TrustableSelectQuery): QueryValidationResult => {
 		const messages: string[] = []
 		const invalid_tables = new Set<string>()
 
@@ -253,5 +214,5 @@ export const make_query_validator = <ThisSchema extends SchemaColumns>(schema: T
 		}
 	}
 
-	return { validate, to_sql }
+	return { validate_table_and_column_names, to_sql }
 }
