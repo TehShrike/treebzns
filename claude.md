@@ -6,3 +6,5 @@ To check the type of a specific type or variable in a file, use tsserver directl
 echo '{"seq":1,"type":"request","command":"open","arguments":{"file":"myfile.ts"}}
 {"seq":2,"type":"request","command":"quickinfo","arguments":{"file":"myfile.ts","line":5,"offset":10}}' | npx tsserver
 ```
+
+This project uses pnpm.
