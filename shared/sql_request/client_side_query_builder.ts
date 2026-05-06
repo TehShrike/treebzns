@@ -42,11 +42,7 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
 	) => Stage<Schema, A>
 }
 
-export type QueryBuilder<Schema extends SchemaColumnTypes> = (schema: {
-	[table_name in keyof Schema]: {
-		[column_name in keyof Schema[table_name]]: column_name
-	}
-}) => {
+export type QueryBuilder<Schema extends SchemaColumnTypes> = () => {
 	from: <From extends Extract<keyof Schema, string>, Alias extends string = From>(
 		table: From,
 		alias?: Alias,

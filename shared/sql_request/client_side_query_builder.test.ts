@@ -69,69 +69,9 @@ type ExampleSchema = {
 	project_line_item: ExampleProjectLineItem
 }
 
-const example_schema = {
-	project: {
-		project_id: 'project_id',
-		company_id: 'company_id',
-		project_document_id: 'project_document_id',
-		client_id: 'client_id',
-		client_address_id: 'client_address_id',
-		address_line_1: 'address_line_1',
-		address_line_2: 'address_line_2',
-		city: 'city',
-		state: 'state',
-		zip: 'zip',
-		due_date: 'due_date',
-		emergency: 'emergency',
-		assigned_estimator_employee_id: 'assigned_estimator_employee_id',
-		details: 'details',
-		created_by_employee_id: 'created_by_employee_id',
-		created_at: 'created_at',
-		updated_at: 'updated_at',
-		needs_client_approval: 'needs_client_approval',
-		sent_for_client_approval: 'sent_for_client_approval',
-		tax_rate_id: 'tax_rate_id',
-		tax_rate: 'tax_rate',
-		notes_for_crew: 'notes_for_crew',
-		notes_for_office: 'notes_for_office',
-		closed: 'closed',
-		closed_at: 'closed_at',
-		closed_date: 'closed_date',
-	},
-	project_document: {
-		project_document_id: 'project_document_id',
-		company_id: 'company_id',
-		group_name: 'group_name',
-		name: 'name',
-		needs_estimate_to_move_on: 'needs_estimate_to_move_on',
-		needs_client_approval_to_move_on: 'needs_client_approval_to_move_on',
-		can_expire: 'can_expire',
-		expire_days: 'expire_days',
-		next_project_document_id: 'next_project_document_id',
-		should_be_worked: 'should_be_worked',
-		needs_to_be_contacted_by_lead_qualifier: 'needs_to_be_contacted_by_lead_qualifier',
-		can_be_closed: 'can_be_closed',
-		represents_billable_sale_when_closed: 'represents_billable_sale_when_closed',
-		created_at: 'created_at',
-		updated_at: 'updated_at',
-	},
-	project_line_item: {
-		project_line_item_id: 'project_line_item_id',
-		company_id: 'company_id',
-		project_id: 'project_id',
-		description: 'description',
-		item_type_id: 'item_type_id',
-		estimated_hours: 'estimated_hours',
-		taxable: 'taxable',
-		quantity: 'quantity',
-		price: 'price',
-		created_at: 'created_at',
-		updated_at: 'updated_at',
-	},
-} as const
 
-const query_builder = ((schema: any) => {}) as QueryBuilder<ExampleSchema>
-const q = query_builder(example_schema)
+const query_builder = (() => {}) as QueryBuilder<ExampleSchema>
+const q = query_builder()
 
 test.skip('client_side_query_builder: from with valid table', () => {
 	q.from('project', 'projectz')
