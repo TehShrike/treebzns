@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import type { FinancialNumber } from 'financial-number'
-import type { QueryBuilder } from './client_side_query_builder.ts'
+import query_builder from './client_side_query_builder.ts'
 
 type ExampleProject = {
 	project_id: bigint
@@ -70,8 +70,7 @@ type ExampleSchema = {
 }
 
 
-const query_builder = (() => {}) as QueryBuilder<ExampleSchema>
-const q = query_builder()
+const q = query_builder<ExampleSchema>()
 
 test.skip('client_side_query_builder: from with valid table', () => {
 	q.from('project', 'projectz')
