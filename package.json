@@ -24,13 +24,16 @@
 		"test:types": "run-p -c test:types:*",
 		"test:unit": "node --test shared/**/*.test.ts scripts/**/*.test.ts",
 		"export_schema": "dotenv -- node shared/schema_dumper/index.ts",
-		"db:reset": "dotenv -- bash scripts/reset-db.sh"
+		"db:reset": "dotenv -- bash scripts/reset-db.sh",
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy"
 	},
 	"devDependencies": {
 		"@types/node": "^25.6.0",
 		"dotenv-cli": "^11.0.0",
 		"npm-run-all": "^4.1.5",
-		"typescript": "^6.0.3"
+		"typescript": "^6.0.3",
+		"wrangler": "^4.88.0"
 	},
 	"packageManager": "pnpm@10.32.1",
 	"dependencies": {
@@ -40,5 +43,12 @@
 	},
 	"engines": {
 		"node": ">=25"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild",
+			"sharp",
+			"workerd"
+		]
 	}
 }

@@ -1,0 +1,6 @@
+name = "treebzns"
+main = "build/worker/worker.js"
+compatibility_date = "2025-01-01"
+
+[assets]
+directory = "./public"
