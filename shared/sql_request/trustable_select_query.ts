@@ -98,4 +98,5 @@ export type TrustableSelectQuery = {
 	from: TableAddition
 	joins: Array<Join>
 	where: Array<Comparison>
+	group_by: Array<SelectExpression>
 }

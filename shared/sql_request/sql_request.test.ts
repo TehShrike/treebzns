@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert'
-import { make_safe_query_builder, type TrustableSelectQuery } from './index.ts'
+import { make_safe_query_builder, type TrustableSelectQuery } from './sql_request.ts'
 import { type FinancialNumber } from 'financial-number'
 import { Temporal } from '@js-temporal/polyfill'
 
@@ -126,14 +126,14 @@ test('sql_request: valid query', () => {
 	const valid_query = {
 		select: [{
 			type: 'column reference',
-			table_identifier: 'project',
+			table_identifier: 'p',
 			column: 'project_id',
 		}, {
 			type: 'function',
 			function: 'COUNT',
 			arguments: [{
 				type: 'column reference',
-				table_identifier: 'project',
+				table_identifier: 'p',
 				column: 'project_id',
 			}],
 			alias: 'count_project_id',
@@ -149,7 +149,7 @@ test('sql_request: valid query', () => {
 				type: 'comparison',
 				left: {
 					type: 'column reference',
-					table_identifier: 'project',
+					table_identifier: 'p',
 					column: 'client_id',
 				},
 				comparator: '=',
@@ -163,7 +163,7 @@ test('sql_request: valid query', () => {
 				function: 'IS NOT NULL',
 				arguments: [{
 					type: 'column reference',
-					table_identifier: 'project',
+					table_identifier: 'p',
 					column: 'client_id',
 				}],
 			}]
@@ -172,7 +172,7 @@ test('sql_request: valid query', () => {
 			type: 'comparison',
 			left: {
 				type: 'column reference',
-				table_identifier: 'project',
+				table_identifier: 'p',
 				column: 'client_id',
 			},
 			comparator: '=',
@@ -180,6 +180,11 @@ test('sql_request: valid query', () => {
 				type: 'user provided value',
 				value: 1,
 			},
+		}],
+		group_by: [{
+			type: 'column reference',
+			table_identifier: 'p',
+			column: 'project_id',
 		}]
 	} satisfies TrustableSelectQuery
 
@@ -188,23 +193,24 @@ test('sql_request: valid query', () => {
 	assert.strictEqual(validate_table_and_column_names(valid_query).valid, true)
 
 	const { sql, parameters } = to_sql(valid_query)
-	assert.strictEqual(sql, 'SELECT `project`.`project_id`, COUNT(`project`.`project_id`) AS `count_project_id`\nFROM `project` AS `p`\nJOIN `client` AS `c` ON `project`.`client_id` = `client`.`client_id`\n\tAND `project`.`client_id` IS NOT NULL\nWHERE `project`.`client_id` = ?')
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`, COUNT(`p`.`project_id`) AS `count_project_id`\nFROM `project` AS `p`\nJOIN `client` AS `c` ON `p`.`client_id` = `c`.`client_id`\n\tAND `p`.`client_id` IS NOT NULL\nWHERE `p`.`client_id` = ?')
 	assert.deepStrictEqual(parameters, [1])
 })
 
-test('sql_request: invalid table', () => {
+test('sql_request: invalid table identifier in from', () => {
 	const query = {
 		select: [{
 			type: 'column reference',
-			table_identifier: 'nonexistent_table',
-			column: 'id',
+			table_identifier: 'project',
+			column: 'project_id',
 		}],
 		from: {
 			table_name: 'nonexistent_table',
-			alias: 'n',
+			alias: 'project',
 		},
 		joins: [],
 		where: [],
+		group_by: [],
 	} satisfies TrustableSelectQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
@@ -215,7 +221,112 @@ test('sql_request: invalid table', () => {
 	assert.strictEqual(result.messages.length, 1)
 })
 
-test('sql_request: invalid column', () => {
+test('sql_request: invalid table identifier in join', () => {
+	const query = {
+		select: [{
+			type: 'column reference',
+			table_identifier: 'project',
+			column: 'project_id',
+		}],
+		from: {
+			table_name: 'project',
+			alias: 'project',
+		},
+		joins: [{
+			table_name: 'nonexistent_table',
+			alias: 'client',
+			on_clause: [{
+				type: 'comparison',
+				left: {
+					type: 'column reference',
+					table_identifier: 'project',
+					column: 'client_id',
+				},
+				comparator: '=',
+				right: {
+					type: 'column reference',
+					table_identifier: 'client',
+					column: 'client_id',
+				},
+			}]
+		}],
+		where: [],
+		group_by: [],
+	} satisfies TrustableSelectQuery
+
+	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
+	const result = validate_table_and_column_names(query)
+
+	assert.strictEqual(result.valid, false)
+	console.log(result.messages)
+	assert.strictEqual(result.messages.length, 1)
+})
+
+test('sql_request: invalid table identifier in select', () => {
+	const query = {
+		select: [{
+			type: 'column reference',
+			table_identifier: 'project',
+			column: 'project_id',
+		}],
+		from: {
+			table_name: 'project',
+			alias: 'p',
+		},
+		joins: [],
+		where: [],
+		group_by: [],
+	} satisfies TrustableSelectQuery
+
+	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
+	const result = validate_table_and_column_names(query)
+
+	assert.strictEqual(result.valid, false, 'project is not a valid table identifier, the correct alias is "p"')
+	console.log(result.messages)
+	assert.strictEqual(result.messages.length, 1)
+})
+
+test('sql_request: invalid table identifier in where', () => {
+	const query = {
+		select: [{
+			type: 'function',
+			function: 'COUNT',
+			alias: 'cnt',
+			arguments: [{
+				type: 'user provided value',
+				value: 1
+			}]
+		}],
+		from: {
+			table_name: 'project',
+			alias: 'p',
+		},
+		joins: [],
+		where: [{
+			type: 'comparison',
+			left: {
+				type: 'column reference',
+				table_identifier: 'project',
+				column: 'project_id'
+			},
+			comparator: '=',
+			right: {
+				type: 'user provided value',
+				value: 1
+			}
+		}],
+		group_by: [],
+	} satisfies TrustableSelectQuery
+
+	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
+	const result = validate_table_and_column_names(query)
+
+	assert.strictEqual(result.valid, false, 'project is not a valid table identifier, the correct alias is "p"')
+	console.log(result.messages)
+	assert.strictEqual(result.messages.length, 1)
+})
+
+test('sql_request: invalid column in select', () => {
 	const query = {
 		select: [{
 			type: 'column reference',
@@ -224,10 +335,11 @@ test('sql_request: invalid column', () => {
 		}],
 		from: {
 			table_name: 'project',
-			alias: 'p',
+			alias: 'project',
 		},
 		joins: [],
 		where: [],
+		group_by: [],
 	} satisfies TrustableSelectQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
