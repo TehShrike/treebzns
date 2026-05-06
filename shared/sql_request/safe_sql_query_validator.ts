@@ -77,7 +77,7 @@ export const join_validator = jv.object({
 	on_clause: jv.array(jv.one_of(comparison_validator, function_expression_validator)),
 })
 
-export const trustable_select_query_validator = jv.object({
+export const safe_sql_query_validator = jv.object({
 	select: jv.array(select_expression_validator),
 	from: table_addition_validator,
 	joins: jv.array(join_validator),
@@ -94,7 +94,7 @@ export type FunctionExpression = InferValidator<typeof function_expression_valid
 export type SelectExpression = InferValidator<typeof select_expression_validator>
 export type TableAddition = InferValidator<typeof table_addition_validator>
 export type Join = InferValidator<typeof join_validator>
-export type TrustableSelectQuery = {
+export type SafeSqlQuery = {
 	select: Array<SelectExpression>
 	from: TableAddition
 	joins: Array<Join>

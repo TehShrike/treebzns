@@ -1,12 +1,12 @@
 import { test } from 'node:test'
 import type { FinancialNumber } from 'financial-number'
-import query_builder, { type ExtractQueryResponse } from './client_side_query_builder.ts'
+import query_builder, { type ExtractQueryResponse } from './typed_query_builder.ts'
 
 type AssertEqual<A, B> =
 	(<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
-import { make_safe_query_builder, type TrustableSelectQuery } from './sql_request.ts'
+import { make_safe_query_builder, type SafeSqlQuery } from './safe_sql_query.ts'
 import * as assert from 'node:assert'
-import {trustable_select_query_validator} from './trustable_select_query.ts'
+import {safe_sql_query_validator} from './safe_sql_query_validator.ts'
 
 type ExampleProject = {
 	project_id: bigint
@@ -138,11 +138,11 @@ const example_schema = {
 } as const
 
 const safe_query_builder = make_safe_query_builder(example_schema)
-function assert_valid_query_output(select_query: TrustableSelectQuery) {
-	const query_is_safe = trustable_select_query_validator.is_valid(select_query)
+function assert_valid_query_output(select_query: SafeSqlQuery) {
+	const query_is_safe = safe_sql_query_validator.is_valid(select_query)
 
 	if (!query_is_safe) {
-		console.log(trustable_select_query_validator.get_messages(select_query, 'select_query'))
+		console.log(safe_sql_query_validator.get_messages(select_query, 'select_query'))
 	}
 
 	assert.strictEqual(query_is_safe, true)
@@ -157,12 +157,12 @@ function assert_valid_query_output(select_query: TrustableSelectQuery) {
 
 const q = query_builder<ExampleSchema>()
 
-test('client_side_query_builder: from with valid table', () => {
+test('typed_query_builder: from with valid table', () => {
 	const built = q.from('project', 'projectz').build()
 	assert_valid_query_output(built)
 })
 
-test('client_side_query_builder: chained joins with column refs by alias', () => {
+test('typed_query_builder: chained joins with column refs by alias', () => {
 	const built = q.from('project', 'p')
 		.join('project_line_item', 'pli', on => on.comparison({ table: 'pli', column: 'project_id' }, '=', { table: 'p', column: 'project_id' }))
 		.join('project_document', 'pd', on => on.comparison({ table: 'p', column: 'project_document_id' }, '=', { table: 'pd', column: 'project_document_id' }))
@@ -170,14 +170,14 @@ test('client_side_query_builder: chained joins with column refs by alias', () =>
 	assert_valid_query_output(built)
 })
 
-test('client_side_query_builder: where with column ref against value', () => {
+test('typed_query_builder: where with column ref against value', () => {
 	const built = q.from('project_line_item', 'pli')
 		.where(q => q.comparison({ table: 'pli', column: 'project_id' }, '=', { value: 2 }))
 		.build()
 	assert_valid_query_output(built)
 })
 
-test('client_side_query_builder: where after join with and', () => {
+test('typed_query_builder: where after join with and', () => {
 	const built = q.from('project', 'p')
 		.join('project_line_item', 'pli', on => on.comparison({ table: 'pli', column: 'project_id' }, '=', { table: 'p', column: 'project_id' }))
 		.where(q => q.and(
@@ -188,7 +188,7 @@ test('client_side_query_builder: where after join with and', () => {
 	assert_valid_query_output(built)
 })
 
-test('client_side_query_builder: select with column refs and aliases', () => {
+test('typed_query_builder: select with column refs and aliases', () => {
 	const built = q.from('project', 'p')
 		.select(
 			{ table: 'p', column: 'project_id' },
@@ -207,7 +207,7 @@ test('client_side_query_builder: select with column refs and aliases', () => {
 	assert_valid_query_output(built)
 })
 
-test('client_side_query_builder: group_by with column refs', () => {
+test('typed_query_builder: group_by with column refs', () => {
 	const built = q.from('project', 'p')
 		.join('project_line_item', 'pli', on => on.comparison({ table: 'pli', column: 'project_id' }, '=', { table: 'p', column: 'project_id' }))
 		.group_by({ table: 'p', column: 'project_id' })
@@ -215,7 +215,7 @@ test('client_side_query_builder: group_by with column refs', () => {
 	assert_valid_query_output(built)
 })
 
-test.skip('client_side_query_builder: type errors on invalid references', () => {
+test.skip('typed_query_builder: type errors on invalid references', () => {
 	// @ts-expect-error: projectz is not a valid table name
 	q.from('projectz', 'project')
 

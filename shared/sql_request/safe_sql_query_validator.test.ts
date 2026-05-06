@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert'
-import { trustable_select_query_validator } from './trustable_select_query.ts'
+import { safe_sql_query_validator } from './safe_sql_query_validator.ts'
 
 const valid_query = {
 	select: [{
@@ -44,11 +44,11 @@ const valid_query = {
 	group_by: [],
 }
 
-test('trustable_select_query validator: valid query', () => {
-	assert.strictEqual(trustable_select_query_validator.is_valid(valid_query), true)
+test('safe_sql_query_validator: valid query', () => {
+	assert.strictEqual(safe_sql_query_validator.is_valid(valid_query), true)
 })
 
-test('trustable_select_query validator: invalid comparator', () => {
+test('safe_sql_query_validator: invalid comparator', () => {
 	const query = {
 		...valid_query,
 		where: [{
@@ -58,11 +58,11 @@ test('trustable_select_query validator: invalid comparator', () => {
 			right: { type: 'user provided value', value: 1 },
 		}],
 	}
-	assert.strictEqual(trustable_select_query_validator.is_valid(query), false)
-	console.log(trustable_select_query_validator.get_messages(query, 'query'))
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
+	console.log(safe_sql_query_validator.get_messages(query, 'query'))
 })
 
-test('trustable_select_query validator: invalid function name', () => {
+test('safe_sql_query_validator: invalid function name', () => {
 	const query = {
 		...valid_query,
 		select: [{
@@ -72,11 +72,11 @@ test('trustable_select_query validator: invalid function name', () => {
 			alias: 'x',
 		}],
 	}
-	assert.strictEqual(trustable_select_query_validator.is_valid(query), false)
-	console.log(trustable_select_query_validator.get_messages(query, 'query'))
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
+	console.log(safe_sql_query_validator.get_messages(query, 'query'))
 })
 
-test('trustable_select_query validator: column reference missing column', () => {
+test('safe_sql_query_validator: column reference missing column', () => {
 	const query = {
 		...valid_query,
 		select: [{
@@ -84,18 +84,18 @@ test('trustable_select_query validator: column reference missing column', () => 
 			table_identifier: 'project',
 		}],
 	}
-	assert.strictEqual(trustable_select_query_validator.is_valid(query), false)
-	console.log(trustable_select_query_validator.get_messages(query, 'query'))
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
+	console.log(safe_sql_query_validator.get_messages(query, 'query'))
 })
 
-test('trustable_select_query validator: from is not an object', () => {
+test('safe_sql_query_validator: from is not an object', () => {
 	const query = { ...valid_query, from: 'project' }
-	assert.strictEqual(trustable_select_query_validator.is_valid(query), false)
-	console.log(trustable_select_query_validator.get_messages(query, 'query'))
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
+	console.log(safe_sql_query_validator.get_messages(query, 'query'))
 })
 
-test('trustable_select_query validator: joins is not an array', () => {
+test('safe_sql_query_validator: joins is not an array', () => {
 	const query = { ...valid_query, joins: 'none' }
-	assert.strictEqual(trustable_select_query_validator.is_valid(query), false)
-	console.log(trustable_select_query_validator.get_messages(query, 'query'))
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
+	console.log(safe_sql_query_validator.get_messages(query, 'query'))
 })

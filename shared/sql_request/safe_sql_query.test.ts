@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert'
-import { make_safe_query_builder, type TrustableSelectQuery } from './sql_request.ts'
+import { make_safe_query_builder, type SafeSqlQuery } from './safe_sql_query.ts'
 import { type FinancialNumber } from 'financial-number'
 import { Temporal } from '@js-temporal/polyfill'
 
@@ -122,7 +122,7 @@ export type TestSchema = {
 
 
 
-test('sql_request: valid query', () => {
+test('safe_sql_query: valid query', () => {
 	const valid_query = {
 		select: [{
 			type: 'column reference',
@@ -186,7 +186,7 @@ test('sql_request: valid query', () => {
 			table_identifier: 'p',
 			column: 'project_id',
 		}]
-	} satisfies TrustableSelectQuery
+	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
 
@@ -197,7 +197,7 @@ test('sql_request: valid query', () => {
 	assert.deepStrictEqual(parameters, [1])
 })
 
-test('sql_request: invalid table identifier in from', () => {
+test('safe_sql_query: invalid table identifier in from', () => {
 	const query = {
 		select: [{
 			type: 'column reference',
@@ -211,7 +211,7 @@ test('sql_request: invalid table identifier in from', () => {
 		joins: [],
 		where: [],
 		group_by: [],
-	} satisfies TrustableSelectQuery
+	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
 	const result = validate_table_and_column_names(query)
@@ -221,7 +221,7 @@ test('sql_request: invalid table identifier in from', () => {
 	assert.ok(result.messages.some(message => message.includes('nonexistent_table')))
 })
 
-test('sql_request: invalid table identifier in join', () => {
+test('safe_sql_query: invalid table identifier in join', () => {
 	const query = {
 		select: [{
 			type: 'column reference',
@@ -252,7 +252,7 @@ test('sql_request: invalid table identifier in join', () => {
 		}],
 		where: [],
 		group_by: [],
-	} satisfies TrustableSelectQuery
+	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
 	const result = validate_table_and_column_names(query)
@@ -262,7 +262,7 @@ test('sql_request: invalid table identifier in join', () => {
 	assert.ok(result.messages.some(message => message.includes('nonexistent_table')))
 })
 
-test('sql_request: invalid table identifier in select', () => {
+test('safe_sql_query: invalid table identifier in select', () => {
 	const query = {
 		select: [{
 			type: 'column reference',
@@ -276,7 +276,7 @@ test('sql_request: invalid table identifier in select', () => {
 		joins: [],
 		where: [],
 		group_by: [],
-	} satisfies TrustableSelectQuery
+	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
 	const result = validate_table_and_column_names(query)
@@ -286,7 +286,7 @@ test('sql_request: invalid table identifier in select', () => {
 	assert.strictEqual(result.messages.length, 1)
 })
 
-test('sql_request: invalid table identifier in where', () => {
+test('safe_sql_query: invalid table identifier in where', () => {
 	const query = {
 		select: [{
 			type: 'function',
@@ -316,7 +316,7 @@ test('sql_request: invalid table identifier in where', () => {
 			}
 		}],
 		group_by: [],
-	} satisfies TrustableSelectQuery
+	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
 	const result = validate_table_and_column_names(query)
@@ -326,7 +326,7 @@ test('sql_request: invalid table identifier in where', () => {
 	assert.strictEqual(result.messages.length, 1)
 })
 
-test('sql_request: invalid column in select', () => {
+test('safe_sql_query: invalid column in select', () => {
 	const query = {
 		select: [{
 			type: 'column reference',
@@ -340,7 +340,7 @@ test('sql_request: invalid column in select', () => {
 		joins: [],
 		where: [],
 		group_by: [],
-	} satisfies TrustableSelectQuery
+	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
 	const result = validate_table_and_column_names(query)

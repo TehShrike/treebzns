@@ -8,10 +8,10 @@ import type {
 	SelectExpression,
 	TableAddition,
 	Join,
-	TrustableSelectQuery,
-} from './trustable_select_query.ts'
+	SafeSqlQuery,
+} from './safe_sql_query_validator.ts'
 
-export type { TrustableSelectQuery }
+export type { SafeSqlQuery }
 
 type SqlChunk = {
 	sql: string
@@ -126,7 +126,7 @@ const merge_chunks = (chunks: SqlChunk[], separator: string): SqlChunk => ({
 })
 
 export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema: ThisSchema) => {
-	const validate_table_and_column_names = (query: TrustableSelectQuery): QueryValidationResult => {
+	const validate_table_and_column_names = (query: SafeSqlQuery): QueryValidationResult => {
 		const messages: string[] = []
 		const alias_to_table_name = new Map<string, string>()
 
@@ -189,7 +189,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 		return { valid: true }
 	}
 
-	const to_sql = (query: TrustableSelectQuery): { sql: string, parameters: any[] } => {
+	const to_sql = (query: SafeSqlQuery): { sql: string, parameters: any[] } => {
 		const select_chunk = merge_chunks(query.select.map(select_item_to_chunk), ', ')
 
 		const join_chunks = query.joins.map(join => {

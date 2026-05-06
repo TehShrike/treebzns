@@ -1,12 +1,12 @@
 import type {
 	Comparator,
-	TrustableSelectQuery,
+	SafeSqlQuery,
 	Comparison,
 	ColumnReference,
 	UserProvidedValue,
 	Join as TrustableJoin,
 	SelectExpression,
-} from "./trustable_select_query.ts"
+} from "./safe_sql_query_validator.ts"
 
 type SchemaColumnTypes = {
 	[table_name in string]: {
@@ -62,7 +62,7 @@ type UnionToIntersection<U> =
 type RowFromSelectExprs<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Exprs extends ReadonlyArray<unknown>> =
 	UnionToIntersection<{ [I in keyof Exprs]: RowEntry<Schema, A, Exprs[I]> }[number]>
 
-export type BuiltQuery<Row> = TrustableSelectQuery & { readonly __row_type?: Row }
+export type BuiltQuery<Row> = SafeSqlQuery & { readonly __row_type?: Row }
 
 export type ExtractQueryResponse<T> = T extends BuiltQuery<infer Row> ? { [K in keyof Row]: Row[K] } : never
 
@@ -151,7 +151,7 @@ const make_stage = (state: State): any => ({
 		const next: State = { ...state, group_bys: [...state.group_bys, ...exprs.map(to_select_expression)] }
 		return make_stage(next)
 	},
-	build: (): TrustableSelectQuery => ({
+	build: (): SafeSqlQuery => ({
 		select: state.selects,
 		from: state.from,
 		joins: state.joins,
