@@ -1,4 +1,4 @@
-import type { Comparator } from "./trustable_select_query.ts"
+import type { Comparator, TrustableSelectQuery } from "./trustable_select_query.ts"
 
 type SchemaColumnTypes = {
 	[table_name in string]: {
@@ -40,6 +40,8 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
 	where: (
 		cb: (b: ExpressionBuilder<Schema, A>) => Expression,
 	) => Stage<Schema, A>
+
+	build: () => TrustableSelectQuery
 }
 
 const query_builder = <Schema extends SchemaColumnTypes>(): {
