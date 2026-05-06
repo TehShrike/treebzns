@@ -41,6 +41,7 @@ const valid_query = {
 		comparator: '=',
 		right: { type: 'user provided value', value: 1 },
 	}],
+	group_by: [],
 }
 
 test('trustable_select_query validator: valid query', () => {

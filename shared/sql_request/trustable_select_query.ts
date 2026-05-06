@@ -82,6 +82,7 @@ export const trustable_select_query_validator = jv.object({
 	from: table_addition_validator,
 	joins: jv.array(join_validator),
 	where: jv.array(comparison_validator),
+	group_by: jv.array(select_expression_validator),
 })
 
 export type ColumnReference = InferValidator<typeof column_reference_validator>

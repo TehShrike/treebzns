@@ -155,7 +155,7 @@ test('sql_request: valid query', () => {
 				comparator: '=',
 				right: {
 					type: 'column reference',
-					table_identifier: 'client',
+					table_identifier: 'c',
 					column: 'client_id',
 				},
 			}, {
@@ -193,7 +193,7 @@ test('sql_request: valid query', () => {
 	assert.strictEqual(validate_table_and_column_names(valid_query).valid, true)
 
 	const { sql, parameters } = to_sql(valid_query)
-	assert.strictEqual(sql, 'SELECT `p`.`project_id`, COUNT(`p`.`project_id`) AS `count_project_id`\nFROM `project` AS `p`\nJOIN `client` AS `c` ON `p`.`client_id` = `c`.`client_id`\n\tAND `p`.`client_id` IS NOT NULL\nWHERE `p`.`client_id` = ?')
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`, COUNT(`p`.`project_id`) AS `count_project_id`\nFROM `project` AS `p`\nJOIN `client` AS `c` ON `p`.`client_id` = `c`.`client_id`\n\tAND `p`.`client_id` IS NOT NULL\nWHERE `p`.`client_id` = ?\nGROUP BY `p`.`project_id`')
 	assert.deepStrictEqual(parameters, [1])
 })
 
@@ -218,7 +218,7 @@ test('sql_request: invalid table identifier in from', () => {
 
 	assert.strictEqual(result.valid, false)
 	console.log(result.messages)
-	assert.strictEqual(result.messages.length, 1)
+	assert.ok(result.messages.some(message => message.includes('nonexistent_table')))
 })
 
 test('sql_request: invalid table identifier in join', () => {
@@ -259,7 +259,7 @@ test('sql_request: invalid table identifier in join', () => {
 
 	assert.strictEqual(result.valid, false)
 	console.log(result.messages)
-	assert.strictEqual(result.messages.length, 1)
+	assert.ok(result.messages.some(message => message.includes('nonexistent_table')))
 })
 
 test('sql_request: invalid table identifier in select', () => {

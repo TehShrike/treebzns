@@ -128,25 +128,31 @@ const merge_chunks = (chunks: SqlChunk[], separator: string): SqlChunk => ({
 export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema: ThisSchema) => {
 	const validate_table_and_column_names = (query: TrustableSelectQuery): QueryValidationResult => {
 		const messages: string[] = []
-		const invalid_tables = new Set<string>()
+		const alias_to_table_name = new Map<string, string>()
 
-		const check_table = (name: string) => {
-			if (!schema[name] && !invalid_tables.has(name)) {
-				messages.push(`Unknown table: ${name}`)
-				invalid_tables.add(name)
+		const register_table = (table_name: string, alias: string) => {
+			if (table_name in schema) {
+				alias_to_table_name.set(alias, table_name)
+			} else {
+				messages.push(`Unknown table: "${table_name}"`)
 			}
 		}
 
+		register_table(query.from.table_name, query.from.alias)
+		for (const join of query.joins) register_table(join.table_name, join.alias)
+
 		const check_col_ref = (ref: ColumnReference) => {
-			if (invalid_tables.has(ref.table_identifier)) return
-			const table = schema[ref.table_identifier]
-			if (!table) {
-				messages.push(`Unknown table: ${ref.table_identifier}`)
-				invalid_tables.add(ref.table_identifier)
-				return
-			}
-			if (!(ref.column in table)) {
-				messages.push(`Unknown column '${ref.column}' on table '${ref.table_identifier}'`)
+			if (alias_to_table_name.has(ref.table_identifier)) {
+				const table_name = alias_to_table_name.get(ref.table_identifier)
+				assert(typeof table_name === 'string')
+				assert(table_name in schema)
+				const table_columns = schema[table_name]
+				assert(table_columns)
+				if (!(ref.column in table_columns)) {
+					messages.push(`Unknown column "${ref.column}" on table identifier "${ref.table_identifier}"`)
+				}
+			} else {
+				messages.push(`Unknown table identifier: "${ref.table_identifier}"`)
 			}
 		}
 
@@ -154,13 +160,12 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			if (arg.type === 'column reference') check_col_ref(arg)
 		}
 
-		check_table(query.from.table_name)
-		for (const join of query.joins) check_table(join.table_name)
-
-		for (const sel of query.select) {
-			if (sel.type === 'column reference') check_col_ref(sel)
-			else for (const arg of sel.arguments) check_arg(arg)
+		const check_select_or_group_by = (expr: SelectExpression) => {
+			if (expr.type === 'column reference') check_col_ref(expr)
+			else for (const arg of expr.arguments) check_arg(arg)
 		}
+
+		for (const sel of query.select) check_select_or_group_by(sel)
 
 		for (const join of query.joins) {
 			for (const clause of join.on_clause) {
@@ -177,6 +182,8 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			check_arg(comp.left)
 			check_arg(comp.right)
 		}
+
+		for (const expr of query.group_by) check_select_or_group_by(expr)
 
 		if (messages.length > 0) return { valid: false, messages }
 		return { valid: true }
@@ -197,10 +204,15 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			? merge_chunks(query.where.map(comparison_to_chunk), '\n\tAND ')
 			: null
 
+		const group_by_chunk = query.group_by.length > 0
+			? merge_chunks(query.group_by.map(select_item_to_chunk), ', ')
+			: null
+
 		const all_params = [
 			...select_chunk.parameters,
 			...join_chunks.flatMap(c => c.parameters),
 			...(where_chunk?.parameters ?? []),
+			...(group_by_chunk?.parameters ?? []),
 		]
 
 		return {
@@ -209,6 +221,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 				`FROM \`${query.from.table_name}\` AS \`${query.from.alias}\``,
 				...join_chunks.map(c => c.sql),
 				...(where_chunk ? [`WHERE ${where_chunk.sql}`] : []),
+				...(group_by_chunk ? [`GROUP BY ${group_by_chunk.sql}`] : []),
 			].join('\n'),
 			parameters: all_params.map(p => p.value),
 		}
