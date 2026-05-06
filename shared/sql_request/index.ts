@@ -127,12 +127,11 @@ type SchemaColumns = {
 
 type QueryValidationResult = {
 	valid: true
-	sql: string
-	parameters: Array<UserProvidedValue>
 } | {
 	valid: false
 	messages: string[]
 }
+
 const comparison_to_chunk = (comp: Comparison): SqlChunk => {
 	const left = value_to_sql_chunk(comp.left)
 	const right = value_to_sql_chunk(comp.right)
@@ -166,7 +165,7 @@ const merge_chunks = (chunks: SqlChunk[], separator: string): SqlChunk => ({
 })
 
 export const make_query_validator = <ThisSchema extends SchemaColumns>(schema: ThisSchema) => {
-	return (query: TrustableSelectQuery): QueryValidationResult => {
+	const validate = (query: TrustableSelectQuery): QueryValidationResult => {
 		const messages: string[] = []
 		const invalid_tables = new Set<string>()
 
@@ -219,7 +218,10 @@ export const make_query_validator = <ThisSchema extends SchemaColumns>(schema: T
 		}
 
 		if (messages.length > 0) return { valid: false, messages }
+		return { valid: true }
+	}
 
+	const to_sql = (query: TrustableSelectQuery): { sql: string, parameters: any[] } => {
 		const select_chunk = merge_chunks(query.select.map(select_item_to_chunk), ', ')
 
 		const join_chunks = query.joins.map(join => {
@@ -234,13 +236,6 @@ export const make_query_validator = <ThisSchema extends SchemaColumns>(schema: T
 			? merge_chunks(query.where.map(comparison_to_chunk), '\n\tAND ')
 			: null
 
-		const lines = [
-			`SELECT ${select_chunk.sql}`,
-			`FROM \`${query.from.table_name}\` AS \`${query.from.alias}\``,
-			...join_chunks.map(c => c.sql),
-			...(where_chunk ? [`WHERE ${where_chunk.sql}`] : []),
-		]
-
 		const all_params = [
 			...select_chunk.parameters,
 			...join_chunks.flatMap(c => c.parameters),
@@ -248,9 +243,15 @@ export const make_query_validator = <ThisSchema extends SchemaColumns>(schema: T
 		]
 
 		return {
-			valid: true,
-			sql: lines.join('\n'),
+			sql: [
+				`SELECT ${select_chunk.sql}`,
+				`FROM \`${query.from.table_name}\` AS \`${query.from.alias}\``,
+				...join_chunks.map(c => c.sql),
+				...(where_chunk ? [`WHERE ${where_chunk.sql}`] : []),
+			].join('\n'),
 			parameters: all_params.map(p => p.value),
 		}
 	}
+
+	return { validate, to_sql }
 }

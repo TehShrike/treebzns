@@ -183,13 +183,13 @@ test('valid query', () => {
 		}]
 	} satisfies TrustableSelectQuery
 
-	const validator = make_query_validator(test_schema)
+	const { validate, to_sql } = make_query_validator(test_schema)
 
-	const validated_query = validator(valid_query)
+	assert.strictEqual(validate(valid_query).valid, true)
 
-	assert.strictEqual(validated_query.valid, true)
-	assert.strictEqual(validated_query.sql, 'SELECT `project`.`project_id`, COUNT(`project`.`project_id`) AS `count_project_id`\nFROM `project` AS `p`\nJOIN `client` AS `c` ON `project`.`client_id` = `client`.`client_id`\n\tAND `project`.`client_id` IS NOT NULL\nWHERE `project`.`client_id` = ?')
-	assert.deepStrictEqual(validated_query.parameters, [1])
+	const { sql, parameters } = to_sql(valid_query)
+	assert.strictEqual(sql, 'SELECT `project`.`project_id`, COUNT(`project`.`project_id`) AS `count_project_id`\nFROM `project` AS `p`\nJOIN `client` AS `c` ON `project`.`client_id` = `client`.`client_id`\n\tAND `project`.`client_id` IS NOT NULL\nWHERE `project`.`client_id` = ?')
+	assert.deepStrictEqual(parameters, [1])
 })
 
 test('invalid table', () => {
@@ -207,7 +207,8 @@ test('invalid table', () => {
 		where: [],
 	} satisfies TrustableSelectQuery
 
-	const result = make_query_validator(test_schema)(query)
+	const { validate } = make_query_validator(test_schema)
+	const result = validate(query)
 
 	assert.strictEqual(result.valid, false)
 	console.log(result.messages)
@@ -229,7 +230,8 @@ test('invalid column', () => {
 		where: [],
 	} satisfies TrustableSelectQuery
 
-	const result = make_query_validator(test_schema)(query)
+	const { validate } = make_query_validator(test_schema)
+	const result = validate(query)
 
 	assert.strictEqual(result.valid, false)
 	console.log(result.messages)
