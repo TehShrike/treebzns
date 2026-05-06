@@ -1,0 +1,185 @@
+import type { FinancialNumber } from "financial-number"
+import type { Comparator } from "./trustable_select_query.ts"
+
+type ExampleProject = {
+	project_id: bigint
+	company_id: bigint
+	project_document_id: bigint
+	client_id: bigint
+	client_address_id: bigint
+	address_line_1: string
+	address_line_2: string | null
+	city: string
+	state: string
+	zip: string
+	due_date: Temporal.PlainDate | null
+	emergency: boolean
+	assigned_estimator_employee_id: bigint | null
+	details: string | null
+	created_by_employee_id: bigint
+	created_at: Temporal.Instant
+	updated_at: Temporal.Instant
+	needs_client_approval: boolean
+	sent_for_client_approval: boolean
+	tax_rate_id: bigint | null
+	tax_rate: FinancialNumber | null
+	notes_for_crew: string | null
+	notes_for_office: string | null
+	closed: boolean
+	closed_at: Temporal.Instant | null
+	closed_date: Temporal.PlainDate | null
+}
+
+type ExampleProjectDocument = {
+	project_document_id: bigint
+	company_id: bigint
+	group_name: string
+	name: string
+	needs_estimate_to_move_on: boolean
+	needs_client_approval_to_move_on: boolean
+	can_expire: boolean
+	expire_days: bigint | null
+	next_project_document_id: bigint | null
+	should_be_worked: boolean
+	needs_to_be_contacted_by_lead_qualifier: boolean
+	can_be_closed: boolean
+	represents_billable_sale_when_closed: boolean
+	created_at: Temporal.Instant
+	updated_at: Temporal.Instant
+}
+
+type ExampleProjectLineItem = {
+	project_line_item_id: bigint
+	company_id: bigint
+	project_id: bigint
+	description: string | null
+	item_type_id: bigint | null
+	estimated_hours: bigint
+	taxable: boolean
+	quantity: FinancialNumber
+	price: FinancialNumber
+	created_at: Temporal.Instant
+	updated_at: Temporal.Instant
+}
+
+type ExampleSchema = {
+	project: ExampleProject
+	project_document: ExampleProjectDocument
+	project_line_item: ExampleProjectLineItem
+}
+
+const example_schema = {
+	project: {
+		project_id: 'project_id',
+		company_id: 'company_id',
+		project_document_id: 'project_document_id',
+		client_id: 'client_id',
+		client_address_id: 'client_address_id',
+		address_line_1: 'address_line_1',
+		address_line_2: 'address_line_2',
+		city: 'city',
+		state: 'state',
+		zip: 'zip',
+		due_date: 'due_date',
+		emergency: 'emergency',
+		assigned_estimator_employee_id: 'assigned_estimator_employee_id',
+		details: 'details',
+		created_by_employee_id: 'created_by_employee_id',
+		created_at: 'created_at',
+		updated_at: 'updated_at',
+		needs_client_approval: 'needs_client_approval',
+		sent_for_client_approval: 'sent_for_client_approval',
+		tax_rate_id: 'tax_rate_id',
+		tax_rate: 'tax_rate',
+		notes_for_crew: 'notes_for_crew',
+		notes_for_office: 'notes_for_office',
+		closed: 'closed',
+		closed_at: 'closed_at',
+		closed_date: 'closed_date',
+	},
+	project_document: {
+		project_document_id: 'project_document_id',
+		company_id: 'company_id',
+		group_name: 'group_name',
+		name: 'name',
+		needs_estimate_to_move_on: 'needs_estimate_to_move_on',
+		needs_client_approval_to_move_on: 'needs_client_approval_to_move_on',
+		can_expire: 'can_expire',
+		expire_days: 'expire_days',
+		next_project_document_id: 'next_project_document_id',
+		should_be_worked: 'should_be_worked',
+		needs_to_be_contacted_by_lead_qualifier: 'needs_to_be_contacted_by_lead_qualifier',
+		can_be_closed: 'can_be_closed',
+		represents_billable_sale_when_closed: 'represents_billable_sale_when_closed',
+		created_at: 'created_at',
+		updated_at: 'updated_at',
+	},
+	project_line_item: {
+		project_line_item_id: 'project_line_item_id',
+		company_id: 'company_id',
+		project_id: 'project_id',
+		description: 'description',
+		item_type_id: 'item_type_id',
+		estimated_hours: 'estimated_hours',
+		taxable: 'taxable',
+		quantity: 'quantity',
+		price: 'price',
+		created_at: 'created_at',
+		updated_at: 'updated_at',
+	},
+} as const
+
+
+
+
+type SchemaColumnTypes = {
+	[table_name in string]: {
+		[column_name in string]: any
+	}
+}
+
+type ColumnIdentifier<
+	Schema extends SchemaColumnTypes,
+	AliasToTableMap extends {
+		[alias in string]: keyof Schema
+	},
+	TableIdentifier extends keyof AliasToTableMap,
+	Column extends keyof (Schema[AliasToTableMap[TableIdentifier]])
+> = {
+	table_identifier: TableIdentifier
+	column: Column
+}
+
+
+
+type AliasToTableMap<Schema extends SchemaColumnTypes, Alias extends string, Table extends Extract<keyof Schema, string>> = {
+	[alias: Alias]: Table
+}
+
+type QueryTableExtender<Schema extends SchemaColumnTypes, TablesSoFar extends {
+	[table_alias in string]: Extract<keyof Schema, string>
+}> = {
+	join: <Table extends keyof Schema>(table: Table, cb: )
+}
+
+type QueryBuilder<Schema extends SchemaColumnTypes> = (schema: {
+	[table_name in keyof Schema]: {
+		[column_name in keyof Schema[table_name]]: column_name
+	}
+}) => {
+	from: <From extends Extract<keyof Schema, string>, Alias extends string = From>(table: From, alias: Alias) => QueryTableExtender<Schema, AliasToTableMap<Schema, Alias, From>>
+}
+
+const query_builder = ((schema: any) => {}) as QueryBuilder<ExampleSchema>
+const q = query_builder(example_schema)
+
+// valid: project is a valid table name
+q.from('project', 'projectz')
+
+// @ts-expect-error: projectz is not a valid table name
+q.from('projectz', 'project')
+
+// valid: project_line_item is a valid table name, project_id is a column on project_line_item (pli in this query), and project_id is a column on project (p in this query)
+q.from('project', 'p').join('project_line_item', 'pli', on => on.comparison('pli', 'project_id', '=', 'p', 'project_id'))
+
+q.from('project_line_item')
