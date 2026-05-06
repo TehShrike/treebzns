@@ -41,22 +41,49 @@ type ExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMap<Sche
 type SelectColumnInput<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
 	ColumnRef<Schema, A> & { alias?: string }
 
-type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
+type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Expr> =
+	Expr extends { alias: infer K extends string; table: infer T; column: infer C }
+		? T extends keyof A
+			? C extends keyof Schema[A[T] & keyof Schema]
+				? { [_ in K]: Schema[A[T] & keyof Schema][C] }
+				: never
+			: never
+		: Expr extends { table: infer T; column: infer C extends string }
+			? T extends keyof A
+				? C extends keyof Schema[A[T] & keyof Schema]
+					? { [_ in C]: Schema[A[T] & keyof Schema][C] }
+					: never
+				: never
+			: never
+
+type UnionToIntersection<U> =
+	(U extends any ? (x: U) => void : never) extends (x: infer I) => void ? I : never
+
+type RowFromSelectExprs<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Exprs extends ReadonlyArray<unknown>> =
+	UnionToIntersection<{ [I in keyof Exprs]: RowEntry<Schema, A, Exprs[I]> }[number]>
+
+export type BuiltQuery<Row> = TrustableSelectQuery & { readonly __row_type?: Row }
+
+export type ExtractQueryResponse<T> = T extends BuiltQuery<infer Row> ? { [K in keyof Row]: Row[K] } : never
+
+type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Row = {}> = {
 	join: <T extends Extract<keyof Schema, string>, NewAlias extends string>(
 		table: T,
 		alias: NewAlias,
 		on: (b: ExpressionBuilder<Schema, A & { [K in NewAlias]: T }>) => Expression,
-	) => Stage<Schema, A & { [K in NewAlias]: T }>
+	) => Stage<Schema, A & { [K in NewAlias]: T }, Row>
 
 	where: (
 		cb: (b: ExpressionBuilder<Schema, A>) => Expression,
-	) => Stage<Schema, A>
+	) => Stage<Schema, A, Row>
 
-	select: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A>
+	select: <const Exprs extends ReadonlyArray<SelectColumnInput<Schema, A>>>(
+		...exprs: Exprs
+	) => Stage<Schema, A, Row & RowFromSelectExprs<Schema, A, Exprs>>
 
-	group_by: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A>
+	group_by: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A, Row>
 
-	build: () => TrustableSelectQuery
+	build: () => BuiltQuery<Row>
 }
 
 type ColumnOrValueInput = { table: string; column: string } | { value: unknown }

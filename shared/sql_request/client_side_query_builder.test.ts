@@ -1,6 +1,9 @@
 import { test } from 'node:test'
 import type { FinancialNumber } from 'financial-number'
-import query_builder from './client_side_query_builder.ts'
+import query_builder, { type ExtractQueryResponse } from './client_side_query_builder.ts'
+
+type AssertEqual<A, B> =
+	(<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
 import { make_safe_query_builder, type TrustableSelectQuery } from './sql_request.ts'
 import * as assert from 'node:assert'
 import {trustable_select_query_validator} from './trustable_select_query.ts'
@@ -192,6 +195,15 @@ test('client_side_query_builder: select with column refs and aliases', () => {
 			{ table: 'p', column: 'company_id', alias: 'co' },
 		)
 		.build()
+
+	type ExpectedRowType = {
+		project_id: bigint
+		co: bigint
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
 	assert_valid_query_output(built)
 })
 
