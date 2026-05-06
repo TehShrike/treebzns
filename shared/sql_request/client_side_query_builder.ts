@@ -138,28 +138,40 @@ type SchemaColumnTypes = {
 	}
 }
 
-type ColumnIdentifier<
-	Schema extends SchemaColumnTypes,
-	AliasToTableMap extends {
-		[alias in string]: keyof Schema
-	},
-	TableIdentifier extends keyof AliasToTableMap,
-	Column extends keyof (Schema[AliasToTableMap[TableIdentifier]])
-> = {
-	table_identifier: TableIdentifier
-	column: Column
+type AliasMap<Schema extends SchemaColumnTypes> = {
+	[alias: string]: Extract<keyof Schema, string>
 }
 
+type ColumnRef<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
+	[Alias in keyof A & string]: {
+		table: Alias
+		column: Extract<keyof Schema[A[Alias]], string>
+	}
+}[keyof A & string]
 
+type ValueRef = { value: unknown }
 
-type AliasToTableMap<Schema extends SchemaColumnTypes, Alias extends string, Table extends Extract<keyof Schema, string>> = {
-	[alias: Alias]: Table
+type Expression = { __expression: true }
+
+type ExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
+	comparison: (
+		left: ColumnRef<Schema, A> | ValueRef,
+		comparator: Comparator,
+		right: ColumnRef<Schema, A> | ValueRef,
+	) => Expression
+	and: (...exprs: Expression[]) => Expression
 }
 
-type QueryTableExtender<Schema extends SchemaColumnTypes, TablesSoFar extends {
-	[table_alias in string]: Extract<keyof Schema, string>
-}> = {
-	join: <Table extends keyof Schema>(table: Table, cb: )
+type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
+	join: <T extends Extract<keyof Schema, string>, NewAlias extends string>(
+		table: T,
+		alias: NewAlias,
+		on: (b: ExpressionBuilder<Schema, A & { [K in NewAlias]: T }>) => Expression,
+	) => Stage<Schema, A & { [K in NewAlias]: T }>
+
+	where: (
+		cb: (b: ExpressionBuilder<Schema, A>) => Expression,
+	) => Stage<Schema, A>
 }
 
 type QueryBuilder<Schema extends SchemaColumnTypes> = (schema: {
@@ -167,7 +179,10 @@ type QueryBuilder<Schema extends SchemaColumnTypes> = (schema: {
 		[column_name in keyof Schema[table_name]]: column_name
 	}
 }) => {
-	from: <From extends Extract<keyof Schema, string>, Alias extends string = From>(table: From, alias: Alias) => QueryTableExtender<Schema, AliasToTableMap<Schema, Alias, From>>
+	from: <From extends Extract<keyof Schema, string>, Alias extends string = From>(
+		table: From,
+		alias?: Alias,
+	) => Stage<Schema, { [K in Alias]: From }>
 }
 
 const query_builder = ((schema: any) => {}) as QueryBuilder<ExampleSchema>
@@ -194,10 +209,10 @@ q.from('project', 'p')
 
 
 // valid
-q.from('project_line_item', 'pli').where(q => q.comparison({ table: 'pli', column: 'product_id' }, '=', { value: 2 }))
+q.from('project_line_item', 'pli').where(q => q.comparison({ table: 'pli', column: 'project_id' }, '=', { value: 2 }))
 
 // @ts-expect-error: pli is valid in this context, project_line_item is not
-q.from('project_line_item', 'pli').where(q => q.comparison({ table: 'project_line_item', column: 'product_id' }, '=', { value: 2 }))
+q.from('project_line_item', 'pli').where(q => q.comparison({ table: 'project_line_item', column: 'project_id' }, '=', { value: 2 }))
 
 // valid
 q.from('project', 'p')
