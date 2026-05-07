@@ -1,4 +1,8 @@
-## actually needed
+## bitty things soon
+
+- function to iterate over query data structure and add `AND company_id = ?` clauses
+
+## higher level
 
 - dev server
 - deployable?  maybe
@@ -9,11 +13,6 @@
 - query function that runs safe sql queries
 	- company_id mandatory
 - that's it, start building ui
-
-##
-
-- function to iterate over query data structure and add `AND company_id = ?` clauses
-- a select_query endpoint/"server function" that takes the shape of a safe query, and iterates over it adding `AND company_id = ?` to every relevant clause
 
 ## "Server functions"
 
