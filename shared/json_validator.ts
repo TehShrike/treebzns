@@ -38,6 +38,13 @@ const number_validator: Validator<number> = {
 	get_messages: (input: unknown, name: string) => (is_number(input) ? [] : [`${double_quote(name)} is not a number`]),
 }
 
+const is_a_bigint = (input: unknown): input is bigint => typeof input === `bigint`
+
+const bigint_validator: Validator<bigint> = {
+	is_valid: is_a_bigint,
+	get_messages: (input: unknown, name: string) => (is_a_bigint(input) ? [] : [`${double_quote(name)} is not a bigint`]),
+}
+
 const is_integer = (input: unknown): input is number => Number.isInteger(input)
 
 const integer_validator: Validator<number> = {
@@ -268,10 +275,12 @@ export {
 	make_custom_validator as custom,
 	one_of,
 	optional,
+	nullable,
 	integer_validator as is_integer,
 	boolean_validator as is_boolean,
 	string_validator as is_string,
 	number_validator as is_number,
+	bigint_validator as is_bigint,
 	date_validator as is_date,
 	null_validator as is_null,
 }
