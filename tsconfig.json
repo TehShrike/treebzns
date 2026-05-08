@@ -1,10 +1,10 @@
 {
 	"include": [
-		"shared/**/*.ts",
-		"shared/**/*.svelte",
-		"worker/**/*.ts",
-		"schema/**/*.ts",
-		"./*.ts"
+		"shared/**/*",
+		"worker/**/*",
+		"schema/**/*",
+		"server_functions/**/*",
+		"*"
 	],
 	"exclude": ["node_modules/**", "build/**"],
 	// Visit https://aka.ms/tsconfig to read more about this file
