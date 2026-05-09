@@ -26,7 +26,8 @@
 		"export_schema": "dotenv -- node shared/schema_dumper/index.ts",
 		"db:reset": "dotenv -- bash scripts/reset-db.sh",
 		"dev": "wrangler dev",
-		"deploy": "wrangler deploy"
+		"deploy": "wrangler deploy",
+		"generate_server_function_types": "node scripts/generate_server_function_types.ts"
 	},
 	"devDependencies": {
 		"@types/node": "^25.6.0",

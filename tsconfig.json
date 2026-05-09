@@ -4,6 +4,8 @@
 		"worker/**/*",
 		"schema/**/*",
 		"server_functions/**/*",
+		"client/**/*",
+		"scripts/**/*",
 		"*"
 	],
 	"exclude": ["node_modules/**", "build/**"],
