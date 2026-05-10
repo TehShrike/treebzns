@@ -2,6 +2,18 @@
 
 - function to iterate over query data structure and add `AND company_id = ?` clauses
 
+## knock out
+
+- deploy worker + static assets, serve a `public` directory
+- build worker with esbuild, look at instantestimate
+- client app
+	- build with esbuild
+	- abstract-state-router
+- client-side: a fetchy function for making requests
+- client-side: a server-function api – object with properties that look like server-functions - backed by a request to a `fn` endpoint
+- bare login endpoint that sets a cookie
+- server-side handling of `fn` endpoint: check the cookie, look up the user, look for the function, validate the argument
+
 ## higher level
 
 - dev server
@@ -13,21 +25,6 @@
 - query function that runs safe sql queries
 	- company_id mandatory
 - that's it, start building ui
-
-## "Server functions"
-
-- how should nesting work?
-- maybe its own directory?
-- globbed up somehow to package up for the server
-- types generated for use in the client
-
-- a directory full of modules that export functions that can be "called" from the client
-	- generate the types of all the functions and export them somewhere accessible by the client
-		- functions take a single argument
-		- argument defined/validated by json validator
-		- optional permissions function that takes the user and a permissions object and returns true/false
-	- client-side, generate a function for each of those server-side functions, that can be called with the signature of the server-side function, that makes a query to a `function` endpoint with everything relevant as the body
-	- server-side `function` endpoint that uses the validator to validate the argument, then calls the underlying function and returns the value
 
 ## Cloudflare Workers / wrangler
 
