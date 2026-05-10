@@ -1,6 +1,7 @@
 ## bitty things soon
 
 - function to iterate over query data structure and add `AND company_id = ?` clauses
+- change how table/column/alias names are passed to the query builder, use strings: https://claude.ai/chat/591c124d-2cc3-439d-b6c5-10918741e0c5
 
 ## knock out
 
