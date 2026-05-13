@@ -1,7 +1,6 @@
 {
 	"include": [
 		"shared/**/*",
-		"worker/**/*",
 		"schema/**/*",
 		"server_functions/**/*",
 		"client/**/*",

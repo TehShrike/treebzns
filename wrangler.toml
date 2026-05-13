@@ -2,5 +2,10 @@ name = "treebzns"
 main = "build/worker/worker.js"
 compatibility_date = "2025-01-01"
 
+routes = [
+	{ pattern = "beaverdroid.com/*", custom_domain = true }
+]
+
 [assets]
 directory = "./public"
+binding = "ASSETS"

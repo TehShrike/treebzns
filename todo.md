@@ -29,9 +29,9 @@
 
 ## Cloudflare Workers / wrangler
 
-- [ ] Create Cloudflare account at dash.cloudflare.com (if not done)
-- [ ] Run `pnpm wrangler login` to authenticate the CLI (one-time per machine)
-- [ ] First `pnpm deploy` will auto-create the Worker and prompt for a `*.workers.dev` subdomain (one-time per account)
+- [x] Create Cloudflare account at dash.cloudflare.com (if not done)
+- [x] Run `pnpm wrangler login` to authenticate the CLI (one-time per machine)
+- [x] First `pnpm deploy` will auto-create the Worker and prompt for a `*.workers.dev` subdomain (one-time per account)
 - [ ] Build real worker code to `build/worker/worker.js` before deploying (replace dummy)
 - [ ] Configure custom domain via Cloudflare dashboard or `routes` in `wrangler.toml` when ready
 
