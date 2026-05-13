@@ -158,41 +158,41 @@ function assert_valid_query_output(select_query: SafeSqlQuery) {
 const q = query_builder<ExampleSchema>()
 
 test('typed_query_builder: from with valid table', () => {
-	const built = q.from('project', 'projectz').build()
+	const built = q.from('project AS projectz').build()
 	assert_valid_query_output(built)
 })
 
 test('typed_query_builder: chained joins with column refs by alias', () => {
-	const built = q.from('project', 'p')
-		.join('project_line_item', 'pli', on => on.comparison({ table: 'pli', column: 'project_id' }, '=', { table: 'p', column: 'project_id' }))
-		.join('project_document', 'pd', on => on.comparison({ table: 'p', column: 'project_document_id' }, '=', { table: 'pd', column: 'project_document_id' }))
+	const built = q.from('project AS p')
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
+		.join('project_document AS pd', on => on.comparison('p.project_document_id', '=', 'pd.project_document_id'))
 		.build()
 	assert_valid_query_output(built)
 })
 
 test('typed_query_builder: where with column ref against value', () => {
-	const built = q.from('project_line_item', 'pli')
-		.where(q => q.comparison({ table: 'pli', column: 'project_id' }, '=', { value: 2 }))
+	const built = q.from('project_line_item AS pli')
+		.where(q => q.comparison('pli.project_id', '=', { value: 2 }))
 		.build()
 	assert_valid_query_output(built)
 })
 
 test('typed_query_builder: where after join with and', () => {
-	const built = q.from('project', 'p')
-		.join('project_line_item', 'pli', on => on.comparison({ table: 'pli', column: 'project_id' }, '=', { table: 'p', column: 'project_id' }))
+	const built = q.from('project AS p')
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
 		.where(q => q.and(
-			q.comparison({ table: 'pli', column: 'item_type_id' }, '=', { value: 3 }),
-			q.comparison({ table: 'p', column: 'company_id' }, '=', { value: 4 }),
+			q.comparison('pli.item_type_id', '=', { value: 3 }),
+			q.comparison('p.company_id', '=', { value: 4 }),
 		))
 		.build()
 	assert_valid_query_output(built)
 })
 
 test('typed_query_builder: select with column refs and aliases', () => {
-	const built = q.from('project', 'p')
+	const built = q.from('project AS p')
 		.select(
-			{ table: 'p', column: 'project_id' },
-			{ table: 'p', column: 'company_id', alias: 'co' },
+			'p.project_id',
+			'p.company_id AS co',
 		)
 		.build()
 
@@ -208,44 +208,47 @@ test('typed_query_builder: select with column refs and aliases', () => {
 })
 
 test('typed_query_builder: group_by with column refs', () => {
-	const built = q.from('project', 'p')
-		.join('project_line_item', 'pli', on => on.comparison({ table: 'pli', column: 'project_id' }, '=', { table: 'p', column: 'project_id' }))
-		.group_by({ table: 'p', column: 'project_id' })
+	const built = q.from('project AS p')
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
+		.group_by('p.project_id')
 		.build()
 	assert_valid_query_output(built)
 })
 
 test.skip('typed_query_builder: type errors on invalid references', () => {
 	// @ts-expect-error: projectz is not a valid table name
-	q.from('projectz', 'project')
+	q.from('projectz')
 
-	q.from('project', 'p')
+	// @ts-expect-error: projectz is not a valid table name
+	q.from('projectz AS p')
+
+	q.from('project AS p')
 		// @ts-expect-error: project was aliased to p
-		.join('project_line_item', 'pli', on => on.comparison({ table: 'pli', column: 'project_id' }, '=', { table: 'project', column: 'project_id' }))
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'project.project_id'))
 
-	q.from('project', 'p')
+	q.from('project AS p')
 		// @ts-expect-error: project_line_item was aliased to pli
-		.join('project_line_item', 'pli', on => on.comparison({ table: 'project_line_item', column: 'project_id' }, '=', { table: 'p', column: 'project_id' }))
+		.join('project_line_item AS pli', on => on.comparison('project_line_item.project_id', '=', 'p.project_id'))
 
 	// @ts-expect-error: pli is valid in this context, project_line_item is not
-	q.from('project_line_item', 'pli').where(q => q.comparison({ table: 'project_line_item', column: 'project_id' }, '=', { value: 2 }))
+	q.from('project_line_item AS pli').where(q => q.comparison('project_line_item.project_id', '=', { value: 2 }))
 
-	q.from('project', 'p')
+	q.from('project AS p')
 		.where(q => q.and(
 			// @ts-expect-error: pli is not a valid reference here
-			q.comparison({ table: 'pli', column: 'item_type_id' }, '=', { value: 3 }),
-			q.comparison({ table: 'p', column: 'company_id' }, '=', { value: 4 }),
+			q.comparison('pli.item_type_id', '=', { value: 3 }),
+			q.comparison('p.company_id', '=', { value: 4 }),
 		))
 
 	// @ts-expect-error: project was aliased to p, so 'project' is not a valid table identifier in select
-	q.from('project', 'p').select({ table: 'project', column: 'project_id' })
+	q.from('project AS p').select('project.project_id')
 
 	// @ts-expect-error: 'not_a_column' is not a column on project
-	q.from('project', 'p').select({ table: 'p', column: 'not_a_column' })
+	q.from('project AS p').select('p.not_a_column')
 
 	// @ts-expect-error: project was aliased to p, so 'project' is not a valid table identifier in group_by
-	q.from('project', 'p').group_by({ table: 'project', column: 'project_id' })
+	q.from('project AS p').group_by('project.project_id')
 
 	// @ts-expect-error: 'not_a_column' is not a column on project
-	q.from('project', 'p').group_by({ table: 'p', column: 'not_a_column' })
+	q.from('project AS p').group_by('p.not_a_column')
 })
