@@ -1,7 +1,8 @@
 ## higher level
 
 - client with ASR+context
-- a few actual endpoints e.g. login
+	- make a login state
+	- make a home page with a "create lead" button
 - most hacky bullshit auth ever
 	- bare login endpoint that sets a cookie
 - ability to call "server functions" via api
