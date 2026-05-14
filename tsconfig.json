@@ -3,7 +3,6 @@
 		"shared/**/*",
 		"schema/**/*",
 		"server_functions/**/*",
-		"client/**/*",
 		"scripts/**/*",
 		"*"
 	],

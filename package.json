@@ -12,7 +12,8 @@
 	},
 	"imports": {
 		"#shared/*": "./shared/*",
-		"#schema/*": "./schema/*"
+		"#schema/*": "./schema/*",
+		"#client/lib/*": "./client/lib/*"
 	},
 	"license": "UNLICENSED",
 	"author": "TehShrike",
@@ -54,8 +55,10 @@
 	"packageManager": "pnpm@10.32.1",
 	"dependencies": {
 		"@js-temporal/polyfill": "^0.5.1",
+		"abstract-state-router": "^8.0.6",
 		"financial-number": "^5.0.0",
-		"mysql2": "^3.22.3"
+		"mysql2": "^3.22.3",
+		"svelte-state-renderer": "^6.0.0"
 	},
 	"engines": {
 		"node": ">=25"
