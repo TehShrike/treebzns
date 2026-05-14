@@ -16,6 +16,9 @@ mkdirSync(`public/build`, {
 })
 
 const get_build_options = () => ({
+	alias: {
+		'@js-temporal/polyfill': './client/temporal_browser_shim.ts',
+	},
 	entryPoints: ['client/index.ts'],
 	bundle: true,
 	splitting: true,
