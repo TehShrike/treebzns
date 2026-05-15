@@ -10,7 +10,7 @@ const configPath = resolve(PROJECT_ROOT, 'tsconfig.json')
 const configFile = ts.readConfigFile(configPath, ts.sys.readFile)
 const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, PROJECT_ROOT)
 
-const fnDir = join(PROJECT_ROOT, 'server_functions')
+const fnDir = join(PROJECT_ROOT, 'worker', 'server_functions')
 const fnFiles = readdirSync(fnDir)
 	.filter(f => f.endsWith('.fns.ts'))
 	.map(f => join(fnDir, f))

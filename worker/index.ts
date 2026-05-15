@@ -1,6 +1,6 @@
 import { json_response } from './response_helpers.ts'
 import type { Env } from './environment.ts'
-import { create_pool } from './db.ts'
+import { create_pool } from '#worker/lib/mysql/connection.ts'
 import type { Pool } from 'mysql2/promise'
 
 let pool: Pool | null = null

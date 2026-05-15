@@ -8,3 +8,5 @@ echo '{"seq":1,"type":"request","command":"open","arguments":{"file":"myfile.ts"
 ```
 
 This project uses pnpm.
+
+Avoid importing from directories using ../ if it is possible to use a #dir/ import map path instead.

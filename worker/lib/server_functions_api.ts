@@ -1,11 +1,7 @@
 import type { Pool } from 'mysql2/promise'
-import type { Validator } from './json_validator.ts'
+import type { Validator } from '#shared/json_validator.ts'
 
-
-export type Context = {
-	user: Pick<DbCompany, 'company_id'>
-	mysql: Pool
-}
+import type { Context } from './context.ts'
 
 type Endpoint<Arg, Response> = {
 	validator: Validator<Arg>,

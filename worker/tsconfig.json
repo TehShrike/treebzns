@@ -1,7 +1,16 @@
 {
 	"extends": "../tsconfig.json",
 	"compilerOptions": {
-		"types": ["@cloudflare/workers-types"]
+		"types": ["@cloudflare/workers-types"],
+		"paths": {
+			"#worker/lib/*": ["./lib/*"],
+			"#shared/*": ["../shared/*"],
+			"#schema/*": ["../schema/*"]
+		}
 	},
-	"include": ["./**/*"]
+	"include": [
+		"./**/*",
+		"../shared/**/*",
+		"../schema/**/*",
+	]
 }

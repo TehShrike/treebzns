@@ -2,7 +2,6 @@
 	"include": [
 		"shared/**/*",
 		"schema/**/*",
-		"server_functions/**/*",
 		"scripts/**/*",
 		"*"
 	],
@@ -54,6 +53,6 @@
 		"skipLibCheck": true,
 
 		"allowImportingTsExtensions": true,
-		"noEmit": true,
+		"noEmit": true
 	}
 }
