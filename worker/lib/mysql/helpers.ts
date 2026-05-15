@@ -2,6 +2,7 @@ import sql from 'sql-tagged-template-literal'
 
 import type { QueryPromise, Mysql } from './type.ts'
 import { map } from '#shared/array.ts'
+import object_keys from '#shared/object_keys.ts'
 import assert from '#shared/assert.ts'
 
 export const transaction = async<RESULT>(connection: Mysql, fn: () => Promise<RESULT>): Promise<RESULT> => {
@@ -105,7 +106,7 @@ export const bulk_insert = <T extends Pojo>({ mysql, table, rows, on_duplicate_k
 		return
 	}
 
-	const column_property_names = Object.keys(rows[0])
+	const column_property_names = object_keys(rows[0])
 
 	return bulk_insert_arrays({
 		mysql,
