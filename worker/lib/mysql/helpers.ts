@@ -96,8 +96,12 @@ type BulkInsertArguments<T extends Pojo> = MysqlConnectionTableRows<T> & {
 	insert_ignore?: boolean | undefined
 }
 
+function has_at_least_one_row<T extends Pojo>(rows: T[]): rows is [T, ...T[]] {
+	return rows.length > 0
+}
+
 export const bulk_insert = <T extends Pojo>({ mysql, table, rows, on_duplicate_key_update = [], insert_ignore }: BulkInsertArguments<T>) => {
-	if (rows.length === 0) {
+	if (!has_at_least_one_row(rows)) {
 		return
 	}
 
@@ -175,6 +179,6 @@ export const get_first_row_column = (column: string, query_promise: QueryPromise
 	return row[column]
 })
 export const get_rows = (query_promise: QueryPromise) => query_promise.then(([ rows ]) => rows)
-export const get_insert_id = (query_promise: QueryPromise) => query_promise.then(([{ insertId }]) => insertId)
-export const get_number_of_changed_rows = (query_promise: QueryPromise) => query_promise.then(([{ changedRows }]) => changedRows) // number of rows that changed in an UPDATE.
-export const get_number_of_affected_rows = (query_promise: QueryPromise) => query_promise.then(([{ affectedRows }]) => affectedRows) // number of rows that were affected in an INSERT, UPDATE, or DELETE.  Includes rows matched in an UPDATE that did not change.
+export const get_insert_id = (query_promise: QueryPromise) => query_promise.then(([{ insertId }]) => BigInt(insertId))
+export const get_number_of_changed_rows = (query_promise: QueryPromise) => query_promise.then(([{ changedRows }]) => BigInt(changedRows)) // number of rows that changed in an UPDATE.
+export const get_number_of_affected_rows = (query_promise: QueryPromise) => query_promise.then(([{ affectedRows }]) => BigInt(affectedRows)) // number of rows that were affected in an INSERT, UPDATE, or DELETE.  Includes rows matched in an UPDATE that did not change.

@@ -4,6 +4,7 @@ import type { RowDataPacket } from 'mysql2'
 import { writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import assert from '#shared/assert.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PROJECT_ROOT = join(__dirname, '../..')
@@ -41,7 +42,8 @@ function toPascalCase(snake: string): string {
 
 function columnTsType(col: ColumnMeta): string {
 	const mapFn = MYSQL_TYPE_TO_TS[col.DATA_TYPE]
-	const base = mapFn ? mapFn(col) : 'unknown'
+	assert(mapFn, `Every type must exist in MYSQL_TYPE_TO_TS: "${col.DATA_TYPE}"`)
+	const base = mapFn(col)
 	return col.IS_NULLABLE === 'YES' ? `${base} | null` : base
 }
 

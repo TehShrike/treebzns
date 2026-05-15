@@ -1,6 +1,6 @@
 name = "treebzns"
 main = "build/worker/worker.js"
-nodejs_compat = [ "nodejs_compat" ]
+compatibility_flags = [ "nodejs_compat" ]
 compatibility_date = "2025-01-01"
 
 routes = [

@@ -1,6 +1,5 @@
 import { createPool } from 'mysql2/promise'
 import type { Pool, ConnectionOptions } from 'mysql2/promise'
-import type { Env } from '../environment.ts'
 import fnum from '#shared/number.ts'
 
 const time_types = new Set([ `TIMESTAMP`, `DATETIME` ])
