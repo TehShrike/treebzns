@@ -76,6 +76,15 @@ export const schema = {
 		is_owner: 'is_owner',
 		created_at: 'created_at',
 		updated_at: 'updated_at',
+		number_of_password_hash_iterations: 'number_of_password_hash_iterations',
+	},
+	employee_session: {
+		employee_session_id: 'employee_session_id',
+		employee_id: 'employee_id',
+		session_identifier: 'session_identifier',
+		enabled: 'enabled',
+		created_at: 'created_at',
+		updated_at: 'updated_at',
 	},
 	employee_software_role: {
 		employee_software_role_id: 'employee_software_role_id',

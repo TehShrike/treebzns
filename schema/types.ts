@@ -6,6 +6,7 @@ export type Schema = {
 	crew: DbCrew
 	crew_member: DbCrewMember
 	employee: DbEmployee
+	employee_session: DbEmployeeSession
 	employee_software_role: DbEmployeeSoftwareRole
 	item_type: DbItemType
 	payment: DbPayment
