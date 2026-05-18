@@ -1,5 +1,16 @@
 ## higher level
 
+- form that creates a company+initial employee with password, using the create_company endpoint
+- function that creates a session in the database and sets a cookie
+	- new table
+		- session uuid
+		- sign in user agent
+		- sign in datetime
+		- last seen datetime
+		- last seen user agent
+		- expiration datetime
+		- invalidated boolean
+- prettify?  meh
 - bare login endpoint that sets a cookie
 - server-side handling of `fn` endpoint: check the cookie, look up the user, look for the function, validate the argument
 - login screen in ASR
