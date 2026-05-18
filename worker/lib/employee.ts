@@ -15,12 +15,12 @@ export const create_employee = async (employee: CreateEmployeeArg, mysql: MysqlH
 
 	const { password: _, ...fields } = employee
 
-	return mysql.query(
-		'INSERT INTO employee SET ?',
-		{
+	return mysql.query({
+		sql: 'INSERT INTO employee SET ?',
+		values: {
 			...fields,
 			password_hash: hash_hex,
 			number_of_password_hash_iterations: iterations,
 		},
-	).get_insert_id()
+	}).get_insert_id()
 }

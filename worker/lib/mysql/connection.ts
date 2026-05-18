@@ -5,15 +5,47 @@ import fnum from '#shared/number.ts'
 const time_types = new Set([ `TIMESTAMP`, `DATETIME` ])
 const database_utc_offset = `Z`
 
-type Field = {
-	type: string
-	length: number
-	db: string
-	table: string
-	name: string
-	string: () => string
-	buffer: () => Buffer
-	geometry: () => any
+export type Field = {
+  type:
+    | 'DECIMAL'
+    | 'TINY'
+    | 'SHORT'
+    | 'LONG'
+    | 'FLOAT'
+    | 'DOUBLE'
+    | 'NULL'
+    | 'TIMESTAMP'
+    | 'TIMESTAMP2'
+    | 'LONGLONG'
+    | 'INT24'
+    | 'DATE'
+    | 'TIME'
+    | 'TIME2'
+    | 'DATETIME'
+    | 'DATETIME2'
+    | 'YEAR'
+    | 'NEWDATE'
+    | 'VARCHAR'
+    | 'BIT'
+    | 'VECTOR'
+    | 'JSON'
+    | 'NEWDECIMAL'
+    | 'ENUM'
+    | 'SET'
+    | 'TINY_BLOB'
+    | 'MEDIUM_BLOB'
+    | 'LONG_BLOB'
+    | 'BLOB'
+    | 'VAR_STRING'
+    | 'STRING'
+    | 'GEOMETRY'
+  length: number;
+  db: string;
+  table: string;
+  name: string;
+  string: (encoding?: BufferEncoding | string | undefined) => string | null;
+  buffer: () => Buffer | null;
+  // geometry: () => Geometry | Geometry[] | null;
 }
 
 type MysqlDateTypes = 'TIMESTAMP' | 'DATETIME' | 'DATE'
@@ -24,9 +56,13 @@ const static_connection_options: ConnectionOptions = {
 	supportBigNumbers: true,
 	timezone: `+00:00`,
 	dateStrings: date_types_we_want_returned_as_strings,
-	typeCast: (field: Field, next: () => any) => {
+	typeCast: (field: Field, next: () => unknown) => {
 		if (field.type === `BIT` && field.length === 1) {
-			const as_number = Array.from(field.buffer().values())[0]
+			const buffer = field.buffer()
+			if (buffer === null) {
+				return buffer
+			}
+			const as_number = Array.from(buffer.values())[0]
 			return as_number === 1 || as_number === 49 // also check if 49 (ASCII code for 1) because of this bug: https://bugs.mysql.com/bug.php?id=97067
 		} else if (field.type === `NEWDECIMAL`) {
 			const decimal_string = field.string()
