@@ -22,16 +22,7 @@ const make_handy_result_object = (query_promise: QueryPromise) => {
 
 type Values = any[] | { [param: string]: any }
 const make_mysql_helpers_object = (mysql: Connection) => ({
-	// Ideally we would use Parameters<Connection['query']>
-	// However, there's a bug with mysql2 or typescript where it doesn't like our definition using rest args, or something
-	// https://github.com/sidorares/node-mysql2/pull/1802
-	// query: (...args: Parameters<Connection['query']>) => make_handy_result_object(mysql.query(...args)),
-	// So until that's fixed, I'm using my silly definition:
-	// @ts-expect-error the mysql2 types are annoying
-	query: (sql: { sql: string, values?: Values } | string, values?: Values) => make_handy_result_object(mysql.query(
-		sql,
-		values
-	)),
+	query: (sql: { sql: string, values: Values } | string) => make_handy_result_object(mysql.query(typeof sql === 'object' ? sql : { sql })),
 	connection: mysql,
 })
 
