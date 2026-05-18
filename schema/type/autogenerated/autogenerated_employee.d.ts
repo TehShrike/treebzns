@@ -6,9 +6,8 @@ declare global {
 		company_id: bigint
 		name: string
 		email: string
-		phone: string | null
+		phone: string
 		password_hash: string
-		avatar_url: string | null
 		is_owner: boolean
 		number_of_password_hash_iterations: bigint
 	}
@@ -18,9 +17,8 @@ declare global {
 		company_id: bigint
 		name: string
 		email: string
-		phone: string | null
+		phone: string
 		password_hash: string
-		avatar_url: string | null
 		is_owner: boolean
 		created_at: Temporal.Instant
 		updated_at: Temporal.Instant
