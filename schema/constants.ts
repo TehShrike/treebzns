@@ -167,8 +167,6 @@ export const schema = {
 	},
 	project_document: {
 		project_document_id: 'project_document_id',
-		company_id: 'company_id',
-		group_name: 'group_name',
 		name: 'name',
 		needs_estimate_to_move_on: 'needs_estimate_to_move_on',
 		needs_client_approval_to_move_on: 'needs_client_approval_to_move_on',
@@ -181,6 +179,7 @@ export const schema = {
 		represents_billable_sale_when_closed: 'represents_billable_sale_when_closed',
 		created_at: 'created_at',
 		updated_at: 'updated_at',
+		sort: 'sort',
 	},
 	project_line_item: {
 		project_line_item_id: 'project_line_item_id',
