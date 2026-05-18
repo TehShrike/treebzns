@@ -1,6 +1,3 @@
-- fix pnpm on my machine 🙃
-- fix type errors in the worker
-
 ## higher level
 
 - bare login endpoint that sets a cookie

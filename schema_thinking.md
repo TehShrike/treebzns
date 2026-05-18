@@ -125,8 +125,8 @@ add actual permission scheme
 ## project_document
 
 - project_document_id BIGINT NOT NULL
-- company_id BIGINT NOT NULL REFERENCES company(company_id)
-- group_name VARCHAR(100)
+<!-- - company_id BIGINT NOT NULL REFERENCES company(company_id) -->
+<!-- - group_name VARCHAR(100) -->
 - name VARCHAR(200)
 - needs_estimate_to_move_on BIT(1)
 - needs_client_approval_to_move_on BIT(1)
@@ -141,13 +141,13 @@ add actual permission scheme
 ```
 Example:
 
-Lead, Unqualified, needs_to_be_contacted_by_lead_qualifier, next_project_document: Qualified Lead
-Lead, Qualified, needs_estimate_to_move_on, next_project_document: Estimate
-Estimate, '', needs_client_approval_to_move_on, can_expire, next_project_document: Work Order
-Work Order, '', should_be_worked, can_be_closed, represents_billable_sale_when_closed
-Work Order, Errand, should_be_worked, can_be_closed
-Work Order, Customer Sat, should_be_worked, can_be_closed
-Void, ''
+Lead (Unqualified), needs_to_be_contacted_by_lead_qualifier, next_project_document: Qualified Lead
+Lead (Qualified), needs_estimate_to_move_on, next_project_document: Estimate
+Estimate, needs_client_approval_to_move_on, can_expire, next_project_document: Work Order
+Work Order, should_be_worked, can_be_closed, represents_billable_sale_when_closed
+Work Order (Errand), should_be_worked, can_be_closed
+Work Order (Customer Sat), should_be_worked, can_be_closed
+Void
 
 maybe estimate "needs double-checked by foreman" and "sent to customer"?  Nah, those probably go on the documents, at least the "sent to customer" does.
 
