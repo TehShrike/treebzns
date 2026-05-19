@@ -1,3 +1,7 @@
+Fix Claude output:
+- on typed_query_builder, you should be able to add functions to selects in addition to inside comparisons
+- row output type is wrong in validate_session, check the TODO
+
 ## higher level
 
 - form that creates a company+initial employee with password, using the create_company endpoint
