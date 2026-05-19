@@ -10,6 +10,7 @@ let pool: Pool | null = null
 const create_company_validator = jv.object({
 	company: jv.object({
 		name: jv.is_string,
+		brand_color: jv.is_string,
 	}),
 	owner_employee: jv.object({
 		name: jv.is_string,
@@ -30,9 +31,8 @@ const new_company = async (request: Request, pool: Pool): Promise<Response> => {
 	try {
 		const mysql = make_mysql_helpers_object(conn)
 		const company_id = await create_company({
-			name: body.company.name,
 			logo: null,
-			brand_color: null,
+			...body.company,
 		}, body.owner_employee, mysql)
 		return json_response({ body: { company_id: company_id.toString() }, status: 201 })
 	} finally {

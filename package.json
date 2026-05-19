@@ -38,7 +38,6 @@
 		"generate_server_function_types": "node scripts/generate_server_function_types.ts",
 		"build": "npm-run-all build:glob_states build:*",
 		"build:glob_states": "glob-module-file --pattern=\"routes/**/*.State.svelte\" --format=es --importStar --exportWithPath --pathPrefix=./ --outputPath=client/globbed_states.generated.ts",
-		"build:worker": "node esbuild.worker.ts",
 		"build:client": "node esbuild.client.ts"
 	},
 	"devDependencies": {
