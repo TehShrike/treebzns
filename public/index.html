@@ -10,12 +10,27 @@
 		input { display: block; width: 100%; box-sizing: border-box; margin-top: 0.25rem; padding: 0.4rem 0.5rem; font-size: 1rem; }
 		input[type=color] { padding: 0.1rem; height: 2.2rem; cursor: pointer; }
 		button { margin-top: 1.5rem; padding: 0.6rem 1.4rem; font-size: 1rem; cursor: pointer; }
-		#result { margin-top: 1rem; padding: 0.75rem; border-radius: 4px; display: none; }
-		#result.success { background: #d4edda; color: #155724; }
-		#result.error   { background: #f8d7da; color: #721c24; }
+		.result { margin-top: 1rem; padding: 0.75rem; border-radius: 4px; display: none; }
+		.result.success { background: #d4edda; color: #155724; }
+		.result.error   { background: #f8d7da; color: #721c24; }
+		hr { margin: 3rem 0; border: none; border-top: 1px solid #ccc; }
 	</style>
 </head>
 <body>
+	<h1>Log in</h1>
+	<form id="login-form">
+		<label>Email
+			<input type="email" name="email" required>
+		</label>
+		<label>Password
+			<input type="password" name="password" required>
+		</label>
+		<button type="submit">Log in</button>
+	</form>
+	<div id="login-result" class="result"></div>
+
+	<hr>
+
 	<h1>Create company</h1>
 	<form id="form">
 		<h2>Company</h2>
@@ -42,9 +57,46 @@
 
 		<button type="submit">Create company</button>
 	</form>
-	<div id="result"></div>
+	<div id="create-result" class="result"></div>
 
 	<script>
+		async function post_json(url, body) {
+			const res = await fetch(url, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			})
+			return { res, json: await res.json() }
+		}
+
+		function show_result(el, res, json, success_text) {
+			el.style.display = 'block'
+			if (res.ok) {
+				el.className = 'result success'
+				el.textContent = success_text(json)
+			} else {
+				el.className = 'result error'
+				el.textContent = `Error: ${json.error}`
+			}
+		}
+
+		document.getElementById('login-form').addEventListener('submit', async e => {
+			e.preventDefault()
+			const data = new FormData(e.target)
+			const result = document.getElementById('login-result')
+			try {
+				const { res, json } = await post_json('/api/log_in', {
+					email: data.get('email'),
+					password: data.get('password'),
+				})
+				show_result(result, res, json, () => 'Logged in!')
+			} catch (err) {
+				result.style.display = 'block'
+				result.className = 'result error'
+				result.textContent = `Network error: ${err.message}`
+			}
+		})
+
 		document.getElementById('form').addEventListener('submit', async e => {
 			e.preventDefault()
 			const data = new FormData(e.target)
@@ -60,25 +112,13 @@
 					password: data.get('owner_password'),
 				},
 			}
-			const result = document.getElementById('result')
+			const result = document.getElementById('create-result')
 			try {
-				const res = await fetch('/api/create_company', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(body),
-				})
-				const json = await res.json()
-				result.style.display = 'block'
-				if (res.ok) {
-					result.className = 'success'
-					result.textContent = `Company created! ID: ${json.company_id}`
-				} else {
-					result.className = 'error'
-					result.textContent = `Error: ${json.error}`
-				}
+				const { res, json } = await post_json('/api/create_company', body)
+				show_result(result, res, json, j => `Company created! ID: ${j.company_id}`)
 			} catch (err) {
 				result.style.display = 'block'
-				result.className = 'error'
+				result.className = 'result error'
 				result.textContent = `Network error: ${err.message}`
 			}
 		})

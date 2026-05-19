@@ -88,7 +88,6 @@ export const schema = {
 		signed_in_at: 'signed_in_at',
 		last_seen_user_agent: 'last_seen_user_agent',
 		last_seen_at: 'last_seen_at',
-		expire_at: 'expire_at',
 	},
 	employee_software_role: {
 		employee_software_role_id: 'employee_software_role_id',
