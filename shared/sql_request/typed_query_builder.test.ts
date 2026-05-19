@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import type { FinancialNumber } from 'financial-number'
+import { Temporal } from '@js-temporal/polyfill'
 import query_builder, { type ExtractQueryResponse } from './typed_query_builder.ts'
 
 type AssertEqual<A, B> =
