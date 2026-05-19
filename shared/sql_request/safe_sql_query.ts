@@ -12,6 +12,8 @@ import type {
 	SafeSqlQuery,
 } from './safe_sql_query_validator.ts'
 
+type ComparisonOperand = ColumnReference | UserProvidedValue | FunctionExpression
+
 export type { SafeSqlQuery }
 
 type SqlChunk = {
@@ -73,7 +75,18 @@ const FUNCTIONS = {
 	'COUNT DISTINCT': (args: SomeFunctionArguments) => to_sql_chunk({
 		build_sql_1: (value: string) => `COUNT(DISTINCT ${value})`
 	}, args),
+	'UUID_TO_BIN': (args: SomeFunctionArguments) => to_sql_chunk({
+		build_sql_1: (value: string) => `UUID_TO_BIN(${value})`
+	}, args),
 } as const satisfies { [key in FunctionName]: (args: SomeFunctionArguments) => SqlChunk }
+
+const operand_to_sql_chunk = (operand: ComparisonOperand): SqlChunk => {
+	if (operand.type === 'function') {
+		assertOneOrTwoArguments(operand.arguments)
+		return FUNCTIONS[operand.function](operand.arguments)
+	}
+	return value_to_sql_chunk(operand)
+}
 
 function assertOneOrTwoArguments<T>(args: T[]): asserts args is [T] | [T, T] {
 	if (args.length !== 1 && args.length !== 2) {
@@ -95,8 +108,8 @@ type QueryValidationResult = {
 }
 
 const comparison_to_chunk = (comp: Comparison): SqlChunk => {
-	const left = value_to_sql_chunk(comp.left)
-	const right = value_to_sql_chunk(comp.right)
+	const left = operand_to_sql_chunk(comp.left)
+	const right = operand_to_sql_chunk(comp.right)
 	return {
 		sql: `${left.sql} ${comp.comparator} ${right.sql}`,
 		parameters: [...left.parameters, ...right.parameters],
@@ -157,8 +170,9 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			}
 		}
 
-		const check_arg = (arg: ColumnReference | UserProvidedValue) => {
+		const check_arg = (arg: ColumnReference | UserProvidedValue | FunctionExpression) => {
 			if (arg.type === 'column reference') check_col_ref(arg)
+			else if (arg.type === 'function') for_each(arg.arguments, check_arg)
 		}
 
 		const check_select_or_group_by = (expr: SelectExpression) => {

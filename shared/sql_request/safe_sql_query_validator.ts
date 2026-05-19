@@ -26,18 +26,12 @@ export const comparator_validator = jv.one_of(
 	jv.exact('=' as const),
 )
 
-export const comparison_validator = jv.object({
-	type: jv.exact('comparison' as const),
-	left: jv.one_of(column_reference_validator, user_provided_value_validator),
-	comparator: comparator_validator,
-	right: jv.one_of(column_reference_validator, user_provided_value_validator),
-})
-
 export const function_name_validator = jv.one_of(
 	jv.exact('IS NOT NULL' as const),
 	jv.exact('IS NULL' as const),
 	jv.exact('COUNT' as const),
 	jv.exact('COUNT DISTINCT' as const),
+	jv.exact('UUID_TO_BIN' as const),
 )
 
 const function_argument_validator = jv.one_of(column_reference_validator, user_provided_value_validator)
@@ -46,6 +40,13 @@ export const function_expression_validator = jv.object({
 	type: jv.exact('function' as const),
 	function: function_name_validator,
 	arguments: jv.array(function_argument_validator),
+})
+
+export const comparison_validator = jv.object({
+	type: jv.exact('comparison' as const),
+	left: jv.one_of(column_reference_validator, user_provided_value_validator, function_expression_validator),
+	comparator: comparator_validator,
+	right: jv.one_of(column_reference_validator, user_provided_value_validator, function_expression_validator),
 })
 
 const column_reference_select_validator = jv.object({

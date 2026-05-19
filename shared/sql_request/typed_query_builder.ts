@@ -5,6 +5,8 @@ import type {
 	Comparison,
 	ColumnReference,
 	UserProvidedValue,
+	FunctionExpression,
+	FunctionName,
 	Join as TrustableJoin,
 	SelectExpression,
 } from "./safe_sql_query_validator.ts"
@@ -29,11 +31,12 @@ type Expression = { __expression: true }
 
 type ExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
 	comparison: (
-		left: ColumnRef<Schema, A> | ValueRef,
+		left: ColumnRef<Schema, A> | ValueRef | FunctionExpression,
 		comparator: Comparator,
-		right: ColumnRef<Schema, A> | ValueRef,
+		right: ColumnRef<Schema, A> | ValueRef | FunctionExpression,
 	) => Expression
 	and: (...exprs: Expression[]) => Expression
+	fn: (name: FunctionName, ...args: (ColumnRef<Schema, A> | ValueRef)[]) => FunctionExpression
 }
 
 type SelectColumnInput<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
@@ -93,7 +96,7 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Row = {
 	build: () => BuiltQuery<Row>
 }
 
-type ColumnOrValueInput = string | { value: unknown }
+type ColumnOrValueInput = string | { value: unknown } | FunctionExpression
 
 type RuntimeExpression =
 	| { type: 'and'; children: RuntimeExpression[] }
@@ -124,11 +127,12 @@ const to_select_expression = (input: string): SelectExpression => {
 	return m[3] !== undefined ? { ...base, alias: m[3] } : base
 }
 
-const to_column_or_value = (input: ColumnOrValueInput): ColumnReference | UserProvidedValue => {
+const to_column_or_value = (input: ColumnOrValueInput): ColumnReference | UserProvidedValue | FunctionExpression => {
+	if (typeof input === 'object' && 'type' in input && input.type === 'function') return input
 	if (typeof input === 'object' && 'value' in input) {
-		return { type: 'user provided value', value: input.value }
+		return { type: 'user provided value', value: (input as { value: unknown }).value }
 	}
-	const { table, column } = parse_col_ref(input)
+	const { table, column } = parse_col_ref(input as string)
 	return { type: 'column reference', table_identifier: table, column }
 }
 
@@ -145,6 +149,15 @@ const expression_builder = {
 		right: to_column_or_value(right),
 	}),
 	and: (...children: RuntimeExpression[]): RuntimeExpression => ({ type: 'and', children }),
+	fn: (name: FunctionName, ...args: ColumnOrValueInput[]): FunctionExpression => ({
+		type: 'function',
+		function: name,
+		arguments: args.map(a => {
+			const v = to_column_or_value(a)
+			if (v.type === 'function') throw new Error('nested function expressions are not supported')
+			return v
+		}),
+	}),
 }
 
 const make_stage = (state: State): any => ({

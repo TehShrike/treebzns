@@ -208,6 +208,13 @@ test('typed_query_builder: select with column refs and aliases', () => {
 	assert_valid_query_output(built)
 })
 
+test('typed_query_builder: where with UUID_TO_BIN function expression', () => {
+	const built = q.from('project AS p')
+		.where(q => q.comparison('p.project_id', '=', q.fn('UUID_TO_BIN', { value: 'some-uuid' })))
+		.build()
+	assert_valid_query_output(built)
+})
+
 test('typed_query_builder: group_by with column refs', () => {
 	const built = q.from('project AS p')
 		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
