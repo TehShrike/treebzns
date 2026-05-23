@@ -29,7 +29,15 @@ type ValueRef = { value: unknown }
 
 type Expression = { __expression: true }
 
-type ColumnRefString = `${string}.${string}`
+type ExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
+	comparison: (
+		left: ColumnRef<Schema, A> | ValueRef | FunctionExpression,
+		comparator: Comparator,
+		right: ColumnRef<Schema, A> | ValueRef | FunctionExpression,
+	) => Expression
+	and: (...exprs: Expression[]) => Expression
+	fn: (name: FunctionName, ...args: (ColumnRef<Schema, A> | ValueRef)[]) => FunctionExpression
+}
 
 type SelectColumnInput<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
 	ColumnRef<Schema, A> | `${ColumnRef<Schema, A>} AS ${string}`
@@ -82,10 +90,12 @@ type ParseTableAlias<S extends string, Schema extends SchemaColumnTypes> =
 type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Row = {}> = {
 	join: <S extends TableAliasArg<Schema>>(
 		table_alias: S,
-		on: Expression,
+		on: (b: ExpressionBuilder<Schema, A & ParseTableAlias<S, Schema>>) => Expression,
 	) => Stage<Schema, A & ParseTableAlias<S, Schema>, Row>
 
-	where: (expr: Expression) => Stage<Schema, A, Row>
+	where: (
+		cb: (b: ExpressionBuilder<Schema, A>) => Expression,
+	) => Stage<Schema, A, Row>
 
 	select: <const Exprs extends ReadonlyArray<SelectColumnInput<Schema, A>>>(
 		...exprs: Exprs
@@ -100,16 +110,6 @@ type QueryBuilder<Schema extends SchemaColumnTypes> = {
 	from: <S extends TableAliasArg<Schema>>(
 		table_alias: S,
 	) => Stage<Schema, ParseTableAlias<S, Schema>>
-
-	comparison: (
-		left: ColumnRefString | ValueRef | FunctionExpression,
-		comparator: Comparator,
-		right: ColumnRefString | ValueRef | FunctionExpression,
-	) => Expression
-
-	and: (...exprs: Expression[]) => Expression
-
-	fn: (name: FunctionName, ...args: (ColumnRefString | ValueRef)[]) => FunctionExpression
 }
 
 type ColumnOrValueInput = string | { value: unknown } | FunctionExpression
@@ -157,16 +157,36 @@ const flatten_expression = (expr: RuntimeExpression): Comparison[] => {
 	return [expr]
 }
 
+const expression_builder = {
+	comparison: (left: ColumnOrValueInput, comparator: Comparator, right: ColumnOrValueInput): RuntimeExpression => ({
+		type: 'comparison',
+		left: to_column_or_value(left),
+		comparator,
+		right: to_column_or_value(right),
+	}),
+	and: (...children: RuntimeExpression[]): RuntimeExpression => ({ type: 'and', children }),
+	fn: (name: FunctionName, ...args: ColumnOrValueInput[]): FunctionExpression => ({
+		type: 'function',
+		function: name,
+		arguments: args.map(a => {
+			const v = to_column_or_value(a)
+			if (v.type === 'function') throw new Error('nested function expressions are not supported')
+			return v
+		}),
+	}),
+}
+
 const make_stage = (state: State): any => ({
-	join: (table_alias: string, on: RuntimeExpression) => {
+	join: (table_alias: string, on: (b: typeof expression_builder) => RuntimeExpression) => {
 		const { table, alias } = parse_table_alias(table_alias)
+		const expr = on(expression_builder)
 		return make_stage({
 			...state,
-			joins: [...state.joins, { table_name: table, alias, on_clause: flatten_expression(on) }],
+			joins: [...state.joins, { table_name: table, alias, on_clause: flatten_expression(expr) }],
 		})
 	},
-	where: (expr: RuntimeExpression) => {
-		return make_stage({ ...state, where_expressions: [...state.where_expressions, expr] })
+	where: (cb: (b: typeof expression_builder) => RuntimeExpression) => {
+		return make_stage({ ...state, where_expressions: [...state.where_expressions, cb(expression_builder)] })
 	},
 	select: (...exprs: string[]) => {
 		return make_stage({ ...state, selects: [...state.selects, ...map(exprs, to_select_expression)] })
@@ -202,23 +222,6 @@ const query_builder = <Schema extends SchemaColumnTypes>(): QueryBuilder<Schema>
 			group_bys: [],
 		})
 	}) as any,
-
-	comparison: (left: ColumnOrValueInput, comparator: Comparator, right: ColumnOrValueInput): RuntimeExpression => ({
-		type: 'comparison',
-		left: to_column_or_value(left),
-		comparator,
-		right: to_column_or_value(right),
-	}),
-	and: (...children: RuntimeExpression[]): RuntimeExpression => ({ type: 'and', children }),
-	fn: (name: FunctionName, ...args: ColumnOrValueInput[]): FunctionExpression => ({
-		type: 'function',
-		function: name,
-		arguments: args.map(a => {
-			const v = to_column_or_value(a)
-			if (v.type === 'function') throw new Error('nested function expressions are not supported')
-			return v
-		}),
-	}),
 })
 
 export default query_builder

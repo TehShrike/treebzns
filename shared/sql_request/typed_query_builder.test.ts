@@ -166,23 +166,23 @@ test('typed_query_builder: from with valid table', () => {
 
 test('typed_query_builder: chained joins with column refs by alias', () => {
 	const built = q.from('project AS p')
-		.join('project_line_item AS pli', q.comparison('pli.project_id', '=', 'p.project_id'))
-		.join('project_document AS pd', q.comparison('p.project_document_id', '=', 'pd.project_document_id'))
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
+		.join('project_document AS pd', on => on.comparison('p.project_document_id', '=', 'pd.project_document_id'))
 		.build()
 	assert_valid_query_output(built)
 })
 
 test('typed_query_builder: where with column ref against value', () => {
 	const built = q.from('project_line_item AS pli')
-		.where(q.comparison('pli.project_id', '=', { value: 2 }))
+		.where(q => q.comparison('pli.project_id', '=', { value: 2 }))
 		.build()
 	assert_valid_query_output(built)
 })
 
 test('typed_query_builder: where after join with and', () => {
 	const built = q.from('project AS p')
-		.join('project_line_item AS pli', q.comparison('pli.project_id', '=', 'p.project_id'))
-		.where(q.and(
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
+		.where(q => q.and(
 			q.comparison('pli.item_type_id', '=', { value: 3 }),
 			q.comparison('p.company_id', '=', { value: 4 }),
 		))
@@ -239,7 +239,7 @@ test('typed_query_builder: select single column without alias', () => {
 
 test('typed_query_builder: select across multiple tables via join', () => {
 	const built = q.from('project AS p')
-		.join('project_line_item AS pli', q.comparison('pli.project_id', '=', 'p.project_id'))
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
 		.select(
 			'p.project_id',
 			'pli.project_line_item_id',
@@ -271,14 +271,14 @@ test('typed_query_builder: select across multiple tables via join', () => {
 
 test('typed_query_builder: where with UUID_TO_BIN function expression', () => {
 	const built = q.from('project AS p')
-		.where(q.comparison('p.project_id', '=', q.fn('UUID_TO_BIN', { value: 'some-uuid' })))
+		.where(q => q.comparison('p.project_id', '=', q.fn('UUID_TO_BIN', { value: 'some-uuid' })))
 		.build()
 	assert_valid_query_output(built)
 })
 
 test('typed_query_builder: group_by with column refs', () => {
 	const built = q.from('project AS p')
-		.join('project_line_item AS pli', q.comparison('pli.project_id', '=', 'p.project_id'))
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
 		.group_by('p.project_id')
 		.build()
 	assert_valid_query_output(built)
@@ -303,7 +303,7 @@ test.skip('typed_query_builder: type errors on invalid references', () => {
 	q.from('project_line_item AS pli').where(q => q.comparison('project_line_item.project_id', '=', { value: 2 }))
 
 	q.from('project AS p')
-		.where(q.and(
+		.where(q => q.and(
 			// @ts-expect-error: pli is not a valid reference here
 			q.comparison('pli.item_type_id', '=', { value: 3 }),
 			q.comparison('p.company_id', '=', { value: 4 })
