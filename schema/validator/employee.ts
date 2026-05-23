@@ -7,12 +7,12 @@ export const validator_object = {
 	company_id: jv.is_bigint,
 	name: jv.is_string,
 	email: jv.is_string,
-	phone: jv.nullable(jv.is_string),
+	phone: jv.is_string,
 	password_hash: jv.is_string,
-	avatar_url: jv.nullable(jv.is_string),
 	is_owner: jv.is_boolean,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
+	number_of_password_hash_iterations: jv.is_bigint,
 }
 
 export const employee_validator: jv.Validator<DbEmployee> = jv.object(validator_object)

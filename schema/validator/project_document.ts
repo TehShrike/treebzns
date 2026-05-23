@@ -4,8 +4,6 @@ import { is_temporal_instant } from './_helpers.ts'
 
 export const validator_object = {
 	project_document_id: jv.is_bigint,
-	company_id: jv.is_bigint,
-	group_name: jv.is_string,
 	name: jv.is_string,
 	needs_estimate_to_move_on: jv.is_boolean,
 	needs_client_approval_to_move_on: jv.is_boolean,
@@ -18,6 +16,7 @@ export const validator_object = {
 	represents_billable_sale_when_closed: jv.is_boolean,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
+	sort: jv.is_boolean,
 }
 
 export const project_document_validator: jv.Validator<DbProjectDocument> = jv.object(validator_object)
