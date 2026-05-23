@@ -29,15 +29,7 @@ type ValueRef = { value: unknown }
 
 type Expression = { __expression: true }
 
-type ExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
-	comparison: (
-		left: ColumnRef<Schema, A> | ValueRef | FunctionExpression,
-		comparator: Comparator,
-		right: ColumnRef<Schema, A> | ValueRef | FunctionExpression,
-	) => Expression
-	and: (...exprs: Expression[]) => Expression
-	fn: (name: FunctionName, ...args: (ColumnRef<Schema, A> | ValueRef)[]) => FunctionExpression
-}
+type ColumnRefString = `${string}.${string}`
 
 type SelectColumnInput<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
 	ColumnRef<Schema, A> | `${ColumnRef<Schema, A>} AS ${string}`
@@ -46,13 +38,13 @@ type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Expr
 	Expr extends `${infer T}.${infer C} AS ${infer K}`
 		? T extends keyof A
 			? C extends keyof Schema[A[T] & keyof Schema]
-				? { [_ in K]: Schema[A[T] & keyof Schema][C] }
+				? { [_ in T]: { [_ in K]: Schema[A[T] & keyof Schema][C] } }
 				: never
 			: never
 		: Expr extends `${infer T}.${infer C}`
 			? T extends keyof A
 				? C extends keyof Schema[A[T] & keyof Schema]
-					? { [_ in C]: Schema[A[T] & keyof Schema][C] }
+					? { [_ in T]: { [_ in C]: Schema[A[T] & keyof Schema][C] } }
 					: never
 				: never
 			: never
@@ -63,9 +55,19 @@ type UnionToIntersection<U> =
 type RowFromSelectExprs<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Exprs extends ReadonlyArray<unknown>> =
 	UnionToIntersection<{ [I in keyof Exprs]: RowEntry<Schema, A, Exprs[I]> }[number]>
 
-export type BuiltQuery<Row> = SafeSqlQuery & { readonly __row_type?: Row }
+export type ResponseColumn = {
+	table: string
+	column: string
+	alias?: string
+}
 
-export type ExtractQueryResponse<T> = T extends BuiltQuery<infer Row> ? { [K in keyof Row]: Row[K] } : never
+export type BuiltQuery<Row> = SafeSqlQuery & {
+	response_columns: ResponseColumn[]
+}
+
+export type ExtractQueryResponse<T> = T extends BuiltQuery<infer Row>
+	? { [K in keyof Row]: { [K2 in keyof Row[K]]: Row[K][K2] } }
+	: never
 
 type TableAliasArg<Schema extends SchemaColumnTypes> =
 	Extract<keyof Schema, string> | `${Extract<keyof Schema, string>} AS ${string}`
@@ -80,12 +82,10 @@ type ParseTableAlias<S extends string, Schema extends SchemaColumnTypes> =
 type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Row = {}> = {
 	join: <S extends TableAliasArg<Schema>>(
 		table_alias: S,
-		on: (b: ExpressionBuilder<Schema, A & ParseTableAlias<S, Schema>>) => Expression,
+		on: Expression,
 	) => Stage<Schema, A & ParseTableAlias<S, Schema>, Row>
 
-	where: (
-		cb: (b: ExpressionBuilder<Schema, A>) => Expression,
-	) => Stage<Schema, A, Row>
+	where: (expr: Expression) => Stage<Schema, A, Row>
 
 	select: <const Exprs extends ReadonlyArray<SelectColumnInput<Schema, A>>>(
 		...exprs: Exprs
@@ -94,6 +94,22 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Row = {
 	group_by: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A, Row>
 
 	build: () => BuiltQuery<Row>
+}
+
+type QueryBuilder<Schema extends SchemaColumnTypes> = {
+	from: <S extends TableAliasArg<Schema>>(
+		table_alias: S,
+	) => Stage<Schema, ParseTableAlias<S, Schema>>
+
+	comparison: (
+		left: ColumnRefString | ValueRef | FunctionExpression,
+		comparator: Comparator,
+		right: ColumnRefString | ValueRef | FunctionExpression,
+	) => Expression
+
+	and: (...exprs: Expression[]) => Expression
+
+	fn: (name: FunctionName, ...args: (ColumnRefString | ValueRef)[]) => FunctionExpression
 }
 
 type ColumnOrValueInput = string | { value: unknown } | FunctionExpression
@@ -141,7 +157,52 @@ const flatten_expression = (expr: RuntimeExpression): Comparison[] => {
 	return [expr]
 }
 
-const expression_builder = {
+const make_stage = (state: State): any => ({
+	join: (table_alias: string, on: RuntimeExpression) => {
+		const { table, alias } = parse_table_alias(table_alias)
+		return make_stage({
+			...state,
+			joins: [...state.joins, { table_name: table, alias, on_clause: flatten_expression(on) }],
+		})
+	},
+	where: (expr: RuntimeExpression) => {
+		return make_stage({ ...state, where_expressions: [...state.where_expressions, expr] })
+	},
+	select: (...exprs: string[]) => {
+		return make_stage({ ...state, selects: [...state.selects, ...map(exprs, to_select_expression)] })
+	},
+	group_by: (...exprs: string[]) => {
+		return make_stage({ ...state, group_bys: [...state.group_bys, ...map(exprs, to_select_expression)] })
+	},
+	build: (): BuiltQuery<unknown> => ({
+		select: state.selects,
+		from: state.from,
+		joins: state.joins,
+		where: state.where_expressions.flatMap(flatten_expression),
+		group_by: state.group_bys,
+		response_columns: map(
+			state.selects.filter((s): s is ColumnReference & { alias?: string } => s.type === 'column reference'),
+			s => {
+				const entry: ResponseColumn = { table: s.table_identifier, column: s.column }
+				if (s.alias !== undefined) entry.alias = s.alias
+				return entry
+			},
+		),
+	}),
+})
+
+const query_builder = <Schema extends SchemaColumnTypes>(): QueryBuilder<Schema> => ({
+	from: ((table_alias: string) => {
+		const { table, alias } = parse_table_alias(table_alias)
+		return make_stage({
+			from: { table_name: table, alias },
+			joins: [],
+			where_expressions: [],
+			selects: [],
+			group_bys: [],
+		})
+	}) as any,
+
 	comparison: (left: ColumnOrValueInput, comparator: Comparator, right: ColumnOrValueInput): RuntimeExpression => ({
 		type: 'comparison',
 		left: to_column_or_value(left),
@@ -158,50 +219,6 @@ const expression_builder = {
 			return v
 		}),
 	}),
-}
-
-const make_stage = (state: State): any => ({
-	join: (table_alias: string, on: (b: typeof expression_builder) => RuntimeExpression) => {
-		const { table, alias } = parse_table_alias(table_alias)
-		const expr = on(expression_builder)
-		return make_stage({
-			...state,
-			joins: [...state.joins, { table_name: table, alias, on_clause: flatten_expression(expr) }],
-		})
-	},
-	where: (cb: (b: typeof expression_builder) => RuntimeExpression) => {
-		return make_stage({ ...state, where_expressions: [...state.where_expressions, cb(expression_builder)] })
-	},
-	select: (...exprs: string[]) => {
-		return make_stage({ ...state, selects: [...state.selects, ...map(exprs, to_select_expression)] })
-	},
-	group_by: (...exprs: string[]) => {
-		return make_stage({ ...state, group_bys: [...state.group_bys, ...map(exprs, to_select_expression)] })
-	},
-	build: (): SafeSqlQuery => ({
-		select: state.selects,
-		from: state.from,
-		joins: state.joins,
-		where: state.where_expressions.flatMap(flatten_expression),
-		group_by: state.group_bys,
-	}),
-})
-
-const query_builder = <Schema extends SchemaColumnTypes>(): {
-	from: <S extends TableAliasArg<Schema>>(
-		table_alias: S,
-	) => Stage<Schema, ParseTableAlias<S, Schema>>
-} => ({
-	from: ((table_alias: string) => {
-		const { table, alias } = parse_table_alias(table_alias)
-		return make_stage({
-			from: { table_name: table, alias },
-			joins: [],
-			where_expressions: [],
-			selects: [],
-			group_bys: [],
-		})
-	}) as any,
 })
 
 export default query_builder

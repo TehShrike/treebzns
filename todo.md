@@ -2,6 +2,20 @@ Fix Claude output:
 - on typed_query_builder, you should be able to add functions to selects in addition to inside comparisons
 - row output type is wrong in validate_session, check the TODO
 
+that filter on line 199 of typed_query_builder is unnacceptable.  All rows in the response must be represented in the array.  Make sure some of the existing tests test
+  this behavior.
+
+
+It's time to make the typed query builder able to take functions in the select.
+
+
+1. The expression_builder functions (comparison, and, fn) need to be accessible at all points during query-building (or at least, in the select), not just the join+where
+2. The select array needs to not allow FunctionExpression, but instead hold SelectableFunctionExpression, which is FunctionExpression & { table_identifier, alias }
+3. The return type of expression_builder.fn needs to include the table_identifier and alias.  They don't need to exist/be valid when used in e.g. comparators, but they do need to exist (don't need to be type-checked against anything) when passed in via the select.
+  - should the fn arguments be named rather than positional?  Maybe/probably?
+
+
+
 ## higher level
 
 - form that creates a company+initial employee with password, using the create_company endpoint

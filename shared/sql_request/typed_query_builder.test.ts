@@ -1,11 +1,11 @@
 import { test } from 'node:test'
 import type { FinancialNumber } from 'financial-number'
 import { Temporal } from '@js-temporal/polyfill'
-import query_builder, { type ExtractQueryResponse } from './typed_query_builder.ts'
+import query_builder, { type ExtractQueryResponse, type BuiltQuery } from './typed_query_builder.ts'
 
 type AssertEqual<A, B> =
 	(<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
-import { make_safe_query_builder, type SafeSqlQuery } from './safe_sql_query.ts'
+import { make_safe_query_builder } from './safe_sql_query.ts'
 import * as assert from 'node:assert'
 import {safe_sql_query_validator} from './safe_sql_query_validator.ts'
 
@@ -139,7 +139,8 @@ const example_schema = {
 } as const
 
 const safe_query_builder = make_safe_query_builder(example_schema)
-function assert_valid_query_output(select_query: SafeSqlQuery) {
+function assert_valid_query_output(built: BuiltQuery<unknown>) {
+	const { response_columns: _response_columns, ...select_query } = built
 	const query_is_safe = safe_sql_query_validator.is_valid(select_query)
 
 	if (!query_is_safe) {
@@ -165,23 +166,23 @@ test('typed_query_builder: from with valid table', () => {
 
 test('typed_query_builder: chained joins with column refs by alias', () => {
 	const built = q.from('project AS p')
-		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
-		.join('project_document AS pd', on => on.comparison('p.project_document_id', '=', 'pd.project_document_id'))
+		.join('project_line_item AS pli', q.comparison('pli.project_id', '=', 'p.project_id'))
+		.join('project_document AS pd', q.comparison('p.project_document_id', '=', 'pd.project_document_id'))
 		.build()
 	assert_valid_query_output(built)
 })
 
 test('typed_query_builder: where with column ref against value', () => {
 	const built = q.from('project_line_item AS pli')
-		.where(q => q.comparison('pli.project_id', '=', { value: 2 }))
+		.where(q.comparison('pli.project_id', '=', { value: 2 }))
 		.build()
 	assert_valid_query_output(built)
 })
 
 test('typed_query_builder: where after join with and', () => {
 	const built = q.from('project AS p')
-		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
-		.where(q => q.and(
+		.join('project_line_item AS pli', q.comparison('pli.project_id', '=', 'p.project_id'))
+		.where(q.and(
 			q.comparison('pli.item_type_id', '=', { value: 3 }),
 			q.comparison('p.company_id', '=', { value: 4 }),
 		))
@@ -198,26 +199,86 @@ test('typed_query_builder: select with column refs and aliases', () => {
 		.build()
 
 	type ExpectedRowType = {
-		project_id: bigint
-		co: bigint
+		p: {
+			project_id: bigint
+			co: bigint
+		}
 	}
 
 	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
 	void _row_type_check
+
+	assert.deepStrictEqual(built.response_columns, [
+		{ table: 'p', column: 'project_id' },
+		{ table: 'p', column: 'company_id', alias: 'co' },
+	])
+
+	assert_valid_query_output(built)
+})
+
+test('typed_query_builder: select single column without alias', () => {
+	const built = q.from('project AS p')
+		.select('p.project_id')
+		.build()
+
+	type ExpectedRowType = {
+		p: {
+			project_id: bigint
+		}
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
+	assert.deepStrictEqual(built.response_columns, [
+		{ table: 'p', column: 'project_id' },
+	])
+
+	assert_valid_query_output(built)
+})
+
+test('typed_query_builder: select across multiple tables via join', () => {
+	const built = q.from('project AS p')
+		.join('project_line_item AS pli', q.comparison('pli.project_id', '=', 'p.project_id'))
+		.select(
+			'p.project_id',
+			'pli.project_line_item_id',
+			'pli.price AS unit_price',
+		)
+		.build()
+
+	type ExpectedRowType = {
+		p: {
+			project_id: bigint
+		}
+		pli: {
+			project_line_item_id: bigint
+			unit_price: FinancialNumber
+		}
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
+	assert.deepStrictEqual(built.response_columns, [
+		{ table: 'p', column: 'project_id' },
+		{ table: 'pli', column: 'project_line_item_id' },
+		{ table: 'pli', column: 'price', alias: 'unit_price' },
+	])
 
 	assert_valid_query_output(built)
 })
 
 test('typed_query_builder: where with UUID_TO_BIN function expression', () => {
 	const built = q.from('project AS p')
-		.where(q => q.comparison('p.project_id', '=', q.fn('UUID_TO_BIN', { value: 'some-uuid' })))
+		.where(q.comparison('p.project_id', '=', q.fn('UUID_TO_BIN', { value: 'some-uuid' })))
 		.build()
 	assert_valid_query_output(built)
 })
 
 test('typed_query_builder: group_by with column refs', () => {
 	const built = q.from('project AS p')
-		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
+		.join('project_line_item AS pli', q.comparison('pli.project_id', '=', 'p.project_id'))
 		.group_by('p.project_id')
 		.build()
 	assert_valid_query_output(built)
@@ -242,10 +303,10 @@ test.skip('typed_query_builder: type errors on invalid references', () => {
 	q.from('project_line_item AS pli').where(q => q.comparison('project_line_item.project_id', '=', { value: 2 }))
 
 	q.from('project AS p')
-		.where(q => q.and(
+		.where(q.and(
 			// @ts-expect-error: pli is not a valid reference here
 			q.comparison('pli.item_type_id', '=', { value: 3 }),
-			q.comparison('p.company_id', '=', { value: 4 }),
+			q.comparison('p.company_id', '=', { value: 4 })
 		))
 
 	// @ts-expect-error: project was aliased to p, so 'project' is not a valid table identifier in select

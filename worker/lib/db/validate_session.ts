@@ -31,15 +31,15 @@ export default async (request: Request, mysql: MysqlHelpersObject) => {
 	const session_identifier = parse_session_cookie(request)
 	if (!session_identifier) return null
 
-	const typed_query = query_builder<Schema>()
+	const q = query_builder<Schema>()
+	const typed_query = q
 		.from('employee_session')
-		.join('employee', b => b.comparison('employee_session.employee_id', '=', 'employee.employee_id'))
-		.join('company', b => b.comparison('employee.company_id', '=', 'company.company_id'))
-		.where(q => q.and(
-			// q.comparison('employee_session.identifier', '=', 'UUID_TO_BIN(?)'),
+		.join('employee', q.comparison('employee_session.employee_id', '=', 'employee.employee_id'))
+		.join('company', q.comparison('employee.company_id', '=', 'company.company_id'))
+		.where(q.and(
+			q.comparison('employee_session.identifier', '=', q.fn('UUID_TO_BIN', { value: session_identifier })),
 			q.comparison('employee_session.invalidated', '=', { value: 0 }),
-			)
-		)
+		))
 		.select(`employee.employee_id`, `employee.company_id`)
 		.build()
 
