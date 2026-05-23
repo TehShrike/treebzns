@@ -35,11 +35,19 @@ const value_to_sql_chunk = (value: ColumnReference | UserProvidedValue) => {
 	}
 }
 
-type SomeFunctionArguments = [ColumnReference | UserProvidedValue, ColumnReference | UserProvidedValue] | [ColumnReference | UserProvidedValue]
+type SomeFunctionArguments = [ColumnReference | UserProvidedValue, ColumnReference | UserProvidedValue] | [ColumnReference | UserProvidedValue] | []
 const to_sql_chunk = (builder: {
+	build_sql_0?: () => string,
 	build_sql_1?: (value: string) => string,
 	build_sql_2?: (value_a: string, value_b: string) => string,
 }, values: SomeFunctionArguments) => {
+	if (values.length === 0) {
+		assert('build_sql_0' in builder, 'build_sql_0 is required')
+		return {
+			sql: builder.build_sql_0(),
+			parameters: [],
+		}
+	}
 	if (values.length === 1) {
 		assert('build_sql_1' in builder, 'build_sql_1 is required')
 
@@ -70,6 +78,7 @@ const FUNCTIONS = {
 		build_sql_1: (value: string) => `${value} IS NULL`
 	}, args),
 	'COUNT': (args: SomeFunctionArguments) => to_sql_chunk({
+		build_sql_0: () => `COUNT(*)`,
 		build_sql_1: (value: string) => `COUNT(${value})`
 	}, args),
 	'COUNT DISTINCT': (args: SomeFunctionArguments) => to_sql_chunk({
@@ -82,14 +91,15 @@ const FUNCTIONS = {
 
 const operand_to_sql_chunk = (operand: ComparisonOperand): SqlChunk => {
 	if (operand.type === 'function') {
-		assertOneOrTwoArguments(operand.arguments)
+		assert(operand.function in FUNCTIONS)
+		assertZeroOrOneOrTwoArguments(operand.arguments)
 		return FUNCTIONS[operand.function](operand.arguments)
 	}
 	return value_to_sql_chunk(operand)
 }
 
-function assertOneOrTwoArguments<T>(args: T[]): asserts args is [T] | [T, T] {
-	if (args.length !== 1 && args.length !== 2) {
+function assertZeroOrOneOrTwoArguments<T>(args: T[]): asserts args is [] | [T] | [T, T] {
+	if (args.length !== 0 && args.length !== 1 && args.length !== 2) {
 		throw new Error('Must have 1 or 2 arguments')
 	}
 }
@@ -119,7 +129,7 @@ const comparison_to_chunk = (comp: Comparison): SqlChunk => {
 const on_clause_item_to_chunk = (clause: Comparison | FunctionExpression): SqlChunk => {
 	if (clause.type === 'comparison') return comparison_to_chunk(clause)
 	assert(clause.function in FUNCTIONS)
-	assertOneOrTwoArguments(clause.arguments)
+	assertZeroOrOneOrTwoArguments(clause.arguments)
 	return FUNCTIONS[clause.function](clause.arguments)
 }
 
@@ -129,7 +139,7 @@ const select_item_to_chunk = (sel: SelectExpression): SqlChunk => {
 		return sel.alias ? { ...chunk, sql: `${chunk.sql} AS \`${sel.alias}\`` } : chunk
 	}
 	assert(sel.function in FUNCTIONS)
-	assertOneOrTwoArguments(sel.arguments)
+	assertZeroOrOneOrTwoArguments(sel.arguments)
 	const chunk = FUNCTIONS[sel.function](sel.arguments)
 	return { ...chunk, sql: `${chunk.sql} AS \`${sel.alias}\`` }
 }
