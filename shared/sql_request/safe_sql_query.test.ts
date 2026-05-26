@@ -137,6 +137,7 @@ test('safe_sql_query: valid query', () => {
 				column: 'project_id',
 			}],
 			alias: 'count_project_id',
+			table_identifier: 'p',
 		}],
 		from: {
 			table_name: 'project',
@@ -292,6 +293,7 @@ test('safe_sql_query: invalid table identifier in where', () => {
 			type: 'function',
 			function: 'COUNT',
 			alias: 'cnt',
+			table_identifier: 'p',
 			arguments: [{
 				type: 'user provided value',
 				value: 1

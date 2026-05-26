@@ -187,7 +187,12 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 
 		const check_select_or_group_by = (expr: SelectExpression) => {
 			if (expr.type === 'column reference') check_col_ref(expr)
-			else for_each(expr.arguments, check_arg)
+			else {
+				if (!alias_to_table_name.has(expr.table_identifier)) {
+					messages.push(`Unknown table identifier: "${expr.table_identifier}"`)
+				}
+				for_each(expr.arguments, check_arg)
+			}
 		}
 
 		for_each(query.select, check_select_or_group_by)

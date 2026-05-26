@@ -39,7 +39,7 @@ export default async (request: Request, mysql: MysqlHelpersObject) => {
 			q.comparison('employee_session.identifier', '=', q.fn('UUID_TO_BIN', { value: session_identifier })),
 			q.comparison('employee_session.invalidated', '=', { value: 0 }),
 		))
-		.select(`employee.employee_id`, `employee.company_id`)
+		.select(() => [`employee.employee_id`, `employee.company_id`])
 		.build()
 
 	const query = safe_query_builder.to_sql(typed_query)

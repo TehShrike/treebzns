@@ -60,6 +60,7 @@ const function_expression_select_validator = jv.object({
 	function: function_name_validator,
 	arguments: jv.array(function_argument_validator),
 	alias: jv.is_string,
+	table_identifier: jv.is_string,
 })
 
 export const select_expression_validator = jv.one_of(

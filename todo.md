@@ -13,6 +13,7 @@ It's time to make the typed query builder able to take functions in the select.
 2. The select array needs to not allow FunctionExpression, but instead hold SelectableFunctionExpression, which is FunctionExpression & { table_identifier, alias }
 3. The return type of expression_builder.fn needs to include the table_identifier and alias.  They don't need to exist/be valid when used in e.g. comparators, but they do need to exist (don't need to be type-checked against anything) when passed in via the select.
   - should the fn arguments be named rather than positional?  Maybe/probably?
+4. Are those __underscored variables in the types really necessary?
 
 
 

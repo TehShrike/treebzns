@@ -192,10 +192,10 @@ test('typed_query_builder: where after join with and', () => {
 
 test('typed_query_builder: select with column refs and aliases', () => {
 	const built = q.from('project AS p')
-		.select(
+		.select(() => [
 			'p.project_id',
 			'p.company_id AS co',
-		)
+		])
 		.build()
 
 	type ExpectedRowType = {
@@ -209,8 +209,8 @@ test('typed_query_builder: select with column refs and aliases', () => {
 	void _row_type_check
 
 	assert.deepStrictEqual(built.response_columns, [
-		{ table: 'p', column: 'project_id' },
-		{ table: 'p', column: 'company_id', alias: 'co' },
+		{ table_identifier: 'p', column: 'project_id' },
+		{ table_identifier: 'p', column: 'company_id', alias: 'co' },
 	])
 
 	assert_valid_query_output(built)
@@ -218,7 +218,7 @@ test('typed_query_builder: select with column refs and aliases', () => {
 
 test('typed_query_builder: select single column without alias', () => {
 	const built = q.from('project AS p')
-		.select('p.project_id')
+		.select(() => ['p.project_id'])
 		.build()
 
 	type ExpectedRowType = {
@@ -231,7 +231,7 @@ test('typed_query_builder: select single column without alias', () => {
 	void _row_type_check
 
 	assert.deepStrictEqual(built.response_columns, [
-		{ table: 'p', column: 'project_id' },
+		{ table_identifier: 'p', column: 'project_id' },
 	])
 
 	assert_valid_query_output(built)
@@ -240,11 +240,11 @@ test('typed_query_builder: select single column without alias', () => {
 test('typed_query_builder: select across multiple tables via join', () => {
 	const built = q.from('project AS p')
 		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
-		.select(
+		.select(() => [
 			'p.project_id',
 			'pli.project_line_item_id',
 			'pli.price AS unit_price',
-		)
+		])
 		.build()
 
 	type ExpectedRowType = {
@@ -261,9 +261,35 @@ test('typed_query_builder: select across multiple tables via join', () => {
 	void _row_type_check
 
 	assert.deepStrictEqual(built.response_columns, [
-		{ table: 'p', column: 'project_id' },
-		{ table: 'pli', column: 'project_line_item_id' },
-		{ table: 'pli', column: 'price', alias: 'unit_price' },
+		{ table_identifier: 'p', column: 'project_id' },
+		{ table_identifier: 'pli', column: 'project_line_item_id' },
+		{ table_identifier: 'pli', column: 'price', alias: 'unit_price' },
+	])
+
+	assert_valid_query_output(built)
+})
+
+test('typed_query_builder: select with COUNT function', () => {
+	const built = q.from('project AS p')
+		.select(b => [
+			'p.project_id',
+			b.fn('COUNT', 'p.pcount'),
+		])
+		.build()
+
+	type ExpectedRowType = {
+		p: {
+			project_id: bigint
+			pcount: bigint
+		}
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
+	assert.deepStrictEqual(built.response_columns, [
+		{ table_identifier: 'p', column: 'project_id' },
+		{ table_identifier: 'p', alias: 'pcount', function: 'COUNT' },
 	])
 
 	assert_valid_query_output(built)
@@ -310,10 +336,10 @@ test.skip('typed_query_builder: type errors on invalid references', () => {
 		))
 
 	// @ts-expect-error: project was aliased to p, so 'project' is not a valid table identifier in select
-	q.from('project AS p').select('project.project_id')
+	q.from('project AS p').select(() => ['project.project_id'])
 
 	// @ts-expect-error: 'not_a_column' is not a column on project
-	q.from('project AS p').select('p.not_a_column')
+	q.from('project AS p').select(() => ['p.not_a_column'])
 
 	// @ts-expect-error: project was aliased to p, so 'project' is not a valid table identifier in group_by
 	q.from('project AS p').group_by('project.project_id')

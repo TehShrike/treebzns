@@ -16,6 +16,7 @@ const valid_query = {
 			column: 'project_id',
 		}],
 		alias: 'count_project_id',
+		table_identifier: 'project',
 	}],
 	from: {
 		table_name: 'project',
