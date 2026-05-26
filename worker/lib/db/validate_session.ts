@@ -23,10 +23,6 @@ const parse_session_cookie = (request: Request): string | null => {
 	return null
 }
 
-// const extract_columns_to_object =
-
-// TODO: why are the query result types here { employee_id: DbEmployee, company_id: DbEmployee } instead of being the correct column types of bigint?
-
 export default async (request: Request, mysql: MysqlHelpersObject) => {
 	const session_identifier = parse_session_cookie(request)
 	if (!session_identifier) return null
@@ -47,23 +43,9 @@ export default async (request: Request, mysql: MysqlHelpersObject) => {
 	const row = await mysql.query({
 		sql: query.sql,
 		values: query.parameters,
-	}).get_first_row<ExtractQueryResponse<typeof typed_query>>()
+	}).get_first_row<unknown[]>()
 
-	if (!row) return null
-
-
-
-	return {
-		employee: {
-			// employee_id: row.employee_id,
-			// company_id: row.company_id,
-			// name: row.employee_name,
-			// email: row.email,
-			// is_owner: row.is_owner,
-		},
-		company: {
-			// company_id: row.company_id,
-			// name: row.company_name,
-		},
-	}
+	return row
+		? typed_query.positional_row_to_named(row)
+		: null
 }

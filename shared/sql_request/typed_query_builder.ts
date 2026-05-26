@@ -1,4 +1,4 @@
-import { map } from '#shared/array.ts'
+import { for_each, map } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import type {
 	Comparator,
@@ -114,13 +114,12 @@ type RowFromSelectExprs<Schema extends SchemaColumnTypes, A extends AliasMap<Sch
 
 export type ResponseColumn = {
 	table_identifier: string
-	column?: string
-	alias?: string
-	function?: FunctionName
+	name: string
 }
 
 export type BuiltQuery<Row> = SafeSqlQuery & {
 	response_columns: ResponseColumn[]
+	positional_row_to_named: (row: unknown[]) => Row
 }
 
 export type ExtractQueryResponse<T> = T extends BuiltQuery<infer Row>
@@ -261,15 +260,12 @@ const make_stage = (state: State): any => ({
 	},
 	build: (): BuiltQuery<unknown> => {
 		const response_columns: ResponseColumn[] = map(state.selects, s => {
-			if (s.type === 'column reference') {
-				const rc: ResponseColumn = { table_identifier: s.table_identifier, column: s.column }
-				if (s.alias !== undefined) rc.alias = s.alias
-				return rc
+			const name = s.type === 'column reference' ? (s.alias ?? s.column) : s.alias
+
+			return {
+				table_identifier: s.table_identifier,
+				name,
 			}
-			const rc: ResponseColumn = { table_identifier: s.table_identifier, alias: s.alias, function: s.function }
-			const first_col = s.arguments.find(a => a.type === 'column reference')
-			if (first_col) rc.column = first_col.column
-			return rc
 		})
 		return {
 			select: state.selects,
@@ -278,6 +274,18 @@ const make_stage = (state: State): any => ({
 			where: state.where_expressions.flatMap(flatten_expression),
 			group_by: state.group_bys,
 			response_columns,
+			positional_row_to_named: (row: unknown[]): Record<string, Record<string, unknown>> => {
+				const results: Record<string, Record<string, unknown>> = {}
+
+				for_each(response_columns, (response_column, index) => {
+					results[response_column.table_identifier] = {
+						[response_column.name]: row[index],
+						...results[response_column.table_identifier]
+					}
+				})
+
+				return results
+			}
 		}
 	},
 })

@@ -3,6 +3,7 @@ import * as assert from 'node:assert'
 import { make_safe_query_builder, type SafeSqlQuery } from './safe_sql_query.ts'
 import { type FinancialNumber } from 'financial-number'
 import { Temporal } from '@js-temporal/polyfill'
+import typed_query_builder from './typed_query_builder.ts'
 
 const test_schema = {
 	project: {
@@ -350,4 +351,20 @@ test('safe_sql_query: invalid column in select', () => {
 	assert.strictEqual(result.valid, false)
 	console.log(result.messages)
 	assert.strictEqual(result.messages.length, 1)
+})
+
+test('safe_sql_query: valid function in select', () => {
+	const q = typed_query_builder<TestSchema>()
+	const query = q.from('project AS p')
+		.select(b => [
+			'p.project_id',
+			b.fn('COUNT', 'p.pcount'),
+		])
+		.build()
+
+	const builder = make_safe_query_builder(test_schema)
+	const { sql, parameters } = builder.to_sql(query)
+
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`, COUNT(*) AS `pcount`\nFROM `project` AS `p`')
+	assert.deepStrictEqual(parameters, [])
 })

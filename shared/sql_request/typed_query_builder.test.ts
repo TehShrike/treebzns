@@ -209,8 +209,8 @@ test('typed_query_builder: select with column refs and aliases', () => {
 	void _row_type_check
 
 	assert.deepStrictEqual(built.response_columns, [
-		{ table_identifier: 'p', column: 'project_id' },
-		{ table_identifier: 'p', column: 'company_id', alias: 'co' },
+		{ table_identifier: 'p', name: 'project_id' },
+		{ table_identifier: 'p', name: 'co' },
 	])
 
 	assert_valid_query_output(built)
@@ -231,7 +231,7 @@ test('typed_query_builder: select single column without alias', () => {
 	void _row_type_check
 
 	assert.deepStrictEqual(built.response_columns, [
-		{ table_identifier: 'p', column: 'project_id' },
+		{ table_identifier: 'p', name: 'project_id' },
 	])
 
 	assert_valid_query_output(built)
@@ -261,9 +261,9 @@ test('typed_query_builder: select across multiple tables via join', () => {
 	void _row_type_check
 
 	assert.deepStrictEqual(built.response_columns, [
-		{ table_identifier: 'p', column: 'project_id' },
-		{ table_identifier: 'pli', column: 'project_line_item_id' },
-		{ table_identifier: 'pli', column: 'price', alias: 'unit_price' },
+		{ table_identifier: 'p', name: 'project_id' },
+		{ table_identifier: 'pli', name: 'project_line_item_id' },
+		{ table_identifier: 'pli', name: 'unit_price' },
 	])
 
 	assert_valid_query_output(built)
@@ -288,8 +288,8 @@ test('typed_query_builder: select with COUNT function', () => {
 	void _row_type_check
 
 	assert.deepStrictEqual(built.response_columns, [
-		{ table_identifier: 'p', column: 'project_id' },
-		{ table_identifier: 'p', alias: 'pcount', function: 'COUNT' },
+		{ table_identifier: 'p', name: 'project_id' },
+		{ table_identifier: 'p', name: 'pcount' },
 	])
 
 	assert_valid_query_output(built)
