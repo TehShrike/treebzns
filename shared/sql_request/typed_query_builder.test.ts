@@ -140,7 +140,7 @@ const example_schema = {
 
 const safe_query_builder = make_safe_query_builder(example_schema)
 function assert_valid_query_output(built: BuiltQuery<unknown>) {
-	const { response_columns: _response_columns, ...select_query } = built
+	const { response_columns: _response_columns, positional_row_to_named: _positional_row_to_named, ...select_query } = built
 	const query_is_safe = safe_sql_query_validator.is_valid(select_query)
 
 	if (!query_is_safe) {

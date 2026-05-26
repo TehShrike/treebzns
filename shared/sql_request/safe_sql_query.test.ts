@@ -194,9 +194,9 @@ test('safe_sql_query: valid query', () => {
 
 	assert.strictEqual(validate_table_and_column_names(valid_query).valid, true)
 
-	const { sql, parameters } = to_sql(valid_query)
+	const { sql, values } = to_sql(valid_query)
 	assert.strictEqual(sql, 'SELECT `p`.`project_id`, COUNT(`p`.`project_id`) AS `count_project_id`\nFROM `project` AS `p`\nJOIN `client` AS `c` ON `p`.`client_id` = `c`.`client_id`\n\tAND `p`.`client_id` IS NOT NULL\nWHERE `p`.`client_id` = ?\nGROUP BY `p`.`project_id`')
-	assert.deepStrictEqual(parameters, [1])
+	assert.deepStrictEqual(values, [1])
 })
 
 test('safe_sql_query: invalid table identifier in from', () => {
@@ -363,8 +363,8 @@ test('safe_sql_query: valid function in select', () => {
 		.build()
 
 	const builder = make_safe_query_builder(test_schema)
-	const { sql, parameters } = builder.to_sql(query)
+	const { sql, values } = builder.to_sql(query)
 
 	assert.strictEqual(sql, 'SELECT `p`.`project_id`, COUNT(*) AS `pcount`\nFROM `project` AS `p`')
-	assert.deepStrictEqual(parameters, [])
+	assert.deepStrictEqual(values, [])
 })

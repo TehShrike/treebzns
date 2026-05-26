@@ -40,10 +40,7 @@ export default async (request: Request, mysql: MysqlHelpersObject) => {
 
 	const query = safe_query_builder.to_sql(typed_query)
 
-	const row = await mysql.query({
-		sql: query.sql,
-		values: query.parameters,
-	}).get_first_row<unknown[]>()
+	const row = await mysql.query(query).get_first_row<unknown[]>()
 
 	return row
 		? typed_query.positional_row_to_named(row)

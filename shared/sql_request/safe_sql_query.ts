@@ -219,7 +219,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 		return { valid: true }
 	}
 
-	const to_sql = (query: SafeSqlQuery): { sql: string, parameters: any[] } => {
+	const to_sql = (query: SafeSqlQuery): { sql: string, values: any[] } => {
 		const select_chunk = merge_chunks(map(query.select, select_item_to_chunk), ', ')
 
 		const join_chunks = map(query.joins, join => {
@@ -253,7 +253,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 				...(where_chunk ? [`WHERE ${where_chunk.sql}`] : []),
 				...(group_by_chunk ? [`GROUP BY ${group_by_chunk.sql}`] : []),
 			].join('\n'),
-			parameters: map(all_params, p => p.value),
+			values: map(all_params, p => p.value),
 		}
 	}
 
