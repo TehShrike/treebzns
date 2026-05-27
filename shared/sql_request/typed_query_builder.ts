@@ -10,6 +10,8 @@ import type {
 	FunctionName,
 	Join as TrustableJoin,
 	SelectExpression,
+	SelectGrouping,
+	WhereGrouping,
 } from "./safe_sql_query_validator.ts"
 
 type SchemaColumnTypes = {
@@ -37,6 +39,7 @@ type ExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMap<Sche
 		right: ColumnRef<Schema, A> | ValueRef | FunctionExpression,
 	) => Expression
 	and: (...exprs: Expression[]) => Expression
+	or: (...exprs: Expression[]) => Expression
 	fn: (name: FunctionName, ...args: (ColumnRef<Schema, A> | ValueRef)[]) => FunctionExpression
 }
 
@@ -63,6 +66,9 @@ type AfterDot<S> = S extends `${string}.${infer A extends string}` ? A : never
 
 type SelectFnAlias<A extends AliasMap<any>> = `${keyof A & string}.${string}`
 
+type SelectGroupingItem<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
+	SelectColumnInput<Schema, A> | SelectGrouping
+
 type SelectExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
 	fn: {
 		<const Fn extends FunctionName, const Alias extends SelectFnAlias<A>>(
@@ -81,11 +87,14 @@ type SelectExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMa
 			arg2: CR2,
 		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn>
 	}
+	and: <const Alias extends SelectFnAlias<A>>(alias: Alias, ...items: SelectGroupingItem<Schema, A>[]) => SelectGrouping
+	or: <const Alias extends SelectFnAlias<A>>(alias: Alias, ...items: SelectGroupingItem<Schema, A>[]) => SelectGrouping
 }
 
 type SelectInput<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
 	| SelectColumnInput<Schema, A>
 	| SelectableFunctionExpression
+	| SelectGrouping
 
 type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Expr> =
 	Expr extends { type: 'function'; table_identifier: infer T extends string; alias: infer K extends string; function: infer Fn extends FunctionName }
@@ -117,7 +126,8 @@ export type ResponseColumn = {
 	name: string
 }
 
-export type BuiltQuery<Row> = SafeSqlQuery & {
+export type BuiltQuery<Row> = {
+	query: SafeSqlQuery
 	response_columns: ResponseColumn[]
 	positional_row_to_named: (row: unknown[]) => Row
 }
@@ -163,15 +173,15 @@ type QueryBuilder<Schema extends SchemaColumnTypes> = {
 
 type ColumnOrValueInput = string | { value: unknown } | FunctionExpression
 
-type RuntimeExpression =
-	| { type: 'and'; children: RuntimeExpression[] }
-	| Comparison
+type BoolExpr = WhereGrouping | Comparison
+
+type InternalSelectGrouping = SelectGrouping & { table_identifier: string; alias: string }
 
 type State = {
 	from: { table_name: string; alias: string }
 	joins: TrustableJoin[]
-	where_expressions: RuntimeExpression[]
-	selects: SelectExpression[]
+	where_expressions: BoolExpr[]
+	selects: Array<SelectExpression | InternalSelectGrouping>
 	group_bys: SelectExpression[]
 }
 
@@ -202,19 +212,20 @@ const to_column_or_value = (input: ColumnOrValueInput): ColumnReference | UserPr
 	return { type: 'column reference', table_identifier: table, column }
 }
 
-const flatten_expression = (expr: RuntimeExpression): Comparison[] => {
-	if (expr.type === 'and') return expr.children.flatMap(flatten_expression)
+const flatten_for_join = (expr: BoolExpr): Comparison[] => {
+	if ('expressions' in expr) return expr.expressions.flatMap(flatten_for_join)
 	return [expr]
 }
 
 const expression_builder = {
-	comparison: (left: ColumnOrValueInput, comparator: Comparator, right: ColumnOrValueInput): RuntimeExpression => ({
+	comparison: (left: ColumnOrValueInput, comparator: Comparator, right: ColumnOrValueInput): BoolExpr => ({
 		type: 'comparison',
 		left: to_column_or_value(left),
 		comparator,
 		right: to_column_or_value(right),
 	}),
-	and: (...children: RuntimeExpression[]): RuntimeExpression => ({ type: 'and', children }),
+	and: (...exprs: BoolExpr[]): BoolExpr => ({ type: 'and', expressions: exprs }),
+	or: (...exprs: BoolExpr[]): BoolExpr => ({ type: 'or', expressions: exprs }),
 	fn: (name: FunctionName, ...args: ColumnOrValueInput[]): FunctionExpression => ({
 		type: 'function',
 		function: name,
@@ -225,6 +236,9 @@ const expression_builder = {
 		}),
 	}),
 }
+
+const to_select_grouping_expression = (item: string | SelectGrouping): SelectExpression | SelectGrouping =>
+	typeof item === 'string' ? to_select_expression(item) : item
 
 const select_expression_builder = {
 	fn: (name: FunctionName, alias: string, ...col_refs: string[]): SelectableFunctionExpression => {
@@ -237,42 +251,71 @@ const select_expression_builder = {
 		})
 		return { type: 'function', function: name, arguments: args, alias: col_alias, table_identifier }
 	},
+	and: (alias: string, ...items: (string | SelectGrouping)[]): InternalSelectGrouping => {
+		const [table_identifier, col_alias, ...rest] = alias.split('.')
+		assert(table_identifier && col_alias && rest.length === 0, `select grouping alias must be "table.col_alias": ${alias}`)
+		return { type: 'and', expressions: items.map(to_select_grouping_expression), table_identifier, alias: col_alias }
+	},
+	or: (alias: string, ...items: (string | SelectGrouping)[]): InternalSelectGrouping => {
+		const [table_identifier, col_alias, ...rest] = alias.split('.')
+		assert(table_identifier && col_alias && rest.length === 0, `select grouping alias must be "table.col_alias": ${alias}`)
+		return { type: 'or', expressions: items.map(to_select_grouping_expression), table_identifier, alias: col_alias }
+	},
 }
 
+const bool_expr_to_where_grouping = (expr: BoolExpr): WhereGrouping =>
+	'expressions' in expr
+		? expr
+		: { type: 'and' as const, expressions: [expr] }
+
 const make_stage = (state: State): any => ({
-	join: (table_alias: string, on: (b: typeof expression_builder) => RuntimeExpression) => {
+	join: (table_alias: string, on: (b: typeof expression_builder) => BoolExpr) => {
 		const { table, alias } = parse_table_alias(table_alias)
 		const expr = on(expression_builder)
 		return make_stage({
 			...state,
-			joins: [...state.joins, { table_name: table, alias, on_clause: flatten_expression(expr) }],
+			joins: [...state.joins, { table_name: table, alias, on_clause: flatten_for_join(expr) }],
 		})
 	},
-	where: (cb: (b: typeof expression_builder) => RuntimeExpression) => {
+	where: (cb: (b: typeof expression_builder) => BoolExpr) => {
 		return make_stage({ ...state, where_expressions: [...state.where_expressions, cb(expression_builder)] })
 	},
-	select: (cb: (b: typeof select_expression_builder) => ReadonlyArray<string | SelectableFunctionExpression>) => {
-		const new_selects = map(cb(select_expression_builder), to_select_expression)
+	select: (cb: (b: typeof select_expression_builder) => ReadonlyArray<string | SelectableFunctionExpression | SelectGrouping>) => {
+		const items = cb(select_expression_builder)
+		const new_selects = map(items, (item): SelectExpression | InternalSelectGrouping => {
+			if (typeof item === 'string') return to_select_expression(item)
+			if (item.type === 'and' || item.type === 'or') return item as InternalSelectGrouping
+			assert(item.type === 'function', `expected function expression in select, got "${item.type}"`)
+			return to_select_expression(item)
+		})
 		return make_stage({ ...state, selects: [...state.selects, ...new_selects] })
 	},
 	group_by: (...exprs: string[]) => {
 		return make_stage({ ...state, group_bys: [...state.group_bys, ...map(exprs, to_select_expression)] })
 	},
 	build: (): BuiltQuery<unknown> => {
-		const response_columns: ResponseColumn[] = map(state.selects, s => {
-			const name = s.type === 'column reference' ? (s.alias ?? s.column) : s.alias
-
-			return {
-				table_identifier: s.table_identifier,
-				name,
+		const response_columns: ResponseColumn[] = state.selects.flatMap(s => {
+			if ('expressions' in s) {
+				return [{ table_identifier: s.table_identifier, name: s.alias }]
 			}
+			const name = s.type === 'column reference' ? (s.alias ?? s.column) : s.alias
+			return [{ table_identifier: s.table_identifier, name }]
 		})
 		return {
-			select: state.selects,
-			from: state.from,
-			joins: state.joins,
-			where: state.where_expressions.flatMap(flatten_expression),
-			group_by: state.group_bys,
+			query: {
+				select: map(state.selects, (s): SelectExpression | SelectGrouping => {
+					if (!('expressions' in s)) return s
+					return { type: s.type, expressions: s.expressions, alias: s.alias }
+				}),
+				from: state.from,
+				joins: state.joins,
+				where: state.where_expressions.length === 0
+					? null
+					: state.where_expressions.length === 1
+						? bool_expr_to_where_grouping(state.where_expressions[0]!)
+						: { type: 'and' as const, expressions: state.where_expressions },
+				group_by: state.group_bys,
+			},
 			response_columns,
 			positional_row_to_named: (row: unknown[]): Record<string, Record<string, unknown>> => {
 				const results: Record<string, Record<string, unknown>> = {}

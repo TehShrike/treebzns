@@ -369,7 +369,7 @@ test('safe_sql_query: valid function in select', () => {
 		.build()
 
 	const builder = make_safe_query_builder(test_schema)
-	const { sql, values } = builder.to_sql(query)
+	const { sql, values } = builder.to_sql(query.query)
 
 	assert.strictEqual(sql, 'SELECT `p`.`project_id`, COUNT(*) AS `pcount`\nFROM `project` AS `p`')
 	assert.deepStrictEqual(values, [])

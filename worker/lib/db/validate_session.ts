@@ -38,7 +38,7 @@ export default async (request: Request, mysql: MysqlHelpersObject) => {
 		.select(() => [`employee.employee_id`, `employee.company_id`])
 		.build()
 
-	const query = safe_query_builder.to_sql(typed_query)
+	const query = safe_query_builder.to_sql(typed_query.query)
 
 	const row = await mysql.query(query).get_first_row<unknown[]>()
 

@@ -171,21 +171,14 @@ const where_grouping_to_chunk = (grouping: WhereGrouping): SqlChunk => {
 	return merge_chunks(chunks, sep)
 }
 
-// Flattens a select grouping to a list of SelectExpression (for GROUP BY)
-const flatten_select_grouping = (exprs: SelectItem[]): SelectExpression[] =>
-	exprs.flatMap(expr =>
-		('expressions' in expr)
-			? flatten_select_grouping(expr.expressions as SelectItem[])
-			: [expr]
-	)
-
-// Renders a select item or grouping; groupings get parentheses
+// Renders a select item or grouping; groupings get parentheses and optional AS alias
 const select_item_or_grouping_to_chunk = (item: SelectItem): SqlChunk => {
 	if ('expressions' in item) {
 		const chunks = map(item.expressions as SelectItem[], select_item_or_grouping_to_chunk)
 		const sep = item.type === 'and' ? ' AND ' : ' OR '
 		const inner = merge_chunks(chunks, sep)
-		return { sql: `(${inner.sql})`, parameters: inner.parameters }
+		const sql = item.alias ? `(${inner.sql}) AS \`${item.alias}\`` : `(${inner.sql})`
+		return { sql, parameters: inner.parameters }
 	}
 	return select_item_to_chunk(item)
 }

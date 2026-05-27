@@ -140,16 +140,13 @@ const example_schema = {
 
 const safe_query_builder = make_safe_query_builder(example_schema)
 function assert_valid_query_output(built: BuiltQuery<unknown>) {
-	const { response_columns: _response_columns, positional_row_to_named: _positional_row_to_named, ...select_query } = built
-	const query_is_safe = safe_sql_query_validator.is_valid(select_query)
-
+	const query_is_safe = safe_sql_query_validator.is_valid(built.query)
 	if (!query_is_safe) {
-		console.log(safe_sql_query_validator.get_messages(select_query, 'select_query'))
+		console.log(safe_sql_query_validator.get_messages(built.query, 'query'))
 	}
-
 	assert.strictEqual(query_is_safe, true)
 
-	const validity = safe_query_builder.validate_table_and_column_names(select_query)
+	const validity = safe_query_builder.validate_table_and_column_names(built.query)
 	if (!validity.valid) {
 		console.log(validity.messages)
 	}
@@ -310,7 +307,25 @@ test('typed_query_builder: group_by with column refs', () => {
 	assert_valid_query_output(built)
 })
 
-test.skip('typed_query_builder: type errors on invalid references', () => {
+test('typed_query_builder: nested AND/OR in where, select grouping, group_by', () => {
+	const built = q.from('project AS p')
+		.where(q => q.and(
+			q.or(
+				q.comparison('p.closed', '=', { value: 0 }),
+				q.comparison('p.emergency', '=', { value: 1 }),
+			),
+			q.comparison('p.company_id', '=', { value: 5 }),
+		))
+		.select(b => [
+			'p.project_id',
+			b.and('p.is_valid', 'p.closed', 'p.emergency'),
+		])
+		.group_by('p.project_id', 'p.company_id')
+		.build()
+	assert_valid_query_output(built)
+})
+
+test('typed_query_builder: type errors on invalid references', () => {
 	// @ts-expect-error: projectz is not a valid table name
 	q.from('projectz')
 
@@ -346,4 +361,29 @@ test.skip('typed_query_builder: type errors on invalid references', () => {
 
 	// @ts-expect-error: 'not_a_column' is not a column on project
 	q.from('project AS p').group_by('p.not_a_column')
+
+	q.from('project AS p')
+		.where(q => q.or(
+			// @ts-expect-error: pli is not a valid reference here
+			q.comparison('pli.item_type_id', '=', { value: 3 }),
+			q.comparison('p.company_id', '=', { value: 4 })
+		))
+
+	q.from('project AS p')
+		.select(b => [
+			b.and('p.result',
+				// @ts-expect-error: 'not_a_column' is not a column on project
+				'p.not_a_column',
+				'p.emergency',
+			),
+		])
+
+	q.from('project AS p')
+		.select(b => [
+			b.or('p.result',
+				'p.emergency',
+				// @ts-expect-error: 'not_a_column' is not a column on project
+				'p.not_a_column',
+			),
+		])
 })

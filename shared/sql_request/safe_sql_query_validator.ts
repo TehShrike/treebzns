@@ -98,7 +98,21 @@ const make_and_or_grouping_validator = <T extends object>(element_validator: Val
 	return holder.v
 }
 
-export const select_grouping_validator = make_and_or_grouping_validator(select_expression_validator)
+const make_select_grouping_validator = (): Validator<SelectGrouping> => {
+	const holder: { v: Validator<SelectGrouping> | null } = { v: null }
+	const lazy: Validator<SelectGrouping> = {
+		is_valid: (input): input is SelectGrouping => holder.v!.is_valid(input),
+		get_messages: (input, name) => holder.v!.get_messages(input, name),
+	}
+	holder.v = jv.object({
+		type: jv.one_of(jv.exact('and' as const), jv.exact('or' as const)),
+		expressions: jv.array(jv.one_of(select_expression_validator, lazy)),
+		alias: jv.optional(jv.is_string),
+	}) as unknown as Validator<SelectGrouping>
+	return holder.v
+}
+
+export const select_grouping_validator = make_select_grouping_validator()
 export const where_grouping_validator = make_and_or_grouping_validator(comparison_validator)
 
 export const safe_sql_query_validator = jv.object({
@@ -118,7 +132,11 @@ export type FunctionExpression = InferValidator<typeof function_expression_valid
 export type SelectExpression = InferValidator<typeof select_expression_validator>
 export type TableAddition = InferValidator<typeof table_addition_validator>
 export type Join = InferValidator<typeof join_validator>
-export type SelectGrouping = AndOrGrouping<SelectExpression>
+export type SelectGrouping = {
+	type: 'and' | 'or'
+	expressions: Array<SelectExpression | SelectGrouping>
+	alias?: string
+}
 export type WhereGrouping = AndOrGrouping<Comparison>
 export type SafeSqlQuery = {
 	select: Array<SelectExpression | SelectGrouping>
