@@ -1,5 +1,6 @@
 import { for_each, map } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
+import { omit } from '#shared/omit.ts'
 import type {
 	Comparator,
 	SafeSqlQuery,
@@ -289,18 +290,22 @@ const make_stage = (state: State): any => ({
 		return make_stage({ ...state, group_bys: [...state.group_bys, ...map(exprs, to_select_expression)] })
 	},
 	build: (): BuiltQuery<unknown> => {
-		const response_columns: ResponseColumn[] = state.selects.flatMap(s => {
+		const response_columns: ResponseColumn[] = map(state.selects, s => {
 			if ('expressions' in s) {
-				return [{ table_identifier: s.table_identifier, name: s.alias }]
+				return { table_identifier: s.table_identifier, name: s.alias }
 			}
+
 			const name = s.type === 'column reference' ? (s.alias ?? s.column) : s.alias
-			return [{ table_identifier: s.table_identifier, name }]
+			return { table_identifier: s.table_identifier, name }
 		})
 		return {
 			query: {
 				select: map(state.selects, (s): SelectExpression | SelectGrouping => {
-					if (!('expressions' in s)) return s
-					return { type: s.type, expressions: s.expressions, alias: s.alias }
+					if ('expressions' in s) {
+						return omit(s, ['table_identifier'])
+					}
+
+					return s
 				}),
 				from: state.from,
 				joins: state.joins,
