@@ -100,7 +100,7 @@ const operand_to_sql_chunk = (operand: ComparisonOperand): SqlChunk => {
 
 function assertZeroOrOneOrTwoArguments<T>(args: T[]): asserts args is [] | [T] | [T, T] {
 	if (args.length !== 0 && args.length !== 1 && args.length !== 2) {
-		throw new Error('Must have 1 or 2 arguments')
+		throw new Error('Must have 0, 1, or 2 arguments')
 	}
 }
 
