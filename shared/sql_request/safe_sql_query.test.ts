@@ -504,6 +504,28 @@ test('safe_sql_query: group_by array produces correct SQL', () => {
 	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nGROUP BY `p`.`project_id`, `p`.`company_id`')
 })
 
+test('safe_sql_query: group_by with function expression must not emit AS alias', () => {
+	const query = {
+		select: [{ type: 'column reference', table_identifier: 'p', column: 'project_id' }],
+		from: { table_name: 'project', alias: 'p' },
+		joins: [],
+		where: null,
+		group_by: [{
+			type: 'function',
+			function: 'COUNT',
+			arguments: [{ type: 'column reference', table_identifier: 'p', column: 'project_id' }],
+			alias: 'pcount',
+			table_identifier: 'p',
+		}],
+	} satisfies SafeSqlQuery
+
+	const { to_sql } = make_safe_query_builder(test_schema)
+	const { sql } = to_sql(query)
+
+	// MySQL rejects `GROUP BY <expr> AS <alias>` — the alias only belongs in SELECT.
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nGROUP BY COUNT(`p`.`project_id`)')
+})
+
 test('safe_sql_query: select AND grouping produces correct SQL', () => {
 	const query = {
 		select: [

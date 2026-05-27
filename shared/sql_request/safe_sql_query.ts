@@ -145,6 +145,13 @@ const select_item_to_chunk = (sel: SelectExpression): SqlChunk => {
 	return { ...chunk, sql: `${chunk.sql} AS \`${sel.alias}\`` }
 }
 
+const group_by_item_to_chunk = (sel: SelectExpression): SqlChunk => {
+	if (sel.type === 'column reference') return value_to_sql_chunk(sel)
+	assert(sel.function in FUNCTIONS)
+	assertZeroOrOneOrTwoArguments(sel.arguments)
+	return FUNCTIONS[sel.function](sel.arguments)
+}
+
 const merge_chunks = (chunks: SqlChunk[], separator: string): SqlChunk => ({
 	sql: map(chunks, c => c.sql).join(separator),
 	parameters: chunks.flatMap(c => c.parameters),
@@ -289,7 +296,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			: null
 
 		const group_by_chunk = query.group_by.length > 0
-			? merge_chunks(map(query.group_by, select_item_to_chunk), ', ')
+			? merge_chunks(map(query.group_by, group_by_item_to_chunk), ', ')
 			: null
 
 		const all_params = [
