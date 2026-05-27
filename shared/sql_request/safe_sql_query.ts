@@ -7,7 +7,8 @@ import type {
 	FunctionName,
 	FunctionExpression,
 	SelectExpression,
-	TableAddition,
+	SelectGrouping,
+	WhereGrouping,
 	Join,
 	SafeSqlQuery,
 } from './safe_sql_query_validator.ts'
@@ -149,6 +150,46 @@ const merge_chunks = (chunks: SqlChunk[], separator: string): SqlChunk => ({
 	parameters: chunks.flatMap(c => c.parameters),
 })
 
+type WhereExpr = Comparison | WhereGrouping
+type SelectItem = SelectExpression | SelectGrouping
+
+// Renders a where expression (comparison or nested grouping) with parentheses around nested groups
+const where_expr_to_chunk = (expr: WhereExpr): SqlChunk => {
+	if ('expressions' in expr) {
+		const chunks = map(expr.expressions as WhereExpr[], where_expr_to_chunk)
+		const sep = expr.type === 'and' ? ' AND ' : ' OR '
+		const inner = merge_chunks(chunks, sep)
+		return { sql: `(${inner.sql})`, parameters: inner.parameters }
+	}
+	return comparison_to_chunk(expr)
+}
+
+// Renders the top-level where grouping without outer parentheses
+const where_grouping_to_chunk = (grouping: WhereGrouping): SqlChunk => {
+	const chunks = map(grouping.expressions as WhereExpr[], where_expr_to_chunk)
+	const sep = grouping.type === 'and' ? '\n\tAND ' : '\n\tOR '
+	return merge_chunks(chunks, sep)
+}
+
+// Flattens a select grouping to a list of SelectExpression (for GROUP BY)
+const flatten_select_grouping = (exprs: SelectItem[]): SelectExpression[] =>
+	exprs.flatMap(expr =>
+		('expressions' in expr)
+			? flatten_select_grouping(expr.expressions as SelectItem[])
+			: [expr]
+	)
+
+// Renders a select item or grouping; groupings get parentheses
+const select_item_or_grouping_to_chunk = (item: SelectItem): SqlChunk => {
+	if ('expressions' in item) {
+		const chunks = map(item.expressions as SelectItem[], select_item_or_grouping_to_chunk)
+		const sep = item.type === 'and' ? ' AND ' : ' OR '
+		const inner = merge_chunks(chunks, sep)
+		return { sql: `(${inner.sql})`, parameters: inner.parameters }
+	}
+	return select_item_to_chunk(item)
+}
+
 export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema: ThisSchema) => {
 	const validate_table_and_column_names = (query: SafeSqlQuery): QueryValidationResult => {
 		const messages: string[] = []
@@ -185,7 +226,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			else if (arg.type === 'function') for_each(arg.arguments, check_arg)
 		}
 
-		const check_select_or_group_by = (expr: SelectExpression) => {
+		const check_select_expr = (expr: SelectExpression) => {
 			if (expr.type === 'column reference') check_col_ref(expr)
 			else {
 				if (!alias_to_table_name.has(expr.table_identifier)) {
@@ -195,7 +236,28 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			}
 		}
 
-		for_each(query.select, check_select_or_group_by)
+		const check_select_exprs = (exprs: SelectItem[]): void => {
+			for_each(exprs, item => {
+				if ('expressions' in item) {
+					check_select_exprs(item.expressions as SelectItem[])
+				} else {
+					check_select_expr(item)
+				}
+			})
+		}
+
+		const check_where_grouping = (grouping: WhereGrouping): void => {
+			for_each(grouping.expressions as WhereExpr[], expr => {
+				if ('expressions' in expr) {
+					check_where_grouping(expr)
+				} else {
+					check_arg(expr.left)
+					check_arg(expr.right)
+				}
+			})
+		}
+
+		check_select_exprs(query.select as SelectItem[])
 
 		for_each(query.joins, join => {
 			for_each(join.on_clause, clause => {
@@ -208,19 +270,16 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			})
 		})
 
-		for_each(query.where, comp => {
-			check_arg(comp.left)
-			check_arg(comp.right)
-		})
+		if (query.where !== null) check_where_grouping(query.where)
 
-		for_each(query.group_by, check_select_or_group_by)
+		for_each(query.group_by, check_select_expr)
 
 		if (messages.length > 0) return { valid: false, messages }
 		return { valid: true }
 	}
 
 	const to_sql = (query: SafeSqlQuery): { sql: string, values: any[] } => {
-		const select_chunk = merge_chunks(map(query.select, select_item_to_chunk), ', ')
+		const select_chunk = merge_chunks(map(query.select as SelectItem[], select_item_or_grouping_to_chunk), ', ')
 
 		const join_chunks = map(query.joins, join => {
 			const on = merge_chunks(map(join.on_clause, on_clause_item_to_chunk), '\n\tAND ')
@@ -230,8 +289,8 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			} satisfies SqlChunk
 		})
 
-		const where_chunk = query.where.length > 0
-			? merge_chunks(map(query.where, comparison_to_chunk), '\n\tAND ')
+		const where_chunk = query.where !== null
+			? where_grouping_to_chunk(query.where)
 			: null
 
 		const group_by_chunk = query.group_by.length > 0

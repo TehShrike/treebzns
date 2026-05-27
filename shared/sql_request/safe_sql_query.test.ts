@@ -170,24 +170,27 @@ test('safe_sql_query: valid query', () => {
 				}],
 			}]
 		}],
-		where: [{
-			type: 'comparison',
-			left: {
-				type: 'column reference',
-				table_identifier: 'p',
-				column: 'client_id',
-			},
-			comparator: '=',
-			right: {
-				type: 'user provided value',
-				value: 1,
-			},
-		}],
+		where: {
+			type: 'and',
+			expressions: [{
+				type: 'comparison',
+				left: {
+					type: 'column reference',
+					table_identifier: 'p',
+					column: 'client_id',
+				},
+				comparator: '=',
+				right: {
+					type: 'user provided value',
+					value: 1,
+				},
+			}],
+		},
 		group_by: [{
 			type: 'column reference',
 			table_identifier: 'p',
 			column: 'project_id',
-		}]
+		}],
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -211,7 +214,7 @@ test('safe_sql_query: invalid table identifier in from', () => {
 			alias: 'project',
 		},
 		joins: [],
-		where: [],
+		where: null,
 		group_by: [],
 	} satisfies SafeSqlQuery
 
@@ -252,7 +255,7 @@ test('safe_sql_query: invalid table identifier in join', () => {
 				},
 			}]
 		}],
-		where: [],
+		where: null,
 		group_by: [],
 	} satisfies SafeSqlQuery
 
@@ -276,7 +279,7 @@ test('safe_sql_query: invalid table identifier in select', () => {
 			alias: 'p',
 		},
 		joins: [],
-		where: [],
+		where: null,
 		group_by: [],
 	} satisfies SafeSqlQuery
 
@@ -305,19 +308,22 @@ test('safe_sql_query: invalid table identifier in where', () => {
 			alias: 'p',
 		},
 		joins: [],
-		where: [{
-			type: 'comparison',
-			left: {
-				type: 'column reference',
-				table_identifier: 'project',
-				column: 'project_id'
-			},
-			comparator: '=',
-			right: {
-				type: 'user provided value',
-				value: 1
-			}
-		}],
+		where: {
+			type: 'and',
+			expressions: [{
+				type: 'comparison',
+				left: {
+					type: 'column reference',
+					table_identifier: 'project',
+					column: 'project_id'
+				},
+				comparator: '=',
+				right: {
+					type: 'user provided value',
+					value: 1
+				}
+			}],
+		},
 		group_by: [],
 	} satisfies SafeSqlQuery
 
@@ -341,7 +347,7 @@ test('safe_sql_query: invalid column in select', () => {
 			alias: 'project',
 		},
 		joins: [],
-		where: [],
+		where: null,
 		group_by: [],
 	} satisfies SafeSqlQuery
 
@@ -366,5 +372,186 @@ test('safe_sql_query: valid function in select', () => {
 	const { sql, values } = builder.to_sql(query)
 
 	assert.strictEqual(sql, 'SELECT `p`.`project_id`, COUNT(*) AS `pcount`\nFROM `project` AS `p`')
+	assert.deepStrictEqual(values, [])
+})
+
+test('safe_sql_query: where AND grouping produces correct SQL', () => {
+	const query = {
+		select: [{ type: 'column reference', table_identifier: 'p', column: 'project_id' }],
+		from: { table_name: 'project', alias: 'p' },
+		joins: [],
+		where: {
+			type: 'and',
+			expressions: [
+				{
+					type: 'comparison',
+					left: { type: 'column reference', table_identifier: 'p', column: 'client_id' },
+					comparator: '=',
+					right: { type: 'user provided value', value: 1 },
+				},
+				{
+					type: 'comparison',
+					left: { type: 'column reference', table_identifier: 'p', column: 'closed' },
+					comparator: '=',
+					right: { type: 'user provided value', value: 0 },
+				},
+			],
+		},
+		group_by: [],
+	} satisfies SafeSqlQuery
+
+	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
+	assert.strictEqual(validate_table_and_column_names(query).valid, true)
+
+	const { sql, values } = to_sql(query)
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nWHERE `p`.`client_id` = ?\n\tAND `p`.`closed` = ?')
+	assert.deepStrictEqual(values, [1, 0])
+})
+
+test('safe_sql_query: where OR grouping produces correct SQL', () => {
+	const query = {
+		select: [{ type: 'column reference', table_identifier: 'p', column: 'project_id' }],
+		from: { table_name: 'project', alias: 'p' },
+		joins: [],
+		where: {
+			type: 'or',
+			expressions: [
+				{
+					type: 'comparison',
+					left: { type: 'column reference', table_identifier: 'p', column: 'client_id' },
+					comparator: '=',
+					right: { type: 'user provided value', value: 1 },
+				},
+				{
+					type: 'comparison',
+					left: { type: 'column reference', table_identifier: 'p', column: 'closed' },
+					comparator: '=',
+					right: { type: 'user provided value', value: 0 },
+				},
+			],
+		},
+		group_by: [],
+	} satisfies SafeSqlQuery
+
+	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
+	assert.strictEqual(validate_table_and_column_names(query).valid, true)
+
+	const { sql, values } = to_sql(query)
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nWHERE `p`.`client_id` = ?\n\tOR `p`.`closed` = ?')
+	assert.deepStrictEqual(values, [1, 0])
+})
+
+test('safe_sql_query: nested AND/OR in where produces parenthesized SQL', () => {
+	const query = {
+		select: [{ type: 'column reference', table_identifier: 'p', column: 'project_id' }],
+		from: { table_name: 'project', alias: 'p' },
+		joins: [],
+		where: {
+			type: 'and',
+			expressions: [
+				{
+					type: 'or',
+					expressions: [
+						{
+							type: 'comparison',
+							left: { type: 'column reference', table_identifier: 'p', column: 'client_id' },
+							comparator: '=',
+							right: { type: 'user provided value', value: 1 },
+						},
+						{
+							type: 'comparison',
+							left: { type: 'column reference', table_identifier: 'p', column: 'closed' },
+							comparator: '=',
+							right: { type: 'user provided value', value: 0 },
+						},
+					],
+				},
+				{
+					type: 'comparison',
+					left: { type: 'column reference', table_identifier: 'p', column: 'company_id' },
+					comparator: '=',
+					right: { type: 'user provided value', value: 5 },
+				},
+			],
+		},
+		group_by: [],
+	} satisfies SafeSqlQuery
+
+	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
+	assert.strictEqual(validate_table_and_column_names(query).valid, true)
+
+	const { sql, values } = to_sql(query)
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nWHERE (`p`.`client_id` = ? OR `p`.`closed` = ?)\n\tAND `p`.`company_id` = ?')
+	assert.deepStrictEqual(values, [1, 0, 5])
+})
+
+test('safe_sql_query: group_by array produces correct SQL', () => {
+	const query = {
+		select: [{ type: 'column reference', table_identifier: 'p', column: 'project_id' }],
+		from: { table_name: 'project', alias: 'p' },
+		joins: [],
+		where: null,
+		group_by: [
+			{ type: 'column reference', table_identifier: 'p', column: 'project_id' },
+			{ type: 'column reference', table_identifier: 'p', column: 'company_id' },
+		],
+	} satisfies SafeSqlQuery
+
+	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
+	assert.strictEqual(validate_table_and_column_names(query).valid, true)
+
+	const { sql } = to_sql(query)
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nGROUP BY `p`.`project_id`, `p`.`company_id`')
+})
+
+test('safe_sql_query: select AND grouping produces correct SQL', () => {
+	const query = {
+		select: [
+			{ type: 'column reference', table_identifier: 'p', column: 'project_id' },
+			{
+				type: 'and',
+				expressions: [
+					{ type: 'column reference', table_identifier: 'p', column: 'closed' },
+					{ type: 'column reference', table_identifier: 'p', column: 'emergency' },
+				],
+			},
+		],
+		from: { table_name: 'project', alias: 'p' },
+		joins: [],
+		where: null,
+		group_by: [],
+	} satisfies SafeSqlQuery
+
+	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
+	assert.strictEqual(validate_table_and_column_names(query).valid, true)
+
+	const { sql, values } = to_sql(query)
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`, (`p`.`closed` AND `p`.`emergency`)\nFROM `project` AS `p`')
+	assert.deepStrictEqual(values, [])
+})
+
+test('safe_sql_query: select OR grouping produces correct SQL', () => {
+	const query = {
+		select: [
+			{ type: 'column reference', table_identifier: 'p', column: 'project_id' },
+			{
+				type: 'or',
+				expressions: [
+					{ type: 'column reference', table_identifier: 'p', column: 'closed' },
+					{ type: 'column reference', table_identifier: 'p', column: 'emergency' },
+				],
+			},
+		],
+		from: { table_name: 'project', alias: 'p' },
+		joins: [],
+		where: null,
+		group_by: [],
+	} satisfies SafeSqlQuery
+
+	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
+	assert.strictEqual(validate_table_and_column_names(query).valid, true)
+
+	const { sql, values } = to_sql(query)
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`, (`p`.`closed` OR `p`.`emergency`)\nFROM `project` AS `p`')
 	assert.deepStrictEqual(values, [])
 })

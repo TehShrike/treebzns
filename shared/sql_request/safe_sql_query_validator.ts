@@ -79,11 +79,33 @@ export const join_validator = jv.object({
 	on_clause: jv.array(jv.one_of(comparison_validator, function_expression_validator)),
 })
 
+// Recursive and/or grouping validator factory
+type AndOrGrouping<T> = {
+	type: 'and' | 'or'
+	expressions: Array<T | AndOrGrouping<T>>
+}
+
+const make_and_or_grouping_validator = <T extends object>(element_validator: Validator<T>): Validator<AndOrGrouping<T>> => {
+	const holder: { v: Validator<AndOrGrouping<T>> | null } = { v: null }
+	const lazy: Validator<AndOrGrouping<T>> = {
+		is_valid: (input): input is AndOrGrouping<T> => holder.v!.is_valid(input),
+		get_messages: (input, name) => holder.v!.get_messages(input, name),
+	}
+	holder.v = jv.object({
+		type: jv.one_of(jv.exact('and' as const), jv.exact('or' as const)),
+		expressions: jv.array(jv.one_of(element_validator, lazy)),
+	}) as unknown as Validator<AndOrGrouping<T>>
+	return holder.v
+}
+
+export const select_grouping_validator = make_and_or_grouping_validator(select_expression_validator)
+export const where_grouping_validator = make_and_or_grouping_validator(comparison_validator)
+
 export const safe_sql_query_validator = jv.object({
-	select: jv.array(select_expression_validator),
+	select: jv.array(jv.one_of(select_expression_validator, select_grouping_validator)),
 	from: table_addition_validator,
 	joins: jv.array(join_validator),
-	where: jv.array(comparison_validator),
+	where: jv.nullable(where_grouping_validator),
 	group_by: jv.array(select_expression_validator),
 })
 
@@ -96,10 +118,12 @@ export type FunctionExpression = InferValidator<typeof function_expression_valid
 export type SelectExpression = InferValidator<typeof select_expression_validator>
 export type TableAddition = InferValidator<typeof table_addition_validator>
 export type Join = InferValidator<typeof join_validator>
+export type SelectGrouping = AndOrGrouping<SelectExpression>
+export type WhereGrouping = AndOrGrouping<Comparison>
 export type SafeSqlQuery = {
-	select: Array<SelectExpression>
+	select: Array<SelectExpression | SelectGrouping>
 	from: TableAddition
 	joins: Array<Join>
-	where: Array<Comparison>
+	where: WhereGrouping | null
 	group_by: Array<SelectExpression>
 }
