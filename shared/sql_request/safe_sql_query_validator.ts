@@ -36,10 +36,18 @@ export const function_name_validator = jv.one_of(
 
 const function_argument_validator = jv.one_of(column_reference_validator, user_provided_value_validator)
 
-export const function_expression_validator = jv.object({
+const function_validation_object = {
 	type: jv.exact('function' as const),
 	function: function_name_validator,
 	arguments: jv.array(function_argument_validator),
+}
+
+export const function_expression_validator = jv.object(function_validation_object)
+
+export const select_function_expression_validator = jv.object({
+	...function_validation_object,
+	alias: jv.is_string,
+	table_identifier: jv.is_string,
 })
 
 export const comparison_validator = jv.object({
@@ -55,17 +63,9 @@ const column_reference_select_validator = jv.object({
 // defined manually because jv.optional produces `string | undefined`
 }) as Validator<ColumnReference & { alias?: string }>
 
-const function_expression_select_validator = jv.object({
-	type: jv.exact('function' as const),
-	function: function_name_validator,
-	arguments: jv.array(function_argument_validator),
-	alias: jv.is_string,
-	table_identifier: jv.is_string,
-})
-
 export const select_expression_validator = jv.one_of(
 	column_reference_select_validator,
-	function_expression_select_validator,
+	select_function_expression_validator,
 )
 
 export const table_addition_validator = jv.object({

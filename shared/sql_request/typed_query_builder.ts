@@ -317,8 +317,8 @@ const make_stage = (state: State): any => ({
 
 				for_each(response_columns, (response_column, index) => {
 					results[response_column.table_identifier] = {
+						...results[response_column.table_identifier],
 						[response_column.name]: row[index],
-						...results[response_column.table_identifier]
 					}
 				})
 
