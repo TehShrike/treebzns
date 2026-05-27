@@ -212,11 +212,6 @@ const to_column_or_value = (input: ColumnOrValueInput): ColumnReference | UserPr
 	return { type: 'column reference', table_identifier: table, column }
 }
 
-const flatten_for_join = (expr: BoolExpr): Comparison[] => {
-	if ('expressions' in expr) return expr.expressions.flatMap(flatten_for_join)
-	return [expr]
-}
-
 const expression_builder = {
 	comparison: (left: ColumnOrValueInput, comparator: Comparator, right: ColumnOrValueInput): BoolExpr => ({
 		type: 'comparison',
@@ -274,7 +269,7 @@ const make_stage = (state: State): any => ({
 		const expr = on(expression_builder)
 		return make_stage({
 			...state,
-			joins: [...state.joins, { table_name: table, alias, on_clause: flatten_for_join(expr) }],
+			joins: [...state.joins, { table_name: table, alias, on_clause: [expr] }],
 		})
 	},
 	where: (cb: (b: typeof expression_builder) => BoolExpr) => {

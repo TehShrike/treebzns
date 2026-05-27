@@ -9,7 +9,6 @@ import type {
 	SelectExpression,
 	SelectGrouping,
 	WhereGrouping,
-	Join,
 	SafeSqlQuery,
 } from './safe_sql_query_validator.ts'
 
@@ -127,7 +126,8 @@ const comparison_to_chunk = (comp: Comparison): SqlChunk => {
 	}
 }
 
-const on_clause_item_to_chunk = (clause: Comparison | FunctionExpression): SqlChunk => {
+const on_clause_item_to_chunk = (clause: Comparison | FunctionExpression | WhereGrouping): SqlChunk => {
+	if ('expressions' in clause) return where_expr_to_chunk(clause)
 	if (clause.type === 'comparison') return comparison_to_chunk(clause)
 	assert(clause.function in FUNCTIONS)
 	assertZeroOrOneOrTwoArguments(clause.arguments)
@@ -257,8 +257,10 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 				if (clause.type === 'comparison') {
 					check_arg(clause.left)
 					check_arg(clause.right)
-				} else {
+				} else if (clause.type === 'function') {
 					for_each(clause.arguments, check_arg)
+				} else {
+					check_where_grouping(clause)
 				}
 			})
 		})

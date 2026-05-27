@@ -73,12 +73,6 @@ export const table_addition_validator = jv.object({
 	alias: jv.is_string,
 })
 
-export const join_validator = jv.object({
-	table_name: jv.is_string,
-	alias: jv.is_string,
-	on_clause: jv.array(jv.one_of(comparison_validator, function_expression_validator)),
-})
-
 // Recursive and/or grouping validator factory
 type AndOrGrouping<T> = {
 	type: 'and' | 'or'
@@ -115,6 +109,12 @@ const make_select_grouping_validator = (): Validator<SelectGrouping> => {
 export const select_grouping_validator = make_select_grouping_validator()
 export const where_grouping_validator = make_and_or_grouping_validator(comparison_validator)
 
+export const join_validator = jv.object({
+	table_name: jv.is_string,
+	alias: jv.is_string,
+	on_clause: jv.array(jv.one_of(comparison_validator, function_expression_validator, where_grouping_validator)),
+})
+
 export const safe_sql_query_validator = jv.object({
 	select: jv.array(jv.one_of(select_expression_validator, select_grouping_validator)),
 	from: table_addition_validator,
@@ -131,7 +131,11 @@ export type FunctionName = InferValidator<typeof function_name_validator>
 export type FunctionExpression = InferValidator<typeof function_expression_validator>
 export type SelectExpression = InferValidator<typeof select_expression_validator>
 export type TableAddition = InferValidator<typeof table_addition_validator>
-export type Join = InferValidator<typeof join_validator>
+export type Join = {
+	table_name: string
+	alias: string
+	on_clause: Array<Comparison | FunctionExpression | WhereGrouping>
+}
 export type SelectGrouping = {
 	type: 'and' | 'or'
 	expressions: Array<SelectExpression | SelectGrouping>
