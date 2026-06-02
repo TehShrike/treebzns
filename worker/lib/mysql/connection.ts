@@ -1,9 +1,12 @@
 import { createPool } from 'mysql2/promise'
 import type { Pool, ConnectionOptions } from 'mysql2/promise'
+import { Temporal } from '@js-temporal/polyfill'
 import fnum from '#shared/number.ts'
 
 const time_types = new Set([ `TIMESTAMP`, `DATETIME` ])
 const database_utc_offset = `Z`
+
+const integer_types_we_want_returned_as_bigints = new Set<Field['type']>([ 'TINY', 'SHORT', 'LONG', 'LONGLONG', 'INT24' ])
 
 export type Field = {
   type:
@@ -75,7 +78,19 @@ const static_connection_options: ConnectionOptions = {
 			if (datetime_string === null) {
 				return null
 			}
-			return datetime_string.replace(` `, `T`) + database_utc_offset
+			return Temporal.Instant.from(datetime_string.replace(` `, `T`) + database_utc_offset)
+		} else if (field.type === `DATE`) {
+			const date_string = field.string()
+			if (date_string === null) {
+				return null
+			}
+			return Temporal.PlainDate.from(date_string)
+		} else if (integer_types_we_want_returned_as_bigints.has(field.type)) {
+			const int_string = field.string()
+			if (int_string === null) {
+				return null
+			}
+			return BigInt(int_string)
 		}
 
 		return next()
@@ -89,4 +104,5 @@ export const create_pool = (env: Env): Pool =>
 		password: env.MYSQL_PASS,
 		database: env.MYSQL_DB,
 		disableEval: true,
+		...static_connection_options
 	})
