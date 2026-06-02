@@ -1,20 +1,15 @@
-Are those `__underscored` variables in the typed_query_builder types really necessary?
+- Move the login form to the login page
+- Add an app page that is the post-login landing page
+- "Log in" link from index.html to app.html
+- Redirect to app after creating company?
+- What is the first thing to do on the app screen?
+	- Create A Lead interface
+	- See higher level needs below: need to get server_functions working
 
 ## higher level
 
-- function that creates a session in the database and sets a cookie
-	- new table
-		- session uuid
-		- sign in user agent
-		- sign in datetime
-		- last seen datetime
-		- last seen user agent
-		- expiration datetime
-		- invalidated boolean
 - prettify?  meh
-- bare login endpoint that sets a cookie
 - server-side handling of `fn` endpoint: check the cookie, look up the user, look for the function, validate the argument
-- login screen in ASR
 - the script that builds the server_functions types for the client needs to also output a module that implements a function for each of those functions, that falls back to a fetch-backed function that calls the server-side `fn` endpoint
 - query function that runs safe sql queries
 	- function to iterate over query data structure and add `AND company_id = ?` clauses
