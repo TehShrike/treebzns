@@ -34,6 +34,7 @@ const get_build_options = () => ({
 	define: {
 		// '__IS_DEV__': JSON.stringify(dev),
 	},
+	sourcemap: true
 })
 
 if (is_watch) {
