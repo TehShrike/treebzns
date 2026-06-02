@@ -31,13 +31,12 @@
 		"db:reset": "dotenv -- bash scripts/reset-db.sh",
 		"dev": "npm-run-all build --parallel dev:*",
 		"dev:wrangler": "wrangler dev",
-		"dev:worker_build": "node esbuild.worker.ts --watch",
 		"dev:glob_states": "watchlist routes --no-clear -- npm run glob",
 		"dev:client_build": "node esbuild.client.ts --watch",
 		"deploy": "wrangler deploy",
 		"generate_server_function_types": "node scripts/generate_server_function_types.ts",
 		"build": "npm-run-all build:glob_states build:*",
-		"build:glob_states": "glob-module-file --pattern=\"routes/**/*.State.svelte\" --format=es --importStar --exportWithPath --pathPrefix=./ --outputPath=client/globbed_states.generated.ts",
+		"build:glob_states": "glob-module-file --pattern=\"client/route/**/*.State.svelte\" --format=es --importStar --exportWithPath --pathPrefix=../ --outputPath=client/globbed_states.generated.ts",
 		"build:client": "node esbuild.client.ts"
 	},
 	"devDependencies": {

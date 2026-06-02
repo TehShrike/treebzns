@@ -56,11 +56,11 @@ const add_state = ({
 
 const state_router = make_state_router(
 	make_svelte_state_renderer(),
-	document.getElementById(`target`)
+	document.getElementById(`app-target`)
 )
 
-for_each(paths_and_states as any, (globbed_state: { state: GoodEnoughState, default: Component }) => {
-	add_state({ ...globbed_state.state, Component: globbed_state.default })
+for_each(paths_and_states as any, (globbed_state: { export: { state: GoodEnoughState, default: Component } }) => {
+	add_state({ ...globbed_state.export.state, Component: globbed_state.export.default })
 })
 
 state_router.evaluateCurrentRoute(`login`)
