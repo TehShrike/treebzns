@@ -22,7 +22,7 @@ export const log_in = async ({ email, password, user_agent }: LogInArg, mysql: M
 		return null
 	}
 
-	const hash_buffer = await password_hash(password, employee.company_id, Number(employee.number_of_password_hash_iterations))
+	const hash_buffer = await password_hash(password, employee.company_id, employee.number_of_password_hash_iterations)
 	const hash_hex = Array.from(new Uint8Array(hash_buffer)).map(b => b.toString(16).padStart(2, '0')).join('')
 
 	if (hash_hex !== employee.password_hash) {

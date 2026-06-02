@@ -1,7 +1,7 @@
 import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
 import { password_hash } from '#worker/lib/password_hash.ts'
 
-export const DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS = 50_000
+export const DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS = 50_000n
 
 type CreateEmployeeArg = Omit<DbInsertableEmployee, 'password_hash' | 'number_of_password_hash_iterations'> & {
 	password: string
