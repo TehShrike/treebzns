@@ -1,8 +1,7 @@
-Are those __underscored variables in the typed_query_builder types really necessary?
+Are those `__underscored` variables in the typed_query_builder types really necessary?
 
 ## higher level
 
-- form that creates a company+initial employee with password, using the create_company endpoint
 - function that creates a session in the database and sets a cookie
 	- new table
 		- session uuid
