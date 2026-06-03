@@ -17,19 +17,7 @@
 	</style>
 </head>
 <body>
-	<h1>Log in</h1>
-	<form id="login-form">
-		<label>Email
-			<input type="email" name="email" required>
-		</label>
-		<label>Password
-			<input type="password" name="password" required>
-		</label>
-		<button type="submit">Log in</button>
-	</form>
-	<div id="login-result" class="result"></div>
-
-	<hr>
+	<p><a href="app.html/#/login">Log in</a></p>
 
 	<h1>Create company</h1>
 	<form id="form">
@@ -79,23 +67,6 @@
 				el.textContent = `Error: ${json.error}`
 			}
 		}
-
-		document.getElementById('login-form').addEventListener('submit', async e => {
-			e.preventDefault()
-			const data = new FormData(e.target)
-			const result = document.getElementById('login-result')
-			try {
-				const { res, json } = await post_json('/api/log_in', {
-					email: data.get('email'),
-					password: data.get('password'),
-				})
-				show_result(result, res, json, () => 'Logged in!')
-			} catch (err) {
-				result.style.display = 'block'
-				result.className = 'result error'
-				result.textContent = `Network error: ${err.message}`
-			}
-		})
 
 		document.getElementById('form').addEventListener('submit', async e => {
 			e.preventDefault()

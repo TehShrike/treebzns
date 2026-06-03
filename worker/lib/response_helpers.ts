@@ -1,3 +1,5 @@
+import { serialize } from '#shared/json_anything.ts'
+
 export const response = ({
 	body = null,
 	status,
@@ -25,6 +27,21 @@ export const json_response = ({
 		body: JSON.stringify(body),
 		status,
 		headers: { 'Content-Type': 'application/json', ...headers },
+	})
+
+export const json_anything_response = ({
+	body,
+	status,
+	headers = {},
+}: {
+	body: unknown
+	status: number
+	headers?: Record<string, string>
+}) =>
+	response({
+		body: serialize(body),
+		status,
+		headers: { 'Content-Type': 'application/json_anything', ...headers },
 	})
 
 export const error_response = ({

@@ -2,6 +2,8 @@
 	"extends": "../tsconfig.json",
 	"compilerOptions": {
 		"types": [],
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
 		"paths": {
 			"#schema/*": ["../schema/*"],
 			"#shared/*": ["../shared/*"],
@@ -9,5 +11,5 @@
 		},
 		"verbatimModuleSyntax": true
 	},
-	"include": ["./**/*"]
+	"include": ["./**/*", "../schema/type/**/*.d.ts"]
 }

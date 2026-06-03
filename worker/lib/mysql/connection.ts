@@ -55,6 +55,7 @@ type MysqlDateTypes = 'TIMESTAMP' | 'DATETIME' | 'DATE'
 const date_types_we_want_returned_as_strings: MysqlDateTypes[] = [ `TIMESTAMP`, `DATETIME`, `DATE` ]
 
 const static_connection_options: ConnectionOptions = {
+	rowsAsArray: true,
 	multipleStatements: true,
 	supportBigNumbers: true,
 	timezone: `+00:00`,
