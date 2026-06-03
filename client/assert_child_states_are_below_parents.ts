@@ -3,7 +3,7 @@ type GlobbedStateModule = {
 	export: {
 		name: string
 	} | {
-		state: {
+		asr_state: {
 			name: string
 		}
 	}
@@ -19,7 +19,7 @@ const strip_file_name_from_end_of_path = (file_path: string) => file_path.split(
 export default (states: GlobbedStateModule[]) => {
 	const paths_and_names = states.map(({ path, export: etc }) => ({
 		path,
-		name: `name` in etc ? etc.name : etc.state.name,
+		name: `name` in etc ? etc.name : etc.asr_state.name,
 	}))
 	const state_name_to_directory_path = new Map<string, string>(
 		paths_and_names.map(({ path, name }) => [ name, path ])

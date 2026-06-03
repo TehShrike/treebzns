@@ -173,11 +173,10 @@ export const bulk_delete = async({ mysql, table, refs }: { mysql: Mysql, table: 
 	}
 }
 
-export const get_column = (column: string, query_promise: QueryPromise) => query_promise.then(([ rows ]) => rows.map(row => row[column]))
 export const get_first_row = (query_promise: QueryPromise) => query_promise.then(([ rows ]) => rows.length === 0 ? null : rows[0])
-export const get_first_row_column = (column: string, query_promise: QueryPromise) => get_first_row(query_promise).then(row => {
-	assert(row, `get_first_row_column must be called on a query response with rows.  Cannot get column "${ column }" from a non-existant row.`)
-	return row[column]
+export const get_first_row_first_column = (query_promise: QueryPromise) => get_first_row(query_promise).then(row => {
+	assert(row, `get_first_row_first_column must be called on a query response with rows.  Cannot get first column from a non-existant row.`)
+	return row[0]
 })
 export const get_rows = (query_promise: QueryPromise) => query_promise.then(([ rows ]) => rows)
 export const get_insert_id = (query_promise: QueryPromise) => query_promise.then(([{ insertId }]) => BigInt(insertId))

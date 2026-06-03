@@ -59,8 +59,8 @@ const state_router = make_state_router(
 	document.getElementById(`app-target`)
 )
 
-for_each(paths_and_states as any, (globbed_state: { export: { state: GoodEnoughState, default: Component } }) => {
-	add_state({ ...globbed_state.export.state, Component: globbed_state.export.default })
+for_each(paths_and_states as any, (globbed_state: { export: { asr_state: GoodEnoughState, default: Component } }) => {
+	add_state({ ...globbed_state.export.asr_state, Component: globbed_state.export.default })
 })
 
 state_router.evaluateCurrentRoute(`login`)

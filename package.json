@@ -26,7 +26,7 @@
 		"test:types": "run-p -c test:types:*",
 		"test:types:everything_else": "tsc --noEmit",
 		"test:types:worker": "tsc -p worker --noEmit",
-		"test:types:svelte": "svelte-check --no-tsconfig --fail-on-warnings",
+		"test:types:svelte": "svelte-check --tsconfig ./client/tsconfig.json --fail-on-warnings",
 		"test:unit": "node --test shared/**/*.test.ts scripts/**/*.test.ts",
 		"export_schema": "dotenv -- node scripts/export_schema.ts",
 		"db:reset": "dotenv -- bash scripts/reset-db.sh",
