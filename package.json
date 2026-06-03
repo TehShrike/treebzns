@@ -26,6 +26,7 @@
 		"test:types": "run-p -c test:types:*",
 		"test:types:everything_else": "tsc --noEmit",
 		"test:types:worker": "tsc -p worker --noEmit",
+		"test:types:svelte": "svelte-check --no-tsconfig --fail-on-warnings",
 		"test:unit": "node --test shared/**/*.test.ts scripts/**/*.test.ts",
 		"export_schema": "dotenv -- node scripts/export_schema.ts",
 		"db:reset": "dotenv -- bash scripts/reset-db.sh",
@@ -60,6 +61,7 @@
 		"financial-number": "^5.0.0",
 		"mysql2": "^3.22.3",
 		"sql-tagged-template-literal": "^1.3.0",
+		"svelte-check": "^4.5.0",
 		"svelte-state-renderer": "^6.0.0"
 	},
 	"engines": {
