@@ -53,9 +53,11 @@ const conn = await createConnection({
 try {
 	await conn.query(`
 		CREATE TABLE IF NOT EXISTS migration (
+			migration_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
 			migration_number INT UNSIGNED NOT NULL,
 			ran_at DATETIME NOT NULL DEFAULT (UTC_TIMESTAMP()),
-			PRIMARY KEY (migration_number)
+			PRIMARY KEY (migration_id),
+			UNIQUE KEY uq_migration_number (migration_number)
 		) ENGINE=InnoDB
 	`)
 
