@@ -49,7 +49,10 @@ for (const filePath of fnFiles) {
 			node.name.text === 'functions' &&
 			node.initializer
 		) {
-			const functionsType = checker.getTypeAtLocation(node.initializer)
+			const source = ts.isCallExpression(node.initializer) && node.initializer.arguments[0]
+				? node.initializer.arguments[0]
+				: node.initializer
+			const functionsType = checker.getTypeAtLocation(source)
 			for (const prop of checker.getPropertiesOfType(functionsType)) {
 				const propType = checker.getTypeOfSymbol(prop)
 

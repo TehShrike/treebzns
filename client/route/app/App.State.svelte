@@ -11,7 +11,8 @@
 	export const asr_state = state_type({
 		name: `app`,
 		route: `/app`,
-		resolve: async () => {
+		resolve: async ({ server }) => {
+			const pong_promise = server.ping({ timeout: 1000n })
 			const session = await f3tch(`/api/session`)
 			if (!session) {
 				return Promise.reject({
@@ -22,17 +23,20 @@
 			}
 
 			return {
-				session
+				session,
+				pong: await pong_promise
 			}
 		},
 	})
 </script>
 
 <script>
-	let { session }: { session: SessionResponse } = $props()
+	let { session, pong }: { session: SessionResponse, pong: { pong: boolean, user_id: bigint } } = $props()
 </script>
 
 <div style="--brand-color: {session.company.brand_color}">
 	<h1 style="color: var(--brand-color)">App</h1>
 	<p>Welcome, {session.employee.name}!</p>
+	<p>Pong: {pong.pong}</p>
+	<p>User ID: {pong.user_id}</p>
 </div>

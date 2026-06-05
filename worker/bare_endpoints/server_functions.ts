@@ -10,7 +10,7 @@ import { deserialize } from '#shared/json_anything.ts'
 
 type ServerFunction = {
 	validator: Validator<unknown>
-	fn: (arg: unknown, context: Context) => Promise<unknown>
+	fn: (arg: any, context: Context) => Promise<unknown>
 }
 
 type ServerFunctionGlobbed = {
