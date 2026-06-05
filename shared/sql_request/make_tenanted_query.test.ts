@@ -162,6 +162,12 @@ const is_company_id_filter = (node: unknown, table_alias: string, value: any): b
 	return false
 }
 
+function assert_has_two_elements<T>(array: T[]): asserts array is [T, T] {
+	if (array.length !== 2) {
+		throw new Error('Array must have exactly two elements')
+	}
+}
+
 test(`company_id is injected into the where and joins of tenanted tables`, () => {
 	const add_tenancy = prep_tenant_function<TestSchema, `permission`>({
 		non_tenanted_table_names: [`permission`],
@@ -202,4 +208,11 @@ test(`company_id is injected into the where and joins of tenanted tables`, () =>
 	assert.ok(tenanted_query.where)
 	assert.ok(tenanted_query.where.type === 'and')
 	assert.ok(is_company_id_filter(tenanted_query.where.expressions[0], `project_alias`, 42n))
+
+	assert_has_two_elements(tenanted_query.joins)
+	assert_has_two_elements(tenanted_query.joins[0].on_clause)
+	assert.strictEqual(tenanted_query.joins[1].on_clause.length, 1)
+
+	assert.ok(tenanted_query.joins[0].on_clause.some(node => is_company_id_filter(node, `project_line_item_alias`, 42n)))
+	assert.ok(tenanted_query.joins[1].on_clause.every(node => !is_company_id_filter(node, `permission_alias`, 42n)))
 })

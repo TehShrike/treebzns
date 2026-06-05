@@ -1,4 +1,5 @@
-import type { Comparison, SafeSqlQuery, WhereGrouping } from "./safe_sql_query_validator.ts"
+import type { Comparison, Join, SafeSqlQuery, WhereGrouping } from "./safe_sql_query_validator.ts"
+import { map } from "../array.ts"
 
 type SchemaColumns = {
 	[table_name in string]: {
@@ -45,6 +46,37 @@ const add_tenant_filter_to_where_clause = <
 	}
 }
 
+const add_tenant_filter_to_join_clause = <
+	ThisSchema extends SchemaColumns,
+	NonTenantedTableNames extends keyof ThisSchema,
+>({
+	on_clause,
+	table_identifier,
+	column_name,
+	value
+}: {
+	on_clause: Join['on_clause']
+	table_identifier: string
+	column_name: TenantColumn<ThisSchema, NonTenantedTableNames>
+	value: any
+}): Join['on_clause'] => {
+	const comparison: Comparison = {
+		type: 'comparison',
+		left: {
+			type: 'column reference',
+			table_identifier,
+			column: column_name,
+		},
+		comparator: '=',
+		right: {
+			type: 'user provided value',
+			value,
+		},
+	}
+
+	return [comparison, ...on_clause]
+}
+
 const prep_tenant_function = <
 	ThisSchema extends SchemaColumns,
 	NonTenantedTableNames extends keyof ThisSchema
@@ -66,9 +98,23 @@ const prep_tenant_function = <
 				value,
 			})
 
+		const joins = map(query.joins, join => non_tenanted_table_names_set.has(join.table_name)
+			? join
+			: {
+				...join,
+				on_clause: add_tenant_filter_to_join_clause<ThisSchema, NonTenantedTableNames>({
+					on_clause: join.on_clause,
+					table_identifier: join.alias,
+					column_name,
+					value,
+				}),
+			}
+		)
+
 		return {
 			...query,
 			where,
+			joins,
 		}
 	}
 }
