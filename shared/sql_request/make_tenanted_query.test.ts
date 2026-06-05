@@ -3,6 +3,7 @@ import * as assert from 'node:assert'
 import { type Temporal } from '@js-temporal/polyfill'
 import { type FinancialNumber } from 'financial-number'
 import prep_tenant_function from './make_tenanted_query.ts'
+import { comparison_validator, column_reference_validator, type Comparison, type SafeSqlQuery } from './safe_sql_query_validator.ts'
 
 const test_schema = {
 	project: {
@@ -141,4 +142,65 @@ test(`column_name must be a column present in every tenanted table`, () => {
 
 	// @ts-expect-error project_id is missing from the `client` tenanted table
 	prep_tenant_function({ schema: test_schema, non_tenanted_table_names: [`permission`], column_name: `project_id` })
+})
+
+const is_company_column_reference = (column_reference: unknown, alias: string): boolean =>{
+	return column_reference_validator.is_valid(column_reference)
+		&& column_reference.table_identifier === alias
+		&& column_reference.column === `company_id`
+}
+const is_company_id_filter = (node: unknown, alias: string, value: any): boolean =>{
+	if (comparison_validator.is_valid(node)) {
+		const company_column_reference = node.left.type === 'column reference' ? node.left : node.right
+		const value_reference = node.left.type === 'column reference' ? node.right : node.left
+
+		return is_company_column_reference(company_column_reference, alias)
+			&& value_reference.type === 'user provided value' && value_reference.value === value
+			&& node.comparator === '='
+	}
+
+	return false
+}
+
+test(`company_id is injected into the where and joins of tenanted tables only`, () => {
+	const add_tenancy = prep_tenant_function({
+		schema: test_schema,
+		non_tenanted_table_names: [`permission`],
+		column_name: `company_id`,
+	})
+
+	const query: SafeSqlQuery = {
+		select: [ { type: `column reference`, table_identifier: `project`, column: `project_id` } ],
+		from: { table_name: `project`, alias: `project` },
+		joins: [
+			{
+				table_name: `project_line_item`,
+				alias: `project_line_item`,
+				on_clause: [ {
+					type: `comparison`,
+					left: { type: `column reference`, table_identifier: `project_line_item`, column: `project_id` },
+					comparator: `=`,
+					right: { type: `column reference`, table_identifier: `project`, column: `project_id` },
+				} ],
+			},
+			{
+				table_name: `permission`,
+				alias: `permission`,
+				on_clause: [ {
+					type: `comparison`,
+					left: { type: `column reference`, table_identifier: `permission`, column: `permission_id` },
+					comparator: `=`,
+					right: { type: `user provided value`, value: 1n },
+				} ],
+			},
+		],
+		where: null,
+		group_by: [],
+	}
+
+	const tenanted_query = add_tenancy(query, 42n)
+
+	assert.ok(tenanted_query.where)
+	assert.ok(tenanted_query.where.type === 'and')
+	assert.ok(is_company_id_filter(tenanted_query.where.expressions[0], `project`, 42n))
 })
