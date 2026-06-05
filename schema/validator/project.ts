@@ -16,7 +16,7 @@ export const validator_object = {
 	due_date: jv.nullable(is_temporal_plain_date),
 	emergency: jv.is_boolean,
 	assigned_estimator_employee_id: jv.nullable(jv.is_bigint),
-	details: jv.nullable(jv.is_string),
+	lead_details: jv.nullable(jv.is_string),
 	created_by_employee_id: jv.is_bigint,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
