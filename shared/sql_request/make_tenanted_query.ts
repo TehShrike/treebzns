@@ -2,7 +2,7 @@ import type { Comparison, SafeSqlQuery, WhereGrouping } from "./safe_sql_query_v
 
 type SchemaColumns = {
 	[table_name in string]: {
-		[column_name in string]: column_name
+		[column_name in string]: unknown
 	}
 }
 
@@ -49,11 +49,9 @@ const prep_tenant_function = <
 	ThisSchema extends SchemaColumns,
 	NonTenantedTableNames extends keyof ThisSchema
 >({
-	schema,
 	non_tenanted_table_names,
 	column_name,
 }: {
-	schema: ThisSchema
 	non_tenanted_table_names: NonTenantedTableNames[]
 	column_name: TenantColumn<ThisSchema, NonTenantedTableNames>
 }) => {
@@ -63,7 +61,7 @@ const prep_tenant_function = <
 			? query.where
 			: add_tenant_filter_to_where_clause<ThisSchema, NonTenantedTableNames>({
 				where: query.where,
-				table_identifier: query.from.table_name,
+				table_identifier: query.from.alias,
 				column_name,
 				value,
 			})

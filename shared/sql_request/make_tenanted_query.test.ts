@@ -136,25 +136,25 @@ export type TestSchema = {
 }
 
 test(`column_name must be a column present in every tenanted table`, () => {
-	prep_tenant_function({ schema: test_schema, non_tenanted_table_names: [`permission`], column_name: `company_id` })
+	prep_tenant_function<TestSchema, `permission`>({ non_tenanted_table_names: [`permission`], column_name: `company_id` })
 
-	prep_tenant_function({ schema: test_schema, non_tenanted_table_names: [`permission`, `project_line_item`], column_name: `client_id` })
+	prep_tenant_function<TestSchema, `permission` | `project_line_item`>({ non_tenanted_table_names: [`permission`, `project_line_item`], column_name: `client_id` })
 
 	// @ts-expect-error project_id is missing from the `client` tenanted table
-	prep_tenant_function({ schema: test_schema, non_tenanted_table_names: [`permission`], column_name: `project_id` })
+	prep_tenant_function<TestSchema, `permission`>({ non_tenanted_table_names: [`permission`], column_name: `project_id` })
 })
 
-const is_company_column_reference = (column_reference: unknown, alias: string): boolean =>{
+const is_company_column_reference = (column_reference: unknown, table_alias: string): boolean =>{
 	return column_reference_validator.is_valid(column_reference)
-		&& column_reference.table_identifier === alias
+		&& column_reference.table_identifier === table_alias
 		&& column_reference.column === `company_id`
 }
-const is_company_id_filter = (node: unknown, alias: string, value: any): boolean =>{
+const is_company_id_filter = (node: unknown, table_alias: string, value: any): boolean =>{
 	if (comparison_validator.is_valid(node)) {
 		const company_column_reference = node.left.type === 'column reference' ? node.left : node.right
 		const value_reference = node.left.type === 'column reference' ? node.right : node.left
 
-		return is_company_column_reference(company_column_reference, alias)
+		return is_company_column_reference(company_column_reference, table_alias)
 			&& value_reference.type === 'user provided value' && value_reference.value === value
 			&& node.comparator === '='
 	}
@@ -162,20 +162,19 @@ const is_company_id_filter = (node: unknown, alias: string, value: any): boolean
 	return false
 }
 
-test(`company_id is injected into the where and joins of tenanted tables only`, () => {
-	const add_tenancy = prep_tenant_function({
-		schema: test_schema,
+test(`company_id is injected into the where and joins of tenanted tables`, () => {
+	const add_tenancy = prep_tenant_function<TestSchema, `permission`>({
 		non_tenanted_table_names: [`permission`],
 		column_name: `company_id`,
 	})
 
 	const query: SafeSqlQuery = {
 		select: [ { type: `column reference`, table_identifier: `project`, column: `project_id` } ],
-		from: { table_name: `project`, alias: `project` },
+		from: { table_name: `project`, alias: `project_alias` },
 		joins: [
 			{
 				table_name: `project_line_item`,
-				alias: `project_line_item`,
+				alias: `project_line_item_alias`,
 				on_clause: [ {
 					type: `comparison`,
 					left: { type: `column reference`, table_identifier: `project_line_item`, column: `project_id` },
@@ -185,7 +184,7 @@ test(`company_id is injected into the where and joins of tenanted tables only`, 
 			},
 			{
 				table_name: `permission`,
-				alias: `permission`,
+				alias: `permission_alias`,
 				on_clause: [ {
 					type: `comparison`,
 					left: { type: `column reference`, table_identifier: `permission`, column: `permission_id` },
@@ -202,5 +201,5 @@ test(`company_id is injected into the where and joins of tenanted tables only`, 
 
 	assert.ok(tenanted_query.where)
 	assert.ok(tenanted_query.where.type === 'and')
-	assert.ok(is_company_id_filter(tenanted_query.where.expressions[0], `project`, 42n))
+	assert.ok(is_company_id_filter(tenanted_query.where.expressions[0], `project_alias`, 42n))
 })
