@@ -154,7 +154,7 @@ const group_by_item_to_chunk = (sel: SelectExpression): SqlChunk => {
 
 const merge_chunks = (chunks: SqlChunk[], separator: string): SqlChunk => ({
 	sql: map(chunks, c => c.sql).join(separator),
-	parameters: chunks.flatMap(c => c.parameters),
+	parameters: chunks.map(c => c.parameters).flat(1),
 })
 
 type WhereExpr = Comparison | WhereGrouping
@@ -301,7 +301,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 
 		const all_params = [
 			...select_chunk.parameters,
-			...join_chunks.flatMap(c => c.parameters),
+			...join_chunks.map(c => c.parameters).flat(1),
 			...(where_chunk?.parameters ?? []),
 			...(group_by_chunk?.parameters ?? []),
 		]
