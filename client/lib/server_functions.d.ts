@@ -1,5 +1,0 @@
-declare const server_functions: {
-	create_company: (arg: { name: string; }) => Promise<Pick<DbCompany, "name" | "company_id">>
-	ping: (arg: { readonly timeout: 1000 | 2000 | 3000; }) => Promise<{ pong: boolean; }>
-}
-export default server_functions

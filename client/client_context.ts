@@ -1,4 +1,4 @@
-import server_functions from './lib/server_functions.js'
+import server_functions from './lib/server_functions.ts'
 
 const context = {
 	server: server_functions
