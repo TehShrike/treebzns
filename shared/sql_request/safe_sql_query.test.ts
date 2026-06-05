@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import * as assert from 'node:assert'
 import { make_safe_query_builder, type SafeSqlQuery } from './safe_sql_query.ts'
 import { type FinancialNumber } from 'financial-number'
-import { Temporal } from '@js-temporal/polyfill'
+import { type Temporal } from '@js-temporal/polyfill'
 import typed_query_builder from './typed_query_builder.ts'
 
 const test_schema = {
