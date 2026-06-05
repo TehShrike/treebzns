@@ -34,7 +34,7 @@ export const create_company = async (
 	return transaction(mysql.connection, async () => {
 		const default_initial_project_document_id = await mysql.query(
 			'SELECT project_document_id FROM project_document ORDER BY sort ASC LIMIT 1',
-		).get_first_row_column<bigint>('project_document_id')
+		).get_first_row_first_column<bigint>()
 
 		const company_id = await mysql.query({
 			sql: 'INSERT INTO company SET ?',
