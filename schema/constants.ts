@@ -105,6 +105,11 @@ export const schema = {
 		created_at: 'created_at',
 		updated_at: 'updated_at',
 	},
+	migration: {
+		migration_id: 'migration_id',
+		migration_number: 'migration_number',
+		ran_at: 'ran_at',
+	},
 	payment: {
 		payment_id: 'payment_id',
 		company_id: 'company_id',
@@ -145,7 +150,7 @@ export const schema = {
 		due_date: 'due_date',
 		emergency: 'emergency',
 		assigned_estimator_employee_id: 'assigned_estimator_employee_id',
-		details: 'details',
+		lead_details: 'lead_details',
 		created_by_employee_id: 'created_by_employee_id',
 		created_at: 'created_at',
 		updated_at: 'updated_at',
