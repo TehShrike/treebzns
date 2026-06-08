@@ -29,6 +29,7 @@
 		"test:types:svelte": "svelte-check --tsconfig ./client/tsconfig.json --fail-on-warnings",
 		"test:unit": "node --test shared/**/*.test.ts scripts/**/*.test.ts",
 		"export_schema": "dotenv -- node scripts/export_schema.ts",
+		"db:migrate": "dotenv -- node scripts/migrate.ts",
 		"db:reset": "dotenv -- bash scripts/reset-db.sh",
 		"dev": "npm-run-all build --parallel dev:*",
 		"dev:wrangler": "wrangler dev",
