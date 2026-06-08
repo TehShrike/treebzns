@@ -74,7 +74,7 @@ export const table_addition_validator = jv.object({
 })
 
 // Recursive and/or grouping validator factory
-type AndOrGrouping<T> = {
+export type AndOrGrouping<T> = {
 	type: 'and' | 'or'
 	expressions: Array<T | AndOrGrouping<T>>
 }
