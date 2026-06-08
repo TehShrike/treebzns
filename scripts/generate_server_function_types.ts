@@ -100,6 +100,22 @@ const type_entries = [...allFunctions.entries()]
 	.map(([name, { arg, returns }]) => `\t${name}: (arg: ${arg}) => Promise<${returns}>`)
 	.join('\n')
 
+// Recursive validator types (e.g. SelectGrouping, AndOrGrouping) can't be inlined by the type
+// printer, so they appear by name in the generated strings. Unlike the global Db* aliases they're
+// module-scoped, so import whichever ones are actually referenced.
+const validator_module_specifier = '#shared/sql_request/safe_sql_query_validator.ts'
+const validator_source = program.getSourceFile(resolve(PROJECT_ROOT, 'shared', 'sql_request', 'safe_sql_query_validator.ts'))
+const validator_module_symbol = validator_source && checker.getSymbolAtLocation(validator_source)
+const referenced_validator_types = (validator_module_symbol ? checker.getExportsOfModule(validator_module_symbol) : [])
+	.filter(symbol => symbol.flags & (ts.SymbolFlags.TypeAlias | ts.SymbolFlags.Interface))
+	.map(symbol => symbol.name)
+	.filter(name => new RegExp(`\\b${name}\\b`).test(type_entries))
+	.sort()
+
+const validator_import = referenced_validator_types.length
+	? `import type { ${referenced_validator_types.join(', ')} } from '${validator_module_specifier}'\n`
+	: ''
+
 const call_entries = [...allFunctions.keys()]
 	.map(name => `\t${name}: call_server_function('${name}'),`)
 	.join('\n')
@@ -109,7 +125,7 @@ const call_entries = [...allFunctions.keys()]
 const outputPath = join(PROJECT_ROOT, 'client', 'lib', 'server_functions.ts')
 mkdirSync(dirname(outputPath), { recursive: true })
 writeFileSync(outputPath, `import f3tch from '#shared/f3tch.ts'
-
+${validator_import}
 const call_server_function = (function_name: string) => async (arg: unknown) => f3tch(\`/api/fn/\${function_name}\`, {
 	method: 'POST',
 	body: arg,

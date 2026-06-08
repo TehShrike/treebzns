@@ -56,10 +56,10 @@ const get_query_results = async (query: ClientQueryFn, query_instance: typeof cl
 	})
 }
 
-export type CachedClient = Awaited<ReturnType<typeof get_query_results>>
+export type CachedClient = Awaited<ReturnType<typeof get_query_results>>[number]
 
 const client_cache = (query: ClientQueryFn) => {
-	let cache: CachedClient[] = []
+	let cache: readonly CachedClient[] = []
 
 	get_query_results(query, client_query).then(clients => {
 		cache = Object.freeze(clients)

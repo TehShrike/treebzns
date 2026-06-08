@@ -4,6 +4,10 @@
 		"types": [],
 		"module": "nodenext",
 		"moduleResolution": "nodenext",
+		// The client is a leaf app bundled by esbuild — it never emits .d.ts files, so don't
+		// require its inferred types (e.g. the query builder's internal `Stage`) to be nameable.
+		"declaration": false,
+		"declarationMap": false,
 		"paths": {
 			"#schema/*": ["../schema/*"],
 			"#shared/*": ["../shared/*"],
