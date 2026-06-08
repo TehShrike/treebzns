@@ -50,8 +50,8 @@ const get_query_results = async (query: ClientQueryFn, query_instance: typeof cl
 	return map(clients_results, (client) => {
 		return {
 			...client,
-			primary_address: client.primary_address.name,
-			billing_address: client.billing_address.name,
+			primary_address: client.primary_address,
+			billing_address: client.billing_address,
 		}
 	})
 }

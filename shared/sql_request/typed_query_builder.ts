@@ -122,6 +122,16 @@ type UnionToIntersection<U> =
 type RowFromSelectExprs<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Exprs extends ReadonlyArray<unknown>> =
 	UnionToIntersection<{ [I in keyof Exprs]: RowEntry<Schema, A, Exprs[I]> }[number]>
 
+// Each selected column contributes a `{ table: { column: type } }` entry, and they get intersected
+// into `{ table: { a } } & { table: { b } } & ...`. Re-mapping both levels collapses those `&`s into
+// a single `{ table: { a; b; ... } }` object. Indexed access (`Row[Table][Column]`) is used on the
+// inner level so column value types (bigint, Temporal.Instant, ...) are preserved, not expanded.
+type FlattenRow<Row> = {
+	[Table in keyof Row]: {
+		[Column in keyof Row[Table]]: Row[Table][Column]
+	}
+}
+
 export type ResponseColumn = {
 	table_identifier: string
 	name: string
@@ -134,7 +144,7 @@ export type BuiltQuery<Row> = {
 }
 
 export type ExtractQueryResponse<T> = T extends BuiltQuery<infer Row>
-	? { [K in keyof Row]: { [K2 in keyof Row[K]]: Row[K][K2] } }
+	? FlattenRow<Row>
 	: never
 
 type TableAliasArg<Schema extends SchemaColumnTypes> =
@@ -163,7 +173,7 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Row = {
 
 	group_by: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A, Row>
 
-	build: () => BuiltQuery<Row>
+	build: () => BuiltQuery<FlattenRow<Row>>
 }
 
 type QueryBuilder<Schema extends SchemaColumnTypes> = {
