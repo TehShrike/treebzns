@@ -26,10 +26,16 @@
 	})
 </script>
 
-<script>
+<script lang="ts">
 	let { session, asr }: { session: SessionResponse, asr: StateAsr } = $props()
 </script>
 
 <AppWrapper {asr} brand_color={session.company.brand_color}>
 	<uiView></uiView>
 </AppWrapper>
+
+<style>
+	uiView {
+		flex-grow: 1;
+	}
+</style>

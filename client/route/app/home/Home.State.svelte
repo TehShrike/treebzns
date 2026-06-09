@@ -1,6 +1,8 @@
 <script module lang="ts">
 	import { state_type } from '#client/lib/state_type.ts'
 	import type { SessionResponse } from '#client/lib/session_response.ts'
+	import AppScreen from '#client/component/AppScreen.svelte'
+	import LinkThatLooksLikeAButton from '#client/component/LinkThatLooksLikeAButton.svelte'
 
 	export const asr_state = state_type({
 		name: `app.home`,
@@ -9,8 +11,12 @@
 </script>
 
 <script lang="ts">
-	let { session }: { session: SessionResponse } = $props()
+	let { session, asr }: { session: SessionResponse, asr: StateAsr } = $props()
 </script>
 
-<h1 style="color: var(--brand-color)">App</h1>
-<p>Welcome, {session.employee.name}!</p>
+<AppScreen>
+	<div class="centered_column">
+		<h1 style="color: var(--brand-color)">🦫</h1>
+		<LinkThatLooksLikeAButton href={asr.makePath('app.create_a_lead')} size={2}>Start A Lead</LinkThatLooksLikeAButton>
+	</div>
+</AppScreen>

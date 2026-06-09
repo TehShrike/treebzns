@@ -1,0 +1,7 @@
+:root {
+	--gap_unit: 16px;
+	--gap_half: calc(var(--gap_unit) / 2);
+	--gap_double: calc(var(--gap_unit) * 2);
+
+	--font_size_base: 16px;
+}
