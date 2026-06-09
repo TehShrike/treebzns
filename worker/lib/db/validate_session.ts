@@ -1,22 +1,22 @@
 import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
-import { schema } from '#schema/constants.ts'
+import { employee, company } from '#schema/constants.ts'
 import type { Schema } from '#schema/types.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
 
 const employee_columns = [
-	`employee.${schema.employee.employee_id}`,
-	`employee.${schema.employee.company_id}`,
-	`employee.${schema.employee.name}`,
-	`employee.${schema.employee.email}`,
-	`employee.${schema.employee.phone}`,
-	`employee.${schema.employee.is_owner}`,
+	`employee.${employee.employee_id}`,
+	`employee.${employee.company_id}`,
+	`employee.${employee.name}`,
+	`employee.${employee.email}`,
+	`employee.${employee.phone}`,
+	`employee.${employee.is_owner}`,
 ] as const
 const company_columns = [
-	`company.${schema.company.company_id}`,
-	`company.${schema.company.name}`,
-	`company.${schema.company.brand_color}`,
-	`company.${schema.company.default_initial_project_document_id}`,
+	`company.${company.company_id}`,
+	`company.${company.name}`,
+	`company.${company.brand_color}`,
+	`company.${company.default_initial_project_document_id}`,
 ] as const
 
 const parse_session_cookie = (request: Request): string | null => {
