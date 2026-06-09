@@ -6,7 +6,7 @@ export const validator_object = {
 	company_id: jv.is_bigint,
 	name: jv.is_string,
 	logo: jv.nullable(is_buffer),
-	brand_color: jv.nullable(jv.is_string),
+	brand_color: jv.is_string,
 	default_initial_project_document_id: jv.is_bigint,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
