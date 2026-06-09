@@ -14,6 +14,7 @@
 		"#shared/*": "./shared/*",
 		"#schema/*": "./schema/*",
 		"#client/lib/*": "./client/lib/*",
+		"#client/component/*": "./client/component/*",
 		"#worker/lib/*": "./worker/lib/*"
 	},
 	"license": "UNLICENSED",

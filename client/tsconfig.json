@@ -11,7 +11,8 @@
 		"paths": {
 			"#schema/*": ["../schema/*"],
 			"#shared/*": ["../shared/*"],
-			"#client/lib/*": ["./lib/*"]
+			"#client/lib/*": ["./lib/*"],
+			"#client/component/*": ["./component/*"]
 		},
 		"verbatimModuleSyntax": true
 	},
