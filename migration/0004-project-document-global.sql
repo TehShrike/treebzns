@@ -1,13 +1,8 @@
--- 0004-project-document-global.sql
--- Make project_document a global (non-company-specific) table and seed initial rows.
-
 ALTER TABLE project_document
 	DROP INDEX idx_project_document_company_next,
 	DROP COLUMN company_id,
 	DROP COLUMN group_name,
 	ADD COLUMN sort TINYINT UNSIGNED NOT NULL DEFAULT 0;
-
--- Insert in reverse dependency order so LAST_INSERT_ID() captures the next_project_document_id
 
 INSERT INTO project_document (name, sort, should_be_worked, can_be_closed, represents_billable_sale_when_closed)
 	VALUES ('Work Order', 4, 1, 1, 1);

@@ -1,5 +1,3 @@
--- 0003-permissions.sql
-
 INSERT INTO permission (code, name) VALUES
 	('CAN_CREATE_ORDER', 'Create orders'),
 	('CAN_CREATE_CLIENT', 'Create clients'),

@@ -1,6 +1,3 @@
--- 0000-initial.sql
--- Initial schema for Arborist CRM
-
 -- CREATE DATABASE crm CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 

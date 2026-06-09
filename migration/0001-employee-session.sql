@@ -1,5 +1,3 @@
--- 0001-employee-session.sql
-
 CREATE TABLE employee_session (
 	employee_session_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
 	employee_id INT UNSIGNED NOT NULL,

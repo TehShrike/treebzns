@@ -1,5 +1,3 @@
--- 0007-employee-session-revamp.sql
-
 ALTER TABLE employee_session
 	DROP INDEX uq_employee_session_identifier,
 	CHANGE COLUMN session_identifier identifier BINARY(16) NOT NULL,

@@ -1,0 +1,2 @@
+ALTER TABLE company
+	MODIFY COLUMN brand_color VARCHAR(20) NOT NULL;
