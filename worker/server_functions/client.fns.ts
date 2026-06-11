@@ -2,27 +2,25 @@ import * as jv from '#shared/json_validator.ts'
 import { sfn } from '#worker/lib/server_functions_api.ts'
 import { transaction } from '#worker/lib/mysql/helpers.ts'
 
-const optional_string = jv.optional(jv.nullable(jv.is_string))
-
 const address_validator = jv.object({
 	name: jv.is_string,
 	address_line_1: jv.is_string,
-	address_line_2: optional_string,
+	address_line_2: jv.is_string,
 	city: jv.is_string,
 	state: jv.is_string,
 	zip: jv.is_string,
-	contact: optional_string,
-	phone: optional_string,
-	email: optional_string,
+	contact: jv.is_string,
+	phone: jv.is_string,
+	email: jv.is_string,
 })
 
 const create_client_validator = jv.object({
 	name: jv.is_string,
-	primary_phone: optional_string,
-	primary_email: optional_string,
+	primary_phone: jv.is_string,
+	primary_email: jv.is_string,
 	tax_rate_id: jv.optional(jv.nullable(jv.is_bigint)),
-	notes: optional_string,
-	referred_by: optional_string,
+	notes: jv.is_string,
+	referred_by: jv.is_string,
 	address: address_validator,
 })
 
@@ -44,11 +42,11 @@ export const functions = {
 						name: arg.name,
 						primary_client_address_id: 0,
 						billing_client_address_id: 0,
-						primary_phone: arg.primary_phone ?? null,
-						primary_email: arg.primary_email ?? null,
+						primary_phone: arg.primary_phone,
+						primary_email: arg.primary_email,
 						tax_rate_id: arg.tax_rate_id ?? null,
-						notes: arg.notes ?? null,
-						referred_by: arg.referred_by ?? null,
+						notes: arg.notes,
+						referred_by: arg.referred_by,
 					},
 				}).get_insert_id()
 
@@ -60,13 +58,13 @@ export const functions = {
 						client_id,
 						name: address.name,
 						address_line_1: address.address_line_1,
-						address_line_2: address.address_line_2 ?? null,
+						address_line_2: address.address_line_2,
 						city: address.city,
 						state: address.state,
 						zip: address.zip,
-						contact: address.contact ?? null,
-						phone: address.phone ?? null,
-						email: address.email ?? null,
+						contact: address.contact,
+						phone: address.phone,
+						email: address.email,
 					},
 				}).get_insert_id()
 
