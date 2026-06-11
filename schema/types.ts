@@ -10,6 +10,7 @@ export type Schema = {
 	employee: DbEmployee
 	employee_session: DbEmployeeSession
 	employee_software_role: DbEmployeeSoftwareRole
+	estimate_availability: DbEstimateAvailability
 	item_type: DbItemType
 	migration: DbMigration
 	payment: DbPayment

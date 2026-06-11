@@ -24,6 +24,7 @@ const MYSQL_TYPE_TO_TS: Record<string, (col: ColumnMeta) => string> = {
 	tinyint: () => 'boolean',
 	datetime: () => 'Temporal.Instant',
 	date: () => 'Temporal.PlainDate',
+	time: () => 'Temporal.PlainTime',
 	varchar: () => 'string',
 	char: () => 'string',
 	text: () => 'string',

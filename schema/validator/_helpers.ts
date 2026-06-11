@@ -22,6 +22,12 @@ export const is_temporal_plain_date = jv.custom<Temporal.PlainDate>({
 		input instanceof Temporal.PlainDate ? [] : [`${double_quote(name)} is not a Temporal.PlainDate`],
 })
 
+export const is_temporal_plain_time = jv.custom<Temporal.PlainTime>({
+	is_valid: (input: unknown): input is Temporal.PlainTime => input instanceof Temporal.PlainTime,
+	get_messages: (input: unknown, name: string) =>
+		input instanceof Temporal.PlainTime ? [] : [`${double_quote(name)} is not a Temporal.PlainTime`],
+})
+
 const is_a_financial_number = (input: unknown): input is FinancialNumber =>
 	typeof input === 'object'
 	&& input !== null
