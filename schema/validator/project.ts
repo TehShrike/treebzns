@@ -29,6 +29,7 @@ export const validator_object = {
 	closed: jv.is_boolean,
 	closed_at: jv.nullable(is_temporal_instant),
 	closed_date: jv.nullable(is_temporal_plain_date),
+	lead_source: jv.nullable(jv.is_string),
 }
 
 export const project_validator: jv.Validator<DbProject> = jv.object(validator_object)

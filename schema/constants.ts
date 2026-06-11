@@ -189,6 +189,7 @@ export const project = {
 	closed: 'closed',
 	closed_at: 'closed_at',
 	closed_date: 'closed_date',
+	lead_source: 'lead_source',
 } as const
 
 export const project_client_approval = {
