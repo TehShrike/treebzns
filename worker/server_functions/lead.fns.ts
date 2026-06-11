@@ -7,9 +7,8 @@ import type { Schema } from '#schema/types.ts'
 
 const create_lead_validator = jv.object({
 	client_id: jv.is_bigint,
-	// Omit to put the project at the client's primary address; pass one of the client's
-	// other address ids to use a different job site.
-	client_address_id: jv.optional(jv.is_bigint),
+	// The job site must always be specified explicitly — it must be one of this client's addresses.
+	client_address_id: jv.is_bigint,
 	lead_details: jv.optional(jv.nullable(jv.is_string)),
 	emergency: jv.optional(jv.is_boolean),
 	due_date: jv.optional(jv.nullable(is_temporal_plain_date)),
@@ -22,32 +21,15 @@ export const functions = {
 			const { mysql, company, user } = context
 			const company_id = company.company_id
 
-			// Resolve which address the project sits at, defaulting to the client's primary.
-			const client_query = query_builder<Schema>()
-				.from('client')
-				.where(q => q.and(
-					q.comparison('client.company_id', '=', { value: company_id }),
-					q.comparison('client.client_id', '=', { value: arg.client_id }),
-				))
-				.select(() => [ 'client.primary_client_address_id' ])
-				.build()
-
-			const client_row = await mysql.query(safe_query_builder.to_sql(client_query.query)).get_first_row<unknown[]>()
-			if (!client_row) {
-				throw new Error(`No client found with client_id ${ arg.client_id }`)
-			}
-			const { client } = client_query.positional_row_to_named(client_row)
-
-			const client_address_id = arg.client_address_id ?? client.primary_client_address_id
-
 			// The project keeps its own snapshot of the address lines, so read them off the
-			// chosen client_address row.
+			// specified client_address row.  Scoping by client_id also confirms the address
+			// belongs to this client.
 			const address_query = query_builder<Schema>()
 				.from('client_address')
 				.where(q => q.and(
 					q.comparison('client_address.company_id', '=', { value: company_id }),
 					q.comparison('client_address.client_id', '=', { value: arg.client_id }),
-					q.comparison('client_address.client_address_id', '=', { value: client_address_id }),
+					q.comparison('client_address.client_address_id', '=', { value: arg.client_address_id }),
 				))
 				.select(() => [
 					'client_address.address_line_1',
@@ -60,7 +42,7 @@ export const functions = {
 
 			const address_row = await mysql.query(safe_query_builder.to_sql(address_query.query)).get_first_row<unknown[]>()
 			if (!address_row) {
-				throw new Error(`No client_address found with client_address_id ${ client_address_id } for client_id ${ arg.client_id }`)
+				throw new Error(`No client_address found with client_address_id ${ arg.client_address_id } for client_id ${ arg.client_id }`)
 			}
 			const { client_address: address } = address_query.positional_row_to_named(address_row)
 
@@ -70,7 +52,7 @@ export const functions = {
 					company_id,
 					project_document_id: company.default_initial_project_document_id,
 					client_id: arg.client_id,
-					client_address_id,
+					client_address_id: arg.client_address_id,
 					address_line_1: address.address_line_1,
 					address_line_2: address.address_line_2,
 					city: address.city,
