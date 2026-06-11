@@ -42,7 +42,7 @@ export const functions = {
 
 			const address_row = await mysql.query(safe_query_builder.to_sql(address_query.query)).get_first_row<unknown[]>()
 			if (!address_row) {
-				throw new Error(`No client_address found with client_address_id ${ arg.client_address_id } for client_id ${ arg.client_id }`)
+				throw new Error(`No client_address found with client_address_id "${ arg.client_address_id }" for client_id "${ arg.client_id }"`)
 			}
 			const { client_address: address } = address_query.positional_row_to_named(address_row)
 
