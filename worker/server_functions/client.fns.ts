@@ -1,0 +1,80 @@
+import * as jv from '#shared/json_validator.ts'
+import { sfn } from '#worker/lib/server_functions_api.ts'
+import { transaction } from '#worker/lib/mysql/helpers.ts'
+
+const address_validator = jv.object({
+	name: jv.is_string,
+	address_line_1: jv.is_string,
+	address_line_2: jv.is_string,
+	city: jv.is_string,
+	state: jv.is_string,
+	zip: jv.is_string,
+	contact: jv.is_string,
+	phone: jv.is_string,
+	email: jv.is_string,
+})
+
+const create_client_validator = jv.object({
+	name: jv.is_string,
+	primary_phone: jv.is_string,
+	primary_email: jv.is_string,
+	tax_rate_id: jv.optional(jv.nullable(jv.is_bigint)),
+	notes: jv.is_string,
+	referred_by: jv.is_string,
+	primary_address: address_validator,
+})
+
+export const functions = {
+	create_client: sfn({
+		validator: create_client_validator,
+		fn: async (arg, context): Promise<Pick<DbClient, 'client_id' | 'primary_client_address_id'>> => {
+			const { mysql, company } = context
+			const company_id = company.company_id
+
+			return transaction(mysql.connection, async () => {
+				const client_id = await mysql.query({
+					sql: 'INSERT INTO client SET ?',
+					values: {
+						company_id,
+						name: arg.name,
+						primary_client_address_id: 0,
+						billing_client_address_id: null,
+						primary_phone: arg.primary_phone,
+						primary_email: arg.primary_email,
+						tax_rate_id: arg.tax_rate_id ?? null,
+						notes: arg.notes,
+						referred_by: arg.referred_by,
+					},
+				}).get_insert_id()
+
+				const { primary_address } = arg
+				const client_address_id = await mysql.query({
+					sql: 'INSERT INTO client_address SET ?',
+					values: {
+						company_id,
+						client_id,
+						name: primary_address.name,
+						address_line_1: primary_address.address_line_1,
+						address_line_2: primary_address.address_line_2,
+						city: primary_address.city,
+						state: primary_address.state,
+						zip: primary_address.zip,
+						contact: primary_address.contact,
+						phone: primary_address.phone,
+						email: primary_address.email,
+					},
+				}).get_insert_id()
+
+				await mysql.query({
+					sql: 'UPDATE client SET primary_client_address_id = ? WHERE company_id = ? AND client_id = ?',
+					values: [ client_address_id, company_id, client_id ],
+				})
+
+				return {
+					client_id,
+					primary_client_address_id: client_address_id,
+				}
+			})
+		},
+	}),
+}
