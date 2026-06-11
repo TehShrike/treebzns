@@ -9,8 +9,8 @@ const create_lead_validator = jv.object({
 	client_id: jv.is_bigint,
 	// The job site must always be specified explicitly — it must be one of this client's addresses.
 	client_address_id: jv.is_bigint,
-	lead_details: jv.optional(jv.nullable(jv.is_string)),
-	emergency: jv.optional(jv.is_boolean),
+	lead_details: jv.nullable(jv.is_string),
+	emergency: jv.is_boolean,
 	due_date: jv.optional(jv.nullable(is_temporal_plain_date)),
 })
 
@@ -44,7 +44,7 @@ export const functions = {
 			if (!address_row) {
 				throw new Error(`No client_address found with client_address_id "${ arg.client_address_id }" for client_id "${ arg.client_id }"`)
 			}
-			const { client_address: address } = address_query.positional_row_to_named(address_row)
+			const { client_address } = address_query.positional_row_to_named(address_row)
 
 			const project_id = await mysql.query({
 				sql: 'INSERT INTO project SET ?',
@@ -53,14 +53,14 @@ export const functions = {
 					project_document_id: company.default_initial_project_document_id,
 					client_id: arg.client_id,
 					client_address_id: arg.client_address_id,
-					address_line_1: address.address_line_1,
-					address_line_2: address.address_line_2,
-					city: address.city,
-					state: address.state,
-					zip: address.zip,
+					address_line_1: client_address.address_line_1,
+					address_line_2: client_address.address_line_2,
+					city: client_address.city,
+					state: client_address.state,
+					zip: client_address.zip,
 					due_date: arg.due_date ? arg.due_date.toString() : null,
-					emergency: arg.emergency ?? false,
-					lead_details: arg.lead_details ?? null,
+					emergency: arg.emergency,
+					lead_details: arg.lead_details,
 					created_by_employee_id: user.employee_id,
 					needs_client_approval: false,
 					sent_for_client_approval: false,
