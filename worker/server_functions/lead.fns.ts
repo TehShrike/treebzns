@@ -7,7 +7,6 @@ import type { Schema } from '#schema/types.ts'
 
 const create_lead_validator = jv.object({
 	client_id: jv.is_bigint,
-	// The job site must always be specified explicitly — it must be one of this client's addresses.
 	client_address_id: jv.is_bigint,
 	lead_details: jv.nullable(jv.is_string),
 	emergency: jv.is_boolean,
@@ -21,9 +20,6 @@ export const functions = {
 			const { mysql, company, user } = context
 			const company_id = company.company_id
 
-			// The project keeps its own snapshot of the address lines, so read them off the
-			// specified client_address row.  Scoping by client_id also confirms the address
-			// belongs to this client.
 			const address_query = query_builder<Schema>()
 				.from('client_address')
 				.where(q => q.and(
