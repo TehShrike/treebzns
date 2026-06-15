@@ -1,8 +1,6 @@
 import sql from 'sql-tagged-template-literal'
 
 import type { QueryPromise, Mysql } from './type.ts'
-import { map } from '#shared/array.ts'
-import object_keys from '#shared/object_keys.ts'
 import assert from '#shared/assert.ts'
 
 export const transaction = async<RESULT>(connection: Mysql, fn: () => Promise<RESULT>): Promise<RESULT> => {
@@ -21,23 +19,6 @@ export const transaction = async<RESULT>(connection: Mysql, fn: () => Promise<RE
 		throw err
 	}
 }
-
-export const select_aliased_object = (
-	table: string,
-	table_ref: string,
-	columns: string[],
-	bit_columns: string[] = []
-) => {
-	const bit_columns_set = new Set(bit_columns)
-	return `IF(${ table }.${ table_ref } IS NULL, NULL, JSON_OBJECT(${
-		columns.map(column => `'${ column }', ${
-			bit_columns_set.has(column)
-				? `CAST(${ table }.${ column } AS UNSIGNED)`
-				: `${ table }.${ column }`
-		}`).join(`, `)
-	}))`
-}
-export const select_object = (table: string, columns: string[]) => select_aliased_object(table, `${ table }_ref`, columns)
 
 export const table_prefix = (table_name: string, column_names: string[]) => column_names
 	.map(column_name => `${ table_name }.${ column_name }`)
@@ -90,81 +71,6 @@ export const bulk_insert_arrays = <T extends Pojo>({
 			rows,
 		]
 	)
-}
-
-type BulkInsertArguments<T extends Pojo> = MysqlConnectionTableRows<T> & {
-	on_duplicate_key_update?: string | string[] | undefined
-	insert_ignore?: boolean | undefined
-}
-
-function has_at_least_one_row<T extends Pojo>(rows: T[]): rows is [T, ...T[]] {
-	return rows.length > 0
-}
-
-export const bulk_insert = <T extends Pojo>({ mysql, table, rows, on_duplicate_key_update = [], insert_ignore }: BulkInsertArguments<T>) => {
-	if (!has_at_least_one_row(rows)) {
-		return
-	}
-
-	const column_property_names = object_keys(rows[0])
-
-	return bulk_insert_arrays({
-		mysql,
-		table,
-		column_property_names,
-		rows: map(
-			rows,
-			row_object => map(
-				column_property_names,
-				property_name => row_object[property_name]
-			)
-		),
-		on_duplicate_key_update,
-		insert_ignore,
-	})
-}
-
-export const bulk_update = async<T extends Pojo>({ mysql, table, rows }: MysqlConnectionTableRows<T>) => {
-	if (rows.length === 0) {
-		return
-	}
-
-	const update_queries = rows.map(row => {
-		const ref = row[table + `_ref`]
-		if (typeof ref !== `number`) {
-			throw new Error(`Invalid value for "${ table }_ref": "${ ref }"`)
-		}
-
-		return `UPDATE ${ table } SET ? WHERE ${ table }_ref = ${ ref }`
-	})
-
-	await mysql.query(
-		update_queries.join(`;\n`),
-		rows
-	)
-}
-
-export const bulk_update_or_insert = async<T extends Pojo>({ mysql, table, rows, on_duplicate_key_update, insert_ignore }: BulkInsertArguments<T>) => {
-	const primary_key_column = table + `_ref`
-
-	const initial_arrays: { rows_to_insert: T[], rows_to_update: T[] } = { rows_to_insert: [], rows_to_update: [] }
-	const { rows_to_insert, rows_to_update } = rows.reduce(({ rows_to_insert, rows_to_update }, row) => {
-		if (primary_key_column in row) {
-			rows_to_update.push(row)
-		} else {
-			rows_to_insert.push(row)
-		}
-
-		return {
-			rows_to_update,
-			rows_to_insert,
-		}
-	}, initial_arrays)
-
-	await Promise.all([
-		bulk_insert({ mysql, table, rows: rows_to_insert, on_duplicate_key_update, insert_ignore }),
-		bulk_update({ mysql, table, rows: rows_to_update }),
-	])
 }
 
 export const bulk_delete = async({ mysql, table, refs }: { mysql: Mysql, table: string, refs: number[] }) => {
