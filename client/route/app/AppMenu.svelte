@@ -46,7 +46,7 @@
 	}
 
 	.menu-item[data-active='true'] {
-		background: var(--brand-color, #e4e4e4);
-		color: white;
+		background: var(--friendly_color);
+		color: var(--white);
 	}
 </style>

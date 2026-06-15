@@ -1,4 +1,4 @@
-import type { Context } from '../client_context.js'
+import type { Context } from './client_context.ts'
 import assert from '#shared/assert.ts'
 
 type StateParams = {

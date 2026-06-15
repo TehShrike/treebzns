@@ -4,4 +4,34 @@
 	--gap_double: calc(var(--gap_unit) * 2);
 
 	--font_size_base: 16px;
+
+	--hue: 140;
+
+	--text_color_normal: #000000;
+	--text_color_light: hsl(var(--hue), 15%, 60%);
+	--text_color_light_hover: hsl(var(--hue), 15%, 50%);
+
+	--very_dark_gray: hsl(var(--hue), 15%, 40%);
+	--very_dark_gray_hover: hsl(var(--hue), 15%, 30%);
+
+	--generic_border_color: var(--text_color_light);
+
+	--friendly_color: hsl(var(--hue), 100%, 30%);
+	--friendly_color_hover: hsl(var(--hue), 100%, 20%);
+	--link_color: hsl(202, 100%, 30%);
+	--link_color_light: hsl(202, 40%, 60%);
+
+	--focus_color:  var(--friendly_color);
+	--focus_outline_width: 4px;
+
+	--attention_red: #d40000;
+	--success_green: var(--friendly_color);
+
+	--background: hsl(var(--hue), 15%, 95%);
+	--accent_background: hsl(var(--hue), 15%, 90%);
+	--white: #fff;
+	--input_background: var(--white);
+	--input_disabled_background: hsl(var(--hue), 15%, 90%);
+
+	--default_border_radius: 2px;
 }

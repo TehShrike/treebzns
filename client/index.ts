@@ -2,7 +2,7 @@ import make_state_router from 'abstract-state-router'
 import { for_each } from '#shared/array.ts'
 import make_svelte_state_renderer from 'svelte-state-renderer'
 
-import context, { type Context } from './client_context.js'
+import context, { type Context } from './lib/client_context.ts'
 import paths_and_states from './globbed_states.generated.ts'
 import assert_child_states_are_below_parents from './assert_child_states_are_below_parents.ts'
 import type { State } from './lib/state_type.ts'
