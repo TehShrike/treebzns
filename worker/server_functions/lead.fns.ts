@@ -3,6 +3,7 @@ import { sfn } from '#worker/lib/server_functions_api.ts'
 import { is_temporal_plain_date } from '#schema/validator/_helpers.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
+import insert_helper from '#worker/lib/mysql/insert_helper.ts'
 import type { Schema } from '#schema/types.ts'
 
 const create_lead_validator = jv.object({
@@ -42,26 +43,31 @@ export const functions = {
 			}
 			const { client_address } = address_query.positional_row_to_named(address_row)
 
-			const project_id = await mysql.query({
-				sql: 'INSERT INTO project SET ?',
-				values: {
-					company_id,
-					project_document_id: company.default_initial_project_document_id,
-					client_id: arg.client_id,
-					client_address_id: arg.client_address_id,
-					address_line_1: client_address.address_line_1,
-					address_line_2: client_address.address_line_2,
-					city: client_address.city,
-					state: client_address.state,
-					zip: client_address.zip,
-					due_date: arg.due_date ? arg.due_date.toString() : null,
-					emergency: arg.emergency,
-					lead_details: arg.lead_details,
-					created_by_employee_id: user.employee_id,
-					needs_client_approval: false,
-					sent_for_client_approval: false,
-				},
-			}).get_insert_id()
+			const { insert_id: project_id } = await insert_helper.insert(mysql.connection, 'project', {
+				company_id,
+				project_document_id: company.default_initial_project_document_id,
+				client_id: arg.client_id,
+				client_address_id: arg.client_address_id,
+				address_line_1: client_address.address_line_1,
+				address_line_2: client_address.address_line_2,
+				city: client_address.city,
+				state: client_address.state,
+				zip: client_address.zip,
+				due_date: arg.due_date ?? null,
+				emergency: arg.emergency,
+				assigned_estimator_employee_id: null,
+				lead_details: arg.lead_details,
+				created_by_employee_id: user.employee_id,
+				needs_client_approval: false,
+				sent_for_client_approval: false,
+				tax_rate_id: null,
+				tax_rate: null,
+				notes_for_crew: null,
+				notes_for_office: null,
+				closed: false,
+				closed_at: null,
+				closed_date: null,
+			})
 
 			return { project_id }
 		},

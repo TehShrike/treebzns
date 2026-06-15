@@ -1,6 +1,7 @@
 import * as jv from '#shared/json_validator.ts'
 import { sfn } from '#worker/lib/server_functions_api.ts'
 import { transaction } from '#worker/lib/mysql/helpers.ts'
+import insert_helper from '#worker/lib/mysql/insert_helper.ts'
 
 const address_validator = jv.object({
 	name: jv.is_string,
@@ -32,38 +33,32 @@ export const functions = {
 			const company_id = company.company_id
 
 			return transaction(mysql.connection, async () => {
-				const client_id = await mysql.query({
-					sql: 'INSERT INTO client SET ?',
-					values: {
-						company_id,
-						name: arg.name,
-						primary_client_address_id: 0,
-						billing_client_address_id: null,
-						primary_phone: arg.primary_phone,
-						primary_email: arg.primary_email,
-						tax_rate_id: arg.tax_rate_id ?? null,
-						notes: arg.notes,
-						referred_by: arg.referred_by,
-					},
-				}).get_insert_id()
+				const { insert_id: client_id } = await insert_helper.insert(mysql.connection, 'client', {
+					company_id,
+					name: arg.name,
+					primary_client_address_id: 0n,
+					billing_client_address_id: null,
+					primary_phone: arg.primary_phone,
+					primary_email: arg.primary_email,
+					tax_rate_id: arg.tax_rate_id ?? null,
+					notes: arg.notes,
+					referred_by: arg.referred_by,
+				})
 
 				const { primary_address } = arg
-				const client_address_id = await mysql.query({
-					sql: 'INSERT INTO client_address SET ?',
-					values: {
-						company_id,
-						client_id,
-						name: primary_address.name,
-						address_line_1: primary_address.address_line_1,
-						address_line_2: primary_address.address_line_2,
-						city: primary_address.city,
-						state: primary_address.state,
-						zip: primary_address.zip,
-						contact: primary_address.contact,
-						phone: primary_address.phone,
-						email: primary_address.email,
-					},
-				}).get_insert_id()
+				const { insert_id: client_address_id } = await insert_helper.insert(mysql.connection, 'client_address', {
+					company_id,
+					client_id,
+					name: primary_address.name,
+					address_line_1: primary_address.address_line_1,
+					address_line_2: primary_address.address_line_2,
+					city: primary_address.city,
+					state: primary_address.state,
+					zip: primary_address.zip,
+					contact: primary_address.contact,
+					phone: primary_address.phone,
+					email: primary_address.email,
+				})
 
 				await mysql.query({
 					sql: 'UPDATE client SET primary_client_address_id = ? WHERE company_id = ? AND client_id = ?',

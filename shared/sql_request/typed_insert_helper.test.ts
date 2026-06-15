@@ -1,6 +1,9 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert'
 import type { Connection } from 'mysql2/promise'
+import { Temporal } from '@js-temporal/polyfill'
+import type { FinancialNumber } from 'financial-number'
+import fnum from '#shared/number.ts'
 import typed_insert_helper from './typed_insert_helper.ts'
 
 type TestSchema = {
@@ -104,4 +107,35 @@ test('typed_insert_helper: insert builds a parameterized INSERT statement', asyn
 		'INSERT INTO `widget` (`company_id`, `name`, `description`) VALUES (?, ?, ?)',
 	)
 	assert.deepStrictEqual(calls[0]!.values, [7n, 'Sprocket', null])
+})
+
+test('typed_insert_helper: serializes Temporal and FinancialNumber values for the driver', async () => {
+	type EventSchema = {
+		event: {
+			company_id: bigint
+			happens_on: Temporal.PlainDate | null
+			price: FinancialNumber
+		}
+	}
+	const event_schema = {
+		event: {
+			event_id: 'event_id',
+			company_id: 'company_id',
+			happens_on: 'happens_on',
+			price: 'price',
+			created_at: 'created_at',
+		},
+	} as const
+
+	const { connection, calls } = make_mock_connection()
+	const helper = typed_insert_helper<EventSchema>(event_schema)
+
+	await helper.insert(connection, 'event', {
+		company_id: 1n,
+		happens_on: Temporal.PlainDate.from('2026-06-15'),
+		price: fnum('12.34'),
+	})
+
+	// bigint passes through as-is; Temporal.PlainDate and FinancialNumber become MySQL-ready strings.
+	assert.deepStrictEqual(calls[0]!.values, [1n, '2026-06-15', '12.34'])
 })
