@@ -15,6 +15,12 @@ type SchemaConstantsCovering<Insertable extends InsertableSchemaShape> = {
 	}
 }
 
+// The row accepted for an insert: columns whose type includes null may be omitted (the database
+// supplies its default); every other column is required.
+type InsertRow<Row> =
+	& { [Column in keyof Row as null extends Row[Column] ? never : Column]: Row[Column] }
+	& { [Column in keyof Row as null extends Row[Column] ? Column : never]?: Row[Column] }
+
 // A FinancialNumber is a plain object exposing arithmetic methods; detect it structurally so this
 // shared module doesn't need to import the implementation.
 const is_financial_number = (value: object): boolean =>
@@ -36,7 +42,7 @@ const typed_insert_helper = <Insertable extends InsertableSchemaShape>(
 		insert: async <Table extends keyof Insertable & string>(
 			connection: Connection,
 			table_name: Table,
-			row: Insertable[Table],
+			row: InsertRow<Insertable[Table]>,
 		) => {
 			assert(table_name in schema_constants, `Table "${table_name}" must exist in schema constants`)
 			const entries = Object.entries(row as Record<string, unknown>)

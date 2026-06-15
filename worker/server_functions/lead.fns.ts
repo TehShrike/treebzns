@@ -55,18 +55,11 @@ export const functions = {
 				zip: client_address.zip,
 				due_date: arg.due_date ?? null,
 				emergency: arg.emergency,
-				assigned_estimator_employee_id: null,
 				lead_details: arg.lead_details,
 				created_by_employee_id: user.employee_id,
 				needs_client_approval: false,
 				sent_for_client_approval: false,
-				tax_rate_id: null,
-				tax_rate: null,
-				notes_for_crew: null,
-				notes_for_office: null,
 				closed: false,
-				closed_at: null,
-				closed_date: null,
 			})
 
 			return { project_id }

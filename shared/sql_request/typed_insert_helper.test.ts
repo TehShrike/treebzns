@@ -41,7 +41,7 @@ const make_mock_connection = () => {
 	const connection = {
 		query: (sql: string, values: unknown[]) => {
 			calls.push({ sql, values })
-			return Promise.resolve([[], []])
+			return Promise.resolve([{ insertId: 1 }, []])
 		},
 	} as unknown as Connection
 	return { connection, calls }
@@ -70,7 +70,7 @@ test('typed_insert_helper: schema constants must cover every insertable table an
 	typed_insert_helper<TestSchema>(widget_only)
 })
 
-test('typed_insert_helper: insert enforces column names and value types', () => {
+test('typed_insert_helper: insert enforces column names and value types', async () => {
 	const { connection } = make_mock_connection()
 	const helper = typed_insert_helper<TestSchema>(test_schema)
 
@@ -84,14 +84,14 @@ test('typed_insert_helper: insert enforces column names and value types', () => 
 	// @ts-expect-error: 'name' is a required column
 	helper.insert(connection, 'widget', { company_id: 1n, description: null })
 
-	assert.throws(() => {
+	await assert.rejects(async () => {
 		// @ts-expect-error: 'sprockets' is not a column on widget
-		helper.insert(connection, 'widget', { company_id: 1n, name: 'x', description: null, sprockets: 1n })
+		await helper.insert(connection, 'widget', { company_id: 1n, name: 'x', description: null, sprockets: 1n })
 	})
 
-	assert.throws(() => {
+	await assert.rejects(async () => {
 		// @ts-expect-error: 'not_a_table' is not a table in TestSchema
-		helper.insert(connection, 'not_a_table', {})
+		await helper.insert(connection, 'not_a_table', {})
 	})
 })
 
@@ -138,4 +138,17 @@ test('typed_insert_helper: serializes Temporal and FinancialNumber values for th
 
 	// bigint passes through as-is; Temporal.PlainDate and FinancialNumber become MySQL-ready strings.
 	assert.deepStrictEqual(calls[0]!.values, [1n, '2026-06-15', '12.34'])
+})
+
+test('typed_insert_helper: nullable columns may be omitted; non-nullable columns are required', async () => {
+	const { connection, calls } = make_mock_connection()
+	const helper = typed_insert_helper<TestSchema>(test_schema)
+
+	// description is `string | null`, so it can be left out entirely.
+	await helper.insert(connection, 'widget', { company_id: 1n, name: 'Sprocket' })
+	assert.strictEqual(calls[0]!.sql, 'INSERT INTO `widget` (`company_id`, `name`) VALUES (?, ?)')
+	assert.deepStrictEqual(calls[0]!.values, [1n, 'Sprocket'])
+
+	// @ts-expect-error: 'name' is not nullable, so it still must be provided
+	helper.insert(connection, 'widget', { company_id: 1n })
 })

@@ -37,7 +37,6 @@ export const functions = {
 					company_id,
 					name: arg.name,
 					primary_client_address_id: 0n,
-					billing_client_address_id: null,
 					primary_phone: arg.primary_phone,
 					primary_email: arg.primary_email,
 					tax_rate_id: arg.tax_rate_id ?? null,
