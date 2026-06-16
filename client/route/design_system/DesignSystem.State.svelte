@@ -984,3 +984,9 @@
 		</section>
 	</main>
 </AppScreen>
+
+<style>
+	main {
+		max-width: 800px;
+	}
+</style>
