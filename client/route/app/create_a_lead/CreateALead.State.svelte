@@ -2,7 +2,7 @@
 	import { state_type } from '#client/lib/state_type.ts'
 	import type { SessionResponse } from '#client/lib/session_response.ts'
 	import type { Context } from '#client/lib/client_context.ts'
-	import type { CachedClient } from '#client/lib/client_cache.ts'
+	import type { CachedClient } from '#client/lib/client_cache.svelte.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
 	import BetterDataList from '#client/component/dropdown_input/BetterDataList.svelte'
 	import { filter } from '#shared/array.ts'
@@ -10,16 +10,16 @@
 	export const asr_state = state_type({
 		name: `app.create_a_lead`,
 		route: `/create_a_lead`,
-		resolve: async ({ clients }) => {
+		resolve: async ({ client_cache }) => {
 			return {
-				clients
+				client_cache
 			}
 		},
 	})
 </script>
 
 <script lang="ts">
-	let { session, clients }: { session: SessionResponse, clients: Context['clients'] } = $props()
+	let { session, client_cache }: { session: SessionResponse, client_cache: Context['client_cache'] } = $props()
 
 	let selected_client = $state<CachedClient | null>(null)
 	let search_text = $state(``)
@@ -45,7 +45,7 @@
 <AppScreen>
 	<h1>Create a lead</h1>
 	<BetterDataList
-		options={clients.get_all()}
+		options={client_cache.clients}
 		bind:value={selected_client}
 		bind:search_text
 		predicate={matches_search}

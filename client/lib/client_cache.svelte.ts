@@ -57,23 +57,37 @@ const get_query_results = async (query: ClientQueryFn, query_instance: typeof cl
 export type CachedClient = Awaited<ReturnType<typeof get_query_results>>[number]
 
 const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refresh_interval_ms: number}) => {
-	let cache: readonly CachedClient[] = []
+	let cache = $state<readonly CachedClient[]>([])
 
 	const refresh = () => get_query_results(query, client_query).then(clients => {
 		cache = clients
 	})
 
-	const interval_id = setInterval(refresh, refresh_interval_ms)
+	let interval_id: number | null = null
 
-	refresh()
+	const start = () => {
+		refresh()
+		interval_id = setInterval(refresh, refresh_interval_ms)
+	}
 
 	return {
-		get_all: () => cache,
+		// A getter (not a snapshot) so reading `client_cache.clients` inside a reactive context
+		// tracks the `$state` and re-runs whenever `refresh`/`add` swaps the array.
+		get clients() {
+			return cache
+		},
 		add: (client: CachedClient) => {
 			cache = [...cache, client]
 		},
 		refresh,
-		stop: () => clearInterval(interval_id),
+		stop: () => {
+			if (interval_id) {
+				clearInterval(interval_id)
+				interval_id = null
+			}
+		},
+		start,
+		started: () => interval_id !== null,
 	}
 }
 

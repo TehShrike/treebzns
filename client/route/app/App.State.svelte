@@ -8,7 +8,7 @@
 		name: `app`,
 		route: `/app`,
 		default_child: 'home',
-		resolve: async ({ server }) => {
+		resolve: async ({ server, client_cache }) => {
 			const session = await f3tch(`/api/session`)
 
 			if (!session) {
@@ -18,6 +18,8 @@
 					}
 				})
 			}
+
+			client_cache.start()
 
 			return {
 				session,
