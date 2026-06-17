@@ -4,5 +4,5 @@
 <path fill-rule="evenodd" clip-rule="evenodd" d="M16 17H15H0V16H15V0H16V17Z" fill="black"/>
 <path fill-rule="evenodd" clip-rule="evenodd" d="M15 1H14V15H1V16H14H15V1Z" fill="#808080"/>
 <rect x="2" y="2" width="12" height="13" fill="#C0C0C0"/>
-<path fill-rule="evenodd" clip-rule="evenodd" d="M11 6H4V7H5V8H6V9H7V10H8V9H9V8H10V7H11V6Z" fill="black"/>
+<path d="M4 6.5L12 6.5L8 10.5Z" fill="black"/>
 </svg>
