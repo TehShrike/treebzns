@@ -190,13 +190,13 @@ input[type="reset"] {
 }
 
 :disabled,
-:disabled + label,
 input[readonly],
-input[readonly] + label {
+label:has(input:disabled),
+label:has(input[readonly]) {
 	color: var(--button-shadow);
 }
 
-:disabled + label {
+label:has(input:disabled) {
 	text-shadow: 1px 1px 0 var(--button-highlight);
 }
 
@@ -295,23 +295,23 @@ input[type="checkbox"] {
 	position: fixed;
 	opacity: 0;
 	border: none;
-
-	& + label {
-		line-height: 13px;
-	}
-
-	&:focus + label {
-		outline: 1px dotted #000000;
-	}
 }
 
-input[type="radio"] {
-	& + label {
-		position: relative;
-		margin-left: var(--radio-total-width);
-	}
+label:has(input[type="radio"]),
+label:has(input[type="checkbox"]) {
+	line-height: 13px;
+}
 
-	& + label::before {
+label:has(input[type="radio"]:focus),
+label:has(input[type="checkbox"]:focus) {
+	outline: 1px dotted #000000;
+}
+
+label:has(input[type="radio"]) {
+	position: relative;
+	margin-left: var(--radio-total-width);
+
+	&::before {
 		content: "";
 		position: absolute;
 		top: 0;
@@ -323,11 +323,11 @@ input[type="radio"] {
 		background: url("./98-icon/radio-border.svg");
 	}
 
-	&:active + label::before {
+	&:has(input:active)::before {
 		background: url("./98-icon/radio-border-disabled.svg");
 	}
 
-	&:checked + label::after {
+	&:has(input:checked)::after {
 		content: "";
 		display: block;
 		width: var(--radio-dot-width);
@@ -338,22 +338,20 @@ input[type="radio"] {
 		background: url("./98-icon/radio-dot.svg");
 	}
 
-	&[disabled] + label::before {
+	&:has(input[disabled])::before {
 		background: url("./98-icon/radio-border-disabled.svg");
 	}
 
-	&[disabled]:checked + label::after {
+	&:has(input[disabled]:checked)::after {
 		background: url("./98-icon/radio-dot-disabled.svg");
 	}
 }
 
-input[type="checkbox"] {
-	& + label {
-		position: relative;
-		margin-left: var(--checkbox-total-width);
-	}
+label:has(input[type="checkbox"]) {
+	position: relative;
+	margin-left: var(--checkbox-total-width);
 
-	& + label::before {
+	&::before {
 		content: "";
 		position: absolute;
 		left: calc(-1 * (var(--checkbox-total-width-precalc)));
@@ -365,11 +363,11 @@ input[type="checkbox"] {
 		margin-right: var(--radio-label-spacing);
 	}
 
-	&:active + label::before {
+	&:has(input:active)::before {
 		background: var(--surface);
 	}
 
-	&:checked + label::after {
+	&:has(input:checked)::after {
 		content: "";
 		display: block;
 		width: var(--checkmark-width);
@@ -381,11 +379,11 @@ input[type="checkbox"] {
 		background: url("./98-icon/checkmark.svg");
 	}
 
-	&[disabled] + label::before {
+	&:has(input[disabled])::before {
 		background: var(--surface);
 	}
 
-	&[disabled]:checked + label::after {
+	&:has(input[disabled]:checked)::after {
 		background: url("./98-icon/checkmark-disabled.svg");
 	}
 }

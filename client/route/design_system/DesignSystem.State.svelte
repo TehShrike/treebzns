@@ -111,16 +111,14 @@
 				</p>
 
 				<p>
-					Note: You <strong>must</strong> include a corresponding label <strong>after</strong>
-					your checkbox, using the <code>&lt;label&gt;</code> element with a <code>for</code>
-					attribute pointed at the <code>id</code> of your input. This ensures the checkbox is easy to
-					use with assistive technologies, on top of ensuring a good user experience for all (navigating
+					Note: You <strong>must</strong> wrap your checkbox in a corresponding
+					<code>&lt;label&gt;</code> element. This ensures the checkbox is easy to use with
+					assistive technologies, on top of ensuring a good user experience for all (navigating
 					with the tab key, being able to click the entire label to select the box).
 				</p>
 
 				<div class="example">
-					<input type="checkbox" id="example1" />
-					<label for="example1">This is a checkbox</label>
+					<label><input type="checkbox" />This is a checkbox</label>
 				</div>
 
 				<p>
@@ -136,16 +134,13 @@
 
 				<div class="example">
 					<div class="field-row">
-						<input checked type="checkbox" id="example2" />
-						<label for="example2">I am checked</label>
+						<label><input checked type="checkbox" />I am checked</label>
 					</div>
 					<div class="field-row">
-						<input disabled type="checkbox" id="example3" />
-						<label for="example3">I am inactive</label>
+						<label><input disabled type="checkbox" />I am inactive</label>
 					</div>
 					<div class="field-row">
-						<input checked disabled type="checkbox" id="example4" />
-						<label for="example4">I am inactive but still checked</label>
+						<label><input checked disabled type="checkbox" />I am inactive but still checked</label>
 					</div>
 				</div>
 			</div>
@@ -174,12 +169,10 @@
 
 				<div class="example">
 					<div class="field-row">
-						<input id="radio5" type="radio" name="first-example" />
-						<label for="radio5">Yes</label>
+						<label><input type="radio" name="first-example" />Yes</label>
 					</div>
 					<div class="field-row">
-						<input id="radio6" type="radio" name="first-example" />
-						<label for="radio6">No</label>
+						<label><input type="radio" name="first-example" />No</label>
 					</div>
 				</div>
 
@@ -190,16 +183,13 @@
 
 				<div class="example">
 					<div class="field-row">
-						<input id="radio7" type="radio" name="second-example" />
-						<label for="radio7">Peanut butter should be smooth</label>
+						<label><input type="radio" name="second-example" />Peanut butter should be smooth</label>
 					</div>
 					<div class="field-row">
-						<input checked disabled id="radio8" type="radio" name="second-example" />
-						<label for="radio8">I understand why people like crunchy peanut butter</label>
+						<label><input checked disabled type="radio" name="second-example" />I understand why people like crunchy peanut butter</label>
 					</div>
 					<div class="field-row">
-						<input disabled id="radio9" type="radio" name="second-example" />
-						<label for="radio9">Crunchy peanut butter is good</label>
+						<label><input disabled type="radio" name="second-example" />Crunchy peanut butter is good</label>
 					</div>
 				</div>
 			</div>
@@ -224,16 +214,13 @@
 					<fieldset>
 						<div class="field-row">Select one:</div>
 						<div class="field-row">
-							<input id="radio10" type="radio" name="fieldset-example" />
-							<label for="radio10">Diners</label>
+							<label><input type="radio" name="fieldset-example" />Diners</label>
 						</div>
 						<div class="field-row">
-							<input id="radio11" type="radio" name="fieldset-example" />
-							<label for="radio11">Drive-Ins</label>
+							<label><input type="radio" name="fieldset-example" />Drive-Ins</label>
 						</div>
 						<div class="field-row">
-							<input id="radio12" type="radio" name="fieldset-example" />
-							<label for="radio12">Dives</label>
+							<label><input type="radio" name="fieldset-example" />Dives</label>
 						</div>
 					</fieldset>
 				</div>
@@ -247,20 +234,16 @@
 					<fieldset>
 						<legend>Today's mood</legend>
 						<div class="field-row">
-							<input id="radio13" type="radio" name="fieldset-example2" />
-							<label for="radio13">Claire Saffitz</label>
+							<label><input type="radio" name="fieldset-example2" />Claire Saffitz</label>
 						</div>
 						<div class="field-row">
-							<input id="radio14" type="radio" name="fieldset-example2" />
-							<label for="radio14">Brad Leone</label>
+							<label><input type="radio" name="fieldset-example2" />Brad Leone</label>
 						</div>
 						<div class="field-row">
-							<input id="radio15" type="radio" name="fieldset-example2" />
-							<label for="radio15">Chris Morocco</label>
+							<label><input type="radio" name="fieldset-example2" />Chris Morocco</label>
 						</div>
 						<div class="field-row">
-							<input id="radio16" type="radio" name="fieldset-example2" />
-							<label for="radio16">Carla Lalli Music</label>
+							<label><input type="radio" name="fieldset-example2" />Carla Lalli Music</label>
 						</div>
 					</fieldset>
 				</div>
