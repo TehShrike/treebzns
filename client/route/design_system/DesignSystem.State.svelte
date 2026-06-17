@@ -448,180 +448,25 @@
 					<footer>— Microsoft Windows User Experience p. 118</footer>
 				</blockquote>
 
-				<blockquote>
-					Include command buttons associated with the common commands of the primary window in the
-					title bar. These buttons act as shortcuts to specific window commands.
-
-					<footer>— Microsoft Windows User Experience p. 122</footer>
-				</blockquote>
-
 				<p>
-					You can build a complete title bar by making use of three classes,
-					<code>title-bar</code>, <code>title-bar-text</code>, and <code>title-bar-controls</code>.
+					You can build a title bar by making use of two classes, <code>title-bar</code> and
+					<code>title-bar-text</code>.
 				</p>
 
 				<div class="example">
 					<div class="title-bar">
 						<div class="title-bar-text">A Title Bar</div>
-						<div class="title-bar-controls">
-							<button aria-label="Close"></button>
-						</div>
 					</div>
 				</div>
 
 				<p>
-					We make use of <code>aria-label</code> to render the Close button, to let assistive technologies
-					know the intent of this button. You may also use "Minimize", "Maximize", "Restore" and "Help"
-					like so:
+					You can make a title bar "inactive" by adding the <code>inactive</code> class, useful
+					when making more than one window.
 				</p>
 
-				<div class="example">
-					<div class="title-bar">
-						<div class="title-bar-text">A Title Bar</div>
-						<div class="title-bar-controls">
-							<button aria-label="Minimize"></button>
-							<button aria-label="Maximize"></button>
-							<button aria-label="Close"></button>
-						</div>
-					</div>
-
-					<br />
-
-					<div class="title-bar">
-						<div class="title-bar-text">A Maximized Title Bar</div>
-						<div class="title-bar-controls">
-							<button aria-label="Minimize"></button>
-							<button aria-label="Restore"></button>
-							<button aria-label="Close"></button>
-						</div>
-					</div>
-
-					<br />
-
-					<div class="title-bar">
-						<div class="title-bar-text">A Helpful Bar</div>
-						<div class="title-bar-controls">
-							<button aria-label="Help"></button>
-							<button aria-label="Close"></button>
-						</div>
-					</div>
-				</div>
-
-				<p>
-					Each <code>aria-label</code> also has a corresponding styling class to render the title
-					bar buttons, to let the <code>aria-label</code> text be in other languages without causing rendering,
-					accessibility, or localization issues.
-				</p>
-
-				<div class="example">
-					<div class="title-bar">
-						<div class="title-bar-text">A Title Bar using Button Styling Classes</div>
-						<div class="title-bar-controls">
-							<button aria-label="Any Text" class="minimize"></button>
-							<button aria-label="Any Text" class="maximize"></button>
-							<button aria-label="Any Text" class="close"></button>
-						</div>
-					</div>
-
-					<br />
-
-					<div class="title-bar">
-						<div class="title-bar-text">A Maximized Title Bar using Button Styling Classes</div>
-						<div class="title-bar-controls">
-							<button aria-label="Any Text" class="minimize"></button>
-							<button aria-label="Any Text" class="restore"></button>
-							<button aria-label="Any Text" class="close"></button>
-						</div>
-					</div>
-
-					<br />
-
-					<div class="title-bar">
-						<div class="title-bar-text">A Helpful Bar using Button Styling Classes</div>
-						<div class="title-bar-controls">
-							<button aria-label="Any Text" class="help"></button>
-							<button aria-label="Any Text" class="close"></button>
-						</div>
-					</div>
-				</div>
-
-				<p>
-					Maximize buttons can be disabled, useful when making a window appear as if it cannot be
-					maximized.
-				</p>
-
-				<div class="example">
-					<div class="title-bar">
-						<div class="title-bar-text">A Title Bar with Maximize disabled</div>
-						<div class="title-bar-controls">
-							<button aria-label="Minimize"></button>
-							<button aria-label="Maximize" disabled></button>
-							<button aria-label="Close"></button>
-						</div>
-					</div>
-				</div>
-
-				<p>
-					You can make a title bar "inactive" by adding <code>inactive</code> class, useful when making
-					more than one window.
-				</p>
 				<div class="example">
 					<div class="title-bar inactive">
 						<div class="title-bar-text">An inactive title bar</div>
-						<div class="title-bar-controls">
-							<button aria-label="Close"></button>
-						</div>
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<section class="component">
-			<h4 id="window-contents">Window contents</h4>
-			<div>
-				<blockquote>
-					Every window has a boundary that defines its shape.
-
-					<footer>— Microsoft Windows User Experience p. 118</footer>
-				</blockquote>
-
-				<p>
-					To give our title bar a home, we make use of the <code>window</code>
-					class. This provides a raised outer and inner border, as well as some padding. We can freely
-					resize the window by specifying a width in the container style.
-				</p>
-
-				<div class="example">
-					<div class="window" style="width: 300px">
-						<div class="title-bar">
-							<div class="title-bar-text">A Complete Window</div>
-							<div class="title-bar-controls">
-								<button aria-label="Minimize"></button>
-								<button aria-label="Maximize"></button>
-								<button aria-label="Close"></button>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<p>
-					To draw the contents of the window, we use the <code>window-body</code>
-					class under the title bar.
-				</p>
-
-				<div class="example">
-					<div class="window" style="width: 300px">
-						<div class="title-bar">
-							<div class="title-bar-text">A Window With Stuff In It</div>
-							<div class="title-bar-controls">
-								<button aria-label="Minimize"></button>
-								<button aria-label="Maximize"></button>
-								<button aria-label="Close"></button>
-							</div>
-						</div>
-						<div class="window-body">
-							<p>There's so much room for activities!</p>
-						</div>
 					</div>
 				</div>
 			</div>
