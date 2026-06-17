@@ -48,8 +48,8 @@
 				</blockquote>
 
 				<p>
-					A standard button measures 75px wide and 23px tall, with a raised outer and inner border.
-					They are given 12px of horizontal padding by default.
+					A standard button is at least 75px wide and 23px tall, with a raised outer and inner border.
+					They are given 16px of horizontal and 6px of vertical padding by default.
 				</p>
 
 				<div class="example">
@@ -688,7 +688,7 @@
 				</p>
 
 				<div class="example">
-					<div class="sunken-panel" style="height: 120px; width: 240px;">
+					<div class="sunken-panel" style="height: 120px; width: 600px;">
 						<table class="interactive" {@attach interactive_table_highlight}>
 							<thead>
 								<tr>
