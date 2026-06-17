@@ -604,12 +604,12 @@
 						<p>Hello, world!</p>
 
 						<menu role="tablist">
-							<li role="tab" aria-selected="true"><a href="#tabs">Desktop</a></li>
-							<li role="tab"><a href="#tabs">My computer</a></li>
-							<li role="tab"><a href="#tabs">Control panel</a></li>
-							<li role="tab"><a href="#tabs">Devices manager</a></li>
-							<li role="tab"><a href="#tabs">Hardware profiles</a></li>
-							<li role="tab"><a href="#tabs">Performance</a></li>
+							<li role="tab" aria-selected="true"><a href="#/design_system">Desktop</a></li>
+							<li role="tab"><a href="#/design_system">My computer</a></li>
+							<li role="tab"><a href="#/design_system">Control panel</a></li>
+							<li role="tab"><a href="#/design_system">Devices manager</a></li>
+							<li role="tab"><a href="#/design_system">Hardware profiles</a></li>
+							<li role="tab"><a href="#/design_system">Performance</a></li>
 						</menu>
 						<div class="window" role="tabpanel">
 							<div class="window-body">
@@ -629,20 +629,20 @@
 						<p>Hello, world!</p>
 
 						<menu role="tablist" class="multirows">
-							<li role="tab"><a href="#tabs">Desktop</a></li>
-							<li role="tab"><a href="#tabs">My computer</a></li>
-							<li role="tab"><a href="#tabs">Control panel</a></li>
-							<li role="tab"><a href="#tabs">Devices manager</a></li>
-							<li role="tab"><a href="#tabs">Hardware profiles</a></li>
-							<li role="tab"><a href="#tabs">Performance</a></li>
+							<li role="tab"><a href="#/design_system">Desktop</a></li>
+							<li role="tab"><a href="#/design_system">My computer</a></li>
+							<li role="tab"><a href="#/design_system">Control panel</a></li>
+							<li role="tab"><a href="#/design_system">Devices manager</a></li>
+							<li role="tab"><a href="#/design_system">Hardware profiles</a></li>
+							<li role="tab"><a href="#/design_system">Performance</a></li>
 						</menu>
 						<menu role="tablist" class="multirows">
-							<li role="tab"><a href="#tabs">Users</a></li>
-							<li role="tab"><a href="#tabs">Network</a></li>
-							<li role="tab"><a href="#tabs">Programs</a></li>
-							<li role="tab"><a href="#tabs">Services</a></li>
-							<li role="tab"><a href="#tabs">Resources</a></li>
-							<li role="tab"><a href="#tabs">Advanced</a></li>
+							<li role="tab"><a href="#/design_system">Users</a></li>
+							<li role="tab"><a href="#/design_system">Network</a></li>
+							<li role="tab"><a href="#/design_system">Programs</a></li>
+							<li role="tab"><a href="#/design_system">Services</a></li>
+							<li role="tab"><a href="#/design_system">Resources</a></li>
+							<li role="tab"><a href="#/design_system">Advanced</a></li>
 						</menu>
 						<div class="window" role="tabpanel">
 							<div class="window-body">
