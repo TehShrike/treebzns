@@ -22,29 +22,19 @@
 	--element-spacing: 8px;
 	--grouped-button-spacing: 4px;
 	--grouped-element-spacing: 6px;
-	--radio-width: 12px;
-	--checkbox-width: 13px;
-	--radio-label-spacing: 6px;
+	--radio-width: 18px;
+	--checkbox-width: 18px;
+	--radio-label-spacing: 8px;
 	--range-track-height: 4px;
 	--range-spacing: 10px;
 
-	/* Some detailed computations for radio buttons and checkboxes */
-	--radio-total-width-precalc: var(--radio-width) + var(--radio-label-spacing);
-	--radio-total-width: calc(var(--radio-total-width-precalc));
-	--radio-left: calc(-1 * var(--radio-total-width-precalc));
-	--radio-dot-width: 4px;
-	--radio-dot-top: calc(var(--radio-width) / 2 - var(--radio-dot-width) / 2);
-	--radio-dot-left: calc(
-		-1 * (var(--radio-total-width-precalc)) + var(--radio-width) / 2 -
-			var(--radio-dot-width) / 2
-	);
+	/* The dot inside a selected radio button, and the checkmark inside a checkbox */
+	--radio-dot-width: 6px;
+	--checkmark-width: 11px;
 
-	--checkbox-total-width-precalc: var(--checkbox-width) +
-		var(--radio-label-spacing);
-	--checkbox-total-width: calc(var(--checkbox-total-width-precalc));
-	--checkbox-left: calc(-1 * var(--checkbox-total-width-precalc));
-	--checkmark-width: 7px;
-	--checkmark-left: 3px;
+	/* Padding that enlarges the click target above/below and past the end of the text */
+	--checkable-padding-block: 7px;
+	--checkable-padding-inline-end: 10px;
 
 	/* Borders */
 	--border-width: 1px;
@@ -202,7 +192,7 @@ label:has(input:disabled) {
 
 .window {
 	box-shadow: var(--border-window-outer), var(--border-window-inner);
-	background: var(--surface);
+	background: var(--button-highlight);
 	padding: 3px;
 }
 
@@ -299,7 +289,23 @@ input[type="checkbox"] {
 
 label:has(input[type="radio"]),
 label:has(input[type="checkbox"]) {
-	line-height: 13px;
+	position: relative;
+	line-height: 1;
+	/* Enlarge the click target above/below the control and past the text */
+	padding-block: var(--checkable-padding-block);
+	padding-right: var(--checkable-padding-inline-end);
+
+	/* The control (::before) and its checked indicator (::after) are absolutely
+	   positioned at the left and vertically centered on the label's text, so the
+	   click target can extend above and below them. */
+	&::before,
+	&::after {
+		content: "";
+		position: absolute;
+		left: 0;
+		top: 50%;
+		transform: translateY(-50%);
+	}
 }
 
 label:has(input[type="radio"]:focus),
@@ -308,59 +314,46 @@ label:has(input[type="checkbox"]:focus) {
 }
 
 label:has(input[type="radio"]) {
-	position: relative;
-	margin-left: var(--radio-total-width);
+	padding-left: calc(var(--radio-width) + var(--radio-label-spacing));
 
+	/* The control is a vector circle with the same sunken field border as the checkbox */
 	&::before {
-		content: "";
-		position: absolute;
-		top: 0;
-		left: calc(-1 * (var(--radio-total-width-precalc)));
-		display: inline-block;
 		width: var(--radio-width);
 		height: var(--radio-width);
-		margin-right: var(--radio-label-spacing);
-		background: url("./98-icon/radio-border.svg");
+		border-radius: 50%;
+		background: var(--button-highlight);
+		box-shadow: var(--border-field);
 	}
 
 	&:has(input:active)::before {
-		background: url("./98-icon/radio-border-disabled.svg");
+		background: var(--surface);
 	}
 
 	&:has(input:checked)::after {
-		content: "";
-		display: block;
+		left: calc((var(--radio-width) - var(--radio-dot-width)) / 2);
 		width: var(--radio-dot-width);
 		height: var(--radio-dot-width);
-		top: var(--radio-dot-top);
-		left: var(--radio-dot-left);
-		position: absolute;
-		background: url("./98-icon/radio-dot.svg");
+		border-radius: 50%;
+		background: var(--text-color);
 	}
 
 	&:has(input[disabled])::before {
-		background: url("./98-icon/radio-border-disabled.svg");
+		background: var(--surface);
 	}
 
 	&:has(input[disabled]:checked)::after {
-		background: url("./98-icon/radio-dot-disabled.svg");
+		background: var(--button-shadow);
 	}
 }
 
 label:has(input[type="checkbox"]) {
-	position: relative;
-	margin-left: var(--checkbox-total-width);
+	padding-left: calc(var(--checkbox-width) + var(--radio-label-spacing));
 
 	&::before {
-		content: "";
-		position: absolute;
-		left: calc(-1 * (var(--checkbox-total-width-precalc)));
-		display: inline-block;
 		width: var(--checkbox-width);
 		height: var(--checkbox-width);
 		background: var(--button-highlight);
 		box-shadow: var(--border-field);
-		margin-right: var(--radio-label-spacing);
 	}
 
 	&:has(input:active)::before {
@@ -368,15 +361,12 @@ label:has(input[type="checkbox"]) {
 	}
 
 	&:has(input:checked)::after {
-		content: "";
-		display: block;
+		left: calc((var(--checkbox-width) - var(--checkmark-width)) / 2);
 		width: var(--checkmark-width);
 		height: var(--checkmark-width);
-		position: absolute;
-		left: calc(
-			-1 * (var(--checkbox-total-width-precalc)) + var(--checkmark-left)
-		);
-		background: url("./98-icon/checkmark.svg");
+		background: var(--text-color);
+		/* Vector checkmark drawn as a filled tick, scales to any size */
+		clip-path: polygon(14% 44%, 0% 65%, 40% 100%, 100% 22%, 82% 4%, 38% 66%);
 	}
 
 	&:has(input[disabled])::before {
@@ -384,7 +374,7 @@ label:has(input[type="checkbox"]) {
 	}
 
 	&:has(input[disabled]:checked)::after {
-		background: url("./98-icon/checkmark-disabled.svg");
+		background: var(--button-shadow);
 	}
 }
 
@@ -724,23 +714,32 @@ ul.tree-view {
 		}
 
 		& > summary:before {
-			text-align: center;
+			content: "";
 			display: block;
 			float: left;
-			content: "+";
-			border: 1px solid #808080;
 			width: 11px;
 			height: 11px;
-			line-height: 9px;
-			font-size: 12px;
+			border: 1px solid #808080;
+			background-color: #fff;
+			/* A perfectly centered plus sign, drawn as two crisp bars
+			   (horizontal + vertical) rather than a font glyph */
+			background-image:
+				linear-gradient(var(--text-color), var(--text-color)),
+				linear-gradient(var(--text-color), var(--text-color));
+			background-position: center;
+			background-repeat: no-repeat;
+			background-size:
+				7px 1px,
+				1px 7px;
 			margin-top: 5px;
 			margin-right: 5px;
-			padding-left: 1px;
-			background-color: #fff;
 		}
 
 		&[open] > summary:before {
-			content: "-";
+			/* Hide the vertical bar, leaving a centered minus sign */
+			background-size:
+				7px 1px,
+				0 0;
 		}
 
 		& > summary::marker,
@@ -829,6 +828,7 @@ menu[role="tablist"] {
 		border-top-right-radius: 3px;
 		box-shadow: var(--border-tab);
 		z-index: 1;
+		background-color: var(--surface);
 
 		&[aria-selected="true"] {
 			padding-bottom: 2px;
