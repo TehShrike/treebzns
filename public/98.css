@@ -729,6 +729,23 @@ menu[role="tablist"] {
 	background-color: #fff;
 }
 
+/* Something to consider in the future maybe */
+/* .sunken-panel > table {
+	width: 100%;
+
+	/* An empty trailing header cell acts as a filler: it absorbs the slack so
+	   the real columns keep their content width, and it looks like any other
+	   header but with no right border (its right bevel is dropped).
+	   & > thead > tr > th:empty {
+		width: 100%;
+		box-shadow:
+			inset 0 -1px var(--window-frame),
+			inset 1px 1px var(--button-highlight),
+			inset 0 -2px var(--button-shadow),
+			inset 2px 2px var(--button-face);
+	}
+} */
+
 table {
 	border-collapse: collapse;
 	position: relative;

@@ -679,6 +679,74 @@
 							</tbody>
 						</table>
 					</div>
+
+					<p>
+						Without sunken-table:
+					</p>
+
+					<div class="example">
+						<table class="interactive" {@attach interactive_table_highlight}>
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Version</th>
+									<th>Company</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>MySQL ODBC 3.51 Driver</td>
+									<td>3.51.11.00</td>
+									<td>MySQL AB</td>
+								</tr>
+								<tr>
+									<td>SQL Server</td>
+									<td>3.70.06.23</td>
+									<td>Microsoft Corporation</td>
+								</tr>
+								<tr>
+									<td>SQL Server</td>
+									<td>3.70.06.23</td>
+									<td>Microsoft Corporation</td>
+								</tr>
+								<tr>
+									<td>SQL Server</td>
+									<td>3.70.06.23</td>
+									<td>Microsoft Corporation</td>
+								</tr>
+								<tr>
+									<td>SQL Server</td>
+									<td>3.70.06.23</td>
+									<td>Microsoft Corporation</td>
+								</tr>
+								<tr>
+									<td>SQL Server</td>
+									<td>3.70.06.23</td>
+									<td>Microsoft Corporation</td>
+								</tr>
+								<tr>
+									<td>SQL Server</td>
+									<td>3.70.06.23</td>
+									<td>Microsoft Corporation</td>
+								</tr>
+								<tr>
+									<td>SQL Server</td>
+									<td>3.70.06.23</td>
+									<td>Microsoft Corporation</td>
+								</tr>
+								<tr>
+									<td>SQL Server</td>
+									<td>3.70.06.23</td>
+									<td>Microsoft Corporation</td>
+								</tr>
+								<tr>
+									<td>SQL Server</td>
+									<td>3.70.06.23</td>
+									<td>Microsoft Corporation</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
 				</div>
 			</div>
 		</section>
