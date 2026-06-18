@@ -317,61 +317,6 @@
 		</section>
 
 		<section class="component">
-			<h3 id="slider">Slider</h3>
-			<div>
-				<blockquote>
-					A <em>slider</em>, sometimes called a trackbar control, consists of a bar that defines the
-					extent or range of the adjustment and an indicator that shows the current value for the
-					control...
-
-					<footer>— Microsoft Windows User Experience p. 146</footer>
-				</blockquote>
-
-				<p>
-					Sliders can rendered by specifying a <code>range</code> type on an
-					<code>input</code> element.
-				</p>
-
-				<div class="example">
-					<div class="field-row" style="width: 300px">
-						<label for="range22">Volume:</label>
-						<label for="range23">Low</label>
-						<input id="range23" type="range" min="1" max="11" value="5" />
-						<label for="range24">High</label>
-					</div>
-				</div>
-
-				<p>
-					You can make use of the <code>has-box-indicator</code> class replace the default indicator
-					with a box indicator, furthermore the slider can be wrapped with a <code>div</code> using
-					<code>is-vertical</code> to display the input vertically.
-				</p>
-
-				<p>
-					Note: To change the length of a vertical slider, the <code>input</code> width and
-					<code>div</code> height.
-				</p>
-
-				<div class="example">
-					<div class="field-row">
-						<label for="range25">Cowbell</label>
-						<div class="is-vertical">
-							<input
-								id="range25"
-								class="has-box-indicator"
-								type="range"
-								min="1"
-								max="3"
-								step="1"
-								value="2"
-							/>
-						</div>
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<section class="component">
 			<h3 id="dropdown">Dropdown</h3>
 			<div>
 				<blockquote>
