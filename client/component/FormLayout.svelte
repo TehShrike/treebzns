@@ -75,7 +75,9 @@
 	   max widths, so fields sit side by side when there is room and wrap to the
 	   next line when there isn't. */
 	.fields > :global(*) {
-		flex: 1 1 var(--min_field_width);
+		flex-grow: 1;
+		flex-shrink: 1;
+		flex-basis: var(--min_field_width);
 		min-width: var(--min_field_width);
 		max-width: var(--max_field_width);
 	}
