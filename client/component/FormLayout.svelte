@@ -9,15 +9,10 @@
 		buttons,
 		children,
 	}: {
-		// The smallest a field is allowed to shrink to before wrapping to the next line.
 		min_field_width?: string
-		// The largest a field is allowed to grow to when there is room to spare.
 		max_field_width?: string
-		// Whether to wrap the form in the engraved outline (a fieldset).
 		outlined?: boolean
-		// Optional label printed at the top of the outline (a legend).
 		name?: string
-		// Optional snippet rendered at the bottom right, typically action buttons.
 		buttons?: Snippet
 		children: Snippet
 	} = $props()
