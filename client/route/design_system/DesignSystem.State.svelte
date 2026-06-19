@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import { state_type } from "#client/lib/state_type.ts";
 	import AppScreen from "#client/component/AppScreen.svelte";
+	import FormLayout from "#client/component/FormLayout.svelte";
 
 	export const asr_state = state_type({
 		name: `design_system`,
@@ -820,6 +821,112 @@
 
 				<div class="example">
 					<div class="status-field-border" style="padding: 8px">Dynamic content</div>
+				</div>
+			</div>
+		</section>
+
+		<section class="component">
+			<h3 id="form-layout">FormLayout</h3>
+			<div>
+				<p>
+					<code>FormLayout</code> arranges a set of fields so they sit side by side when there is room
+					and wrap to the next line when there isn't. Each field is held between a minimum and maximum
+					width, so a field never gets too narrow to use or so wide it looks lonely. It uses flexbox
+					rather than a grid, which lets each row pack in as many fields as will fit.
+				</p>
+
+				<p>
+					Pass your fields as children — each one should be a <code>&lt;label&gt;</code> wrapping its
+					input, and the layout will stack the label text above the input and stretch the input to fill
+					the field. The field widths are controlled by the <code>min_field_width</code> and
+					<code>max_field_width</code> props, which default to <code>12rem</code> and
+					<code>20rem</code>.
+				</p>
+
+				<p>
+					Set <code>outlined</code> to wrap the form in the engraved outline, and pass a
+					<code>name</code> to print a label at the top of it. An optional <code>buttons</code> snippet
+					is always pinned to the bottom right.
+				</p>
+
+				<p>
+					The following example shows off everything at once: a named outline, five customer fields
+					that flow side by side, and a buttons snippet in the bottom corner. Resize the window to
+					watch the fields reflow.
+				</p>
+
+				<div class="example">
+					<FormLayout outlined name="Customer details">
+						<label>
+							Name
+							<input type="text" value="Acme Landscaping" />
+						</label>
+						<label>
+							Email
+							<input type="email" value="hello@acme.example" />
+						</label>
+						<label>
+							Phone
+							<input type="tel" value="(555) 010-1234" />
+						</label>
+						<label>
+							Referred by
+							<input type="text" value="Word of mouth" />
+						</label>
+						<label>
+							Tax rate
+							<select>
+								<option>No tax</option>
+								<option selected>State sales tax (6%)</option>
+								<option>Reduced rate (2%)</option>
+							</select>
+						</label>
+
+						{#snippet buttons()}
+							<button type="button">Cancel</button>
+							<button type="submit" class="default">Save customer</button>
+						{/snippet}
+					</FormLayout>
+				</div>
+
+				<p>
+					Without the outline (the default), there is no border or legend — just the fields and the
+					optional buttons. This is handy when the form already lives inside another container.
+				</p>
+
+				<div class="example">
+					<FormLayout>
+						<label>
+							Name
+							<input type="text" value="Bridgetown Nursery" />
+						</label>
+						<label>
+							Email
+							<input type="email" value="orders@bridgetown.example" />
+						</label>
+						<label>
+							Phone
+							<input type="tel" value="(555) 867-5309" />
+						</label>
+					</FormLayout>
+				</div>
+
+				<p>
+					The field width bounds can be tuned per form. Here the fields are given a much wider range,
+					so fewer fit on each row and each one grows larger before wrapping.
+				</p>
+
+				<div class="example">
+					<FormLayout outlined name="Wide fields" min_field_width="18rem" max_field_width="32rem">
+						<label>
+							Mailing address
+							<input type="text" value="123 Garden Way" />
+						</label>
+						<label>
+							Notes
+							<textarea rows="2">Prefers afternoon appointments.</textarea>
+						</label>
+					</FormLayout>
 				</div>
 			</div>
 		</section>
