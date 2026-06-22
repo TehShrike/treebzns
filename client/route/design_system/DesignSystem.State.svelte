@@ -856,7 +856,7 @@
 				</p>
 
 				<div class="example">
-					<FormLayout outlined name="Customer details">
+					<FormLayout outlined legend="Customer details">
 						<label>
 							Name
 							<input type="text" value="Acme Landscaping" />
@@ -917,7 +917,7 @@
 				</p>
 
 				<div class="example">
-					<FormLayout outlined name="Wide fields" min_field_width="18rem" max_field_width="32rem">
+					<FormLayout outlined legend="Wide fields" min_field_width="18rem" max_field_width="32rem">
 						<label>
 							Mailing address
 							<input type="text" value="123 Garden Way" />

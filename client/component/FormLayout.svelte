@@ -5,14 +5,14 @@
 		min_field_width = `12rem`,
 		max_field_width = `20rem`,
 		outlined = false,
-		name,
+		legend,
 		buttons,
 		children,
 	}: {
 		min_field_width?: string
 		max_field_width?: string
 		outlined?: boolean
-		name?: string
+		legend?: string
 		buttons?: Snippet
 		children: Snippet
 	} = $props()
@@ -34,16 +34,13 @@
 
 {#if outlined}
 	<fieldset class="form_layout">
-		{#if name}
-			<legend>{name}</legend>
+		{#if legend}
+			<legend>{legend}</legend>
 		{/if}
 		{@render contents()}
 	</fieldset>
 {:else}
 	<div class="form_layout">
-		{#if name}
-			<div class="form_name">{name}</div>
-		{/if}
 		{@render contents()}
 	</div>
 {/if}
@@ -55,33 +52,22 @@
 		gap: var(--gap_unit);
 	}
 
-	.form_name {
-		font-weight: 700;
-	}
-
+	/* A grid (rather than flex-wrap) so the column count is computed once for the
+	   whole form: every field gets an identical width and partial rows leave
+	   empty trailing columns, instead of a short row stretching its fields wider
+	   than the rows above it. Columns sit between the min and max widths. */
 	.fields {
-		display: flex;
-		flex-wrap: wrap;
+		display: grid;
+		grid-template-columns: repeat(
+			auto-fill,
+			minmax(var(--min_field_width), var(--max_field_width))
+		);
 		gap: var(--gap_unit);
-		align-items: flex-end;
 	}
 
-	/* Each field grows to fill available space but is held between the min and
-	   max widths, so fields sit side by side when there is room and wrap to the
-	   next line when there isn't. */
-	.fields > :global(*) {
-		flex-grow: 1;
-		flex-shrink: 1;
-		flex-basis: var(--min_field_width);
-		min-width: var(--min_field_width);
-		max-width: var(--max_field_width);
-	}
-
-	/* Fields are expected to be labels wrapping their input, stacked vertically. */
 	.fields > :global(label) {
 		display: flex;
 		flex-direction: column;
-		gap: var(--gap_half);
 	}
 
 	.fields :global(input),

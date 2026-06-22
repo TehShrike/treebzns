@@ -247,7 +247,6 @@ fieldset {
 
 .field-row {
 	display: flex;
-	align-items: center;
 }
 
 [class^="field-row"] + [class^="field-row"] {
@@ -265,12 +264,6 @@ fieldset {
 
 .field-row-stacked * + * {
 	margin-top: var(--grouped-element-spacing);
-}
-
-label {
-	display: inline-flex;
-	align-items: center;
-	user-select: none;
 }
 
 input[type="radio"],
@@ -396,16 +389,6 @@ textarea {
 	border-radius: 0;
 }
 
-input[type="text"],
-input[type="password"],
-input[type="email"],
-input[type="url"],
-input[type="tel"],
-input[type="search"],
-input[type="number"] {
-	/* need this 1 pixel to fit the spinner controls in box */
-	height: 22px;
-}
 /* clears the ‘X’ from Internet Explorer */
 input[type="search"]::-ms-clear {
 	display: none;
