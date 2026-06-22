@@ -1,0 +1,16 @@
+{
+	"projectId": "011cabf9-e06e-4eb2-a60e-981954d1564e",
+	"shape": "package",
+	"offScript": true,
+	"globalName": "Treebzns98",
+	"approach": "css-only",
+	"cssEntry": "public/98.css",
+	"stylesClosure": [
+		"public/global_reset.css",
+		"public/global_variables.css",
+		"public/global_styles.css",
+		"public/98.css"
+	],
+	"iconDir": "public/98-icon",
+	"showcase": "client/route/design_system/DesignSystem.State.svelte"
+}
