@@ -110,9 +110,15 @@ function requireEnv(key: string): string {
 
 const conn = await createConnection({
 	host: requireEnv('MYSQL_HOST'),
+	port: Number(requireEnv('MYSQL_PORT')),
 	user: requireEnv('MYSQL_USER'),
 	password: requireEnv('MYSQL_PASS'),
 	database: requireEnv('MYSQL_DB'),
+	// In prod, MYSQL_CA_CERT (base64-encoded PEM) is set, which makes TLS required and
+	// verifies the server against the CA. Unset locally, so the connection is plaintext.
+	...(process.env.MYSQL_CA_CERT
+		? { ssl: { ca: Buffer.from(process.env.MYSQL_CA_CERT, 'base64').toString('utf8') } }
+		: {}),
 })
 
 const [rows] = await conn.query<ColumnMeta[]>(`
