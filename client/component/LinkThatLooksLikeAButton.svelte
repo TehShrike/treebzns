@@ -11,8 +11,8 @@
 <style>
 	.link-button {
 		display: inline-block;
-		background: var(--brand-color);
-		color: var(--brand_foreground_color, white);
+		background: var(--friendly_color);
+		color: var(--white);
 		text-decoration: none;
 		border-radius: var(--gap_half);
 		padding: calc(var(--gap_unit) * var(--size));

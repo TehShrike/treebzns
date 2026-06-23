@@ -43,8 +43,6 @@ const client_query = query_builder<Schema>()
 	.join('client_address AS billing_address', on => on.comparison(`client.${client.billing_client_address_id}`, '=', `billing_address.${client_address.client_address_id}`))
 	.select(() => client_and_address_columns)
 
-const get_client = (query: ClientQueryFn, client_id: bigint) => get_query_results(query, client_query.where(q => q.comparison(`client.${client.client_id}`, '=', { value: client_id })))
-
 const get_query_results = async (query: ClientQueryFn, query_instance: typeof client_query) => {
 	const clients_results = await query(query_instance.build())
 	return map(clients_results, (client_row) => {
@@ -58,14 +56,39 @@ const get_query_results = async (query: ClientQueryFn, query_instance: typeof cl
 
 export type CachedClient = Awaited<ReturnType<typeof get_query_results>>[number]
 
-const client_cache = (query: ClientQueryFn) => {
-	let cache: readonly CachedClient[] = []
+const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refresh_interval_ms: number}) => {
+	let cache = $state<readonly CachedClient[]>([])
 
-	get_query_results(query, client_query).then(clients => {
-		cache = Object.freeze(clients)
+	const refresh = () => get_query_results(query, client_query).then(clients => {
+		cache = clients
 	})
 
+	let interval_id: number | null = null
+
+	const start = () => {
+		refresh()
+		interval_id = setInterval(refresh, refresh_interval_ms)
+	}
+
 	return {
-		get_all: () => cache,
+		// A getter (not a snapshot) so reading `client_cache.clients` inside a reactive context
+		// tracks the `$state` and re-runs whenever `refresh`/`add` swaps the array.
+		get clients() {
+			return cache
+		},
+		add: (client: CachedClient) => {
+			cache = [...cache, client]
+		},
+		refresh,
+		stop: () => {
+			if (interval_id) {
+				clearInterval(interval_id)
+				interval_id = null
+			}
+		},
+		start,
+		started: () => interval_id !== null,
 	}
 }
+
+export default client_cache

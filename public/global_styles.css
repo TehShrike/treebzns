@@ -1,11 +1,73 @@
-html {
-	font-size: 16px;
-}
-
 .centered_column {
 	width: 100%;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: var(--gap_unit);
+}
+
+input:focus-visible, button:focus-visible, textarea:focus-visible, select:focus {
+	outline: var(--focus_outline_width) solid var(--focus_color);
+}
+
+html, input, button, textarea, select {
+	font-weight: 400;
+	/*font-family: 'Allerta', Helvetica Neue, sans-serif;*/
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+	font-size: 16px;
+	line-height: 1.5;
+	color: var(--text_color_normal);
+}
+
+/* if font-size < 16px on iOS, jarring input zooming happens */
+@media (max-width: 400px) {
+	html, button {
+		font-size: 12px;
+	}
+}
+
+body {
+	background: var(--background);
+	margin: 0;
+	color: var(--text_color_normal);
+}
+
+input, textarea, select {
+	border: 1px solid var(--generic_border_color);
+	background: var(--input_background);
+	border-radius: var(--default_border_radius);
+}
+input:not([type=checkbox]), textarea, select {
+	padding: 0 .5rem;
+	line-height: calc(2rem - 2px);
+}
+input[type="number"] {
+	padding-right: 0;
+}
+select {
+	padding: calc(.5rem - 2.5px) .5rem;
+}
+textarea {
+	display: block;
+	line-height: 1.5rem;
+	margin: 0;
+}
+
+input::placeholder, textarea::placeholder, select::placeholder {
+	color: var(--text_color_light);
+}
+
+input[disabled], textarea[disabled], select[disabled] {
+	color: var(--very_dark_gray);
+	background-color: var(--input_disabled_background);
+}
+
+input[disabled]::placeholder, textarea[disabled]::placeholder, select[disabled]::placeholder {
+	color: transparent;
+}
+
+@media print {
+	.noprint {
+		display: none !important;
+	}
 }

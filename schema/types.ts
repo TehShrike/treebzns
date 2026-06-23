@@ -29,3 +29,32 @@ export type Schema = {
 	time_entry: DbTimeEntry
 	work_skill: DbWorkSkill
 }
+
+export type InsertableSchema = {
+	client: DbInsertableClient
+	client_address: DbInsertableClientAddress
+	client_contact: DbInsertableClientContact
+	company: DbInsertableCompany
+	crew: DbInsertableCrew
+	crew_member: DbInsertableCrewMember
+	employee: DbInsertableEmployee
+	employee_session: DbInsertableEmployeeSession
+	employee_software_role: DbInsertableEmployeeSoftwareRole
+	item_type: DbInsertableItemType
+	migration: DbInsertableMigration
+	payment: DbInsertablePayment
+	payment_project: DbInsertablePaymentProject
+	permission: DbInsertablePermission
+	project: DbInsertableProject
+	project_client_approval: DbInsertableProjectClientApproval
+	project_document: DbInsertableProjectDocument
+	project_line_item: DbInsertableProjectLineItem
+	project_line_item_image: DbInsertableProjectLineItemImage
+	project_number: DbInsertableProjectNumber
+	project_work_skill: DbInsertableProjectWorkSkill
+	software_role: DbInsertableSoftwareRole
+	software_role_permission: DbInsertableSoftwareRolePermission
+	tax_rate: DbInsertableTaxRate
+	time_entry: DbInsertableTimeEntry
+	work_skill: DbInsertableWorkSkill
+}

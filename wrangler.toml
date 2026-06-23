@@ -4,7 +4,7 @@ compatibility_flags = [ "nodejs_compat" ]
 compatibility_date = "2025-01-01"
 
 routes = [
-	{ pattern = "beaverdroid.com", custom_domain = true }
+	{ pattern = "dufftreesoftware.com", custom_domain = true, zone_id = "f8be26c091ee3070d032517f29ced56c" }
 ]
 
 [assets]

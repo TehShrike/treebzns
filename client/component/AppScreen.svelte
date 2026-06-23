@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
-	const { menu, children }: { menu?: Snippet, children: Snippet } = $props()
+	const { menu, children }: { menu?: Snippet, children?: Snippet } = $props()
 </script>
 
 <div class="app_screen">
@@ -11,7 +11,9 @@
 		</div>
 	{/if}
 	<div class=body>
-		{@render children()}
+		{#if children}
+			{@render children()}
+		{/if}
 	</div>
 </div>
 

@@ -4,3 +4,8 @@ node_modules
 build/
 *.generated.*
 .DS_Store
+
+# design-sync
+/ds-bundle/
+/.ds-sync/
+/.design-sync/.cache/

@@ -11,6 +11,8 @@ This project uses pnpm.
 
 Avoid importing from directories using ../ if it is possible to use a #dir/ import map path instead.
 
+`pnpm run test` to run automated tests and all type checks.  `pnpm run test:types` to check all types.
+
 ## Svelte
 
 You are a Svelte expert tasked to build components and utilities for Svelte developers. If you need documentation for anything related to Svelte you can invoke the tool `get-documentation` with one of the following paths. However: before invoking the `get-documentation` tool, try to answer the users query using your own knowledge and the `svelte-autofixer` tool. Be mindful of how many section you request, since it is token-intensive!
@@ -217,3 +219,7 @@ If you are not writing the code into a file, once you have the final version of 
 ## ASR (abstract-state-router)
 
 - all `asr` properties are reset when the state changes, so all `asr` methods used inside of Svelte components are reactive even though they appear not to be
+
+## SQL queries
+
+Use the typed_query_builder for all SELECT queries.
