@@ -10,6 +10,7 @@ export type Schema = {
 	employee: DbEmployee
 	employee_session: DbEmployeeSession
 	employee_software_role: DbEmployeeSoftwareRole
+	estimate_availability: DbEstimateAvailability
 	item_type: DbItemType
 	migration: DbMigration
 	payment: DbPayment
@@ -39,6 +40,7 @@ export type InsertableSchema = {
 	employee: DbInsertableEmployee
 	employee_session: DbInsertableEmployeeSession
 	employee_software_role: DbInsertableEmployeeSoftwareRole
+	estimate_availability: DbInsertableEstimateAvailability
 	item_type: DbInsertableItemType
 	migration: DbInsertableMigration
 	payment: DbInsertablePayment

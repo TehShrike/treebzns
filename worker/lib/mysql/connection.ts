@@ -86,6 +86,12 @@ const static_connection_options: ConnectionOptions = {
 				return null
 			}
 			return Temporal.PlainDate.from(date_string)
+		} else if (field.type === `TIME`) {
+			const time_string = field.string()
+			if (time_string === null) {
+				return null
+			}
+			return Temporal.PlainTime.from(time_string)
 		} else if (integer_types_we_want_returned_as_bigints.has(field.type)) {
 			const int_string = field.string()
 			if (int_string === null) {

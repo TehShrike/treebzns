@@ -107,6 +107,17 @@ export const employee_software_role = {
 	updated_at: 'updated_at',
 } as const
 
+export const estimate_availability = {
+	estimate_availability_id: 'estimate_availability_id',
+	company_id: 'company_id',
+	project_id: 'project_id',
+	availability_date: 'availability_date',
+	start_time: 'start_time',
+	end_time: 'end_time',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
 export const item_type = {
 	item_type_id: 'item_type_id',
 	company_id: 'company_id',
@@ -178,6 +189,7 @@ export const project = {
 	closed: 'closed',
 	closed_at: 'closed_at',
 	closed_date: 'closed_date',
+	lead_source: 'lead_source',
 } as const
 
 export const project_client_approval = {
