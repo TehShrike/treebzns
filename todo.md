@@ -5,13 +5,9 @@
 # Deploying
 
 - Finish deploy
-	– Configure CircleCI to run database migrations in master
-	- Add mysql connection environment variables in CircleCI
-	- Run tests on every branch
+	- Add mysql user to prod database for CFW
+	- add mysql environment variables to CFW
 	- Wrangler deploy CFW from master
-- Configure mysql connection in prod
-	- create new user
-	- set environment variables in CFW
 
 # Export/import
 
@@ -25,3 +21,7 @@
 - auto-prettify
 - Redirect to app after creating company
 - livereload in browser
+- safer migration deploys
+	- set a variable when deploying
+	- have a worker check that variable and pause prod api requests
+	- run migration while paused
