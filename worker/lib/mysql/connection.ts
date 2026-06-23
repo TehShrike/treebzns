@@ -107,9 +107,15 @@ const static_connection_options: ConnectionOptions = {
 export const create_pool = (env: Env): Pool =>
 	createPool({
 		host: env.MYSQL_HOST,
+		port: Number(env.MYSQL_PORT),
 		user: env.MYSQL_USER,
 		password: env.MYSQL_PASS,
 		database: env.MYSQL_DB,
+		// In prod, MYSQL_CA_CERT (base64-encoded PEM) is set, which makes TLS required and
+		// verifies the server against the CA. Unset locally, so the connection is plaintext.
+		...(env.MYSQL_CA_CERT
+			? { ssl: { ca: Buffer.from(env.MYSQL_CA_CERT, 'base64').toString('utf8') } }
+			: {}),
 		disableEval: true,
 		...static_connection_options
 	})
