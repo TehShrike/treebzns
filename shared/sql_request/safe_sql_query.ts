@@ -3,17 +3,25 @@ import { for_each, map } from '#shared/array.ts'
 import type {
 	ColumnReference,
 	UserProvidedValue,
+	Comparator,
 	Comparison,
 	FunctionName,
 	FunctionExpression,
+	AliasReference,
 	SelectExpression,
 	SelectGrouping,
 	WhereGrouping,
 	OrderBy,
+	AndOrGrouping,
 	SafeSqlQuery,
 } from './safe_sql_query_validator.ts'
 
-type ComparisonOperand = ColumnReference | UserProvidedValue | FunctionExpression
+type ComparisonOperand = ColumnReference | UserProvidedValue | FunctionExpression | AliasReference
+
+// A comparison whose operands may be any renderable operand — covers both WHERE (columns/values/functions)
+// and HAVING (aliases/values). Used so one set of renderers handles both clauses.
+type RenderableComparison = { type: 'comparison'; left: ComparisonOperand; comparator: Comparator; right: ComparisonOperand }
+type RenderableGrouping = AndOrGrouping<RenderableComparison>
 
 export type { SafeSqlQuery }
 
@@ -91,6 +99,9 @@ const FUNCTIONS = {
 } as const satisfies { [key in FunctionName]: (args: SomeFunctionArguments) => SqlChunk }
 
 const operand_to_sql_chunk = (operand: ComparisonOperand): SqlChunk => {
+	if (operand.type === 'alias reference') {
+		return { sql: `\`${operand.alias}\``, parameters: [] }
+	}
 	if (operand.type === 'function') {
 		assert(operand.function in FUNCTIONS)
 		assertZeroOrOneOrTwoArguments(operand.arguments)
@@ -118,7 +129,7 @@ type QueryValidationResult = {
 	messages: string[]
 }
 
-const comparison_to_chunk = (comp: Comparison): SqlChunk => {
+const comparison_to_chunk = (comp: RenderableComparison): SqlChunk => {
 	const left = operand_to_sql_chunk(comp.left)
 	const right = operand_to_sql_chunk(comp.right)
 	return {
@@ -128,7 +139,7 @@ const comparison_to_chunk = (comp: Comparison): SqlChunk => {
 }
 
 const on_clause_item_to_chunk = (clause: Comparison | FunctionExpression | WhereGrouping): SqlChunk => {
-	if ('expressions' in clause) return where_expr_to_chunk(clause)
+	if ('expressions' in clause) return bool_expr_to_chunk(clause)
 	if (clause.type === 'comparison') return comparison_to_chunk(clause)
 	assert(clause.function in FUNCTIONS)
 	assertZeroOrOneOrTwoArguments(clause.arguments)
@@ -154,7 +165,7 @@ const group_by_item_to_chunk = (sel: SelectExpression): SqlChunk => {
 }
 
 const order_by_item_to_chunk = (order: OrderBy): SqlChunk => {
-	const { sql, parameters } = value_to_sql_chunk(order.expression)
+	const { sql, parameters } = operand_to_sql_chunk(order.expression)
 	return { sql: `${sql} ${order.direction}`, parameters }
 }
 
@@ -163,13 +174,13 @@ const merge_chunks = (chunks: SqlChunk[], separator: string): SqlChunk => ({
 	parameters: chunks.map(c => c.parameters).flat(1),
 })
 
-type WhereExpr = Comparison | WhereGrouping
 type SelectItem = SelectExpression | SelectGrouping
 
-// Renders a where expression (comparison or nested grouping) with parentheses around nested groups
-const where_expr_to_chunk = (expr: WhereExpr): SqlChunk => {
+// Renders a boolean expression (comparison or nested grouping) with parentheses around nested groups.
+// Shared by WHERE, HAVING, and join ON clauses since they're structurally identical.
+const bool_expr_to_chunk = (expr: RenderableComparison | RenderableGrouping): SqlChunk => {
 	if ('expressions' in expr) {
-		const chunks = map(expr.expressions, where_expr_to_chunk)
+		const chunks = map(expr.expressions, bool_expr_to_chunk)
 		const sep = expr.type === 'and' ? ' AND ' : ' OR '
 		const inner = merge_chunks(chunks, sep)
 		return { sql: `(${inner.sql})`, parameters: inner.parameters }
@@ -177,9 +188,9 @@ const where_expr_to_chunk = (expr: WhereExpr): SqlChunk => {
 	return comparison_to_chunk(expr)
 }
 
-// Renders the top-level where grouping without outer parentheses
-const where_grouping_to_chunk = (grouping: WhereGrouping): SqlChunk => {
-	const chunks = map(grouping.expressions, where_expr_to_chunk)
+// Renders a top-level grouping without outer parentheses
+const grouping_to_chunk = (grouping: RenderableGrouping): SqlChunk => {
+	const chunks = map(grouping.expressions, bool_expr_to_chunk)
 	const sep = grouping.type === 'and' ? '\n\tAND ' : '\n\tOR '
 	return merge_chunks(chunks, sep)
 }
@@ -212,6 +223,19 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 		register_table(query.from.table_name, query.from.alias)
 		for_each(query.joins, join => register_table(join.table_name, join.alias))
 
+		// The output identifiers the SELECT clause produces — the only names an ORDER BY / HAVING
+		// alias reference is allowed to name.
+		const select_aliases = new Set<string>()
+		for_each(query.select, item => {
+			if ('expressions' in item) {
+				if (item.alias !== undefined) select_aliases.add(item.alias)
+			} else if (item.type === 'column reference') {
+				select_aliases.add(item.alias ?? item.column)
+			} else {
+				select_aliases.add(item.alias)
+			}
+		})
+
 		const check_col_ref = (ref: ColumnReference) => {
 			if (alias_to_table_name.has(ref.table_identifier)) {
 				const table_name = alias_to_table_name.get(ref.table_identifier)
@@ -227,9 +251,17 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			}
 		}
 
-		const check_arg = (arg: ColumnReference | UserProvidedValue | FunctionExpression) => {
+		const check_alias_ref = (ref: AliasReference) => {
+			if (!select_aliases.has(ref.alias)) {
+				messages.push(`Unknown select alias: "${ref.alias}"`)
+			}
+		}
+
+		const check_arg = (arg: ComparisonOperand) => {
 			if (arg.type === 'column reference') check_col_ref(arg)
 			else if (arg.type === 'function') for_each(arg.arguments, check_arg)
+			else if (arg.type === 'alias reference') check_alias_ref(arg)
+			// 'user provided value' needs no schema check
 		}
 
 		const check_select_expr = (expr: SelectExpression) => {
@@ -252,10 +284,10 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			})
 		}
 
-		const check_where_grouping = (grouping: WhereGrouping): void => {
+		const check_grouping = (grouping: RenderableGrouping): void => {
 			for_each(grouping.expressions, expr => {
 				if ('expressions' in expr) {
-					check_where_grouping(expr)
+					check_grouping(expr)
 				} else {
 					check_arg(expr.left)
 					check_arg(expr.right)
@@ -273,14 +305,18 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 				} else if (clause.type === 'function') {
 					for_each(clause.arguments, check_arg)
 				} else {
-					check_where_grouping(clause)
+					check_grouping(clause)
 				}
 			})
 		})
 
-		if (query.where !== null) check_where_grouping(query.where)
+		if (query.where !== null) check_grouping(query.where)
 
 		for_each(query.group_by, check_select_expr)
+
+		for_each(query.order_by, order => check_arg(order.expression))
+
+		if (query.having !== null) check_grouping(query.having)
 
 		if (messages.length > 0) return { valid: false, messages }
 		return { valid: true }
@@ -298,11 +334,15 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 		})
 
 		const where_chunk = query.where !== null
-			? where_grouping_to_chunk(query.where)
+			? grouping_to_chunk(query.where)
 			: null
 
 		const group_by_chunk = query.group_by.length > 0
 			? merge_chunks(map(query.group_by, group_by_item_to_chunk), ', ')
+			: null
+
+		const having_chunk = query.having !== null
+			? grouping_to_chunk(query.having)
 			: null
 
 		const order_by_chunk = query.order_by.length > 0
@@ -314,6 +354,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			...join_chunks.map(c => c.parameters).flat(1),
 			...(where_chunk?.parameters ?? []),
 			...(group_by_chunk?.parameters ?? []),
+			...(having_chunk?.parameters ?? []),
 			...(order_by_chunk?.parameters ?? []),
 		]
 
@@ -324,6 +365,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 				...map(join_chunks, c => c.sql),
 				...(where_chunk ? [`WHERE ${where_chunk.sql}`] : []),
 				...(group_by_chunk ? [`GROUP BY ${group_by_chunk.sql}`] : []),
+				...(having_chunk ? [`HAVING ${having_chunk.sql}`] : []),
 				...(order_by_chunk ? [`ORDER BY ${order_by_chunk.sql}`] : []),
 				// LIMIT is a validated integer, so it's inlined rather than parameterized.
 				...(query.limit !== null ? [`LIMIT ${query.limit}`] : []),

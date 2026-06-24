@@ -10,8 +10,12 @@ import type {
 	FunctionExpression,
 	FunctionName,
 	Join as TrustableJoin,
+	AliasReference,
 	OrderBy,
 	OrderByDirection,
+	OrderByExpression,
+	HavingComparison,
+	HavingGrouping,
 	SelectExpression,
 	SelectGrouping,
 	WhereGrouping,
@@ -44,6 +48,14 @@ type ExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMap<Sche
 	and: (...exprs: Expression[]) => Expression
 	or: (...exprs: Expression[]) => Expression
 	fn: (name: FunctionName, ...args: (ColumnRef<Schema, A> | ValueRef)[]) => FunctionExpression
+}
+
+// HAVING filters on the aggregated result, so its comparison operands are select identifiers (`Ids`)
+// or values — never raw table columns.
+type HavingExpressionBuilder<Ids extends string> = {
+	comparison: (left: Ids | ValueRef, comparator: Comparator, right: Ids | ValueRef) => Expression
+	and: (...exprs: Expression[]) => Expression
+	or: (...exprs: Expression[]) => Expression
 }
 
 type SelectColumnInput<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
@@ -149,6 +161,20 @@ export type ExtractQueryResponse<T> = T extends BuiltQuery<infer Row>
 	? FlattenRow<Row>
 	: never
 
+// Given a flattened `{ table: { identifier: type } }` row, the union of all identifiers (the inner keys).
+type IdentifiersOfFlatRow<Flat> = {
+	[Table in keyof Flat]: keyof Flat[Table] & string
+}[keyof Flat]
+
+// Internal: the identifiers produced by SELECT so far (column aliases, function aliases, grouping
+// aliases), derived from the accumulated `Row` type. `never` until something has been selected.
+type RowIdentifiers<Row> = IdentifiersOfFlatRow<FlattenRow<Row>>
+
+// Public: the union of identifiers a built query selects — whether from a column, a column alias, a
+// function alias, or a grouping alias. Namespacing-by-table is collapsed; if two tables select the
+// same identifier you get it once. Use `ExtractQueryResponse` if you need to keep the table grouping.
+export type SelectedIdentifiers<Q> = IdentifiersOfFlatRow<ExtractQueryResponse<Q>>
+
 type TableAliasArg<Schema extends SchemaColumnTypes> =
 	Extract<keyof Schema, string> | `${Extract<keyof Schema, string>} AS ${string}`
 
@@ -175,7 +201,12 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Row = {
 
 	group_by: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A, Row>
 
-	order_by: (column: ColumnRef<Schema, A>, direction?: OrderByDirection) => Stage<Schema, A, Row>
+	order_by: (
+		column: ColumnRef<Schema, A> | RowIdentifiers<Row> | ((b: ExpressionBuilder<Schema, A>) => FunctionExpression),
+		direction?: OrderByDirection,
+	) => Stage<Schema, A, Row>
+
+	having: (cb: (b: HavingExpressionBuilder<RowIdentifiers<Row>>) => Expression) => Stage<Schema, A, Row>
 
 	limit: (count: bigint) => Stage<Schema, A, Row>
 
@@ -192,6 +223,8 @@ type ColumnOrValueInput = string | { value: unknown } | FunctionExpression
 
 type BoolExpr = WhereGrouping | Comparison
 
+type HavingBoolExpr = HavingGrouping | HavingComparison
+
 type InternalSelectGrouping = SelectGrouping & { table_identifier: string; alias: string }
 
 type State = {
@@ -201,6 +234,7 @@ type State = {
 	selects: Array<SelectExpression | InternalSelectGrouping>
 	group_bys: SelectExpression[]
 	order_bys: OrderBy[]
+	havings: HavingBoolExpr[]
 	limit: bigint | null
 }
 
@@ -250,6 +284,29 @@ const expression_builder = {
 		}),
 	}),
 }
+
+const to_alias_or_value = (input: string | { value: unknown }): AliasReference | UserProvidedValue =>
+	typeof input === 'object'
+		? { type: 'user provided value', value: input.value }
+		: { type: 'alias reference', alias: input }
+
+type AliasOrValueInput = string | { value: unknown }
+
+const having_expression_builder = {
+	comparison: (left: AliasOrValueInput, comparator: Comparator, right: AliasOrValueInput): HavingBoolExpr => ({
+		type: 'comparison',
+		left: to_alias_or_value(left),
+		comparator,
+		right: to_alias_or_value(right),
+	}),
+	and: (...exprs: HavingBoolExpr[]): HavingBoolExpr => ({ type: 'and', expressions: exprs }),
+	or: (...exprs: HavingBoolExpr[]): HavingBoolExpr => ({ type: 'or', expressions: exprs }),
+}
+
+const having_bool_expr_to_grouping = (expr: HavingBoolExpr): HavingGrouping =>
+	'expressions' in expr
+		? expr
+		: { type: 'and' as const, expressions: [expr] }
 
 const to_select_grouping_expression = (item: string | SelectGrouping): SelectExpression | SelectGrouping =>
 	typeof item === 'string' ? to_select_expression(item) : item
@@ -307,13 +364,21 @@ const make_stage = (state: State): any => ({
 	group_by: (...exprs: string[]) => {
 		return make_stage({ ...state, group_bys: [...state.group_bys, ...map(exprs, to_select_expression)] })
 	},
-	order_by: (column: string, direction: OrderByDirection = 'ASC') => {
-		const { table, column: column_name } = parse_col_ref(column)
-		const order: OrderBy = {
-			expression: { type: 'column reference', table_identifier: table, column: column_name },
-			direction,
+	order_by: (column: string | ((b: typeof expression_builder) => FunctionExpression), direction: OrderByDirection = 'ASC') => {
+		let expression: OrderByExpression
+		if (typeof column === 'function') {
+			expression = column(expression_builder)
+		} else if (column.includes('.')) {
+			const { table, column: column_name } = parse_col_ref(column)
+			expression = { type: 'column reference', table_identifier: table, column: column_name }
+		} else {
+			expression = { type: 'alias reference', alias: column }
 		}
+		const order: OrderBy = { expression, direction }
 		return make_stage({ ...state, order_bys: [...state.order_bys, order] })
+	},
+	having: (cb: (b: typeof having_expression_builder) => HavingBoolExpr) => {
+		return make_stage({ ...state, havings: [...state.havings, cb(having_expression_builder)] })
 	},
 	limit: (count: bigint) => {
 		return make_stage({ ...state, limit: count })
@@ -346,6 +411,11 @@ const make_stage = (state: State): any => ({
 				group_by: state.group_bys,
 				order_by: state.order_bys,
 				limit: state.limit,
+				having: state.havings.length === 0
+					? null
+					: state.havings.length === 1
+						? having_bool_expr_to_grouping(state.havings[0]!)
+						: { type: 'and' as const, expressions: state.havings },
 			},
 			response_columns,
 			positional_row_to_named: (row: unknown[]): Record<string, Record<string, unknown>> => {
@@ -374,6 +444,7 @@ const query_builder = <Schema extends SchemaColumnTypes>(): QueryBuilder<Schema>
 			selects: [],
 			group_bys: [],
 			order_bys: [],
+			havings: [],
 			limit: null,
 		})
 	}) as any,

@@ -203,6 +203,7 @@ test(`company_id is injected into the where and joins of tenanted tables`, () =>
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	}
 
 	const tenanted_query = add_tenancy(query, 42n)

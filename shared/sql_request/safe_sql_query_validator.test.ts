@@ -48,6 +48,7 @@ const valid_query = {
 	group_by: [],
 	order_by: [],
 	limit: null,
+	having: null,
 }
 
 test('safe_sql_query_validator: valid query', () => {
@@ -248,6 +249,40 @@ test('safe_sql_query_validator: order_by with descending direction is valid', ()
 		],
 	}
 	assert.strictEqual(safe_sql_query_validator.is_valid(query), true)
+})
+
+test('safe_sql_query_validator: order_by by alias reference is valid', () => {
+	const query = {
+		...valid_query,
+		order_by: [{ expression: { type: 'alias reference', alias: 'total' }, direction: 'ASC' }],
+	}
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), true)
+})
+
+test('safe_sql_query_validator: having with alias references is valid', () => {
+	const query = {
+		...valid_query,
+		having: {
+			type: 'and',
+			expressions: [
+				{ type: 'comparison', left: { type: 'alias reference', alias: 'total' }, comparator: '>', right: { type: 'user provided value', value: 5 } },
+			],
+		},
+	}
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), true)
+})
+
+test('safe_sql_query_validator: having with a column reference operand is invalid', () => {
+	const query = {
+		...valid_query,
+		having: {
+			type: 'and',
+			expressions: [
+				{ type: 'comparison', left: { type: 'column reference', table_identifier: 'p', column: 'project_id' }, comparator: '>', right: { type: 'user provided value', value: 5 } },
+			],
+		},
+	}
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
 })
 
 test('safe_sql_query_validator: order_by with invalid direction is invalid', () => {

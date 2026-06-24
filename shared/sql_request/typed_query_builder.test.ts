@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import type { FinancialNumber } from 'financial-number'
 import { Temporal } from '@js-temporal/polyfill'
-import query_builder, { type ExtractQueryResponse, type BuiltQuery } from './typed_query_builder.ts'
+import query_builder, { type ExtractQueryResponse, type BuiltQuery, type SelectedIdentifiers } from './typed_query_builder.ts'
 
 type AssertEqual<A, B> =
 	(<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
@@ -324,6 +324,51 @@ test('typed_query_builder: order_by and limit', () => {
 	assert_valid_query_output(built)
 })
 
+test('typed_query_builder: SelectedIdentifiers is the union of selected output names', () => {
+	const built = q.from('project AS p')
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
+		.select(b => [
+			'p.project_id',
+			'p.company_id AS co',
+			b.fn('COUNT', 'pli.line_count', 'pli.project_line_item_id'),
+		])
+		.build()
+
+	type Ids = SelectedIdentifiers<typeof built>
+	const _ids_check: AssertEqual<Ids, 'project_id' | 'co' | 'line_count'> = true
+	void _ids_check
+})
+
+test('typed_query_builder: order_by by alias, table column, and inline function; having on aliases', () => {
+	const built = q.from('project AS p')
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
+		.select(b => [
+			'p.project_id',
+			b.fn('COUNT', 'pli.line_count', 'pli.project_line_item_id'),
+		])
+		.group_by('p.project_id')
+		.having(b => b.comparison('line_count', '>', { value: 1 }))
+		.order_by('line_count', 'DESC')
+		.order_by('p.project_id')
+		.order_by(b => b.fn('COUNT', 'pli.project_line_item_id'))
+		.build()
+
+	assert.deepStrictEqual(built.query.order_by, [
+		{ expression: { type: 'alias reference', alias: 'line_count' }, direction: 'DESC' },
+		{ expression: { type: 'column reference', table_identifier: 'p', column: 'project_id' }, direction: 'ASC' },
+		{ expression: { type: 'function', function: 'COUNT', arguments: [{ type: 'column reference', table_identifier: 'pli', column: 'project_line_item_id' }] }, direction: 'ASC' },
+	])
+
+	assert.deepStrictEqual(built.query.having, {
+		type: 'and',
+		expressions: [
+			{ type: 'comparison', left: { type: 'alias reference', alias: 'line_count' }, comparator: '>', right: { type: 'user provided value', value: 1 } },
+		],
+	})
+
+	assert_valid_query_output(built)
+})
+
 test('typed_query_builder: nested AND/OR in where, select grouping, group_by', () => {
 	const built = q.from('project AS p')
 		.where(q => q.and(
@@ -384,6 +429,15 @@ test('typed_query_builder: type errors on invalid references', () => {
 
 	// @ts-expect-error: 'not_a_column' is not a column on project
 	q.from('project AS p').order_by('p.not_a_column')
+
+	// @ts-expect-error: 'co' has not been selected, so it is not a valid order_by alias
+	q.from('project AS p').select(() => ['p.project_id']).order_by('co')
+
+	// @ts-expect-error: having operands must be selected aliases, not unselected names
+	q.from('project AS p').select(() => ['p.project_id']).having(b => b.comparison('not_selected', '>', { value: 1 }))
+
+	// @ts-expect-error: having operands must be selected aliases, not table-qualified columns
+	q.from('project AS p').select(() => ['p.project_id AS pid']).having(b => b.comparison('p.project_id', '>', { value: 1 }))
 
 	// @ts-expect-error: limit expects a bigint, not a number
 	q.from('project AS p').limit(5)

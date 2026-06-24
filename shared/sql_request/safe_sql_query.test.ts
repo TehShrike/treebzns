@@ -193,6 +193,7 @@ test('safe_sql_query: valid query', () => {
 		}],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -220,6 +221,7 @@ test('safe_sql_query: invalid table identifier in from', () => {
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
@@ -263,6 +265,7 @@ test('safe_sql_query: invalid table identifier in join', () => {
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
@@ -289,6 +292,7 @@ test('safe_sql_query: invalid table identifier in select', () => {
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
@@ -335,6 +339,7 @@ test('safe_sql_query: invalid table identifier in where', () => {
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
@@ -361,6 +366,7 @@ test('safe_sql_query: invalid column in select', () => {
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
@@ -412,6 +418,7 @@ test('safe_sql_query: where AND grouping produces correct SQL', () => {
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -447,6 +454,7 @@ test('safe_sql_query: where OR grouping produces correct SQL', () => {
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -493,6 +501,7 @@ test('safe_sql_query: nested AND/OR in where produces parenthesized SQL', () => 
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -515,6 +524,7 @@ test('safe_sql_query: group_by array produces correct SQL', () => {
 		],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -539,6 +549,7 @@ test('safe_sql_query: group_by with function expression must not emit AS alias',
 		}],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { to_sql } = make_safe_query_builder(test_schema)
@@ -566,6 +577,7 @@ test('safe_sql_query: select AND grouping produces correct SQL', () => {
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -594,6 +606,7 @@ test('safe_sql_query: select OR grouping produces correct SQL', () => {
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -618,6 +631,58 @@ test('safe_sql_query: order_by and limit produce correct SQL', () => {
 
 	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nORDER BY `p`.`created_at` ASC, `p`.`project_id` DESC\nLIMIT 5')
 	assert.deepStrictEqual(values, [])
+})
+
+test('safe_sql_query: order_by / having alias references must name a select alias', () => {
+	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
+
+	const base = {
+		select: [{ type: 'column reference', table_identifier: 'p', column: 'project_id', alias: 'pid' }],
+		from: { table_name: 'project', alias: 'p' },
+		joins: [],
+		where: null,
+		group_by: [],
+		order_by: [],
+		limit: null,
+		having: null,
+	} satisfies SafeSqlQuery
+
+	// referencing the selected alias is valid
+	assert.strictEqual(validate_table_and_column_names({
+		...base,
+		order_by: [{ expression: { type: 'alias reference', alias: 'pid' }, direction: 'ASC' }],
+	}).valid, true)
+
+	// referencing an alias the select does not produce is invalid
+	const bad = validate_table_and_column_names({
+		...base,
+		having: {
+			type: 'and',
+			expressions: [
+				{ type: 'comparison', left: { type: 'alias reference', alias: 'nope' }, comparator: '>', right: { type: 'user provided value', value: 1 } },
+			],
+		},
+	})
+	assert.strictEqual(bad.valid, false)
+	assert.ok(bad.valid === false && bad.messages.some(m => m.includes('nope')))
+})
+
+test('safe_sql_query: order_by by alias and inline function, plus having on an alias', () => {
+	const q = typed_query_builder<TestSchema>()
+	const query = q.from('project AS p')
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
+		.select(b => ['p.project_id', b.fn('COUNT', 'pli.line_count', 'pli.project_line_item_id')])
+		.group_by('p.project_id')
+		.having(b => b.comparison('line_count', '>=', { value: 2 }))
+		.order_by('line_count', 'DESC')
+		.order_by(b => b.fn('COUNT', 'pli.project_line_item_id'))
+		.build()
+
+	const { to_sql } = make_safe_query_builder(test_schema)
+	const { sql, values } = to_sql(query.query)
+
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`, COUNT(`pli`.`project_line_item_id`) AS `line_count`\nFROM `project` AS `p`\nJOIN `project_line_item` AS `pli` ON `pli`.`project_id` = `p`.`project_id`\nGROUP BY `p`.`project_id`\nHAVING `line_count` >= ?\nORDER BY `line_count` DESC, COUNT(`pli`.`project_line_item_id`) ASC')
+	assert.deepStrictEqual(values, [2])
 })
 
 test('safe_sql_query: where OR grouping with nested AND', () => {
@@ -653,6 +718,7 @@ test('safe_sql_query: where OR grouping with nested AND', () => {
 		group_by: [],
 		order_by: [],
 		limit: null,
+		having: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)

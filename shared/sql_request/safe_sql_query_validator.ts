@@ -73,13 +73,27 @@ export const table_addition_validator = jv.object({
 	alias: jv.is_string,
 })
 
+// An identifier emitted by the SELECT clause (a column alias, function alias, or grouping alias),
+// referenced by name in ORDER BY / HAVING rather than re-qualified by table.
+export const alias_reference_validator = jv.object({
+	type: jv.exact('alias reference' as const),
+	alias: jv.is_string,
+})
+
 export const order_by_direction_validator = jv.one_of(
 	jv.exact('ASC' as const),
 	jv.exact('DESC' as const),
 )
 
+// ORDER BY may sort by a table-qualified column, a function expression, or a select alias.
+export const order_by_expression_validator = jv.one_of(
+	column_reference_validator,
+	function_expression_validator,
+	alias_reference_validator,
+)
+
 export const order_by_validator = jv.object({
-	expression: column_reference_validator,
+	expression: order_by_expression_validator,
 	direction: order_by_direction_validator,
 })
 
@@ -125,6 +139,16 @@ const make_select_grouping_validator = (): Validator<SelectGrouping> => {
 export const select_grouping_validator = make_select_grouping_validator()
 export const where_grouping_validator = make_and_or_grouping_validator(comparison_validator)
 
+// HAVING filters on the aggregated result, so its operands are select aliases (or values) rather
+// than raw table columns.
+export const having_comparison_validator = jv.object({
+	type: jv.exact('comparison' as const),
+	left: jv.one_of(alias_reference_validator, user_provided_value_validator),
+	comparator: comparator_validator,
+	right: jv.one_of(alias_reference_validator, user_provided_value_validator),
+})
+export const having_grouping_validator = make_and_or_grouping_validator(having_comparison_validator)
+
 export const join_validator = jv.object({
 	table_name: jv.is_string,
 	alias: jv.is_string,
@@ -139,6 +163,7 @@ export const safe_sql_query_validator = jv.object({
 	group_by: jv.array(select_expression_validator),
 	order_by: jv.array(order_by_validator),
 	limit: limit_validator,
+	having: jv.nullable(having_grouping_validator),
 })
 
 export type ColumnReference = InferValidator<typeof column_reference_validator>
@@ -149,8 +174,17 @@ export type FunctionName = InferValidator<typeof function_name_validator>
 export type FunctionExpression = InferValidator<typeof function_expression_validator>
 export type SelectExpression = InferValidator<typeof select_expression_validator>
 export type TableAddition = InferValidator<typeof table_addition_validator>
+export type AliasReference = InferValidator<typeof alias_reference_validator>
 export type OrderByDirection = InferValidator<typeof order_by_direction_validator>
+export type OrderByExpression = InferValidator<typeof order_by_expression_validator>
 export type OrderBy = InferValidator<typeof order_by_validator>
+export type HavingComparison = {
+	type: 'comparison'
+	left: AliasReference | UserProvidedValue
+	comparator: Comparator
+	right: AliasReference | UserProvidedValue
+}
+export type HavingGrouping = AndOrGrouping<HavingComparison>
 export type Join = {
 	table_name: string
 	alias: string
@@ -170,4 +204,5 @@ export type SafeSqlQuery = {
 	group_by: Array<SelectExpression>
 	order_by: Array<OrderBy>
 	limit: bigint | null
+	having: HavingGrouping | null
 }

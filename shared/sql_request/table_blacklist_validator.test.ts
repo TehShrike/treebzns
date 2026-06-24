@@ -78,6 +78,7 @@ const make_query = (from_table: string, join_table: string): SafeSqlQuery => ({
 	group_by: [],
 	order_by: [],
 	limit: null,
+	having: null,
 })
 
 function assert_has_one_element<T>(array: T[]): asserts array is [T] {
