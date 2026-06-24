@@ -44,24 +44,30 @@ export const json_anything_response = ({
 		headers: { 'Content-Type': 'application/json_anything', ...headers },
 	})
 
+export const error_object_response = ({ error }: { error: unknown }) => {
+	const status = 500
+	if (error instanceof Error) {
+		return json_response({ body: { error: error.message, stack: error.stack }, status })
+	} else if (typeof error === 'object' && error && 'message' in error && typeof error.message === 'string') {
+		return json_response({ body: { error: error.message, stack: null }, status })
+	} else {
+		return json_response({ body: { error: JSON.stringify(error), stack: null }, status })
+	}
+}
+
 export const error_response = ({
 	message,
 	status = 400,
 	headers = {},
+	stack
 }: {
 	message: string
 	status?: number
 	headers?: Record<string, string>
+	stack?: string
 }) =>
 	json_response({
-		body: { error: message },
+		body: { error: message, stack },
 		status,
 		headers,
 	})
-
-export const error_to_string = (error: unknown): { message: string; stack: string | null } => {
-	if (error instanceof Error) {
-		return { message: error.message, stack: error.stack ?? '' }
-	}
-	return { message: JSON.stringify(error), stack: null }
-}
