@@ -7,6 +7,16 @@ routes = [
 	{ pattern = "dufftreesoftware.com", custom_domain = true, zone_id = "f8be26c091ee3070d032517f29ced56c" }
 ]
 
+[secrets]
+required = [
+	"MYSQL_HOST",
+	"MYSQL_PORT",
+	"MYSQL_DB",
+	"MYSQL_USER",
+	"MYSQL_PASS",
+	"MYSQL_CA_CERT"
+]
+
 [assets]
 directory = "./public"
 binding = "ASSETS"
