@@ -10,6 +10,8 @@ import type {
 	FunctionExpression,
 	FunctionName,
 	Join as TrustableJoin,
+	OrderBy,
+	OrderByDirection,
 	SelectExpression,
 	SelectGrouping,
 	WhereGrouping,
@@ -173,6 +175,10 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Row = {
 
 	group_by: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A, Row>
 
+	order_by: (column: ColumnRef<Schema, A>, direction?: OrderByDirection) => Stage<Schema, A, Row>
+
+	limit: (count: bigint) => Stage<Schema, A, Row>
+
 	build: () => BuiltQuery<FlattenRow<Row>>
 }
 
@@ -194,6 +200,8 @@ type State = {
 	where_expressions: BoolExpr[]
 	selects: Array<SelectExpression | InternalSelectGrouping>
 	group_bys: SelectExpression[]
+	order_bys: OrderBy[]
+	limit: bigint | null
 }
 
 const parse_table_alias = (s: string): { table: string; alias: string } => {
@@ -299,6 +307,17 @@ const make_stage = (state: State): any => ({
 	group_by: (...exprs: string[]) => {
 		return make_stage({ ...state, group_bys: [...state.group_bys, ...map(exprs, to_select_expression)] })
 	},
+	order_by: (column: string, direction: OrderByDirection = 'ASC') => {
+		const { table, column: column_name } = parse_col_ref(column)
+		const order: OrderBy = {
+			expression: { type: 'column reference', table_identifier: table, column: column_name },
+			direction,
+		}
+		return make_stage({ ...state, order_bys: [...state.order_bys, order] })
+	},
+	limit: (count: bigint) => {
+		return make_stage({ ...state, limit: count })
+	},
 	build: (): BuiltQuery<unknown> => {
 		const response_columns: ResponseColumn[] = map(state.selects, s => {
 			if ('expressions' in s) {
@@ -325,6 +344,8 @@ const make_stage = (state: State): any => ({
 						? bool_expr_to_where_grouping(state.where_expressions[0]!)
 						: { type: 'and' as const, expressions: state.where_expressions },
 				group_by: state.group_bys,
+				order_by: state.order_bys,
+				limit: state.limit,
 			},
 			response_columns,
 			positional_row_to_named: (row: unknown[]): Record<string, Record<string, unknown>> => {
@@ -352,6 +373,8 @@ const query_builder = <Schema extends SchemaColumnTypes>(): QueryBuilder<Schema>
 			where_expressions: [],
 			selects: [],
 			group_bys: [],
+			order_bys: [],
+			limit: null,
 		})
 	}) as any,
 })

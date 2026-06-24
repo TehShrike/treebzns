@@ -73,6 +73,22 @@ export const table_addition_validator = jv.object({
 	alias: jv.is_string,
 })
 
+export const order_by_direction_validator = jv.one_of(
+	jv.exact('ASC' as const),
+	jv.exact('DESC' as const),
+)
+
+export const order_by_validator = jv.object({
+	expression: column_reference_validator,
+	direction: order_by_direction_validator,
+})
+
+const is_positive_bigint = (input: unknown): input is bigint => typeof input === 'bigint' && input > 0n
+export const limit_validator = jv.nullable(jv.custom<bigint>({
+	is_valid: is_positive_bigint,
+	get_messages: (input, name) => (is_positive_bigint(input) ? [] : [`"${name}" must be a positive bigint`]),
+}))
+
 // Recursive and/or grouping validator factory
 export type AndOrGrouping<T> = {
 	type: 'and' | 'or'
@@ -121,6 +137,8 @@ export const safe_sql_query_validator = jv.object({
 	joins: jv.array(join_validator),
 	where: jv.nullable(where_grouping_validator),
 	group_by: jv.array(select_expression_validator),
+	order_by: jv.array(order_by_validator),
+	limit: limit_validator,
 })
 
 export type ColumnReference = InferValidator<typeof column_reference_validator>
@@ -131,6 +149,8 @@ export type FunctionName = InferValidator<typeof function_name_validator>
 export type FunctionExpression = InferValidator<typeof function_expression_validator>
 export type SelectExpression = InferValidator<typeof select_expression_validator>
 export type TableAddition = InferValidator<typeof table_addition_validator>
+export type OrderByDirection = InferValidator<typeof order_by_direction_validator>
+export type OrderBy = InferValidator<typeof order_by_validator>
 export type Join = {
 	table_name: string
 	alias: string
@@ -148,4 +168,6 @@ export type SafeSqlQuery = {
 	joins: Array<Join>
 	where: WhereGrouping | null
 	group_by: Array<SelectExpression>
+	order_by: Array<OrderBy>
+	limit: bigint | null
 }

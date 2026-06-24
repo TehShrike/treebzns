@@ -9,6 +9,7 @@ import type {
 	SelectExpression,
 	SelectGrouping,
 	WhereGrouping,
+	OrderBy,
 	SafeSqlQuery,
 } from './safe_sql_query_validator.ts'
 
@@ -150,6 +151,11 @@ const group_by_item_to_chunk = (sel: SelectExpression): SqlChunk => {
 	assert(sel.function in FUNCTIONS)
 	assertZeroOrOneOrTwoArguments(sel.arguments)
 	return FUNCTIONS[sel.function](sel.arguments)
+}
+
+const order_by_item_to_chunk = (order: OrderBy): SqlChunk => {
+	const { sql, parameters } = value_to_sql_chunk(order.expression)
+	return { sql: `${sql} ${order.direction}`, parameters }
 }
 
 const merge_chunks = (chunks: SqlChunk[], separator: string): SqlChunk => ({
@@ -299,11 +305,16 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 			? merge_chunks(map(query.group_by, group_by_item_to_chunk), ', ')
 			: null
 
+		const order_by_chunk = query.order_by.length > 0
+			? merge_chunks(map(query.order_by, order_by_item_to_chunk), ', ')
+			: null
+
 		const all_params = [
 			...select_chunk.parameters,
 			...join_chunks.map(c => c.parameters).flat(1),
 			...(where_chunk?.parameters ?? []),
 			...(group_by_chunk?.parameters ?? []),
+			...(order_by_chunk?.parameters ?? []),
 		]
 
 		return {
@@ -313,6 +324,9 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 				...map(join_chunks, c => c.sql),
 				...(where_chunk ? [`WHERE ${where_chunk.sql}`] : []),
 				...(group_by_chunk ? [`GROUP BY ${group_by_chunk.sql}`] : []),
+				...(order_by_chunk ? [`ORDER BY ${order_by_chunk.sql}`] : []),
+				// LIMIT is a validated integer, so it's inlined rather than parameterized.
+				...(query.limit !== null ? [`LIMIT ${query.limit}`] : []),
 			].join('\n'),
 			values: map(all_params, p => p.value),
 		}

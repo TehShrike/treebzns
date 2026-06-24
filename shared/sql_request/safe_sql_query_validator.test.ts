@@ -46,6 +46,8 @@ const valid_query = {
 		}],
 	},
 	group_by: [],
+	order_by: [],
+	limit: null,
 }
 
 test('safe_sql_query_validator: valid query', () => {
@@ -216,6 +218,46 @@ test('safe_sql_query_validator: select AND grouping is valid', () => {
 		],
 	}
 	assert.strictEqual(safe_sql_query_validator.is_valid(query), true)
+})
+
+test('safe_sql_query_validator: positive bigint limit is valid', () => {
+	assert.strictEqual(safe_sql_query_validator.is_valid({ ...valid_query, limit: 5n }), true)
+})
+
+test('safe_sql_query_validator: null limit is valid', () => {
+	assert.strictEqual(safe_sql_query_validator.is_valid({ ...valid_query, limit: null }), true)
+})
+
+test('safe_sql_query_validator: zero limit is invalid', () => {
+	assert.strictEqual(safe_sql_query_validator.is_valid({ ...valid_query, limit: 0n }), false)
+})
+
+test('safe_sql_query_validator: negative limit is invalid', () => {
+	assert.strictEqual(safe_sql_query_validator.is_valid({ ...valid_query, limit: -1n }), false)
+})
+
+test('safe_sql_query_validator: number limit is invalid', () => {
+	assert.strictEqual(safe_sql_query_validator.is_valid({ ...valid_query, limit: 5 }), false)
+})
+
+test('safe_sql_query_validator: order_by with descending direction is valid', () => {
+	const query = {
+		...valid_query,
+		order_by: [
+			{ expression: { type: 'column reference', table_identifier: 'project', column: 'project_id' }, direction: 'DESC' },
+		],
+	}
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), true)
+})
+
+test('safe_sql_query_validator: order_by with invalid direction is invalid', () => {
+	const query = {
+		...valid_query,
+		order_by: [
+			{ expression: { type: 'column reference', table_identifier: 'project', column: 'project_id' }, direction: 'SIDEWAYS' },
+		],
+	}
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
 })
 
 test('safe_sql_query_validator: select OR grouping is valid', () => {

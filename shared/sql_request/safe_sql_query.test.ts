@@ -191,6 +191,8 @@ test('safe_sql_query: valid query', () => {
 			table_identifier: 'p',
 			column: 'project_id',
 		}],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -216,6 +218,8 @@ test('safe_sql_query: invalid table identifier in from', () => {
 		joins: [],
 		where: null,
 		group_by: [],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
@@ -257,6 +261,8 @@ test('safe_sql_query: invalid table identifier in join', () => {
 		}],
 		where: null,
 		group_by: [],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
@@ -281,6 +287,8 @@ test('safe_sql_query: invalid table identifier in select', () => {
 		joins: [],
 		where: null,
 		group_by: [],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
@@ -325,6 +333,8 @@ test('safe_sql_query: invalid table identifier in where', () => {
 			}],
 		},
 		group_by: [],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
@@ -349,6 +359,8 @@ test('safe_sql_query: invalid column in select', () => {
 		joins: [],
 		where: null,
 		group_by: [],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names } = make_safe_query_builder(test_schema)
@@ -398,6 +410,8 @@ test('safe_sql_query: where AND grouping produces correct SQL', () => {
 			],
 		},
 		group_by: [],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -431,6 +445,8 @@ test('safe_sql_query: where OR grouping produces correct SQL', () => {
 			],
 		},
 		group_by: [],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -475,6 +491,8 @@ test('safe_sql_query: nested AND/OR in where produces parenthesized SQL', () => 
 			],
 		},
 		group_by: [],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -495,6 +513,8 @@ test('safe_sql_query: group_by array produces correct SQL', () => {
 			{ type: 'column reference', table_identifier: 'p', column: 'project_id' },
 			{ type: 'column reference', table_identifier: 'p', column: 'company_id' },
 		],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -517,6 +537,8 @@ test('safe_sql_query: group_by with function expression must not emit AS alias',
 			alias: 'pcount',
 			table_identifier: 'p',
 		}],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { to_sql } = make_safe_query_builder(test_schema)
@@ -542,6 +564,8 @@ test('safe_sql_query: select AND grouping produces correct SQL', () => {
 		joins: [],
 		where: null,
 		group_by: [],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -568,6 +592,8 @@ test('safe_sql_query: select OR grouping produces correct SQL', () => {
 		joins: [],
 		where: null,
 		group_by: [],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)
@@ -575,6 +601,22 @@ test('safe_sql_query: select OR grouping produces correct SQL', () => {
 
 	const { sql, values } = to_sql(query)
 	assert.strictEqual(sql, 'SELECT `p`.`project_id`, (`p`.`closed` OR `p`.`emergency`)\nFROM `project` AS `p`')
+	assert.deepStrictEqual(values, [])
+})
+
+test('safe_sql_query: order_by and limit produce correct SQL', () => {
+	const q = typed_query_builder<TestSchema>()
+	const query = q.from('project AS p')
+		.select(() => ['p.project_id'])
+		.order_by('p.created_at')
+		.order_by('p.project_id', 'DESC')
+		.limit(5n)
+		.build()
+
+	const { to_sql } = make_safe_query_builder(test_schema)
+	const { sql, values } = to_sql(query.query)
+
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nORDER BY `p`.`created_at` ASC, `p`.`project_id` DESC\nLIMIT 5')
 	assert.deepStrictEqual(values, [])
 })
 
@@ -609,6 +651,8 @@ test('safe_sql_query: where OR grouping with nested AND', () => {
 			],
 		},
 		group_by: [],
+		order_by: [],
+		limit: null,
 	} satisfies SafeSqlQuery
 
 	const { validate_table_and_column_names, to_sql } = make_safe_query_builder(test_schema)

@@ -307,6 +307,23 @@ test('typed_query_builder: group_by with column refs', () => {
 	assert_valid_query_output(built)
 })
 
+test('typed_query_builder: order_by and limit', () => {
+	const built = q.from('project AS p')
+		.select(() => ['p.project_id'])
+		.order_by('p.created_at')
+		.order_by('p.project_id', 'DESC')
+		.limit(10n)
+		.build()
+
+	assert.deepStrictEqual(built.query.order_by, [
+		{ expression: { type: 'column reference', table_identifier: 'p', column: 'created_at' }, direction: 'ASC' },
+		{ expression: { type: 'column reference', table_identifier: 'p', column: 'project_id' }, direction: 'DESC' },
+	])
+	assert.strictEqual(built.query.limit, 10n)
+
+	assert_valid_query_output(built)
+})
+
 test('typed_query_builder: nested AND/OR in where, select grouping, group_by', () => {
 	const built = q.from('project AS p')
 		.where(q => q.and(
@@ -361,6 +378,15 @@ test('typed_query_builder: type errors on invalid references', () => {
 
 	// @ts-expect-error: 'not_a_column' is not a column on project
 	q.from('project AS p').group_by('p.not_a_column')
+
+	// @ts-expect-error: project was aliased to p, so 'project' is not a valid table identifier in order_by
+	q.from('project AS p').order_by('project.project_id')
+
+	// @ts-expect-error: 'not_a_column' is not a column on project
+	q.from('project AS p').order_by('p.not_a_column')
+
+	// @ts-expect-error: limit expects a bigint, not a number
+	q.from('project AS p').limit(5)
 
 	q.from('project AS p')
 		.where(q => q.or(
