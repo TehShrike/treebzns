@@ -20,3 +20,10 @@ required = [
 [assets]
 directory = "./public"
 binding = "ASSETS"
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true
