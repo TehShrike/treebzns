@@ -9,6 +9,33 @@ const log_in_validator = jv.object({
 	password: jv.is_string,
 })
 
+export const log_in_with_email_and_password = async <OkResponseBody = unknown>({
+	request,
+	mysql,
+	email,
+	password,
+	ok_response_body
+}: {
+	request: Request,
+	mysql: MysqlHelpersObject,
+	email: string,
+	password: string,
+	ok_response_body?: OkResponseBody,
+}): Promise<Response> => {
+	const user_agent = request.headers.get('User-Agent') ?? ''
+	const { logged_in, session_identifier } = await db_log_in({ email, password, user_agent }, mysql)
+
+	if (!logged_in) {
+		return error_response({ message: 'Invalid email or password', status: 401 })
+	}
+
+	return json_response({
+		body: ok_response_body,
+		status: 200,
+		headers: get_session_cookie_headers({ session_identifier, days: 30 }),
+	})
+}
+
 export default async (request: Request, mysql: MysqlHelpersObject): Promise<Response> => {
 	const body = await request.json().catch(() => null)
 	if (!log_in_validator.is_valid(body)) {
@@ -16,16 +43,7 @@ export default async (request: Request, mysql: MysqlHelpersObject): Promise<Resp
 		return error_response({ message: messages.join(', ') })
 	}
 
-	const user_agent = request.headers.get('User-Agent') ?? ''
-	const result = await db_log_in({ email: body.email, password: body.password, user_agent }, mysql)
+	const { email, password } = body
 
-	if (!result) {
-		return error_response({ message: 'Invalid email or password', status: 401 })
-	}
-
-	return json_response({
-		body: { ok: true },
-		status: 200,
-		headers: get_session_cookie_headers({ session_identifier: result.session_identifier, days: 30 }),
-	})
+	return log_in_with_email_and_password({ request, mysql, email, password, ok_response_body: { ok: true } })
 }

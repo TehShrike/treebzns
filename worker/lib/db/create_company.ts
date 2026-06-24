@@ -2,6 +2,9 @@ import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.
 import { create_employee } from '#worker/lib/employee.ts'
 import { map } from '#shared/array.ts'
 import { transaction } from '#worker/lib/mysql/helpers.ts'
+import query_builder from '#shared/sql_request/typed_query_builder.ts'
+import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
+import type { Schema } from '#schema/types.ts'
 
 const default_software_roles: {
 	name: string
@@ -32,9 +35,15 @@ export const create_company = async (
 	mysql: MysqlHelpersObject,
 ): Promise<bigint> => {
 	return transaction(mysql.connection, async () => {
-		const default_initial_project_document_id = await mysql.query(
-			'SELECT project_document_id FROM project_document ORDER BY sort ASC LIMIT 1',
-		).get_first_row_first_column<bigint>()
+		const project_document_query = query_builder<Schema>()
+			.from('project_document')
+			.select(() => ['project_document.project_document_id'])
+			.order_by('project_document.sort', 'ASC')
+			.limit(1n)
+			.build()
+
+		const project_document_row = await mysql.query(safe_query_builder.to_sql(project_document_query.query)).get_first_row<unknown[]>()
+		const default_initial_project_document_id = project_document_query.positional_row_to_named(project_document_row).project_document.project_document_id
 
 		const company_id = await mysql.query({
 			sql: 'INSERT INTO company SET ?',
@@ -44,8 +53,16 @@ export const create_company = async (
 			},
 		}).get_insert_id()
 
-		const permission_rows = await mysql.query('SELECT permission_id, code FROM permission').get_rows<{ permission_id: bigint, code: string }>()
-		const permission_id_by_code = new Map(permission_rows.map(r => [r.code, r.permission_id]))
+		const permission_query = query_builder<Schema>()
+			.from('permission')
+			.select(() => ['permission.permission_id', 'permission.code'])
+			.build()
+
+		const permission_rows = await mysql.query(safe_query_builder.to_sql(permission_query.query)).get_rows<unknown[]>()
+		const permission_id_by_code = new Map(permission_rows.map(row => {
+			const { permission } = permission_query.positional_row_to_named(row)
+			return [permission.code, permission.permission_id]
+		}))
 
 		let owner_software_role_id: bigint | null = null
 		await Promise.all(map(default_software_roles, async role => {
@@ -58,10 +75,10 @@ export const create_company = async (
 				owner_software_role_id = software_role_id
 			}
 
-			const srp_rows = role.permission_codes.map(code => [company_id, software_role_id, permission_id_by_code.get(code)!])
+			const software_role_permission_rows = role.permission_codes.map(code => [company_id, software_role_id, permission_id_by_code.get(code)!])
 			await mysql.query({
 				sql: 'INSERT INTO software_role_permission (company_id, software_role_id, permission_id) VALUES ?',
-				values: [srp_rows],
+				values: [software_role_permission_rows],
 			})
 		}))
 

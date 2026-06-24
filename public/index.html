@@ -25,7 +25,7 @@
 	<h1>Create company</h1>
 	<form id="form">
 		<h2>Company</h2>
-		<label>Name
+		<label>Company Name
 			<input type="text" name="company_name" required>
 		</label>
 		<label>Brand color
@@ -89,6 +89,11 @@
 			const result = document.getElementById('create-result')
 			try {
 				const { res, json } = await post_json('/api/create_company', body)
+				if (res.ok) {
+					// The endpoint logs us in (sets the session cookie), so go straight to the app.
+					window.location.href = 'app.html/#/app'
+					return
+				}
 				show_result(result, res, json, j => `Company created! ID: ${j.company_id}`)
 			} catch (err) {
 				result.style.display = 'block'
