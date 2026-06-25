@@ -3,10 +3,21 @@ import type { InferValidator, Validator } from '#shared/json_validator.ts'
 
 const any_validator = jv.custom<any>({ is_valid: (_): _ is any => true, get_messages: () => [] })
 
+// Identifiers (table names, column names, and aliases) are interpolated directly into the SQL
+// string inside backticks rather than being parameterized, so they must be constrained to a safe
+// character set. Word characters only — no backticks, whitespace, or other punctuation that could
+// break out of the surrounding `...` quoting and inject SQL. Backticks in aliases aren't supported.
+const identifier_pattern = /^\w+$/
+const is_identifier = (input: unknown): input is string => typeof input === 'string' && identifier_pattern.test(input)
+export const identifier_validator = jv.custom<string>({
+	is_valid: is_identifier,
+	get_messages: (input, name) => (is_identifier(input) ? [] : [`"${name}" must be a valid SQL identifier (letters, numbers, and underscores only)`]),
+})
+
 const column_reference_object_properties = {
 	type: jv.exact('column reference' as const),
-	table_identifier: jv.is_string,
-	column: jv.is_string,
+	table_identifier: identifier_validator,
+	column: identifier_validator,
 } as const
 
 export const column_reference_validator = jv.object(column_reference_object_properties)
@@ -46,8 +57,8 @@ export const function_expression_validator = jv.object(function_validation_objec
 
 export const select_function_expression_validator = jv.object({
 	...function_validation_object,
-	alias: jv.is_string,
-	table_identifier: jv.is_string,
+	alias: identifier_validator,
+	table_identifier: identifier_validator,
 })
 
 export const comparison_validator = jv.object({
@@ -59,7 +70,7 @@ export const comparison_validator = jv.object({
 
 const column_reference_select_validator = jv.object({
 	...column_reference_object_properties,
-	alias: jv.optional(jv.is_string),
+	alias: jv.optional(identifier_validator),
 // defined manually because jv.optional produces `string | undefined`
 }) as Validator<ColumnReference & { alias?: string }>
 
@@ -69,15 +80,15 @@ export const select_expression_validator = jv.one_of(
 )
 
 export const table_addition_validator = jv.object({
-	table_name: jv.is_string,
-	alias: jv.is_string,
+	table_name: identifier_validator,
+	alias: identifier_validator,
 })
 
 // An identifier emitted by the SELECT clause (a column alias, function alias, or grouping alias),
 // referenced by name in ORDER BY / HAVING rather than re-qualified by table.
 export const alias_reference_validator = jv.object({
 	type: jv.exact('alias reference' as const),
-	alias: jv.is_string,
+	alias: identifier_validator,
 })
 
 export const order_by_direction_validator = jv.one_of(
@@ -131,7 +142,7 @@ const make_select_grouping_validator = (): Validator<SelectGrouping> => {
 	holder.v = jv.object({
 		type: jv.one_of(jv.exact('and' as const), jv.exact('or' as const)),
 		expressions: jv.array(jv.one_of(select_expression_validator, lazy)),
-		alias: jv.optional(jv.is_string),
+		alias: jv.optional(identifier_validator),
 	}) as unknown as Validator<SelectGrouping>
 	return holder.v
 }
@@ -150,8 +161,8 @@ export const having_comparison_validator = jv.object({
 export const having_grouping_validator = make_and_or_grouping_validator(having_comparison_validator)
 
 export const join_validator = jv.object({
-	table_name: jv.is_string,
-	alias: jv.is_string,
+	table_name: identifier_validator,
+	alias: identifier_validator,
 	on_clause: jv.array(jv.one_of(comparison_validator, function_expression_validator, where_grouping_validator)),
 })
 

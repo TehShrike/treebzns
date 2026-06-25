@@ -295,6 +295,67 @@ test('safe_sql_query_validator: order_by with invalid direction is invalid', () 
 	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
 })
 
+test('safe_sql_query_validator: backtick in select column alias is invalid', () => {
+	const query = {
+		...valid_query,
+		select: [{
+			type: 'column reference',
+			table_identifier: 'project',
+			column: 'project_id',
+			alias: 'n`, (SELECT identifier FROM employee_session LIMIT 1) AS `leak',
+		}],
+	}
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
+})
+
+test('safe_sql_query_validator: backtick in from alias is invalid', () => {
+	const query = { ...valid_query, from: { table_name: 'project', alias: 'p` UNION SELECT' } }
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
+})
+
+test('safe_sql_query_validator: backtick in join alias is invalid', () => {
+	const query = {
+		...valid_query,
+		joins: [{ ...valid_query.joins[0], alias: 'c`; DROP TABLE employee' }],
+	}
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
+})
+
+test('safe_sql_query_validator: backtick in alias reference (order_by) is invalid', () => {
+	const query = {
+		...valid_query,
+		order_by: [{ expression: { type: 'alias reference', alias: 'total`, x' }, direction: 'ASC' }],
+	}
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
+})
+
+test('safe_sql_query_validator: backtick in having alias reference is invalid', () => {
+	const query = {
+		...valid_query,
+		having: {
+			type: 'and',
+			expressions: [
+				{ type: 'comparison', left: { type: 'alias reference', alias: 'total`)--' }, comparator: '>', right: { type: 'user provided value', value: 5 } },
+			],
+		},
+	}
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
+})
+
+test('safe_sql_query_validator: select function alias with backtick is invalid', () => {
+	const query = {
+		...valid_query,
+		select: [{
+			type: 'function',
+			function: 'COUNT',
+			arguments: [{ type: 'column reference', table_identifier: 'project', column: 'project_id' }],
+			alias: 'c`, secret',
+			table_identifier: 'project',
+		}],
+	}
+	assert.strictEqual(safe_sql_query_validator.is_valid(query), false)
+})
+
 test('safe_sql_query_validator: select OR grouping is valid', () => {
 	const query = {
 		...valid_query,
