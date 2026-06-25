@@ -238,14 +238,28 @@ type State = {
 	limit: bigint | null
 }
 
+// Identifiers are interpolated straight into the SQL string (inside backticks), not parameterized,
+// so the builder rejects anything outside a safe character set up front. This mirrors the assertion
+// in safe_sql_query_validator.ts — the validator is the security boundary on the server; this is the
+// same rule enforced early for a clear error at construction time.
+const assert_identifier = (s: string, role: string): string => {
+	assert(/^\w+$/.test(s), `${role} must be a valid SQL identifier (letters, numbers, and underscores only): ${JSON.stringify(s)}`)
+	return s
+}
+
 const parse_table_alias = (s: string): { table: string; alias: string } => {
 	const m = /^(\w+)\s+AS\s+(\w+)$/i.exec(s)
-	return m ? { table: m[1]!, alias: m[2]! } : { table: s, alias: s }
+	return m
+		? { table: m[1]!, alias: m[2]! }
+		: { table: assert_identifier(s, 'table name'), alias: assert_identifier(s, 'alias') }
 }
 
 const parse_col_ref = (s: string): { table: string; column: string } => {
 	const dot = s.indexOf('.')
-	return { table: s.slice(0, dot), column: s.slice(dot + 1) }
+	return {
+		table: assert_identifier(s.slice(0, dot), 'table identifier'),
+		column: assert_identifier(s.slice(dot + 1), 'column'),
+	}
 }
 
 const to_select_expression = (input: string | SelectableFunctionExpression): SelectExpression => {
@@ -288,6 +302,8 @@ const expression_builder = {
 const to_alias_or_value = (input: string | { value: unknown }): AliasReference | UserProvidedValue =>
 	typeof input === 'object'
 		? { type: 'user provided value', value: input.value }
+		// Alias references are typed as the finite union of selected aliases (RowIdentifiers), so the
+		// type system already constrains them; the validator is the authoritative runtime guard.
 		: { type: 'alias reference', alias: input }
 
 type AliasOrValueInput = string | { value: unknown }
@@ -316,6 +332,8 @@ const select_expression_builder = {
 		if (col_refs.length > 2) throw new Error('fn supports at most 2 arguments')
 		const [table_identifier, col_alias, ...rest] = alias.split('.')
 		assert(table_identifier && col_alias && rest.length === 0, `select fn alias must be "table.col_alias": ${alias}`)
+		assert_identifier(table_identifier, 'select fn table identifier')
+		assert_identifier(col_alias, 'select fn alias')
 		const args = col_refs.map(r => {
 			const { table, column } = parse_col_ref(r)
 			return { type: 'column reference' as const, table_identifier: table, column }
@@ -325,11 +343,15 @@ const select_expression_builder = {
 	and: (alias: string, ...items: (string | SelectGrouping)[]): InternalSelectGrouping => {
 		const [table_identifier, col_alias, ...rest] = alias.split('.')
 		assert(table_identifier && col_alias && rest.length === 0, `select grouping alias must be "table.col_alias": ${alias}`)
+		assert_identifier(table_identifier, 'select grouping table identifier')
+		assert_identifier(col_alias, 'select grouping alias')
 		return { type: 'and', expressions: items.map(to_select_grouping_expression), table_identifier, alias: col_alias }
 	},
 	or: (alias: string, ...items: (string | SelectGrouping)[]): InternalSelectGrouping => {
 		const [table_identifier, col_alias, ...rest] = alias.split('.')
 		assert(table_identifier && col_alias && rest.length === 0, `select grouping alias must be "table.col_alias": ${alias}`)
+		assert_identifier(table_identifier, 'select grouping table identifier')
+		assert_identifier(col_alias, 'select grouping alias')
 		return { type: 'or', expressions: items.map(to_select_grouping_expression), table_identifier, alias: col_alias }
 	},
 }
