@@ -42,7 +42,10 @@ export const create_company = async (
 			.limit(1n)
 			.build()
 
-		const project_document_row = await mysql.query(safe_query_builder.to_sql(project_document_query.query)).get_first_row<unknown[]>()
+		const project_document_row = await mysql.query(safe_query_builder.to_sql(project_document_query.query)).get_first_row()
+		if (!project_document_row) {
+			throw new Error('Cannot create a company: no project_document rows exist to use as the default initial project document')
+		}
 		const default_initial_project_document_id = project_document_query.positional_row_to_named(project_document_row).project_document.project_document_id
 
 		const company_id = await mysql.query({
@@ -58,7 +61,7 @@ export const create_company = async (
 			.select(() => ['permission.permission_id', 'permission.code'])
 			.build()
 
-		const permission_rows = await mysql.query(safe_query_builder.to_sql(permission_query.query)).get_rows<unknown[]>()
+		const permission_rows = await mysql.query(safe_query_builder.to_sql(permission_query.query)).get_rows()
 		const permission_id_by_code = new Map(permission_rows.map(row => {
 			const { permission } = permission_query.positional_row_to_named(row)
 			return [permission.code, permission.permission_id]

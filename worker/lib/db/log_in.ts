@@ -1,5 +1,8 @@
 import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
 import { password_hash } from '#worker/lib/password_hash.ts'
+import query_builder from '#shared/sql_request/typed_query_builder.ts'
+import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
+import type { Schema } from '#schema/types.ts'
 
 type LogInArg = {
 	email: string
@@ -18,14 +21,24 @@ type LogInResult = {
 const failed_log_in_result: LogInResult = { logged_in: false, session_identifier: null }
 
 export const log_in = async ({ email, password, user_agent }: LogInArg, mysql: MysqlHelpersObject): Promise<LogInResult> => {
-	const employee = await mysql.query({
-		sql: 'SELECT employee_id, company_id, password_hash, number_of_password_hash_iterations FROM employee WHERE email = ?',
-		values: [email],
-	}).get_first_row<Pick<DbEmployee, 'employee_id' | 'company_id' | 'password_hash' | 'number_of_password_hash_iterations'> | null>()
+	const employee_query = query_builder<Schema>()
+		.from('employee')
+		.where(q => q.comparison('employee.email', '=', { value: email }))
+		.select(() => [
+			'employee.employee_id',
+			'employee.company_id',
+			'employee.password_hash',
+			'employee.number_of_password_hash_iterations',
+		])
+		.build()
 
-	if (!employee) {
+	const employee_row = await mysql.query(safe_query_builder.to_sql(employee_query.query)).get_first_row()
+
+	if (!employee_row) {
 		return failed_log_in_result
 	}
+
+	const { employee } = employee_query.positional_row_to_named(employee_row)
 
 	const hash_buffer = await password_hash(password, employee.company_id, employee.number_of_password_hash_iterations)
 	const hash_hex = Array.from(new Uint8Array(hash_buffer)).map(b => b.toString(16).padStart(2, '0')).join('')

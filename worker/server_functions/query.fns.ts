@@ -27,7 +27,7 @@ export const functions = {
 			const tenanted_query = make_tenanted_query(query, context.company.company_id)
 			const { sql, values } = safe_query_builder.to_sql(tenanted_query)
 
-			return context.mysql.query({ sql, values }).get_rows<unknown[]>()
+			return context.mysql.query({ sql, values }).get_rows()
 		},
 	}),
 }
