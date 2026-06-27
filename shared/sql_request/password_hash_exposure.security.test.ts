@@ -1,21 +1,20 @@
 /*
- * SECURITY DEMONSTRATION TEST
+ * SECURITY REGRESSION TEST
  *
- * This test reproduces the exact validation + tenanting + SQL-generation pipeline that the
- * public `query` server function (worker/server_functions/query.fns.ts) runs on attacker-supplied
- * input, and shows that it happily produces a query that reads the `employee.password_hash` column.
+ * The generic `query` server function (worker/server_functions/query.fns.ts) lets any authenticated
+ * employee run an arbitrary SELECT. It enforces a table blacklist, a per-company tenant filter, and
+ * table/column validation — the last of which now also enforces a per-table column allowlist.
  *
- * The `query` endpoint enforces:
- *   1. a TABLE blacklist (employee_session, migration)
- *   2. table/column existence against the schema
- *   3. a per-company tenant filter (company_id = <my company>)
+ * Without a column allowlist, any employee could select employee.password_hash (and the iteration
+ * count) for every employee in their company and crack them offline. These tests pin the allowlist
+ * behaviour:
+ *   - password material on the employee table is rejected anywhere it is referenced
+ *     (SELECT, WHERE, ORDER BY, function arguments), not just in the SELECT list
+ *   - non-sensitive employee columns still work
+ *   - tables without an allowlist entry remain fully readable
  *
- * There is NO column-level access control. So any authenticated, low-privilege employee can run a
- * query selecting `employee.password_hash` (and `number_of_password_hash_iterations`) for every
- * employee in their company — including owners. Combined with the predictable per-company salt
- * (the salt is `company_id`, see worker/lib/password_hash.ts) and the iteration count being stored
- * alongside, these hashes are crackable offline, enabling intra-tenant account takeover /
- * privilege escalation.
+ * It exercises the real, wired-up builder (worker/lib/db/safe_query_builder.ts), so it fails if the
+ * allowlist is ever removed or the sensitive columns are added back.
  */
 
 import { test } from 'node:test'
@@ -23,82 +22,110 @@ import * as assert from 'node:assert'
 
 import { safe_sql_query_validator, type SafeSqlQuery } from './safe_sql_query_validator.ts'
 import table_blacklist_validator from './table_blacklist_validator.ts'
-import prep_tenant_function from './make_tenanted_query.ts'
-import { make_safe_query_builder } from './safe_sql_query.ts'
-import * as schema from '#schema/constants.ts'
+import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
 
-// Mirror the exact configuration from worker/server_functions/query.fns.ts
 const blacklist_validator = table_blacklist_validator(['employee_session', 'migration'])
-const make_tenanted_query = prep_tenant_function({
-	non_tenanted_table_names: ['permission', 'project_document'],
-	column_name: 'company_id',
-})
-const safe_query_builder = make_safe_query_builder(schema)
 
-// Run the full server-side pipeline exactly as the query endpoint does.
-const run_query_pipeline = (query: SafeSqlQuery, my_company_id: bigint) => {
+// Run the validation gate exactly as the query endpoint does, returning the rejection messages
+// (empty array means the query would be accepted and executed).
+const rejection_messages = (query: SafeSqlQuery): string[] => {
 	assert.ok(safe_sql_query_validator.is_valid(query), 'arg should pass the structural validator')
-
 	const blacklisted = blacklist_validator(query)
-	assert.deepStrictEqual(blacklisted, [], 'should not be blacklisted')
-
-	const names = safe_query_builder.validate_table_and_column_names(query)
-	assert.ok(names.valid, `table/column validation: ${names.valid ? '' : names.messages.join(', ')}`)
-
-	const tenanted = make_tenanted_query(query, my_company_id)
-	return safe_query_builder.to_sql(tenanted)
+	if (blacklisted.length > 0) return blacklisted
+	const result = safe_query_builder.validate_table_and_column_names(query)
+	return result.valid ? [] : result.messages
 }
 
-test('VULN: query endpoint exposes employee.password_hash to any authenticated user', () => {
-	// An attacker (any logged-in employee) submits this as the body of POST /api/fn/query
-	const malicious_query: SafeSqlQuery = {
-		select: [
-			{ type: 'column reference', table_identifier: 'e', column: 'email' },
-			{ type: 'column reference', table_identifier: 'e', column: 'password_hash' },
-			{ type: 'column reference', table_identifier: 'e', column: 'number_of_password_hash_iterations' },
-			{ type: 'column reference', table_identifier: 'e', column: 'is_owner' },
-		],
-		from: { table_name: 'employee', alias: 'e' },
-		joins: [],
-		where: null,
-		group_by: [],
-		order_by: [],
-		limit: null,
-		having: null,
-	}
-
-	const { sql } = run_query_pipeline(malicious_query, 42n)
-
-	// The endpoint produces SQL that returns password hashes. The ONLY scoping is by company_id,
-	// not by the requesting employee — so the caller reads every coworker's hash, including owners'.
-	assert.match(sql, /`e`\.`password_hash`/)
-	assert.match(sql, /`e`\.`number_of_password_hash_iterations`/)
-	assert.match(sql, /WHERE `e`\.`company_id` = \?/)
-
-	// There is no filter restricting the result to the caller's own employee row.
-	assert.doesNotMatch(sql, /employee_id/, 'no per-user restriction is applied — all company hashes are returned')
-
-	console.error('\n--- SQL the public query endpoint would execute ---\n' + sql + '\n')
+const employee_query = (overrides: Partial<SafeSqlQuery>): SafeSqlQuery => ({
+	select: [{ type: 'column reference', table_identifier: 'e', column: 'email' }],
+	from: { table_name: 'employee', alias: 'e' },
+	joins: [],
+	where: null,
+	group_by: [],
+	order_by: [],
+	limit: null,
+	having: null,
+	...overrides,
 })
 
-test('CONTROL: blacklisting employee_session is the only thing stopping session-token theft', () => {
-	// Demonstrates the protection is table-granular, not column-granular: swapping the table to the
-	// blacklisted employee_session is rejected, but reading sensitive columns of allowed tables is not.
-	const steal_sessions: SafeSqlQuery = {
-		select: [{ type: 'column reference', table_identifier: 's', column: 'identifier' }],
-		from: { table_name: 'employee_session', alias: 's' },
+const password_hash_ref = { type: 'column reference' as const, table_identifier: 'e', column: 'password_hash' }
+
+test('password_hash cannot be SELECTed through the query endpoint', () => {
+	const messages = rejection_messages(employee_query({
+		select: [password_hash_ref],
+	}))
+	assert.ok(messages.length > 0, 'selecting password_hash must be rejected')
+	assert.match(messages.join(', '), /password_hash/)
+})
+
+test('number_of_password_hash_iterations cannot be SELECTed through the query endpoint', () => {
+	const messages = rejection_messages(employee_query({
+		select: [{ type: 'column reference', table_identifier: 'e', column: 'number_of_password_hash_iterations' }],
+	}))
+	assert.ok(messages.length > 0, 'selecting the iteration count must be rejected')
+})
+
+test('password_hash cannot be exfiltrated via a WHERE filter (blind extraction)', () => {
+	// Even without selecting it, a WHERE predicate over password_hash would leak it one bit at a
+	// time. The allowlist is enforced on every column reference, so this is rejected too.
+	const messages = rejection_messages(employee_query({
+		where: {
+			type: 'and',
+			expressions: [{
+				type: 'comparison',
+				left: password_hash_ref,
+				comparator: '>',
+				right: { type: 'user provided value', value: 'a' },
+			}],
+		},
+	}))
+	assert.ok(messages.length > 0, 'referencing password_hash in WHERE must be rejected')
+})
+
+test('password_hash cannot be exfiltrated via ORDER BY', () => {
+	const messages = rejection_messages(employee_query({
+		order_by: [{ expression: password_hash_ref, direction: 'ASC' }],
+	}))
+	assert.ok(messages.length > 0, 'referencing password_hash in ORDER BY must be rejected')
+})
+
+test('password_hash cannot be smuggled through a function argument', () => {
+	const messages = rejection_messages(employee_query({
+		select: [{
+			type: 'function',
+			function: 'COUNT',
+			arguments: [password_hash_ref],
+			alias: 'c',
+			table_identifier: 'e',
+		}],
+	}))
+	assert.ok(messages.length > 0, 'password_hash inside a function argument must be rejected')
+})
+
+test('non-sensitive employee columns are still readable', () => {
+	const messages = rejection_messages(employee_query({
+		select: [
+			{ type: 'column reference', table_identifier: 'e', column: 'email' },
+			{ type: 'column reference', table_identifier: 'e', column: 'name' },
+			{ type: 'column reference', table_identifier: 'e', column: 'is_owner' },
+		],
+	}))
+	assert.deepStrictEqual(messages, [], 'allowed employee columns must still pass')
+})
+
+test('tables without an allowlist entry remain fully readable', () => {
+	const messages = rejection_messages({
+		select: [
+			{ type: 'column reference', table_identifier: 'c', column: 'name' },
+			{ type: 'column reference', table_identifier: 'c', column: 'notes' },
+		],
+		from: { table_name: 'client', alias: 'c' },
 		joins: [],
 		where: null,
 		group_by: [],
 		order_by: [],
 		limit: null,
 		having: null,
-	}
-
-	assert.ok(safe_sql_query_validator.is_valid(steal_sessions))
-	assert.notDeepStrictEqual(
-		blacklist_validator(steal_sessions),
-		[],
-		'employee_session is blacklisted (good) — but password_hash on the allowed employee table is not protected',
-	)
+	})
+	assert.deepStrictEqual(messages, [], 'client has no allowlist, so all its columns stay readable')
 })
