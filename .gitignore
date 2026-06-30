@@ -1,5 +1,6 @@
 node_modules
 *.sublime-workspace
+.env
 
 /arbostar_export/
 /scripts/arbostar/.arbostar_session.json
