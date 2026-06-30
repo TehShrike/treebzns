@@ -1,0 +1,13 @@
+{
+	"base_url": "https://YOUR-ACCOUNT.arbostar.com",
+	"headers": {
+		"cookie": "XSRF-TOKEN=...; YOUR-ACCOUNT_session=...",
+		"x-csrf-token": "...",
+		"x-device-id": "...",
+		"x-fingerprint": "..."
+	},
+	"cookies": [
+		{ "name": "XSRF-TOKEN", "value": "...", "domain": "YOUR-ACCOUNT.arbostar.com", "path": "/" },
+		{ "name": "YOUR-ACCOUNT_session", "value": "...", "domain": "YOUR-ACCOUNT.arbostar.com", "path": "/" }
+	]
+}

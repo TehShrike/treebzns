@@ -1,5 +1,8 @@
 node_modules
 *.sublime-workspace
+
+/arbostar_export/
+/scripts/arbostar/.arbostar_session.json
 .wrangler/
 build/
 *.generated.*

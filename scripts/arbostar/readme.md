@@ -1,0 +1,532 @@
+# ArboStar data export
+
+One-off scripts to pull data out of ArboStar
+into JSON. ArboStar has no bulk/export API and no
+single "give me everything" endpoint — the list screens are each backed by their own
+[jQuery DataTables](https://datatables.net/manual/server-side) endpoint (paged through), and
+line items / full addresses only exist behind per-record detail endpoints (fetched one by one).
+
+## Files
+
+| File | What it is |
+| --- | --- |
+| `fetch_datatable.ts` | Generic DataTables fetcher (pagination + the status-union logic below). Engine behind the list exports. |
+| `fetch_record.ts` | Single-record JSON GET + a concurrency-limited mapper. Engine behind the per-record exports (line items, addresses). |
+| `fetch_clients.ts` | Thin typed wrapper over the generic fetcher, pinned to `/clients`. |
+| `.arbostar_session.json` | **Credentials + account base URL. Gitignored — never committed.** Copy `.arbostar_session.example.json` to it and fill in. |
+| `session.ts` | Loads `.arbostar_session.json` and exposes `BASE_URL` / `AUTH_HEADERS` / `BROWSER_COOKIES`. |
+| `output.ts` | Reads/writes `arbostar_export/` at the repo root (gitignored). |
+| `export_*.ts` | One run-now script per dataset. |
+| `types/*.d.ts` | The shape of each output file's records (`Client`, `Contact`, `WorkOrder`, `Lead`, `Estimate`, `Invoice`, `LineItem`, `ClientAddress`). |
+| `discover_endpoints.ts` / `discover_details.ts` | Puppeteer crawlers that record the app's XHRs (list pages / detail pages). `discover_endpoints.ts` regenerates `arbostar_endpoints.json`. |
+| `arbostar_endpoints.json` | Map of all ~36 list/XHR endpoints, with an example `path_and_query` for each. |
+
+## Running an export
+
+```sh
+node scripts/arbostar/export_clients.ts      # -> clients.json + contacts.json
+node scripts/arbostar/export_workorders.ts   # -> workorders.json
+node scripts/arbostar/export_leads.ts        # -> leads.json
+node scripts/arbostar/export_estimates.ts    # -> estimates.json   (two passes)
+node scripts/arbostar/export_invoices.ts     # -> invoices.json
+node scripts/arbostar/export_addresses.ts    # -> addresses.json   (reads clients.json; ~1430 profile fetches)
+node scripts/arbostar/export_line_items.ts   # -> line_items.json  (reads estimates.json; ~1684 × 355 KB — slowest)
+```
+
+`export_addresses.ts` and `export_line_items.ts` depend on `clients.json` / `estimates.json`
+respectively, so run those first. All output lands in `arbostar_export/`.
+
+Approximate volumes (June 2026): clients 1430 / contacts 1491, leads 1850, workorders 836,
+estimates 1684, invoices 826, addresses ~1430+, line items several thousand. "Projects" in
+ArboStar are **Work Orders** (`/workorders`).
+
+## Auth / refreshing the session
+
+Credentials and the account base URL live **only** in `scripts/arbostar/.arbostar_session.json`,
+which is gitignored and must never be committed. To set up: copy `.arbostar_session.example.json`
+to `.arbostar_session.json`. To refresh: open the app logged-in, DevTools → Network → click any
+datatable request (e.g. to `/clients`) → Copy as cURL, then fill in:
+
+- `base_url` — your account origin, e.g. `https://your-account.arbostar.com`
+- `headers.cookie` (only `XSRF-TOKEN` and `[identifier]_session` actually matter)
+- `headers.x-csrf-token` (same value as the XSRF-TOKEN cookie), `x-device-id`, `x-fingerprint`
+- `cookies` — the same `XSRF-TOKEN` + `[identifier]_session` as `{name,value,domain,path}` objects,
+  used by the puppeteer discovery scripts (which set browser cookies rather than headers)
+
+The `[identifier]_session` cookie expires every couple of days. **Symptom of a stale
+session: the export throws `request failed: 302`** (a redirect to the login page).
+
+## How the endpoints work (the non-obvious bits)
+
+All module endpoints (`/clients`, `/leads`, `/estimates`, `/invoices`, `/workorders`) speak
+the same DataTables protocol over `GET`:
+
+- **Rows are nested under `data.original`**, not the top level. The grand total is
+  `recordsTotal` at the top level. (A few endpoints return `data` as a bare array; the
+  fetcher handles both.)
+- **Pagination** is `start` (offset) + `length` (page size), with a `draw` counter that just
+  echoes back. We page at 200.
+- **You must declare the column you order by.** The server reads `order[0][column]=N` and then
+  looks up `columns[N][name]` for the DB column. If column `N` isn't declared you get a
+  **500** — this is why a "minimal" request with just `start`/`length` fails for most modules
+  even though it happens to work for `/clients`. The fetcher always emits one
+  `columns[N][...]` block matching the order column.
+- **Required headers:** `x-requested-with: XMLHttpRequest` and `x-request-type: datatable`.
+  Without them you get HTML, not JSON.
+- Responses also carry a `statuses` array (the status-tab definitions) — that's where the
+  status-number meanings below come from.
+
+### The status-filter gotcha (why estimates/invoices/leads need two passes)
+
+Each list is scoped by a **status tab**, passed as repeated `status_ids[]` params. There's a
+`-1` "All" sentinel — **but what `-1` actually returns is inconsistent per module**, and the
+on-screen default view is almost never the full dataset:
+
+| Module | `status_ids[]=-1` returns | Full dataset needs |
+| --- | --- | --- |
+| `/workorders` | full history (836) ✅ | `-1` is enough |
+| `/estimates` | full history incl. declined (1684) ✅ | `-1` is enough |
+| `/leads` | only **active** leads (~4) ❌ | every status id (most leads become "Estimated" and leave the view) → 1850 |
+| `/invoices` | only **"All outstanding"** (27) ❌ — excludes Paid | every status id → 826 |
+
+Because no single filter is reliable, `fetch_all_rows_every_status()` does **both**: it fetches
+`status_ids[]=-1`, then fetches with **every** status id enumerated from the `statuses` array,
+and **unions the two by primary key**. That yields the maximum for every module without having
+to special-case each one. (Passing unknown ids — the string `overpaid`, the negative `-4` for
+Declined — is harmless; the server ignores them, and those rows are already covered by the
+other pass.)
+
+## Line items & full addresses (per-record detail endpoints)
+
+These don't exist on the list endpoints — each is a single-record JSON GET, fetched one per
+record via `fetch_record.ts`.
+
+**Line items** — `GET /estimates/edit/{LEAD_id}`, rows at `lead.estimate.estimates_service`:
+
+- **Keyed by lead id, NOT estimate id.** `/estimates/edit/1696` loads the estimate for *lead*
+  1696, which is a different estimate than the one whose DB `estimate_id` is 1696. Use the
+  `lead_id` from `estimates.json` (it's 1:1 with estimates here). The returned line items'
+  `estimate_id` then matches the list's `estimate_id`.
+- It's the **estimate editor**, so the payload is ~355 KB — it re-sends the whole service
+  catalog (`tree_types` alone is ~694 entries) on every call. There is no lighter endpoint and
+  no per-estimate route (all the `/estimates/get*`/`/estimates/services/{id}` guesses 404).
+- **One source covers everything.** Each `estimates_service` row carries `estimate_id`,
+  `invoice_id`, and `parent_invoice_id`. When an estimate is invoiced those rows get an
+  `invoice_id`; work orders schedule the same rows. So invoices and work orders have **no
+  separate line-item JSON endpoint** (the invoice editor renders them into HTML) — filter
+  `line_items.json` by `invoice_id` instead.
+- Line totals won't sum to the estimate total: `optional` lines and discounts are applied on top.
+
+**Client addresses** — `GET /clients/profile/indexData/{client_id}`, under `client`:
+
+- The clients **list** only exposes the primary address. A client may also have a **secondary**
+  address (`client_address2`/`client_city2`/`client_state2`/`client_zip2`), which only appears
+  on the profile. `export_addresses.ts` emits one row per non-empty address (`address_type`
+  `primary`|`secondary`).
+- Only the **primary** address is geocoded (`client_lat`/`client_lng`); secondary rows have
+  null lat/lng.
+
+## Datatable vs. full-endpoint columns
+
+The datatable endpoints return a **fixed projection**, not the whole record. Adding fields to
+the `columns[]` params does **not** change what comes back (verified: requesting `client_email`
+/`client_source`/`client_zip2` as columns left them absent) — `columns[]` only drives search and
+ordering. So the datatable cannot fetch every column.
+
+Neither source is a strict superset: the datatable adds **computed/joined** fields the raw record
+lacks (rollup totals, the latest lead/estimate, the primary contact, geocoded `address_related`),
+while the full entity has the bulk of the **raw** columns the datatable omits. `✓` = present,
+`—` = absent. A `—` in the **Datatable** column is something you only get from the full endpoint.
+(The clients/leads/estimates exports here deliberately ship a curated subset of these.)
+
+Invoices and work orders have **no** full-entity JSON endpoint, so their datatable projection is all that is available as JSON.
+
+### Clients
+
+- Datatable: `GET /clients` — 40 columns
+- Full entity: `GET /clients/profile/indexData/{client_id}` — 73 columns
+- **54 columns are only on the full endpoint** (what you miss with the datatable alone)
+
+| Column | Datatable | Full entity |
+| --- | :---: | :---: |
+| `address_line_display` | ✓ | ✓ |
+| `address_related` | ✓ | ✓ |
+| `all_taxes_with_client_tax` | — | ✓ |
+| `brand` | — | ✓ |
+| `cc_email` | ✓ | — |
+| `cc_name` | ✓ | — |
+| `cc_phone` | ✓ | — |
+| `cc_phone_config_status` | ✓ | — |
+| `cc_phone_masked` | ✓ | — |
+| `client_address` | ✓ | ✓ |
+| `client_address2` | ✓ | ✓ |
+| `client_address_check` | — | ✓ |
+| `client_autotax_name` | — | ✓ |
+| `client_autotax_rate` | — | ✓ |
+| `client_autotax_text` | — | ✓ |
+| `client_autotax_value` | — | ✓ |
+| `client_brand_id` | ✓ | ✓ |
+| `client_city` | ✓ | ✓ |
+| `client_city2` | — | ✓ |
+| `client_contact` | — | ✓ |
+| `client_country` | — | ✓ |
+| `client_date_created` | ✓ | ✓ |
+| `client_date_modified` | — | ✓ |
+| `client_email` | — | ✓ |
+| `client_email2` | — | ✓ |
+| `client_email2_check` | — | ✓ |
+| `client_email_check` | — | ✓ |
+| `client_fax` | — | ✓ |
+| `client_id` | ✓ | ✓ |
+| `client_intake_notes` | — | ✓ |
+| `client_integration_id` | ✓ | ✓ |
+| `client_is_refferal` | — | ✓ |
+| `client_last_integration_sync_result` | ✓ | ✓ |
+| `client_last_integration_time_log` | ✓ | ✓ |
+| `client_last_qb_sync_result` | — | ✓ |
+| `client_last_qb_time_log` | — | ✓ |
+| `client_lat` | — | ✓ |
+| `client_lng` | — | ✓ |
+| `client_main_intersection` | ✓ | ✓ |
+| `client_main_intersection2` | — | ✓ |
+| `client_maker` | — | ✓ |
+| `client_mobile` | — | ✓ |
+| `client_name` | ✓ | ✓ |
+| `client_payment_driver` | — | ✓ |
+| `client_payment_profile_id` | — | ✓ |
+| `client_payments_statistic` | — | ✓ |
+| `client_phone` | — | ✓ |
+| `client_preferred_language` | — | ✓ |
+| `client_promo_code` | — | ✓ |
+| `client_qb_id` | — | ✓ |
+| `client_rating` | — | ✓ |
+| `client_referred_by` | — | ✓ |
+| `client_source` | — | ✓ |
+| `client_state` | ✓ | ✓ |
+| `client_state2` | — | ✓ |
+| `client_status` | — | ✓ |
+| `client_tax_name` | — | ✓ |
+| `client_tax_rate` | — | ✓ |
+| `client_tax_text` | — | ✓ |
+| `client_tax_value` | — | ✓ |
+| `client_type` | ✓ | ✓ |
+| `client_type_icon` | — | ✓ |
+| `client_unsubscribe` | — | ✓ |
+| `client_unsubsribed` | — | ✓ |
+| `client_web` | — | ✓ |
+| `client_zip` | ✓ | ✓ |
+| `client_zip2` | — | ✓ |
+| `contacts` | ✓ | ✓ |
+| `disable_sync` | — | ✓ |
+| `est_status_name` | ✓ | — |
+| `estimate_id` | ✓ | — |
+| `estimates` | — | ✓ |
+| `estimator` | ✓ | — |
+| `full_address` | ✓ | ✓ |
+| `last_update` | — | ✓ |
+| `lead_address` | ✓ | — |
+| `lead_city` | ✓ | — |
+| `lead_country` | ✓ | — |
+| `lead_id` | ✓ | — |
+| `lead_state` | ✓ | — |
+| `lead_zip` | ✓ | — |
+| `papers` | — | ✓ |
+| `primary_contact` | — | ✓ |
+| `qb_html` | ✓ | — |
+| `status` | ✓ | — |
+| `system_create` | — | ✓ |
+| `system_update` | — | ✓ |
+| `tags` | ✓ | ✓ |
+| `tenant_id` | — | ✓ |
+| `total_confirmed_estimates_amount` | ✓ | — |
+| `total_declined_estimates_amount` | ✓ | — |
+| `total_estimate_price` | ✓ | — |
+| `total_pending_estimates_amount` | ✓ | — |
+| `user_id` | ✓ | — |
+
+### Leads
+
+- Datatable: `GET /leads` — 23 columns
+- Full entity: `GET /estimates/edit/{lead_id} → lead` — 81 columns
+- **69 columns are only on the full endpoint** (what you miss with the datatable alone)
+
+| Column | Datatable | Full entity |
+| --- | :---: | :---: |
+| `IsTaxRecomendationWarning` | — | ✓ |
+| `address_line_display` | ✓ | — |
+| `air_spading` | — | ✓ |
+| `all_taxes_with_lead_tax` | — | ✓ |
+| `arborist_consultation` | — | ✓ |
+| `arborist_report` | — | ✓ |
+| `client` | ✓ | ✓ |
+| `client_id` | — | ✓ |
+| `construction_arborist_report` | — | ✓ |
+| `development` | — | ✓ |
+| `emergency` | — | ✓ |
+| `estimate` | — | ✓ |
+| `estimator` | ✓ | — |
+| `files` | — | ✓ |
+| `form_id` | ✓ | — |
+| `gclid` | ✓ | — |
+| `hedge_maintenance` | — | ✓ |
+| `landscaping` | — | ✓ |
+| `last_update` | — | ✓ |
+| `last_update_status` | — | ✓ |
+| `latitude` | — | ✓ |
+| `lead_add_info` | — | ✓ |
+| `lead_address` | ✓ | ✓ |
+| `lead_assigned_date` | ✓ | ✓ |
+| `lead_author_id` | — | ✓ |
+| `lead_autotax_name` | — | ✓ |
+| `lead_autotax_rate` | — | ✓ |
+| `lead_autotax_value` | — | ✓ |
+| `lead_body` | — | ✓ |
+| `lead_call` | — | ✓ |
+| `lead_city` | — | ✓ |
+| `lead_comment_note` | — | ✓ |
+| `lead_contact_id` | — | ✓ |
+| `lead_country` | — | ✓ |
+| `lead_created_by` | ✓ | ✓ |
+| `lead_date_created` | ✓ | ✓ |
+| `lead_estimate_draft` | — | ✓ |
+| `lead_estimator` | — | ✓ |
+| `lead_gclid` | — | ✓ |
+| `lead_groups` | — | ✓ |
+| `lead_id` | ✓ | ✓ |
+| `lead_json_backup` | — | ✓ |
+| `lead_msclkid` | — | ✓ |
+| `lead_neighborhood` | — | ✓ |
+| `lead_no` | ✓ | ✓ |
+| `lead_postpone_date` | ✓ | ✓ |
+| `lead_priority` | ✓ | ✓ |
+| `lead_reason_status` | — | ✓ |
+| `lead_reason_status_id` | ✓ | ✓ |
+| `lead_reffered_by` | — | ✓ |
+| `lead_reffered_client` | — | ✓ |
+| `lead_reffered_user` | — | ✓ |
+| `lead_scheduled` | — | ✓ |
+| `lead_services` | — | ✓ |
+| `lead_source_details` | — | ✓ |
+| `lead_state` | — | ✓ |
+| `lead_status` | — | ✓ |
+| `lead_status_id` | ✓ | ✓ |
+| `lead_status_name` | ✓ | — |
+| `lead_tax_name` | — | ✓ |
+| `lead_tax_rate` | — | ✓ |
+| `lead_tax_value` | — | ✓ |
+| `lead_zip` | — | ✓ |
+| `lights_installation` | — | ✓ |
+| `longitude` | — | ✓ |
+| `other` | — | ✓ |
+| `planting` | — | ✓ |
+| `preliminary_estimate` | — | ✓ |
+| `root_fertilizing` | — | ✓ |
+| `shrub_maintenance` | — | ✓ |
+| `snow_removal` | — | ✓ |
+| `spraying` | — | ✓ |
+| `stump_removal` | — | ✓ |
+| `system_create` | — | ✓ |
+| `system_update` | — | ✓ |
+| `tags` | ✓ | ✓ |
+| `tax` | — | ✓ |
+| `tenant_id` | — | ✓ |
+| `timing` | — | ✓ |
+| `tpz_installation` | — | ✓ |
+| `tree_cabling` | — | ✓ |
+| `tree_pruning` | — | ✓ |
+| `tree_removal` | — | ✓ |
+| `trunk_injection` | — | ✓ |
+| `updated_at` | — | ✓ |
+| `utm_campaign` | ✓ | — |
+| `utm_content` | ✓ | — |
+| `utm_medium` | ✓ | — |
+| `utm_referral` | ✓ | — |
+| `utm_source` | ✓ | — |
+| `utm_term` | ✓ | — |
+| `wood_disposal` | — | ✓ |
+
+### Estimates
+
+- Datatable: `GET /estimates` — 12 columns
+- Full entity: `GET /estimates/edit/{lead_id} → lead.estimate` — 95 columns
+- **90 columns are only on the full endpoint** (what you miss with the datatable alone)
+
+| Column | Datatable | Full entity |
+| --- | :---: | :---: |
+| `arborist` | — | ✓ |
+| `assets_display_services` | — | ✓ |
+| `brand` | — | ✓ |
+| `brush_disposal` | — | ✓ |
+| `bucket_truck` | — | ✓ |
+| `bucket_truck_operator` | — | ✓ |
+| `chipper_operator` | — | ✓ |
+| `client` | ✓ | — |
+| `client_files` | — | ✓ |
+| `client_files_entity` | — | ✓ |
+| `client_id` | — | ✓ |
+| `client_payments` | — | ✓ |
+| `climber` | — | ✓ |
+| `crane` | — | ✓ |
+| `created_at` | — | ✓ |
+| `date_created` | — | ✓ |
+| `date_created_view` | ✓ | — |
+| `date_due` | — | ✓ |
+| `discount` | — | ✓ |
+| `dump_truck` | — | ✓ |
+| `email` | ✓ | — |
+| `estimate_assets` | — | ✓ |
+| `estimate_balance` | — | ✓ |
+| `estimate_brand_id` | — | ✓ |
+| `estimate_count_contact` | — | ✓ |
+| `estimate_crew_notes` | — | ✓ |
+| `estimate_groups` | — | ✓ |
+| `estimate_hst_disabled` | — | ✓ |
+| `estimate_id` | ✓ | ✓ |
+| `estimate_integration_id` | — | ✓ |
+| `estimate_item_equipment_setup` | — | ✓ |
+| `estimate_item_estimated_time` | — | ✓ |
+| `estimate_item_note_crew` | — | ✓ |
+| `estimate_item_note_estimate` | — | ✓ |
+| `estimate_item_note_payment` | — | ✓ |
+| `estimate_item_team` | — | ✓ |
+| `estimate_last_contact` | — | ✓ |
+| `estimate_no` | ✓ | ✓ |
+| `estimate_office_notes` | — | ✓ |
+| `estimate_pdf_files` | — | ✓ |
+| `estimate_planned_company_cost` | — | ✓ |
+| `estimate_planned_crews_cost` | — | ✓ |
+| `estimate_planned_equipments_cost` | — | ✓ |
+| `estimate_planned_extra_expenses` | — | ✓ |
+| `estimate_planned_overheads_cost` | — | ✓ |
+| `estimate_planned_profit` | — | ✓ |
+| `estimate_planned_profit_percents` | — | ✓ |
+| `estimate_planned_tax` | — | ✓ |
+| `estimate_planned_time` | — | ✓ |
+| `estimate_planned_total` | — | ✓ |
+| `estimate_planned_total_for_services` | — | ✓ |
+| `estimate_portal_client_notes` | — | ✓ |
+| `estimate_provided_by` | — | ✓ |
+| `estimate_qb_id` | — | ✓ |
+| `estimate_reason_decline` | — | ✓ |
+| `estimate_review_date` | — | ✓ |
+| `estimate_review_number` | — | ✓ |
+| `estimate_scheme` | — | ✓ |
+| `estimate_services_with_groups` | — | ✓ |
+| `estimate_status` | ✓ | — |
+| `estimate_tax_name` | — | ✓ |
+| `estimate_tax_rate` | — | ✓ |
+| `estimate_tax_value` | — | ✓ |
+| `estimates_service` | — | ✓ |
+| `full_cleanup` | — | ✓ |
+| `groundsmen` | — | ✓ |
+| `invoices` | — | ✓ |
+| `is_blocked_project` | — | ✓ |
+| `last_update` | — | ✓ |
+| `last_update_status` | — | ✓ |
+| `lead` | ✓ | ✓ |
+| `lead_id` | ✓ | ✓ |
+| `leave_wood` | — | ✓ |
+| `notification` | — | ✓ |
+| `paid_by_cc` | — | ✓ |
+| `paymentFiles` | — | ✓ |
+| `payment_files` | — | ✓ |
+| `permit_required` | — | ✓ |
+| `pw_certified_job_id` | — | ✓ |
+| `recurring_project_id` | — | ✓ |
+| `scheme_path` | — | ✓ |
+| `scheme_source_path` | — | ✓ |
+| `start_expiration_date` | — | ✓ |
+| `status` | ✓ | ✓ |
+| `stump_chips` | — | ✓ |
+| `stump_grinder` | — | ✓ |
+| `system_create` | — | ✓ |
+| `system_update` | — | ✓ |
+| `tags` | ✓ | — |
+| `taxation_interests` | — | ✓ |
+| `tenant_id` | — | ✓ |
+| `tmp_notes_from_portal` | — | ✓ |
+| `total_price` | ✓ | — |
+| `tree_inventory_pdf` | — | ✓ |
+| `tree_inventory_scheme_path` | — | ✓ |
+| `unsubscribe` | — | ✓ |
+| `updated_at` | — | ✓ |
+| `user` | ✓ | — |
+| `user_id` | — | ✓ |
+| `wood_chipper` | — | ✓ |
+| `workorder` | — | ✓ |
+| `workorder_files_entity` | — | ✓ |
+
+## What the opaque status numbers mean
+
+Captured June 2026 from each module's `statuses` array. IDs are **not** contiguous or shared
+across modules. `wo_status_id` / `lead_status_id` / `est_status_id` / `invoice_status_id` in
+the exports map as follows.
+
+### Leads — `lead_status_id`
+| id | name | notes |
+| --- | --- | --- |
+| 1 | New | default tab; genuinely-open leads |
+| 2 | For Approval | |
+| 3 | No Go | lost/rejected; see reason codes below |
+| 4 | Estimated | converted to an estimate (the bulk — ~1680) |
+| 5 | Draft | |
+| 6 | Spring PHC | seasonal campaign tag |
+
+`lead_reason_status_id` (only set on **No Go** leads): 1 Don't provide this service ·
+2 Out of service area · 3 Don't want work done anymore · 4 Already Done · 5 Duplicate lead ·
+6 Hydro · 7 Dangerous tree no access · 8 Spam · 9 Already hired someone else ·
+10 Lead not responding. (`0` = none.)
+
+### Work Orders — `wo_status_id`
+| id | name |
+| --- | --- |
+| 1 | Confirmed online |
+| 2 | Confirmed |
+| 3 | Scheduled - Confirmed |
+| 4 | Scheduled - Pending |
+| 5 | Stump Grinding |
+| 6 | Firewood delivery |
+| 7 | Finished by field worker |
+| 8 | Unfinished |
+| 9 | Complains |
+| 10 | On hold |
+| 11 | Repair |
+| 13 | Winter Schedule |
+| 14 | Spring PHC |
+| 15 | Summer PHC |
+| 16 | Planting |
+
+### Estimates — `status_id`
+| id | name |
+| --- | --- |
+| 1 | Draft / Unsent |
+| 2 | Sent for approval |
+| 3 | Pending approval |
+| 6 | Confirmed |
+| 7 | Contact the client |
+| 8 | Thinking – No Follow Up Needed |
+| 9 | Expired |
+| 10 | Credit |
+| -4 | Declined |
+
+### Invoices (status tab the row falls under)
+| id | name |
+| --- | --- |
+| 1 | Issued |
+| 2 | Overdue |
+| 3 | Sent |
+| 4 | Paid |
+| 5 | Hold Backs |
+| 6 | Pending Payment |
+| `overpaid` | Overpaid |
+
+`-1` here is labelled **"All outstanding"** and deliberately excludes Paid invoices — the
+reason the invoice export must enumerate every status id.
+
+## Regenerating the endpoint map
+
+`discover_endpoints.ts` drives the system Chrome (via `puppeteer-core`) around the app
+starting from `/`, harvesting nav links and recording every XHR. Paste fresh cookies into its
+`COOKIES` block (separate from `session.ts` — it sets browser cookies, not request headers)
+and run `node scripts/arbostar/discover_endpoints.ts`. It rewrites `arbostar_endpoints.json`
+(route metadata only — no response bodies or row data).

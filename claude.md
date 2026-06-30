@@ -223,3 +223,7 @@ If you are not writing the code into a file, once you have the final version of 
 ## SQL queries
 
 Use the typed_query_builder for all SELECT queries.
+
+## Exporting Arbostar client data
+
+Client domain names, session information, and data must never be committed to git.  They may be exported to gitignored files, to /tmp, and imported to mysql.

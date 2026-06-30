@@ -1,0 +1,821 @@
+[
+	{
+		"method": "GET",
+		"path": "/assets/js/modules/dashboard/components/login.js",
+		"path_and_query": "/assets/js/modules/dashboard/components/login.js",
+		"status": 200,
+		"content_type": "text/javascript",
+		"resource_type": "xhr",
+		"is_json": false,
+		"json_keys": [],
+		"records_total": null,
+		"seen_on": [
+			"/"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/assets/Note.mp3",
+		"path_and_query": "/assets/Note.mp3",
+		"status": 200,
+		"content_type": "audio/mpeg",
+		"resource_type": "xhr",
+		"is_json": false,
+		"json_keys": [],
+		"records_total": null,
+		"seen_on": [
+			"/",
+			"/business_intelligence/client_payments",
+			"/business_intelligence/crew_schedule_job_statistic",
+			"/business_intelligence/crews_statistic",
+			"/business_intelligence/estimates_report",
+			"/business_intelligence/estimates_statistic",
+			"/business_intelligence/invoices_report",
+			"/business_intelligence/invoices_statistic",
+			"/business_intelligence/job_performance",
+			"/business_intelligence/kpi_new_estimates",
+			"/business_intelligence/kpi_new_leads",
+			"/business_intelligence/leads_statistics",
+			"/business_intelligence/workorder_performance",
+			"/business_intelligence/workorders_report",
+			"/clients",
+			"/clients/bulk_copy",
+			"/clients/client_mailing",
+			"/clients/followup",
+			"/clients/letters",
+			"/clients/sms",
+			"/employees/crews",
+			"/estimates",
+			"/estimates/addons",
+			"/estimates/bundles",
+			"/estimates/declines",
+			"/estimates/estimate_equipment",
+			"/estimates/estimate_status",
+			"/estimates/groups",
+			"/estimates/own",
+			"/estimates/services",
+			"/invoices",
+			"/invoices/invoice_status",
+			"/leads",
+			"/leads/for_approval",
+			"/leads/lead_statuses",
+			"/leads/map",
+			"/recurring_projects/list",
+			"/schedule",
+			"/schedule/office",
+			"/schedule/price_difference",
+			"/schedule/reports",
+			"/schedule/teams/open_team",
+			"/settings/integrations/formio/schedule/settings",
+			"/workorders",
+			"/workorders/status"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/assets/vendors/diez/js/modules/datepicker.js",
+		"path_and_query": "/assets/vendors/diez/js/modules/datepicker.js",
+		"status": 200,
+		"content_type": "text/javascript",
+		"resource_type": "xhr",
+		"is_json": false,
+		"json_keys": [],
+		"records_total": null,
+		"seen_on": [
+			"/"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/assets/vendors/diez/js/modules/fileinput.js",
+		"path_and_query": "/assets/vendors/diez/js/modules/fileinput.js",
+		"status": 200,
+		"content_type": "text/javascript",
+		"resource_type": "xhr",
+		"is_json": false,
+		"json_keys": [],
+		"records_total": null,
+		"seen_on": [
+			"/"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/assets/vendors/diez/js/modules/form.js",
+		"path_and_query": "/assets/vendors/diez/js/modules/form.js",
+		"status": 200,
+		"content_type": "text/javascript",
+		"resource_type": "xhr",
+		"is_json": false,
+		"json_keys": [],
+		"records_total": null,
+		"seen_on": [
+			"/"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/assets/vendors/diez/js/modules/select-two.js",
+		"path_and_query": "/assets/vendors/diez/js/modules/select-two.js",
+		"status": 200,
+		"content_type": "text/javascript",
+		"resource_type": "xhr",
+		"is_json": false,
+		"json_keys": [],
+		"records_total": null,
+		"seen_on": [
+			"/"
+		]
+	},
+	{
+		"method": "POST",
+		"path": "/business_intelligence/clientPaymentsDatatable",
+		"path_and_query": "/business_intelligence/clientPaymentsDatatable",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"items",
+			"recordsTotal",
+			"recordsFiltered",
+			"total",
+			"total_tax",
+			"total_fee",
+			"accounts_total"
+		],
+		"records_total": 82,
+		"seen_on": [
+			"/business_intelligence/client_payments"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/business_intelligence/get_right_charts_for_statistic",
+		"path_and_query": "/business_intelligence/get_right_charts_for_statistic?from=2026-06-01&to=2026-06-30&estimator_id=&tag_ids=&client_type=",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"from",
+			"to",
+			"rightCharts"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/business_intelligence/leads_statistics"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/business_intelligence/kpi_new_estimates/datatables",
+		"path_and_query": "/business_intelligence/kpi_new_estimates/datatables?draw=1&columns%5B0%5D%5Bdata%5D=estimate_no&columns%5B0%5D%5Bname%5D=estimate_no&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=true&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=date_created&columns%5B1%5D%5Bname%5D=date_created&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=true&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=estimator&columns%5B2%5D%5Bname%5D=estimator&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=true&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=client_type&columns%5B3%5D%5Bname%5D=client_type&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=true&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=client_name&columns%5B4%5D%5Bname%5D=client_name&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=true&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=project_address&columns%5B5%5D%5Bname%5D=project_address&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=true&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B6%5D%5Bdata%5D=service_name&columns%5B6%5D%5Bname%5D=service_name&columns%5B6%5D%5Bsearchable%5D=true&columns%5B6%5D%5Borderable%5D=true&columns%5B6%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B6%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B7%5D%5Bdata%5D=class_name&columns%5B7%5D%5Bname%5D=class_name&columns%5B7%5D%5Bsearchable%5D=true&columns%5B7%5D%5Borderable%5D=true&columns%5B7%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B7%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B8%5D%5Bdata%5D=service_price&columns%5B8%5D%5Bname%5D=service_price&columns%5B8%5D%5Bsearchable%5D=true&columns%5B8%5D%5Borderable%5D=true&columns%5B8%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B8%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B9%5D%5Bdata%5D=discount&columns%5B9%5D%5Bname%5D=discount&columns%5B9%5D%5Bsearchable%5D=true&columns%5B9%5D%5Borderable%5D=true&columns%5B9%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B9%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B10%5D%5Bdata%5D=estimate_total_with_discount&columns%5B10%5D%5Bname%5D=estimate_total_with_discount&columns%5B10%5D%5Bsearchable%5D=true&columns%5B10%5D%5Borderable%5D=true&columns%5B10%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B10%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B11%5D%5Bdata%5D=tax_name&columns%5B11%5D%5Bname%5D=tax_name&columns%5B11%5D%5Bsearchable%5D=true&columns%5B11%5D%5Borderable%5D=true&columns%5B11%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B11%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B12%5D%5Bdata%5D=tax&columns%5B12%5D%5Bname%5D=tax&columns%5B12%5D%5Bsearchable%5D=true&columns%5B12%5D%5Borderable%5D=true&columns%5B12%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B12%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B13%5D%5Bdata%5D=price_with_tax&columns%5B13%5D%5Bname%5D=price_with_tax&columns%5B13%5D%5Bsearchable%5D=true&columns%5B13%5D%5Borderable%5D=true&columns%5B13%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B13%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=1&order%5B0%5D%5Bdir%5D=desc&start=0&length=50&search%5Bvalue%5D=&search%5Bregex%5D=false&report_date_from=06%2F22%2F2026&report_date_to=06%2F28%2F2026&services=&classes=&estimators=&_=1782592541262",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"draw",
+			"data",
+			"recordsTotal",
+			"recordsFiltered",
+			"overview",
+			"time"
+		],
+		"records_total": 38,
+		"seen_on": [
+			"/business_intelligence/kpi_new_estimates"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/business_intelligence/kpi_new_leads/datatables",
+		"path_and_query": "/business_intelligence/kpi_new_leads/datatables?draw=1&columns%5B0%5D%5Bdata%5D=lead_no&columns%5B0%5D%5Bname%5D=lead_no&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=true&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=lead_date_created&columns%5B1%5D%5Bname%5D=lead_date_created&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=true&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=estimator&columns%5B2%5D%5Bname%5D=estimator&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=true&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=client_type&columns%5B3%5D%5Bname%5D=client_type&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=true&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=client_name&columns%5B4%5D%5Bname%5D=client_name&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=true&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=project_address&columns%5B5%5D%5Bname%5D=project_address&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=false&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B6%5D%5Bdata%5D=email&columns%5B6%5D%5Bname%5D=email&columns%5B6%5D%5Bsearchable%5D=true&columns%5B6%5D%5Borderable%5D=true&columns%5B6%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B6%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B7%5D%5Bdata%5D=phone_number&columns%5B7%5D%5Bname%5D=phone_number&columns%5B7%5D%5Bsearchable%5D=true&columns%5B7%5D%5Borderable%5D=true&columns%5B7%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B7%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B8%5D%5Bdata%5D=referred_by&columns%5B8%5D%5Bname%5D=referred_by&columns%5B8%5D%5Bsearchable%5D=true&columns%5B8%5D%5Borderable%5D=false&columns%5B8%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B8%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B9%5D%5Bdata%5D=referred_by_name&columns%5B9%5D%5Bname%5D=referred_by_name&columns%5B9%5D%5Bsearchable%5D=true&columns%5B9%5D%5Borderable%5D=false&columns%5B9%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B9%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=1&order%5B0%5D%5Bdir%5D=desc&start=0&length=50&search%5Bvalue%5D=&search%5Bregex%5D=false&report_date_from=06%2F22%2F2026&report_date_to=06%2F28%2F2026&estimators=&_=1782592545805",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"draw",
+			"data",
+			"recordsTotal",
+			"recordsFiltered",
+			"new_leads_totals",
+			"time"
+		],
+		"records_total": 18,
+		"seen_on": [
+			"/business_intelligence/kpi_new_leads"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/business_intelligence/workorder_performance/getData",
+		"path_and_query": "/business_intelligence/workorder_performance/getData?draw=1&columns%5B0%5D%5Bdata%5D=0&columns%5B0%5D%5Bname%5D=workorder_no&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=true&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=1&columns%5B1%5D%5Bname%5D=date_created&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=true&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=2&columns%5B2%5D%5Bname%5D=client_name&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=true&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=3&columns%5B3%5D%5Bname%5D=lead_address&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=true&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=4&columns%5B4%5D%5Bname%5D=user_firstname&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=true&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=5&columns%5B5%5D%5Bname%5D=subtotal&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=false&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B6%5D%5Bdata%5D=6&columns%5B6%5D%5Bname%5D=estimated_hrs&columns%5B6%5D%5Bsearchable%5D=true&columns%5B6%5D%5Borderable%5D=false&columns%5B6%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B6%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B7%5D%5Bdata%5D=7&columns%5B7%5D%5Bname%5D=estimated_travel_hrs&columns%5B7%5D%5Bsearchable%5D=true&columns%5B7%5D%5Borderable%5D=false&columns%5B7%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B7%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B8%5D%5Bdata%5D=8&columns%5B8%5D%5Bname%5D=on_site_hrs&columns%5B8%5D%5Bsearchable%5D=true&columns%5B8%5D%5Borderable%5D=false&columns%5B8%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B8%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B9%5D%5Bdata%5D=9&columns%5B9%5D%5Bname%5D=travel_hrs&columns%5B9%5D%5Bsearchable%5D=true&columns%5B9%5D%5Borderable%5D=false&columns%5B9%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B9%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B10%5D%5Bdata%5D=10&columns%5B10%5D%5Bname%5D=efficiency&columns%5B10%5D%5Bsearchable%5D=true&columns%5B10%5D%5Borderable%5D=false&columns%5B10%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B10%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B11%5D%5Bdata%5D=11&columns%5B11%5D%5Bname%5D=&columns%5B11%5D%5Bsearchable%5D=true&columns%5B11%5D%5Borderable%5D=false&columns%5B11%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B11%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=0&order%5B0%5D%5Bdir%5D=asc&start=0&length=25&search%5Bvalue%5D=&search%5Bregex%5D=false&filters%5BdateEntity%5D=workorder&_=1782592555784",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"data",
+			"recordsTotal",
+			"recordsFiltered"
+		],
+		"records_total": 17,
+		"seen_on": [
+			"/business_intelligence/workorder_performance"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/business_intelligence/workorder_performance/showReport",
+		"path_and_query": "/business_intelligence/workorder_performance/showReport",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"estimators",
+			"crewMembers",
+			"woStatuses"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/business_intelligence/workorder_performance"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/clients",
+		"path_and_query": "/clients?draw=1&columns%5B0%5D%5Bdata%5D=0&columns%5B0%5D%5Bname%5D=client_id&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=true&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=1&columns%5B1%5D%5Bname%5D=client_type&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=false&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=2&columns%5B2%5D%5Bname%5D=client_name&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=true&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=3&columns%5B3%5D%5Bname%5D=&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=false&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=4&columns%5B4%5D%5Bname%5D=&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=false&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=5&columns%5B5%5D%5Bname%5D=&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=false&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B6%5D%5Bdata%5D=6&columns%5B6%5D%5Bname%5D=total_estimate_price&columns%5B6%5D%5Bsearchable%5D=true&columns%5B6%5D%5Borderable%5D=true&columns%5B6%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B6%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B7%5D%5Bdata%5D=qb_html&columns%5B7%5D%5Bname%5D=&columns%5B7%5D%5Bsearchable%5D=true&columns%5B7%5D%5Borderable%5D=false&columns%5B7%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B7%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=0&order%5B0%5D%5Bdir%5D=desc&start=0&length=50&search%5Bvalue%5D=&search%5Bregex%5D=false&_=1782592485754",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"data",
+			"recordsTotal",
+			"recordsFiltered"
+		],
+		"records_total": 1426,
+		"seen_on": [
+			"/clients"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/clients/getBulkCopy",
+		"path_and_query": "/clients/getBulkCopy",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"baseOptions"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/clients/bulk_copy"
+		]
+	},
+	{
+		"method": "POST",
+		"path": "/dashboard/ajax_counters",
+		"path_and_query": "/dashboard/ajax_counters",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"status",
+			"counters"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/",
+			"/business_intelligence/client_payments",
+			"/business_intelligence/crew_schedule_job_statistic",
+			"/business_intelligence/crews_statistic",
+			"/business_intelligence/estimates_report",
+			"/business_intelligence/estimates_statistic",
+			"/business_intelligence/invoices_report",
+			"/business_intelligence/invoices_statistic",
+			"/business_intelligence/job_performance",
+			"/business_intelligence/kpi_new_estimates",
+			"/business_intelligence/kpi_new_leads",
+			"/business_intelligence/leads_statistics",
+			"/business_intelligence/workorder_performance",
+			"/business_intelligence/workorders_report",
+			"/clients",
+			"/clients/bulk_copy",
+			"/clients/client_mailing",
+			"/clients/followup",
+			"/clients/letters",
+			"/clients/sms",
+			"/employees/crews",
+			"/estimates",
+			"/estimates/addons",
+			"/estimates/bundles",
+			"/estimates/declines",
+			"/estimates/estimate_equipment",
+			"/estimates/estimate_status",
+			"/estimates/groups",
+			"/estimates/own",
+			"/estimates/services",
+			"/invoices",
+			"/invoices/invoice_status",
+			"/leads",
+			"/leads/for_approval",
+			"/leads/lead_statuses",
+			"/leads/map",
+			"/recurring_projects/list",
+			"/schedule",
+			"/schedule/office",
+			"/schedule/price_difference",
+			"/schedule/reports",
+			"/schedule/teams/open_team",
+			"/settings/integrations/formio/schedule/settings",
+			"/workorders",
+			"/workorders/status"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/estimates",
+		"path_and_query": "/estimates?draw=1&columns%5B0%5D%5Bdata%5D=0&columns%5B0%5D%5Bname%5D=&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=false&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=1&columns%5B1%5D%5Bname%5D=client_name&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=true&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=2&columns%5B2%5D%5Bname%5D=tags&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=false&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=3&columns%5B3%5D%5Bname%5D=&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=false&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=4&columns%5B4%5D%5Bname%5D=&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=false&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=5&columns%5B5%5D%5Bname%5D=&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=false&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B6%5D%5Bdata%5D=6&columns%5B6%5D%5Bname%5D=&columns%5B6%5D%5Bsearchable%5D=true&columns%5B6%5D%5Borderable%5D=true&columns%5B6%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B6%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B7%5D%5Bdata%5D=7&columns%5B7%5D%5Bname%5D=full_name&columns%5B7%5D%5Bsearchable%5D=true&columns%5B7%5D%5Borderable%5D=true&columns%5B7%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B7%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B8%5D%5Bdata%5D=8&columns%5B8%5D%5Bname%5D=est_status_name&columns%5B8%5D%5Bsearchable%5D=true&columns%5B8%5D%5Borderable%5D=true&columns%5B8%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B8%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B9%5D%5Bdata%5D=9&columns%5B9%5D%5Bname%5D=&columns%5B9%5D%5Bsearchable%5D=true&columns%5B9%5D%5Borderable%5D=false&columns%5B9%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B9%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B10%5D%5Bdata%5D=10&columns%5B10%5D%5Bname%5D=&columns%5B10%5D%5Bsearchable%5D=true&columns%5B10%5D%5Borderable%5D=false&columns%5B10%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B10%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=5&order%5B0%5D%5Bdir%5D=desc&start=0&length=50&search%5Bvalue%5D=&search%5Bregex%5D=false&_=1782592494825",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"data",
+			"active_status",
+			"statuses",
+			"recordsTotal",
+			"recordsFiltered"
+		],
+		"records_total": 41,
+		"seen_on": [
+			"/estimates"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/estimates/addons/getData",
+		"path_and_query": "/estimates/addons/getData",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"data",
+			"types"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/estimates/addons"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/estimates/declines",
+		"path_and_query": "/estimates/declines?draw=1&columns%5B0%5D%5Bdata%5D=0&columns%5B0%5D%5Bname%5D=client_name&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=true&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=1&columns%5B1%5D%5Bname%5D=estimate_no&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=true&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=2&columns%5B2%5D%5Bname%5D=client_address&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=false&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=3&columns%5B3%5D%5Bname%5D=date_created&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=true&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=4&columns%5B4%5D%5Bname%5D=total_price&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=true&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=5&columns%5B5%5D%5Bname%5D=reason_name&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=false&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B6%5D%5Bdata%5D=6&columns%5B6%5D%5Bname%5D=action&columns%5B6%5D%5Bsearchable%5D=true&columns%5B6%5D%5Borderable%5D=false&columns%5B6%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B6%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=3&order%5B0%5D%5Bdir%5D=desc&start=0&length=50&search%5Bvalue%5D=&search%5Bregex%5D=false&from=06%2F01%2F2026&to=06%2F30%2F2026&status_reason_ids%5B%5D=1&status_reason_ids_mode=and&_=1782592601142",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"ok",
+			"reason_status",
+			"data",
+			"statuses",
+			"recordsTotal",
+			"recordsFiltered"
+		],
+		"records_total": 11,
+		"seen_on": [
+			"/estimates/declines"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/estimates/groups/fetchData",
+		"path_and_query": "/estimates/groups/fetchData",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"items"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/estimates/groups"
+		]
+	},
+	{
+		"method": "POST",
+		"path": "/frontend/templates",
+		"path_and_query": "/frontend/templates",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"main",
+			"partials"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/",
+			"/business_intelligence/client_payments",
+			"/business_intelligence/crew_schedule_job_statistic",
+			"/business_intelligence/crews_statistic",
+			"/business_intelligence/estimates_report",
+			"/business_intelligence/estimates_statistic",
+			"/business_intelligence/invoices_report",
+			"/business_intelligence/invoices_statistic",
+			"/business_intelligence/job_performance",
+			"/business_intelligence/kpi_new_estimates",
+			"/business_intelligence/kpi_new_leads",
+			"/business_intelligence/leads_statistics",
+			"/business_intelligence/workorder_performance",
+			"/clients",
+			"/clients/bulk_copy",
+			"/estimates",
+			"/estimates/addons",
+			"/estimates/groups",
+			"/estimates/own",
+			"/estimates/services",
+			"/invoices",
+			"/invoices/invoice_status",
+			"/leads",
+			"/leads/for_approval",
+			"/leads/lead_statuses",
+			"/leads/map",
+			"/recurring_projects/list",
+			"/schedule/office",
+			"/schedule/price_difference",
+			"/schedule/reports",
+			"/schedule/teams/open_team",
+			"/settings/integrations/formio/schedule/settings",
+			"/workorders",
+			"/workorders/status"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/invoices",
+		"path_and_query": "/invoices?draw=1&columns%5B0%5D%5Bdata%5D=0&columns%5B0%5D%5Bname%5D=client_name&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=true&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=1&columns%5B1%5D%5Bname%5D=&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=false&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=2&columns%5B2%5D%5Bname%5D=invoice_no&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=true&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=3&columns%5B3%5D%5Bname%5D=date_created&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=true&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=4&columns%5B4%5D%5Bname%5D=&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=false&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=5&columns%5B5%5D%5Bname%5D=&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=false&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B6%5D%5Bdata%5D=6&columns%5B6%5D%5Bname%5D=full_name&columns%5B6%5D%5Bsearchable%5D=true&columns%5B6%5D%5Borderable%5D=true&columns%5B6%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B6%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B7%5D%5Bdata%5D=7&columns%5B7%5D%5Bname%5D=totals.total_with_tax&columns%5B7%5D%5Bsearchable%5D=true&columns%5B7%5D%5Borderable%5D=true&columns%5B7%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B7%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B8%5D%5Bdata%5D=8&columns%5B8%5D%5Bname%5D=&columns%5B8%5D%5Bsearchable%5D=true&columns%5B8%5D%5Borderable%5D=false&columns%5B8%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B8%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B9%5D%5Bdata%5D=9&columns%5B9%5D%5Bname%5D=&columns%5B9%5D%5Bsearchable%5D=true&columns%5B9%5D%5Borderable%5D=false&columns%5B9%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B9%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B10%5D%5Bdata%5D=10&columns%5B10%5D%5Bname%5D=&columns%5B10%5D%5Bsearchable%5D=true&columns%5B10%5D%5Borderable%5D=false&columns%5B10%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B10%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=3&order%5B0%5D%5Bdir%5D=desc&start=0&length=50&search%5Bvalue%5D=&search%5Bregex%5D=false&_=1782592499317",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"data",
+			"active_status",
+			"statuses",
+			"overdueStatuses",
+			"recordsTotal",
+			"recordsFiltered",
+			"summarized"
+		],
+		"records_total": 2,
+		"seen_on": [
+			"/invoices"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/leads",
+		"path_and_query": "/leads?draw=1&columns%5B0%5D%5Bdata%5D=0&columns%5B0%5D%5Bname%5D=lead_id&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=true&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=1&columns%5B1%5D%5Bname%5D=client_name&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=true&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=2&columns%5B2%5D%5Bname%5D=lead_date_created&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=false&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=3&columns%5B3%5D%5Bname%5D=&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=false&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=4&columns%5B4%5D%5Bname%5D=lead_created_by&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=false&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=5&columns%5B5%5D%5Bname%5D=lead_date_created&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=true&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B6%5D%5Bdata%5D=6&columns%5B6%5D%5Bname%5D=lead_created_by&columns%5B6%5D%5Bsearchable%5D=true&columns%5B6%5D%5Borderable%5D=true&columns%5B6%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B6%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B7%5D%5Bdata%5D=7&columns%5B7%5D%5Bname%5D=full_name&columns%5B7%5D%5Bsearchable%5D=true&columns%5B7%5D%5Borderable%5D=true&columns%5B7%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B7%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B8%5D%5Bdata%5D=8&columns%5B8%5D%5Bname%5D=lead_status&columns%5B8%5D%5Bsearchable%5D=true&columns%5B8%5D%5Borderable%5D=false&columns%5B8%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B8%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B9%5D%5Bdata%5D=9&columns%5B9%5D%5Bname%5D=lead_postpone_date&columns%5B9%5D%5Bsearchable%5D=true&columns%5B9%5D%5Borderable%5D=true&columns%5B9%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B9%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B10%5D%5Bdata%5D=10&columns%5B10%5D%5Bname%5D=client_id&columns%5B10%5D%5Bsearchable%5D=true&columns%5B10%5D%5Borderable%5D=false&columns%5B10%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B10%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=0&order%5B0%5D%5Bdir%5D=desc&start=0&length=50&search%5Bvalue%5D=&search%5Bregex%5D=false&status_ids%5B%5D=1&status_ids%5B%5D=5&status_ids%5B%5D=6&_=1782592490392",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"statuses",
+			"data",
+			"recordsTotal",
+			"recordsFiltered",
+			"request"
+		],
+		"records_total": 8,
+		"seen_on": [
+			"/leads",
+			"/leads/for_approval"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/leads/gps/getTrackPins",
+		"path_and_query": "/leads/gps/getTrackPins",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"payload",
+			"result"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/leads/map"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/leads/map/tasks",
+		"path_and_query": "/leads/map/tasks",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"status",
+			"data"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/leads/map"
+		]
+	},
+	{
+		"method": "POST",
+		"path": "/messaging/ajax_get_count_unread",
+		"path_and_query": "/messaging/ajax_get_count_unread",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"status",
+			"result"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/",
+			"/business_intelligence/client_payments",
+			"/business_intelligence/crew_schedule_job_statistic",
+			"/business_intelligence/crews_statistic",
+			"/business_intelligence/estimates_report",
+			"/business_intelligence/estimates_statistic",
+			"/business_intelligence/invoices_report",
+			"/business_intelligence/invoices_statistic",
+			"/business_intelligence/job_performance",
+			"/business_intelligence/kpi_new_estimates",
+			"/business_intelligence/kpi_new_leads",
+			"/business_intelligence/leads_statistics",
+			"/business_intelligence/workorder_performance",
+			"/business_intelligence/workorders_report",
+			"/clients",
+			"/clients/bulk_copy",
+			"/clients/client_mailing",
+			"/clients/followup",
+			"/clients/letters",
+			"/clients/sms",
+			"/employees/crews",
+			"/estimates",
+			"/estimates/addons",
+			"/estimates/bundles",
+			"/estimates/declines",
+			"/estimates/estimate_equipment",
+			"/estimates/estimate_status",
+			"/estimates/groups",
+			"/estimates/own",
+			"/estimates/services",
+			"/invoices",
+			"/invoices/invoice_status",
+			"/leads",
+			"/leads/for_approval",
+			"/leads/lead_statuses",
+			"/leads/map",
+			"/recurring_projects/list",
+			"/schedule",
+			"/schedule/office",
+			"/schedule/price_difference",
+			"/schedule/reports",
+			"/schedule/teams/open_team",
+			"/settings/integrations/formio/schedule/settings",
+			"/workorders",
+			"/workorders/status"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/recurring_projects/get_list",
+		"path_and_query": "/recurring_projects/get_list?draw=1&columns%5B0%5D%5Bdata%5D=0&columns%5B0%5D%5Bname%5D=orig_no&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=true&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=1&columns%5B1%5D%5Bname%5D=entity&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=true&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=2&columns%5B2%5D%5Bname%5D=next_date&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=true&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=3&columns%5B3%5D%5Bname%5D=next_date&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=true&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=4&columns%5B4%5D%5Bname%5D=repeat&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=true&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=5&columns%5B5%5D%5Bname%5D=&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=false&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B6%5D%5Bdata%5D=6&columns%5B6%5D%5Bname%5D=&columns%5B6%5D%5Bsearchable%5D=true&columns%5B6%5D%5Borderable%5D=false&columns%5B6%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B6%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B7%5D%5Bdata%5D=7&columns%5B7%5D%5Bname%5D=&columns%5B7%5D%5Bsearchable%5D=true&columns%5B7%5D%5Borderable%5D=false&columns%5B7%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B7%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B8%5D%5Bdata%5D=8&columns%5B8%5D%5Bname%5D=&columns%5B8%5D%5Bsearchable%5D=true&columns%5B8%5D%5Borderable%5D=false&columns%5B8%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B8%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B9%5D%5Bdata%5D=9&columns%5B9%5D%5Bname%5D=&columns%5B9%5D%5Bsearchable%5D=true&columns%5B9%5D%5Borderable%5D=false&columns%5B9%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B9%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=2&order%5B0%5D%5Bdir%5D=asc&start=0&length=50&search%5Bvalue%5D=&search%5Bregex%5D=false&is_active=1&_=1782592646241",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"status",
+			"data",
+			"recordsTotal",
+			"recordsFiltered"
+		],
+		"records_total": 0,
+		"seen_on": [
+			"/recurring_projects/list"
+		]
+	},
+	{
+		"method": "POST",
+		"path": "/reports/invoicesDatatable",
+		"path_and_query": "/reports/invoicesDatatable",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"items",
+			"recordsTotal",
+			"recordsFiltered",
+			"totals",
+			"showClasses",
+			"time"
+		],
+		"records_total": 45,
+		"seen_on": [
+			"/business_intelligence/invoices_report"
+		]
+	},
+	{
+		"method": "POST",
+		"path": "/schedule/ajax_get_traking_position",
+		"path_and_query": "/schedule/ajax_get_traking_position",
+		"status": 200,
+		"content_type": "text/html",
+		"resource_type": "xhr",
+		"is_json": false,
+		"json_keys": [],
+		"records_total": null,
+		"seen_on": [
+			"/leads/map",
+			"/schedule"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/schedule/data",
+		"path_and_query": "/schedule/data?from=2026-06-27&to=2026-06-28&mode=unit&leader_id=&user_id=",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"count",
+			"data",
+			"basketCount"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/schedule"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/schedule/office/data",
+		"path_and_query": "/schedule/office/data?from=2026-06-22&to=2026-06-29&user_ids=&show_crew_jobs=1&timeshift=300",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"success",
+			"status",
+			"data",
+			"count"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/schedule/office"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/schedule/office/sections",
+		"path_and_query": "/schedule/office/sections?date=2026-06-27&user_ids=",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"success",
+			"status",
+			"data",
+			"count"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/schedule/office"
+		]
+	},
+	{
+		"method": "POST",
+		"path": "/schedule/reports/ajax_get_modal_templates",
+		"path_and_query": "/schedule/reports/ajax_get_modal_templates",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"status",
+			"template"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/schedule/reports"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/schedule/reports/ajax_get_reports",
+		"path_and_query": "/schedule/reports/ajax_get_reports?draw=1&columns%5B0%5D%5Bdata%5D=0&columns%5B0%5D%5Bname%5D=&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=false&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=1&columns%5B1%5D%5Bname%5D=crew_name&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=true&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=2&columns%5B2%5D%5Bname%5D=firstname&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=true&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=3&columns%5B3%5D%5Bname%5D=ev_date&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=true&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=4&columns%5B4%5D%5Bname%5D=reports_count&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=true&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=5&columns%5B5%5D%5Bname%5D=&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=false&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=3&order%5B0%5D%5Bdir%5D=desc&start=0&length=50&search%5Bvalue%5D=&search%5Bregex%5D=false&reports_status=0&_=1782592664990",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"status",
+			"data",
+			"countConfirmed",
+			"countUnconfirmed",
+			"countAllReports",
+			"recordsTotal",
+			"recordsFiltered"
+		],
+		"records_total": 3,
+		"seen_on": [
+			"/schedule/reports"
+		]
+	},
+	{
+		"method": "POST",
+		"path": "/schedule/scheduleBasket/getEventsCounter",
+		"path_and_query": "/schedule/scheduleBasket/getEventsCounter",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"counter"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/schedule"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/teams/mode/unit",
+		"path_and_query": "/teams/mode/unit?from=2026-06-27&to=2026-06-28&mode=unit&leader_id=&user_id=&date=2026-06-27",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"status",
+			"absences",
+			"members",
+			"free_members",
+			"free_items",
+			"free_tools",
+			"items",
+			"tools",
+			"sections",
+			"teams",
+			"bonuses",
+			"sorted_teams",
+			"note",
+			"update"
+		],
+		"records_total": null,
+		"seen_on": [
+			"/schedule"
+		]
+	},
+	{
+		"method": "GET",
+		"path": "/workorders",
+		"path_and_query": "/workorders?draw=1&columns%5B0%5D%5Bdata%5D=0&columns%5B0%5D%5Bname%5D=&columns%5B0%5D%5Bsearchable%5D=true&columns%5B0%5D%5Borderable%5D=false&columns%5B0%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B0%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B1%5D%5Bdata%5D=1&columns%5B1%5D%5Bname%5D=total_price&columns%5B1%5D%5Bsearchable%5D=true&columns%5B1%5D%5Borderable%5D=true&columns%5B1%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B1%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B2%5D%5Bdata%5D=2&columns%5B2%5D%5Bname%5D=mh_total_all&columns%5B2%5D%5Bsearchable%5D=true&columns%5B2%5D%5Borderable%5D=true&columns%5B2%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B2%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B3%5D%5Bdata%5D=3&columns%5B3%5D%5Bname%5D=workorder_no&columns%5B3%5D%5Bsearchable%5D=true&columns%5B3%5D%5Borderable%5D=true&columns%5B3%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B3%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B4%5D%5Bdata%5D=4&columns%5B4%5D%5Bname%5D=client_name&columns%5B4%5D%5Bsearchable%5D=true&columns%5B4%5D%5Borderable%5D=true&columns%5B4%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B4%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B5%5D%5Bdata%5D=5&columns%5B5%5D%5Bname%5D=tags&columns%5B5%5D%5Bsearchable%5D=true&columns%5B5%5D%5Borderable%5D=false&columns%5B5%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B5%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B6%5D%5Bdata%5D=6&columns%5B6%5D%5Bname%5D=date_created&columns%5B6%5D%5Bsearchable%5D=true&columns%5B6%5D%5Borderable%5D=true&columns%5B6%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B6%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B7%5D%5Bdata%5D=7&columns%5B7%5D%5Bname%5D=&columns%5B7%5D%5Bsearchable%5D=true&columns%5B7%5D%5Borderable%5D=false&columns%5B7%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B7%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B8%5D%5Bdata%5D=8&columns%5B8%5D%5Bname%5D=clients_contacts.cc_phone&columns%5B8%5D%5Bsearchable%5D=true&columns%5B8%5D%5Borderable%5D=false&columns%5B8%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B8%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B9%5D%5Bdata%5D=9&columns%5B9%5D%5Bname%5D=full_name&columns%5B9%5D%5Bsearchable%5D=true&columns%5B9%5D%5Borderable%5D=false&columns%5B9%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B9%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B10%5D%5Bdata%5D=10&columns%5B10%5D%5Bname%5D=wo_status_name&columns%5B10%5D%5Bsearchable%5D=true&columns%5B10%5D%5Borderable%5D=false&columns%5B10%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B10%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B11%5D%5Bdata%5D=11&columns%5B11%5D%5Bname%5D=latest_status_date&columns%5B11%5D%5Bsearchable%5D=true&columns%5B11%5D%5Borderable%5D=true&columns%5B11%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B11%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B12%5D%5Bdata%5D=12&columns%5B12%5D%5Bname%5D=&columns%5B12%5D%5Bsearchable%5D=true&columns%5B12%5D%5Borderable%5D=false&columns%5B12%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B12%5D%5Bsearch%5D%5Bregex%5D=false&columns%5B13%5D%5Bdata%5D=13&columns%5B13%5D%5Bname%5D=&columns%5B13%5D%5Bsearchable%5D=true&columns%5B13%5D%5Borderable%5D=false&columns%5B13%5D%5Bsearch%5D%5Bvalue%5D=&columns%5B13%5D%5Bsearch%5D%5Bregex%5D=false&order%5B0%5D%5Bcolumn%5D=6&order%5B0%5D%5Bdir%5D=desc&start=0&length=50&search%5Bvalue%5D=&search%5Bregex%5D=false&_=1782592678102",
+		"status": 200,
+		"content_type": "application/json",
+		"resource_type": "xhr",
+		"is_json": true,
+		"json_keys": [
+			"data",
+			"active_status",
+			"statuses",
+			"recordsTotal",
+			"recordsFiltered",
+			"totals"
+		],
+		"records_total": 25,
+		"seen_on": [
+			"/workorders"
+		]
+	}
+]
