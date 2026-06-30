@@ -207,7 +207,27 @@ const select_item_or_grouping_to_chunk = (item: SelectItem): SqlChunk => {
 	return select_item_to_chunk(item)
 }
 
-export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema: ThisSchema) => {
+// A column whitelist restricts which columns may be referenced through this builder's validation.
+// Semantics: if a table appears as a key, ONLY the listed columns may be referenced for that table;
+// every other column of that table is rejected. A table absent from the whitelist is unrestricted
+// (all of its columns remain referenceable). This is the access-control gate for untrusted queries —
+// only validate_table_and_column_names consults it, so trusted internal callers that go straight to
+// to_sql are unaffected.
+type ColumnWhitelist<ThisSchema extends SchemaColumns> = {
+	readonly [Table in keyof ThisSchema]?: ReadonlyArray<keyof ThisSchema[Table] & string>
+}
+
+export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(
+	schema: ThisSchema,
+	column_whitelist: ColumnWhitelist<ThisSchema> = {},
+) => {
+	const whitelisted_columns_by_table = new Map<string, ReadonlySet<string>>(
+		map(
+			Object.entries(column_whitelist) as Array<[string, ReadonlyArray<string>]>,
+			([table_name, columns]) => [table_name, new Set(columns)],
+		),
+	)
+
 	const validate_table_and_column_names = (query: SafeSqlQuery): QueryValidationResult => {
 		const messages: string[] = []
 		const alias_to_table_name = new Map<string, string>()
@@ -245,6 +265,11 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(schema
 				assert(table_columns)
 				if (!(ref.column in table_columns)) {
 					messages.push(`Unknown column "${ref.column}" on table identifier "${ref.table_identifier}"`)
+				} else {
+					const whitelisted_columns = whitelisted_columns_by_table.get(table_name)
+					if (whitelisted_columns && !whitelisted_columns.has(ref.column)) {
+						messages.push(`Column "${ref.column}" on table "${table_name}" is not available through this endpoint`)
+					}
 				}
 			} else {
 				messages.push(`Unknown table identifier: "${ref.table_identifier}"`)
