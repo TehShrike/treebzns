@@ -214,7 +214,7 @@ const select_item_or_grouping_to_chunk = (item: SelectItem): SqlChunk => {
 // only validate_table_and_column_names consults it, so trusted internal callers that go straight to
 // to_sql are unaffected.
 type ColumnWhitelist<ThisSchema extends SchemaColumns> = {
-	readonly [Table in keyof ThisSchema]?: ReadonlyArray<string>
+	readonly [Table in keyof ThisSchema]?: ReadonlyArray<keyof ThisSchema[Table] & string>
 }
 
 export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(

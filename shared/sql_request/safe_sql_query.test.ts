@@ -728,3 +728,20 @@ test('safe_sql_query: where OR grouping with nested AND', () => {
 	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nWHERE `p`.`client_id` = ?\n\tOR (`p`.`closed` = ? AND `p`.`emergency` = ?)')
 	assert.deepStrictEqual(values, [1, 0, 1])
 })
+
+test('the column whitelist argument typechecks column names against the table', () => {
+	// Valid table + valid columns: accepted.
+	make_safe_query_builder(test_schema, {
+		project: ['project_id', 'company_id'],
+		client: ['client_id', 'name'],
+	})
+
+	// @ts-expect-error - "not_a_real_column" is not a column of the project table
+	make_safe_query_builder(test_schema, { project: ['project_id', 'not_a_real_column'] })
+
+	// @ts-expect-error - "name" exists on client/permission but not on project
+	make_safe_query_builder(test_schema, { project: ['name'] })
+
+	// @ts-expect-error - "not_a_real_table" is not a table in the schema
+	make_safe_query_builder(test_schema, { not_a_real_table: ['project_id'] })
+})
