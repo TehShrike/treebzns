@@ -6,8 +6,8 @@ import * as schema from '#schema/constants.ts'
 // employee could exfiltrate every coworker's password hash and crack it offline. Allow every employee
 // column except the password material. Tables omitted here remain fully readable.
 const SENSITIVE_EMPLOYEE_COLUMNS = new Set<string>(['password_hash', 'number_of_password_hash_iterations'])
-const employee_allowed_columns = Object.keys(schema.employee).filter(column => !SENSITIVE_EMPLOYEE_COLUMNS.has(column))
+const employee_whitelisted_columns = Object.keys(schema.employee).filter(column => !SENSITIVE_EMPLOYEE_COLUMNS.has(column))
 
 export default make_safe_query_builder(schema, {
-	employee: employee_allowed_columns,
+	employee: employee_whitelisted_columns,
 })

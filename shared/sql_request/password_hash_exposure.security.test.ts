@@ -3,18 +3,18 @@
  *
  * The generic `query` server function (worker/server_functions/query.fns.ts) lets any authenticated
  * employee run an arbitrary SELECT. It enforces a table blacklist, a per-company tenant filter, and
- * table/column validation — the last of which now also enforces a per-table column allowlist.
+ * table/column validation — the last of which now also enforces a per-table column whitelist.
  *
- * Without a column allowlist, any employee could select employee.password_hash (and the iteration
- * count) for every employee in their company and crack them offline. These tests pin the allowlist
+ * Without a column whitelist, any employee could select employee.password_hash (and the iteration
+ * count) for every employee in their company and crack them offline. These tests pin the whitelist
  * behaviour:
  *   - password material on the employee table is rejected anywhere it is referenced
  *     (SELECT, WHERE, ORDER BY, function arguments), not just in the SELECT list
  *   - non-sensitive employee columns still work
- *   - tables without an allowlist entry remain fully readable
+ *   - tables without a whitelist entry remain fully readable
  *
  * It exercises the real, wired-up builder (worker/lib/db/safe_query_builder.ts), so it fails if the
- * allowlist is ever removed or the sensitive columns are added back.
+ * whitelist is ever removed or the sensitive columns are added back.
  */
 
 import { test } from 'node:test'
@@ -67,7 +67,7 @@ test('number_of_password_hash_iterations cannot be SELECTed through the query en
 
 test('password_hash cannot be exfiltrated via a WHERE filter (blind extraction)', () => {
 	// Even without selecting it, a WHERE predicate over password_hash would leak it one bit at a
-	// time. The allowlist is enforced on every column reference, so this is rejected too.
+	// time. The whitelist is enforced on every column reference, so this is rejected too.
 	const messages = rejection_messages(employee_query({
 		where: {
 			type: 'and',
@@ -110,10 +110,10 @@ test('non-sensitive employee columns are still readable', () => {
 			{ type: 'column reference', table_identifier: 'e', column: 'is_owner' },
 		],
 	}))
-	assert.deepStrictEqual(messages, [], 'allowed employee columns must still pass')
+	assert.deepStrictEqual(messages, [], 'whitelisted employee columns must still pass')
 })
 
-test('tables without an allowlist entry remain fully readable', () => {
+test('tables without a whitelist entry remain fully readable', () => {
 	const messages = rejection_messages({
 		select: [
 			{ type: 'column reference', table_identifier: 'c', column: 'name' },
@@ -127,5 +127,5 @@ test('tables without an allowlist entry remain fully readable', () => {
 		limit: null,
 		having: null,
 	})
-	assert.deepStrictEqual(messages, [], 'client has no allowlist, so all its columns stay readable')
+	assert.deepStrictEqual(messages, [], 'client has no whitelist, so all its columns stay readable')
 })
