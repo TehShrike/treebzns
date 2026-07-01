@@ -13,8 +13,8 @@ import {
 } from './fetch_clients.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
-import type { Client } from './types/clients.d.ts'
-import type { Contact } from './types/contacts.d.ts'
+import type { Client } from '#arbostar_export/clients.d.ts'
+import type { Contact } from '#arbostar_export/contacts.d.ts'
 
 function to_client_export(client: ArboStarClient): Client {
 	return {
@@ -62,5 +62,5 @@ const contact_exports = clients.flatMap(client =>
 	(client.contacts ?? []).map(contact => to_contact_export(client.client_id, contact)),
 )
 
-console.log(`Wrote ${client_exports.length} clients -> ${write_output('clients.json', client_exports)}`)
-console.log(`Wrote ${contact_exports.length} contacts -> ${write_output('contacts.json', contact_exports)}`)
+console.log(`Wrote ${client_exports.length} clients -> ${write_output('clients.js', client_exports)}`)
+console.log(`Wrote ${contact_exports.length} contacts -> ${write_output('contacts.js', contact_exports)}`)

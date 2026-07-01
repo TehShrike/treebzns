@@ -2,7 +2,7 @@ node_modules
 *.sublime-workspace
 .env
 
-/arbostar_export/
+/arbostar_export/*.js
 /scripts/arbostar/.arbostar_session.json
 .wrangler/
 build/

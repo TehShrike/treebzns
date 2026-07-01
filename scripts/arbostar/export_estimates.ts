@@ -10,7 +10,7 @@
 import { fetch_all_rows_every_status } from './fetch_datatable.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
-import type { Estimate } from './types/estimates.d.ts'
+import type { Estimate } from '#arbostar_export/estimates.d.ts'
 
 type ArboStarEstimate = {
 	estimate_id: number
@@ -60,4 +60,4 @@ const estimates = await fetch_all_rows_every_status<ArboStarEstimate>({
 })
 
 const exported = estimates.map(to_export)
-console.log(`Wrote ${exported.length} estimates -> ${write_output('estimates.json', exported)}`)
+console.log(`Wrote ${exported.length} estimates -> ${write_output('estimates.js', exported)}`)

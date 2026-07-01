@@ -13,6 +13,7 @@
 	"imports": {
 		"#shared/*": "./shared/*",
 		"#schema/*": "./schema/*",
+		"#arbostar_export/*": "./arbostar_export/*",
 		"#client/lib/*": "./client/lib/*",
 		"#client/component/*": "./client/component/*",
 		"#worker/lib/*": "./worker/lib/*"

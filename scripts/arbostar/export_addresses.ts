@@ -5,13 +5,13 @@
 //
 // The clients LIST only exposes the primary address; the optional secondary address lives
 // on the client PROFILE at /clients/profile/indexData/{client_id}. We emit one row per
-// non-empty address. Auth comes from ./session.ts; shape from ./types/addresses.d.ts.
+// non-empty address. Auth comes from ./session.ts; shape from #arbostar_export/addresses.d.ts.
 
 import { fetch_json, map_with_concurrency } from './fetch_record.ts'
 import { read_output, write_output } from './output.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
-import type { Client } from './types/clients.d.ts'
-import type { ClientAddress } from './types/addresses.d.ts'
+import type { Client } from '#arbostar_export/clients.d.ts'
+import type { ClientAddress } from '#arbostar_export/addresses.d.ts'
 
 type ArboStarClientProfile = {
 	client?: {
@@ -69,7 +69,7 @@ function addresses_of(profile: ArboStarClientProfile): ClientAddress[] {
 	return rows
 }
 
-const clients = read_output<Client[]>('clients.json')
+const clients = await read_output<Client[]>('clients.js')
 const client_ids = clients.map(c => c.client_id)
 console.log(`Fetching profiles for ${client_ids.length} clients...`)
 
@@ -97,6 +97,6 @@ const per_client = await map_with_concurrency(
 
 const addresses = per_client.flat()
 const secondary = addresses.filter(a => a.address_type === 'secondary').length
-const path = write_output('addresses.json', addresses)
+const path = write_output('addresses.js', addresses)
 console.log(`Wrote ${addresses.length} addresses (${secondary} secondary) -> ${path}`)
 if (failures > 0) console.log(`(${failures} clients failed to fetch)`)

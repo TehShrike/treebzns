@@ -1,6 +1,6 @@
-// Shape of one element in arbostar_export/line_items.json (see export_line_items.ts).
-// One row per service line on an estimate. `estimate_id` links to estimates.json,
-// `lead_id` to leads.json, and `invoice_id` (when set) to invoices.json — the same line
+// Shape of one element in arbostar_export/line_items.js (see export_line_items.ts).
+// One row per service line on an estimate. `estimate_id` links to estimates.js,
+// `lead_id` to leads.js, and `invoice_id` (when set) to invoices.js — the same line
 // rows carry through from quote → invoice → work order.
 export type LineItem = {
 	line_item_id: number
@@ -25,3 +25,7 @@ export type LineItem = {
 	crews: string | null
 	sort_order: number | null
 }
+
+// line_items.js is an ESM module whose default export is the full array of records.
+declare const lineItems: LineItem[]
+export default lineItems

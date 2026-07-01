@@ -10,7 +10,7 @@
 import { fetch_all_rows_every_status } from './fetch_datatable.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
-import type { WorkOrder } from './types/workorders.d.ts'
+import type { WorkOrder } from '#arbostar_export/workorders.d.ts'
 
 type ArboStarWorkOrder = {
 	id: number
@@ -76,4 +76,4 @@ const workorders = await fetch_all_rows_every_status<ArboStarWorkOrder>({
 })
 
 const exported = workorders.map(to_export)
-console.log(`Wrote ${exported.length} work orders -> ${write_output('workorders.json', exported)}`)
+console.log(`Wrote ${exported.length} work orders -> ${write_output('workorders.js', exported)}`)

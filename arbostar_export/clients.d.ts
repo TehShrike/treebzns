@@ -1,4 +1,4 @@
-// Shape of one element in arbostar_export/clients.json (see export_clients.ts).
+// Shape of one element in arbostar_export/clients.js (see export_clients.ts).
 export type Client = {
 	client_id: number
 	client_name: string | null
@@ -17,3 +17,7 @@ export type Client = {
 	address_lon: number | null
 	address_place_id: string | null
 }
+
+// clients.js is an ESM module whose default export is the full array of records.
+declare const clients: Client[]
+export default clients

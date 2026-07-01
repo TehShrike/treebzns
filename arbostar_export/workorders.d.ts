@@ -1,5 +1,5 @@
-// Shape of one element in arbostar_export/workorders.json (see export_workorders.ts).
-// `client_id` links back to clients.json; `lead_id` to leads.json.
+// Shape of one element in arbostar_export/workorders.js (see export_workorders.ts).
+// `client_id` links back to clients.js; `lead_id` to leads.js.
 export type WorkOrder = {
 	workorder_id: number
 	workorder_no: string | null
@@ -25,3 +25,7 @@ export type WorkOrder = {
 	man_hours_scheduled: number | null
 	man_hours_unscheduled: number | null
 }
+
+// workorders.js is an ESM module whose default export is the full array of records.
+declare const workorders: WorkOrder[]
+export default workorders

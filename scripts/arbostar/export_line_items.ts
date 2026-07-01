@@ -8,13 +8,13 @@
 // estimate id) at /estimates/edit/{lead_id}; the rows live at lead.estimate.estimates_service.
 // Each row carries estimate_id + invoice_id, so this one pass covers quotes, invoices, and
 // work orders. The editor payload is ~355 KB each (it re-sends the whole service catalog),
-// so this is the slow export. Auth comes from ./session.ts; shape from ./types/line_items.d.ts.
+// so this is the slow export. Auth comes from ./session.ts; shape from #arbostar_export/line_items.d.ts.
 
 import { fetch_json, map_with_concurrency } from './fetch_record.ts'
 import { read_output, write_output } from './output.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
-import type { Estimate } from './types/estimates.d.ts'
-import type { LineItem } from './types/line_items.d.ts'
+import type { Estimate } from '#arbostar_export/estimates.d.ts'
+import type { LineItem } from '#arbostar_export/line_items.d.ts'
 
 type ArboStarService = {
 	id: number
@@ -72,7 +72,7 @@ function to_line_item(service: ArboStarService, lead_id: number): LineItem {
 	}
 }
 
-const estimates = read_output<Estimate[]>('estimates.json')
+const estimates = await read_output<Estimate[]>('estimates.js')
 const lead_ids = [...new Set(estimates.map(e => e.lead_id).filter((id): id is number => id != null))]
 console.log(`Fetching line items for ${lead_ids.length} estimates (by lead id)...`)
 
@@ -97,6 +97,6 @@ const per_estimate = await map_with_concurrency(
 )
 
 const line_items = per_estimate.flat()
-const path = write_output('line_items.json', line_items)
+const path = write_output('line_items.js', line_items)
 console.log(`Wrote ${line_items.length} line items from ${lead_ids.length - failures} estimates -> ${path}`)
 if (failures > 0) console.log(`(${failures} estimates failed to fetch)`)

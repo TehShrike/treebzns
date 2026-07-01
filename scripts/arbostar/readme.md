@@ -15,30 +15,31 @@ line items / full addresses only exist behind per-record detail endpoints (fetch
 | `fetch_clients.ts` | Thin typed wrapper over the generic fetcher, pinned to `/clients`. |
 | `.arbostar_session.json` | **Credentials + account base URL. Gitignored — never committed.** Copy `.arbostar_session.example.json` to it and fill in. |
 | `session.ts` | Loads `.arbostar_session.json` and exposes `BASE_URL` / `AUTH_HEADERS` / `BROWSER_COOKIES`. |
-| `output.ts` | Reads/writes `arbostar_export/` at the repo root (gitignored). |
+| `output.ts` | Reads/writes the `arbostar_export/` dir at the repo root — writes each dataset as `<name>.js` (`export default [...]`, gitignored). |
 | `export_*.ts` | One run-now script per dataset. |
-| `types/*.d.ts` | The shape of each output file's records (`Client`, `Contact`, `WorkOrder`, `Lead`, `Estimate`, `Invoice`, `LineItem`, `ClientAddress`). |
 | `discover_endpoints.ts` / `discover_details.ts` | Puppeteer crawlers that record the app's XHRs (list pages / detail pages). `discover_endpoints.ts` regenerates `arbostar_endpoints.json`. |
 | `arbostar_endpoints.json` | Map of all ~36 list/XHR endpoints, with an example `path_and_query` for each. |
 
 ## Running an export
 
 ```sh
-node scripts/arbostar/export_clients.ts      # -> clients.json + contacts.json
-node scripts/arbostar/export_workorders.ts   # -> workorders.json
-node scripts/arbostar/export_leads.ts        # -> leads.json
-node scripts/arbostar/export_estimates.ts    # -> estimates.json   (two passes)
-node scripts/arbostar/export_invoices.ts     # -> invoices.json
-node scripts/arbostar/export_addresses.ts    # -> addresses.json   (reads clients.json; ~1430 profile fetches)
-node scripts/arbostar/export_line_items.ts   # -> line_items.json  (reads estimates.json; ~1684 × 355 KB — slowest)
+node scripts/arbostar/export_clients.ts      # -> clients.js + contacts.js
+node scripts/arbostar/export_workorders.ts   # -> workorders.js
+node scripts/arbostar/export_leads.ts        # -> leads.js
+node scripts/arbostar/export_estimates.ts    # -> estimates.js   (two passes)
+node scripts/arbostar/export_invoices.ts     # -> invoices.js
+node scripts/arbostar/export_addresses.ts    # -> addresses.js   (reads clients.js; ~1430 profile fetches)
+node scripts/arbostar/export_line_items.ts   # -> line_items.js  (reads estimates.js; ~1684 × 355 KB — slowest)
 ```
 
-`export_addresses.ts` and `export_line_items.ts` depend on `clients.json` / `estimates.json`
-respectively, so run those first. All output lands in `arbostar_export/`.
+Each dataset is written to `arbostar_export/<name>.js` as an ESM `export default [...]` (gitignored;
+the committed `arbostar_export/<name>.d.ts` types it). `export_addresses.ts` and
+`export_line_items.ts` read `clients.js` / `estimates.js`, so run those first. See
+[`arbostar_export/readme.md`](../../arbostar_export/readme.md) for the output side.
 
-Approximate volumes (June 2026): clients 1430 / contacts 1491, leads 1850, workorders 836,
-estimates 1684, invoices 826, addresses ~1430+, line items several thousand. "Projects" in
-ArboStar are **Work Orders** (`/workorders`).
+Approximate volumes (June 2026): clients 1435 / contacts 1496, leads 1850, workorders 836,
+estimates 1684, invoices 826, addresses 1430, line items 3592. "Projects" in ArboStar are
+**Work Orders** (`/workorders`).
 
 ## Auth / refreshing the session
 
@@ -105,7 +106,7 @@ record via `fetch_record.ts`.
 
 - **Keyed by lead id, NOT estimate id.** `/estimates/edit/1696` loads the estimate for *lead*
   1696, which is a different estimate than the one whose DB `estimate_id` is 1696. Use the
-  `lead_id` from `estimates.json` (it's 1:1 with estimates here). The returned line items'
+  `lead_id` from `estimates.js` (it's 1:1 with estimates here). The returned line items'
   `estimate_id` then matches the list's `estimate_id`.
 - It's the **estimate editor**, so the payload is ~355 KB — it re-sends the whole service
   catalog (`tree_types` alone is ~694 entries) on every call. There is no lighter endpoint and
@@ -114,7 +115,7 @@ record via `fetch_record.ts`.
   `invoice_id`, and `parent_invoice_id`. When an estimate is invoiced those rows get an
   `invoice_id`; work orders schedule the same rows. So invoices and work orders have **no
   separate line-item JSON endpoint** (the invoice editor renders them into HTML) — filter
-  `line_items.json` by `invoice_id` instead.
+  `line_items.js` by `invoice_id` instead.
 - Line totals won't sum to the estimate total: `optional` lines and discounts are applied on top.
 
 **Client addresses** — `GET /clients/profile/indexData/{client_id}`, under `client`:

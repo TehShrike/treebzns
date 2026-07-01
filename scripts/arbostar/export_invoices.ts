@@ -10,7 +10,7 @@
 import { fetch_all_rows_every_status } from './fetch_datatable.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
-import type { Invoice } from './types/invoices.d.ts'
+import type { Invoice } from '#arbostar_export/invoices.d.ts'
 
 type ArboStarInvoice = {
 	id: number
@@ -70,4 +70,4 @@ const invoices = await fetch_all_rows_every_status<ArboStarInvoice>({
 })
 
 const exported = invoices.map(to_export)
-console.log(`Wrote ${exported.length} invoices -> ${write_output('invoices.json', exported)}`)
+console.log(`Wrote ${exported.length} invoices -> ${write_output('invoices.js', exported)}`)

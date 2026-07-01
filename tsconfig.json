@@ -23,7 +23,8 @@
 		// Path mappings
 		"paths": {
 			"#schema/*": ["./schema/*"],
-			"#shared/*": ["./shared/*"]
+			"#shared/*": ["./shared/*"],
+			"#arbostar_export/*": ["./arbostar_export/*"]
 		},
 
 		// Other Outputs

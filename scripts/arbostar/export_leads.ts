@@ -9,7 +9,7 @@
 import { fetch_all_rows_every_status } from './fetch_datatable.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
-import type { Lead } from './types/leads.d.ts'
+import type { Lead } from '#arbostar_export/leads.d.ts'
 
 type ArboStarLead = {
 	lead_id: number
@@ -75,4 +75,4 @@ const leads = await fetch_all_rows_every_status<ArboStarLead>({
 })
 
 const exported = leads.map(to_export)
-console.log(`Wrote ${exported.length} leads -> ${write_output('leads.json', exported)}`)
+console.log(`Wrote ${exported.length} leads -> ${write_output('leads.js', exported)}`)
