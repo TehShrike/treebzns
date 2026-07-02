@@ -1,5 +1,5 @@
 import type { Connection, ResultSetHeader } from 'mysql2/promise'
-import { map } from '#shared/array.ts'
+import { map, chunk, for_each } from '#shared/array.ts'
 import object_keys from '#shared/object_keys.ts'
 import assert from '#shared/assert.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
@@ -54,25 +54,39 @@ const typed_insert_helper = <Insertable extends InsertableSchemaShape>(
 			connection: Connection,
 			table_name: Table,
 			rows: InsertRow<Insertable[Table]>[],
-		) => {
+			rows_per_batch: number,
+		): Promise<{ insert_ids: bigint[] }> => {
 			assert(table_name in insertable_column_names, `Table "${table_name}" must exist in schema constants`)
 			assert(rows.length > 0, `bulk_insert requires at least one row for table "${table_name}"`)
+			assert(
+				Number.isInteger(rows_per_batch) && rows_per_batch > 0,
+				`rows_per_batch must be a positive integer, got ${rows_per_batch}`,
+			)
 
 			const columns = object_keys(insertable_column_names[table_name])
-
 			const column_list = map(columns, column => escape_identifier(column)).join(', ')
-			const value_rows = map(rows, row =>
-				`(${
-					map(columns, column => {
-						const value = (row as Record<string, unknown>)[column]
+			const insert_prefix = `INSERT INTO ${escape_identifier(table_name)} (${column_list}) VALUES `
 
-						return escape_value(value === undefined ? null : value)
-					}).join(', ')
-				})`
-			).join(', ')
-			const sql = `INSERT INTO ${escape_identifier(table_name)} (${column_list}) VALUES ${value_rows}`
+			const insert_ids: bigint[] = []
+			for (const batch of chunk(rows, rows_per_batch)) {
+				const value_rows = map(batch, row =>
+					`(${
+						map(columns, column => {
+							const value = (row as Record<string, unknown>)[column]
 
-			await connection.query<ResultSetHeader>(sql)
+							return escape_value(value === undefined ? null : value)
+						}).join(', ')
+					})`
+				).join(', ')
+
+				const [{ insertId }] = await connection.query<ResultSetHeader>(insert_prefix + value_rows)
+				// A multi-row INSERT with a known row count is a "simple insert": InnoDB allocates its
+				// auto-increment ids as one consecutive block, so each row's id is insertId plus its offset.
+				const first_insert_id = BigInt(insertId)
+				for_each(batch, (_, index) => insert_ids.push(first_insert_id + BigInt(index)))
+			}
+
+			return { insert_ids }
 		},
 	}
 }

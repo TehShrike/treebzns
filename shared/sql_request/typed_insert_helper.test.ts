@@ -53,12 +53,15 @@ const test_insertable_schema = {
 	},
 } as const
 
-const make_mock_connection = () => {
+// insert_ids lets a test control the insertId reported for each successive query (a real multi-row
+// INSERT reports the first id of the statement's consecutive block).
+const make_mock_connection = (insert_ids: number[] = []) => {
 	const calls: Array<{ sql: string }> = []
 	const connection = {
 		query: (sql: string) => {
+			const insertId = insert_ids[calls.length] ?? 1
 			calls.push({ sql })
-			return Promise.resolve([{ insertId: 1 }, []])
+			return Promise.resolve([{ insertId }, []])
 		},
 	} as unknown as Connection
 	return { connection, calls }
@@ -215,29 +218,29 @@ test('typed_insert_helper: bulk_insert enforces row types, column names, and an 
 	helper.bulk_insert(connection, 'widget', [
 		{ company_id: 1n, name: 'Sprocket', description: null },
 		{ company_id: 2n, name: 'Cog', description: 'geared' },
-	])
+	], 1000)
 	// description is nullable, so it may be omitted from a row.
-	helper.bulk_insert(connection, 'widget', [{ company_id: 1n, name: 'Sprocket' }])
-	helper.bulk_insert(connection, 'gadget', [{ company_id: 1n, widget_id: 2n, quantity: 3n }])
+	helper.bulk_insert(connection, 'widget', [{ company_id: 1n, name: 'Sprocket' }], 1000)
+	helper.bulk_insert(connection, 'gadget', [{ company_id: 1n, widget_id: 2n, quantity: 3n }], 1000)
 
 	// @ts-expect-error: company_id must be a bigint
-	helper.bulk_insert(connection, 'widget', [{ company_id: 'not a bigint', name: 'x', description: null }])
+	helper.bulk_insert(connection, 'widget', [{ company_id: 'not a bigint', name: 'x', description: null }], 1000)
 
 	// @ts-expect-error: 'name' is a required column
-	helper.bulk_insert(connection, 'widget', [{ company_id: 1n, description: null }])
+	helper.bulk_insert(connection, 'widget', [{ company_id: 1n, description: null }], 1000)
 
 	// @ts-expect-error: 'sprockets' is not a column on widget (only insertable columns are written,
 	// so at runtime an unknown key is simply ignored — the error here is purely at the type level).
-	helper.bulk_insert(connection, 'widget', [{ company_id: 1n, name: 'x', description: null, sprockets: 1n }])
+	helper.bulk_insert(connection, 'widget', [{ company_id: 1n, name: 'x', description: null, sprockets: 1n }], 1000)
 
 	await assert.rejects(async () => {
 		// @ts-expect-error: rows must be an array, not a single row object
-		await helper.bulk_insert(connection, 'widget', { company_id: 1n, name: 'x', description: null })
+		await helper.bulk_insert(connection, 'widget', { company_id: 1n, name: 'x', description: null }, 1000)
 	})
 
 	await assert.rejects(async () => {
 		// @ts-expect-error: 'not_a_table' is not a table in TestSchema
-		await helper.bulk_insert(connection, 'not_a_table', [{}])
+		await helper.bulk_insert(connection, 'not_a_table', [{}], 1000)
 	})
 })
 
@@ -249,7 +252,7 @@ test('typed_insert_helper: bulk_insert writes every insertable column for every 
 		{ company_id: 7n, name: 'Sprocket', description: 'first' },
 		// description omitted -> inserted as null; the column list stays identical.
 		{ company_id: 8n, name: 'Cog' },
-	])
+	], 1000)
 
 	assert.strictEqual(calls.length, 1)
 	assert.strictEqual(
@@ -290,7 +293,7 @@ test('typed_insert_helper: bulk_insert serializes Temporal and FinancialNumber v
 		{ company_id: 1n, happens_on: Temporal.PlainDate.from('2026-06-15'), price: fnum('12.34') },
 		// happens_on omitted -> null; price still serialized to a string.
 		{ company_id: 2n, price: fnum('56.78') },
-	])
+	], 1000)
 
 	assert.strictEqual(
 		calls[0]!.sql,
@@ -303,6 +306,55 @@ test('typed_insert_helper: bulk_insert rejects an empty rows array', async () =>
 	const helper = typed_insert_helper<TestSchema>(test_schema, test_insertable_schema)
 
 	await assert.rejects(async () => {
-		await helper.bulk_insert(connection, 'widget', [])
+		await helper.bulk_insert(connection, 'widget', [], 1000)
 	})
+})
+
+test('typed_insert_helper: bulk_insert splits rows into batches of rows_per_batch', async () => {
+	// Each query reports the first insert id of its batch, as MySQL does.
+	const { connection, calls } = make_mock_connection([10, 20, 30])
+	const helper = typed_insert_helper<TestSchema>(test_schema, test_insertable_schema)
+
+	const rows = [1n, 2n, 3n, 4n, 5n].map(company_id => ({ company_id, name: `Widget ${company_id}` }))
+	const { insert_ids } = await helper.bulk_insert(connection, 'widget', rows, 2)
+
+	assert.strictEqual(calls.length, 3)
+	assert.strictEqual(
+		calls[0]!.sql,
+		"INSERT INTO `widget` (`company_id`, `name`, `description`) VALUES (1, 'Widget 1', NULL), (2, 'Widget 2', NULL)",
+	)
+	assert.strictEqual(
+		calls[1]!.sql,
+		"INSERT INTO `widget` (`company_id`, `name`, `description`) VALUES (3, 'Widget 3', NULL), (4, 'Widget 4', NULL)",
+	)
+	assert.strictEqual(
+		calls[2]!.sql,
+		"INSERT INTO `widget` (`company_id`, `name`, `description`) VALUES (5, 'Widget 5', NULL)",
+	)
+	// Ids are consecutive within each batch, starting from that batch's reported insertId.
+	assert.deepStrictEqual(insert_ids, [10n, 11n, 20n, 21n, 30n])
+})
+
+test('typed_insert_helper: bulk_insert returns one insert id per row for a single batch', async () => {
+	const { connection, calls } = make_mock_connection([100])
+	const helper = typed_insert_helper<TestSchema>(test_schema, test_insertable_schema)
+
+	const { insert_ids } = await helper.bulk_insert(connection, 'widget', [
+		{ company_id: 1n, name: 'a' },
+		{ company_id: 2n, name: 'b' },
+		{ company_id: 3n, name: 'c' },
+	], 1000)
+
+	assert.strictEqual(calls.length, 1)
+	assert.deepStrictEqual(insert_ids, [100n, 101n, 102n])
+})
+
+test('typed_insert_helper: bulk_insert rejects a non-positive or fractional rows_per_batch', async () => {
+	const { connection } = make_mock_connection()
+	const helper = typed_insert_helper<TestSchema>(test_schema, test_insertable_schema)
+	const rows = [{ company_id: 1n, name: 'a' }]
+
+	await assert.rejects(async () => helper.bulk_insert(connection, 'widget', rows, 0))
+	await assert.rejects(async () => helper.bulk_insert(connection, 'widget', rows, -5))
+	await assert.rejects(async () => helper.bulk_insert(connection, 'widget', rows, 1.5))
 })

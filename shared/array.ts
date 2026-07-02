@@ -43,6 +43,14 @@ export const map = <T, U>(arr: readonly T[], mapper: MapperWithIndex<T, U>): U[]
 	return res
 }
 
+export const chunk = <T>(arr: readonly T[], size: number): T[][] => {
+	const res: T[][] = []
+	for (let i = 0; i < arr.length; i += size) {
+		res.push(arr.slice(i, i + size))
+	}
+	return res
+}
+
 export const flatten = <T>(arr: readonly (readonly T[])[]): T[] => {
 	const res: T[] = []
 	for (let i = 0; i < arr.length; i++) {
