@@ -54,10 +54,10 @@ const test_insertable_schema = {
 } as const
 
 const make_mock_connection = () => {
-	const calls: Array<{ sql: string; values: unknown[] }> = []
+	const calls: Array<{ sql: string }> = []
 	const connection = {
-		query: (sql: string, values: unknown[]) => {
-			calls.push({ sql, values })
+		query: (sql: string) => {
+			calls.push({ sql })
 			return Promise.resolve([{ insertId: 1 }, []])
 		},
 	} as unknown as Connection
@@ -130,7 +130,7 @@ test('typed_insert_helper: insert enforces column names and value types', async 
 	})
 })
 
-test('typed_insert_helper: insert builds a parameterized INSERT statement', async () => {
+test('typed_insert_helper: insert builds an INSERT statement with escaped values inlined', async () => {
 	const { connection, calls } = make_mock_connection()
 	const helper = typed_insert_helper<TestSchema>(test_schema, test_insertable_schema)
 
@@ -139,9 +139,20 @@ test('typed_insert_helper: insert builds a parameterized INSERT statement', asyn
 	assert.strictEqual(calls.length, 1)
 	assert.strictEqual(
 		calls[0]!.sql,
-		'INSERT INTO `widget` (`company_id`, `name`, `description`) VALUES (?, ?, ?)',
+		"INSERT INTO `widget` (`company_id`, `name`, `description`) VALUES (7, 'Sprocket', NULL)",
 	)
-	assert.deepStrictEqual(calls[0]!.values, [7n, 'Sprocket', null])
+})
+
+test('typed_insert_helper: insert escapes string values against injection', async () => {
+	const { connection, calls } = make_mock_connection()
+	const helper = typed_insert_helper<TestSchema>(test_schema, test_insertable_schema)
+
+	await helper.insert(connection, 'widget', { company_id: 7n, name: "O'Sprocket'); DROP TABLE widget; --", description: null })
+
+	assert.strictEqual(
+		calls[0]!.sql,
+		"INSERT INTO `widget` (`company_id`, `name`, `description`) VALUES (7, 'O\\'Sprocket\\'); DROP TABLE widget; --', NULL)",
+	)
 })
 
 test('typed_insert_helper: serializes Temporal and FinancialNumber values for the driver', async () => {
@@ -178,8 +189,11 @@ test('typed_insert_helper: serializes Temporal and FinancialNumber values for th
 		price: fnum('12.34'),
 	})
 
-	// bigint passes through as-is; Temporal.PlainDate and FinancialNumber become MySQL-ready strings.
-	assert.deepStrictEqual(calls[0]!.values, [1n, '2026-06-15', '12.34'])
+	// bigint renders as a numeric literal; Temporal.PlainDate and FinancialNumber become quoted MySQL strings.
+	assert.strictEqual(
+		calls[0]!.sql,
+		"INSERT INTO `event` (`company_id`, `happens_on`, `price`) VALUES (1, '2026-06-15', '12.34')",
+	)
 })
 
 test('typed_insert_helper: nullable columns may be omitted; non-nullable columns are required', async () => {
@@ -188,8 +202,7 @@ test('typed_insert_helper: nullable columns may be omitted; non-nullable columns
 
 	// description is `string | null`, so it can be left out entirely.
 	await helper.insert(connection, 'widget', { company_id: 1n, name: 'Sprocket' })
-	assert.strictEqual(calls[0]!.sql, 'INSERT INTO `widget` (`company_id`, `name`) VALUES (?, ?)')
-	assert.deepStrictEqual(calls[0]!.values, [1n, 'Sprocket'])
+	assert.strictEqual(calls[0]!.sql, "INSERT INTO `widget` (`company_id`, `name`) VALUES (1, 'Sprocket')")
 
 	// @ts-expect-error: 'name' is not nullable, so it still must be provided
 	helper.insert(connection, 'widget', { company_id: 1n })
@@ -241,9 +254,8 @@ test('typed_insert_helper: bulk_insert writes every insertable column for every 
 	assert.strictEqual(calls.length, 1)
 	assert.strictEqual(
 		calls[0]!.sql,
-		'INSERT INTO `widget` (`company_id`, `name`, `description`) VALUES (?, ?, ?), (?, ?, ?)',
+		"INSERT INTO `widget` (`company_id`, `name`, `description`) VALUES (7, 'Sprocket', 'first'), (8, 'Cog', NULL)",
 	)
-	assert.deepStrictEqual(calls[0]!.values, [7n, 'Sprocket', 'first', 8n, 'Cog', null])
 })
 
 test('typed_insert_helper: bulk_insert serializes Temporal and FinancialNumber values', async () => {
@@ -282,9 +294,8 @@ test('typed_insert_helper: bulk_insert serializes Temporal and FinancialNumber v
 
 	assert.strictEqual(
 		calls[0]!.sql,
-		'INSERT INTO `event` (`company_id`, `happens_on`, `price`) VALUES (?, ?, ?), (?, ?, ?)',
+		"INSERT INTO `event` (`company_id`, `happens_on`, `price`) VALUES (1, '2026-06-15', '12.34'), (2, NULL, '56.78')",
 	)
-	assert.deepStrictEqual(calls[0]!.values, [1n, '2026-06-15', '12.34', 2n, null, '56.78'])
 })
 
 test('typed_insert_helper: bulk_insert rejects an empty rows array', async () => {

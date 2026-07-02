@@ -2,6 +2,7 @@ import json_anything from '@tehshrike/json_anything'
 import { Temporal } from '@js-temporal/polyfill' // Replaced with native Temporal in the client build
 import type { FinancialNumber } from 'financial-number'
 import fnum from '#shared/number.ts'
+import is_financial_number from '#shared/is_financial_number.ts'
 
 const { serialize, deserialize } = json_anything({
 	unique_key: `2687A5DC-E4E9-4E20-8BE0-B82113E8BA1E`,
@@ -22,7 +23,7 @@ const { serialize, deserialize } = json_anything({
 			deserialize: (value: string) => Temporal.PlainDate.from(value),
 		},
 		financial_number: {
-			can_serialize: (value: any): value is FinancialNumber => typeof value?.getPrecision === `function`,
+			can_serialize: is_financial_number,
 			serialize: (number: FinancialNumber) => number.toString(),
 			deserialize: (number_string: string) => fnum(number_string),
 		},

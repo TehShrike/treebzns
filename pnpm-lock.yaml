@@ -23,6 +23,9 @@ importers:
       mysql2:
         specifier: ^3.22.3
         version: 3.22.3(@types/node@25.6.0)
+      sql-escaper:
+        specifier: ^1.3.3
+        version: 1.3.3
       sql-tagged-template-literal:
         specifier: ^1.3.0
         version: 1.3.0
