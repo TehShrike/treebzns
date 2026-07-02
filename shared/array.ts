@@ -42,3 +42,14 @@ export const map = <T, U>(arr: readonly T[], mapper: MapperWithIndex<T, U>): U[]
 	}
 	return res
 }
+
+export const flatten = <T>(arr: readonly (readonly T[])[]): T[] => {
+	const res: T[] = []
+	for (let i = 0; i < arr.length; i++) {
+		const inner = arr[i] as readonly T[]
+		for (let j = 0; j < inner.length; j++) {
+			res.push(inner[j] as T)
+		}
+	}
+	return res
+}

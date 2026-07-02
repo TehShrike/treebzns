@@ -1,6 +1,6 @@
 import type { ClientQueryFn } from "./client_query_fn.ts"
 import query_builder from "#shared/sql_request/typed_query_builder.ts"
-import { client, client_address } from "#schema/constants.ts"
+import { client, client_address } from "#schema/all_table_column_names.ts"
 import type { Schema } from "#schema/types.ts"
 import { map } from "#shared/array.ts"
 

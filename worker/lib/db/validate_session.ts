@@ -1,5 +1,5 @@
 import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
-import { employee, company } from '#schema/constants.ts'
+import { employee, company } from '#schema/all_table_column_names.ts'
 import type { Schema } from '#schema/types.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'

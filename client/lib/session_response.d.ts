@@ -1,4 +1,4 @@
-import type { employee, company } from '#schema/constants.ts'
+import type { employee, company } from '#schema/all_table_column_names.ts'
 
 export type SessionResponse = {
 	employee: Pick<DbEmployee, typeof employee.employee_id | typeof employee.company_id | typeof employee.name | typeof employee.email | typeof employee.phone | typeof employee.is_owner>
