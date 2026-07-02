@@ -1,0 +1,148 @@
+# ArboStar import notes
+
+What `import_arbostar_export.ts` (run via `scripts/import_arbostar_export.ts --company_id <id>`)
+does and doesn't carry over. The big picture: ArboStar models a lead, its estimates, its work
+orders, and its invoices as separate records; this schema models the whole pipeline as **one
+project moving between project documents**. So one project is created per ArboStar lead, the
+related records pick its document stage, and anything without a home is summarized into
+`project.lead_details` text.
+
+## Mapping decisions
+
+| Decision | Rule |
+| --- | --- |
+| Project document stage | lead has a work order or invoice → **Work Order**; else lead status is No Go → **Void**; else lead has an estimate → **Estimate**; else lead status is New/Draft → **Lead (Unqualified)**; else → **Lead (Qualified)** |
+| `project.closed` | any work order with status 7 (Finished by field worker), or the lead has invoices and every one has `total_due <= 0` |
+| `sent_for_client_approval` | any estimate with status 2 (Sent for approval) or 3 (Pending approval) |
+| `needs_client_approval` | project landed on the Estimate document |
+| Estimator | matched to an employee by normalized name; unmatched names are kept as an `Estimator:` line in `lead_details` |
+| Primary contact | ArboStar doesn't flag one, so each client's first contact gets `is_primary` |
+| Primary address | taken from the client row itself (addresses.js has no second address line and misses a few clients); `client.primary_client_address_id` is fixed up after the address rows insert, per the schema's convention |
+| Payments | each invoice with `amount_paid > 0` becomes one `payment` (`payment_method` = `'arbostar import'`, `status` = `'completed'`) plus a `payment_project` against the lead's project |
+| Item types | one `item_type` per distinct line-item `service_name`; `taxable` from the first line item seen with that name |
+| Client type | ArboStar's numeric `client_type` code becomes a label in `client.notes` (1 → Residential, 2 → Commercial; unknown codes kept raw). Notes-only for now — worth an explicit schema column eventually |
+
+## ArboStar values that were NOT imported
+
+“→ lead_details” means the value survives only as text on the project, not as structured data.
+
+### clients.js
+
+| Field | Fate |
+| --- | --- |
+| `client_id` | used to link during import, then **discarded** — see “no ArboStar ids” below |
+| `client_brand_id` | dropped |
+| `client_date_created` | → `client.notes` as a `Created in ArboStar: YYYY-MM-DD` line (`created_at` itself becomes the import time) |
+| `client_integration_id` | dropped |
+| `client_main_intersection` | dropped |
+| `address_country` | dropped (`client_address` has no country column) |
+| `address_lat` / `address_lon` / `address_place_id` | dropped (no geocoding columns) |
+
+### contacts.js
+
+| Field | Fate |
+| --- | --- |
+| `cc_id` | dropped (only used as a fallback contact name) |
+| `cc_email_blocked` | dropped |
+| `cc_email_unsubscribed` | dropped |
+
+### addresses.js
+
+| Field | Fate |
+| --- | --- |
+| primary rows | superseded by the client row's own address columns (see decisions above) |
+| `main_intersection`, `lat`, `lng`, `country` | dropped |
+
+(The current export contains zero `secondary` rows; if a re-export has any, they become extra `client_address` rows.)
+
+### leads.js
+
+| Field | Fate |
+| --- | --- |
+| `lead_no` | → lead_details (projects have no number column; `project_number.last_number` is untouched) |
+| `lead_status_id` / `lead_status_name` | picks the document stage; name → lead_details |
+| `lead_reason_status_id` | dropped (No Go reason codes) |
+| `lead_priority` | → lead_details (schema only has an `emergency` bit, which is not inferred) |
+| `lead_date_created` / `lead_created_by` | → lead_details (`created_by_employee_id` is the importing company's owner) |
+| `lead_assigned_date` / `lead_postpone_date` | dropped |
+| `estimator` | → `assigned_estimator_employee_id` on a name match, else lead_details |
+| `lead_address` / `address_line_display` | → lead_details (the project's address columns copy the client's primary address so they agree with `client_address_id`) |
+| `utm_medium` / `utm_campaign` / `utm_term` / `utm_content` / `utm_referral` / `gclid` / `form_id` | dropped (`utm_source` → `lead_source`) |
+
+### estimates.js (no estimate entity exists — one line each in lead_details)
+
+| Field | Fate |
+| --- | --- |
+| `estimate_no`, `status_name`, `total_price` | → lead_details line |
+| `status_id` | picks document stage / `sent_for_client_approval`, then dropped |
+| `total_price` | **not stored numerically** — totals in this schema derive from line items |
+| `date_created`, `email_status`, `email_created_at` | dropped |
+
+### workorders.js (no work-order entity — document stage + lead_details)
+
+| Field | Fate |
+| --- | --- |
+| `workorder_no`, `status`, `total_price` | → lead_details line |
+| `wo_status_id` | drives `closed` (status 7), then dropped |
+| `office_notes` | → `notes_for_office` |
+| `latest_status_update` | dropped (would have been the only source for `closed_at`/`closed_date`, but its format isn't trustworthy) |
+| `total_done` / `total_completed_not_invoiced` / `total_invoiced` / `total_scheduled` / `total_unscheduled` | dropped |
+| `man_hours_*` (total/done/invoiced/scheduled/unscheduled) | dropped |
+
+### invoices.js (no invoice entity — payments + lead_details)
+
+| Field | Fate |
+| --- | --- |
+| `invoice_no`, `total_including_tax`, `amount_paid` | → lead_details line; `amount_paid` also → `payment.amount` |
+| `invoice_notes` | → `notes_for_office` |
+| `date_created` | dropped (payment `created_at` becomes the import time) |
+| `total_for_services` / `discount` / `deposit_amount` | dropped |
+| `tax` | dropped — it's an **amount**, so it can't populate `project.tax_rate` (a rate) or pick a `tax_rate_id` |
+| `total_due` | drives `closed`, then dropped |
+| `interest_status`, `client_phone` | dropped |
+
+### line_items.js
+
+| Field | Fate |
+| --- | --- |
+| `size` / `species` / `reason` | → appended to `description` as text |
+| `man_hours` | → `estimated_hours`, **rounded to whole hours** (the column is an integer) |
+| `cost` | dropped (no cost column — margin data is lost) |
+| `optional` / `is_fee` / `is_additional_work` | dropped |
+| `status` | dropped |
+| `crews` | dropped (no crews are imported) |
+| `sort_order` | dropped (table has no sort column) |
+| `estimate_id` / `invoice_id` | dropped — every line attaches to the lead's single project, so which estimate/invoice a line belonged to is lost |
+
+## Important current-schema columns that could NOT be populated
+
+| Table.column | Why |
+| --- | --- |
+| *(all tables)* `created_at` / `updated_at` | set to import time; ArboStar's original timestamps are string-formatted and were left unparsed |
+| `client.tax_rate_id` | ArboStar exports no tax rates |
+| `client.billing_client_address_id` | no billing-address concept in the export |
+| `client.referred_by` | lead-level `utm_*` data doesn't identify a referrer per client |
+| `client_address.contact` / `.phone` / `.email` | no per-address contact info in the export |
+| `project.due_date` | no schedule dates in the export subset |
+| `project.emergency` | not inferable from `lead_priority` values |
+| `project.tax_rate_id` / `project.tax_rate` | only tax *amounts* exist on invoices, not rates |
+| `project.notes_for_crew` | work orders only carry office notes |
+| `project.closed_at` / `project.closed_date` | `closed` is set, but no reliable close date exists (see `latest_status_update` above) |
+| `payment.payment_method` | actual method (cash/check/card) isn't in the invoice export — hardcoded to `'arbostar import'` |
+| `project_number.last_number` | untouched; ArboStar lead numbers live only in lead_details text |
+
+Whole tables that get nothing: `employee`, `crew` / `crew_member`, `work_skill` /
+`project_work_skill`, `time_entry`, `tax_rate`, `estimate_availability`,
+`project_client_approval`, `project_document` (global codebook), `project_line_item_image`.
+
+## No ArboStar ids are stored anywhere
+
+The schema has no external-id columns, so imported rows can't be traced back to their ArboStar
+records, and the import is **not idempotent** — running the script twice doubles every row. The
+whole run is a single transaction, so a failure imports nothing.
+
+## Export-type gotcha found during verification
+
+`leads.estimator` and `workorders.estimator` are typed `string | null` in the committed
+`.d.ts` files, but ArboStar actually returns `[]` for a few records with no estimator (30
+leads, 2 work orders in the June 2026 export). The import treats any non-string as missing.

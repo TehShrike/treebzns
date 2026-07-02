@@ -1,6 +1,15 @@
-- "Create A Lead" interface
-	- identify everything that needs to be an input when creating a lead - look at the schema
-	- basic text input
+Review the import_arbostar_export scripts.
+
+- need to be able to have unique, but primary-key-agnostic project "numbers".  Positive integers.
+- add a minimum_new_project_number to the company table
+- when creating a new project, must be LEAST(minimum_new_project_number, MAX(existing project numbers) + 1)
+
+Keep going through the arbostar_import_notes.md and look for things that need to be resolved.
+
+# "Create A Lead" interface
+
+- identify everything that needs to be an input when creating a lead - look at the schema
+- basic text input
 
 # Deploying
 
