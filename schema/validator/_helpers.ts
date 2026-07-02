@@ -1,6 +1,7 @@
 import { Temporal } from '@js-temporal/polyfill'
 import * as jv from '#shared/json_validator.ts'
 import type { FinancialNumber } from 'financial-number'
+import is_a_financial_number from '#shared/is_financial_number.ts'
 
 const double_quote = (str: string) => `"${str}"`
 
@@ -27,14 +28,6 @@ export const is_temporal_plain_time = jv.custom<Temporal.PlainTime>({
 	get_messages: (input: unknown, name: string) =>
 		input instanceof Temporal.PlainTime ? [] : [`${double_quote(name)} is not a Temporal.PlainTime`],
 })
-
-const is_a_financial_number = (input: unknown): input is FinancialNumber =>
-	typeof input === 'object'
-	&& input !== null
-	&& typeof (input as { plus?: unknown }).plus === 'function'
-	&& typeof (input as { minus?: unknown }).minus === 'function'
-	&& typeof (input as { times?: unknown }).times === 'function'
-	&& typeof (input as { equal?: unknown }).equal === 'function'
 
 export const is_financial_number = jv.custom<FinancialNumber>({
 	is_valid: is_a_financial_number,
