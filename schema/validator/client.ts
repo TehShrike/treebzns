@@ -13,6 +13,7 @@ export const validator_object = {
 	tax_rate_id: jv.nullable(jv.is_bigint),
 	notes: jv.is_string,
 	referred_by: jv.is_string,
+	arbostar_client_id: jv.nullable(jv.is_bigint),
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 }

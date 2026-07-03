@@ -2,6 +2,8 @@ Don't add comments unless something truly exceptional is happening that can't be
 
 When possible, use the functions in #shared/array.ts rather than built-in array functions or for of loop.  The ones in shared/array are more performant.
 
+Assertion messages should say the thing that they are asserting, they should not be phrased as error messages.
+
 In local dev, look at the .env file to get the credentials to run new migrations manually using the mysql cli.
 
 To check the type of a specific type or variable in a file, use tsserver directly, e.g.

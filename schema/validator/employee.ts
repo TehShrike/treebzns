@@ -12,6 +12,7 @@ export const validator_object = {
 	phone: jv.is_string,
 	password_hash: jv.is_string,
 	is_owner: jv.is_boolean,
+	arbostar_user_id: jv.nullable(jv.is_bigint),
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 	number_of_password_hash_iterations: jv.is_bigint,

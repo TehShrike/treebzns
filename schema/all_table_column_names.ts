@@ -13,6 +13,7 @@ export const client = {
 	referred_by: 'referred_by',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
+	arbostar_client_id: 'arbostar_client_id',
 } as const
 
 export const client_address = {
@@ -43,6 +44,7 @@ export const client_contact = {
 	sort_order: 'sort_order',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
+	arbostar_contact_id: 'arbostar_contact_id',
 } as const
 
 export const company = {
@@ -84,6 +86,7 @@ export const employee = {
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 	number_of_password_hash_iterations: 'number_of_password_hash_iterations',
+	arbostar_user_id: 'arbostar_user_id',
 } as const
 
 export const employee_session = {
@@ -143,6 +146,7 @@ export const payment = {
 	status: 'status',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
+	arbostar_invoice_id: 'arbostar_invoice_id',
 } as const
 
 export const payment_project = {
@@ -167,6 +171,7 @@ export const project = {
 	project_id: 'project_id',
 	company_id: 'company_id',
 	project_document_id: 'project_document_id',
+	number: 'number',
 	client_id: 'client_id',
 	client_address_id: 'client_address_id',
 	address_line_1: 'address_line_1',
@@ -232,6 +237,7 @@ export const project_line_item = {
 	price: 'price',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
+	arbostar_line_item_id: 'arbostar_line_item_id',
 } as const
 
 export const project_line_item_image = {

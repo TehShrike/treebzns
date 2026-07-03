@@ -4,6 +4,7 @@ import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import type { ArbostarWorkOrder } from '#arbostar_export/workorders.d.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import { map, filter } from '#shared/array.ts'
+import assert from '#shared/assert.ts'
 import { insert_helper, ROWS_PER_BATCH, group_by, join_lines, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
@@ -30,6 +31,14 @@ const describe_invoice = (invoice: ArbostarInvoice): string =>
 	`Invoice ${invoice.invoice_no ?? invoice.invoice_id}`
 	+ (invoice.total_including_tax === null ? '' : `: ${money_display(invoice.total_including_tax)}`)
 	+ (invoice.amount_paid === null ? '' : `, paid ${money_display(invoice.amount_paid)}`)
+
+// Every lead/estimate/workorder/invoice number shares the lead's integer, suffixed by a stage
+// letter (123-L / 123-E / 123-W / 123-I); the integer becomes the user-facing project.number.
+const lead_number = (lead: ArbostarLead): bigint => {
+	const match = lead.lead_no === null ? null : /^(\d+)-/.exec(lead.lead_no)
+	assert(match, `Lead ${lead.lead_id} must have a parseable lead_no – found: "${lead.lead_no}"`)
+	return BigInt(match[1]!)
+}
 
 // ArboStar lead statuses (see scripts/arbostar/readme.md): 1 New · 3 No Go · 4 Estimated · 5 Draft.
 const ARBOSTAR_LEAD_STATUS_NO_GO = 3
@@ -110,6 +119,7 @@ export const import_projects = async (
 
 		return {
 			company_id: context.company_id,
+			number: lead_number(lead),
 			project_document_id,
 			client_id: client_id_by_arbostar_client_id.get(lead.client_id!)!,
 			client_address_id: address.client_address_id,
@@ -142,6 +152,14 @@ export const import_projects = async (
 	if (project_rows.length > 0) {
 		const { insert_ids } = await insert_helper.bulk_insert(connection, 'project', project_rows, ROWS_PER_BATCH)
 		importable.forEach((lead, index) => project_id_by_arbostar_lead_id.set(lead.lead_id, insert_ids[index]!))
+
+		// Keep the company's allocator ahead of the imported numbers so in-app projects
+		// created after the import can't collide.
+		const max_number = map(project_rows, row => row.number).reduce((a, b) => (b > a ? b : a))
+		await connection.query(
+			'UPDATE project_number SET last_number = GREATEST(last_number, ?) WHERE company_id = ?',
+			[max_number, context.company_id],
+		)
 	}
 
 	return {

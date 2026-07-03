@@ -4,6 +4,7 @@ import { is_temporal_plain_date } from '#schema/validator/_helpers.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
 import insert_helper from '#worker/lib/mysql/insert_helper.ts'
+import { transaction } from '#worker/lib/mysql/helpers.ts'
 import type { Schema } from '#schema/types.ts'
 
 const create_lead_validator = jv.object({
@@ -17,7 +18,7 @@ const create_lead_validator = jv.object({
 export const functions = {
 	create_lead: sfn({
 		validator: create_lead_validator,
-		fn: async (arg, context): Promise<Pick<DbProject, 'project_id'>> => {
+		fn: (arg, context): Promise<Pick<DbProject, 'project_id'>> => transaction(context.mysql.connection, async () => {
 			const { mysql, company, user } = context
 			const company_id = company.company_id
 
@@ -43,8 +44,19 @@ export const functions = {
 			}
 			const { client_address } = address_query.positional_row_to_named(address_row)
 
+			// LAST_INSERT_ID(expr) makes the atomically incremented value readable from this
+			// UPDATE's insertId, so no second query or explicit lock is needed.
+			const number = await mysql.query({
+				sql: 'UPDATE project_number SET last_number = LAST_INSERT_ID(last_number + 1) WHERE company_id = ?',
+				values: [company_id],
+			}).get_insert_id()
+			if (number === 0n) {
+				throw new Error(`No project_number row exists for company "${ company_id }"`)
+			}
+
 			const { insert_id: project_id } = await insert_helper.insert(mysql.connection, 'project', {
 				company_id,
+				number,
 				project_document_id: company.default_initial_project_document_id,
 				client_id: arg.client_id,
 				client_address_id: arg.client_address_id,
@@ -63,6 +75,6 @@ export const functions = {
 			})
 
 			return { project_id }
-		},
+		}),
 	}),
 }

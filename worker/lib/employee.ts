@@ -5,7 +5,7 @@ export const DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS = 50_000n
 
 type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> : never
 
-type CreateEmployeeArg = DistributiveOmit<DbInsertableEmployee, 'password_hash' | 'number_of_password_hash_iterations'> & {
+type CreateEmployeeArg = DistributiveOmit<DbInsertableEmployee, 'password_hash' | 'number_of_password_hash_iterations' | 'arbostar_user_id'> & {
 	password: string
 }
 

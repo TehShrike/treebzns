@@ -6,6 +6,7 @@ export const validator_object = {
 	project_id: jv.is_bigint,
 	company_id: jv.is_bigint,
 	project_document_id: jv.is_bigint,
+	number: jv.is_bigint,
 	client_id: jv.is_bigint,
 	client_address_id: jv.is_bigint,
 	address_line_1: jv.is_string,

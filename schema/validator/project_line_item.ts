@@ -12,6 +12,7 @@ export const validator_object = {
 	taxable: jv.is_boolean,
 	quantity: is_financial_number,
 	price: is_financial_number,
+	arbostar_line_item_id: jv.nullable(jv.is_bigint),
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 }
