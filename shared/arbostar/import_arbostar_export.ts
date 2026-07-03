@@ -7,6 +7,7 @@ import type { Estimate } from '#arbostar_export/estimates.d.ts'
 import type { Invoice } from '#arbostar_export/invoices.d.ts'
 import type { WorkOrder } from '#arbostar_export/workorders.d.ts'
 import type { LineItem } from '#arbostar_export/line_items.d.ts'
+import type { User } from '#arbostar_export/users.d.ts'
 import type { InsertableSchema } from '#schema/types.ts'
 import * as schema from '#schema/all_table_column_names.ts'
 import * as insertable_schema from '#schema/insertable_table_column_names.ts'
@@ -28,6 +29,7 @@ export type ArbostarExportData = {
 	invoices: Invoice[]
 	workorders: WorkOrder[]
 	line_items: LineItem[]
+	users: User[]
 }
 
 export type ArbostarImportContext = {
@@ -42,8 +44,13 @@ export type ArbostarImportContext = {
 		work_order: bigint
 		void: bigint
 	}
-	// Normalized employee name (see normalize_name) → employee_id, for matching ArboStar estimator names.
+	// Normalized employee name (see normalize_name) → employee_id, for the company's existing
+	// employees. import_employees folds the imported ArboStar users into this map before it's
+	// used to match estimator names.
 	employee_id_by_name: Map<string, bigint>
+	// Lowercased emails already used by the company's existing employees — employee has a unique
+	// (company_id, email) key, so imported users must not reuse them.
+	existing_employee_emails: Set<string>
 }
 
 export const normalize_name = (name: string): string => name.trim().toLowerCase()
@@ -98,6 +105,80 @@ const client_type_label = (client_type: string): string =>
 	client_type === '1' ? 'Residential'
 	: client_type === '2' ? 'Commercial'
 	: client_type
+
+export type ImportedEmployees = {
+	employee_id_by_arbostar_user_id: Map<number, bigint>
+	// context.employee_id_by_name plus the imported users, so downstream estimator-name matching
+	// resolves to imported employees as well as pre-existing ones.
+	employee_id_by_name: Map<string, bigint>
+	counts: {
+		employees: number
+		matched_existing_employees: number
+	}
+}
+
+// users.js → employee. A user whose name already matches an existing employee (normalized) is
+// not inserted again — the existing employee id is used for correlation instead.
+export const import_employees = async (
+	connection: Connection,
+	context: ArbostarImportContext,
+	users: User[],
+): Promise<ImportedEmployees> => {
+	const employee_id_by_name = new Map(context.employee_id_by_name)
+	const taken_emails = new Set(context.existing_employee_emails)
+
+	const matched: Array<readonly [number, bigint]> = []
+	const new_users: User[] = []
+	for (const user of users) {
+		const existing_employee_id = employee_id_by_name.get(normalize_name(user.full_name))
+		if (existing_employee_id === undefined) new_users.push(user)
+		else matched.push([user.user_id, existing_employee_id])
+	}
+
+	// employee.email is unique per company, but the ArboStar accounts reuse and omit emails —
+	// fall from login email to personal email to a synthesized placeholder.
+	const pick_email = (user: User): string => {
+		for (const candidate of [user.user_email, user.personal_email]) {
+			if (candidate !== '' && !taken_emails.has(candidate.toLowerCase())) return candidate
+		}
+		return `arbostar.user.${user.user_id}@import.invalid`
+	}
+
+	const employee_rows = map(new_users, user => {
+		const email = pick_email(user)
+		taken_emails.add(email.toLowerCase())
+		return {
+			company_id: context.company_id,
+			name: user.full_name,
+			email,
+			phone: user.emp_phone,
+			// An empty hash can never equal a computed PBKDF2 hex digest, so imported employees
+			// cannot log in until someone sets a real password for them.
+			password_hash: '',
+			is_owner: false,
+			number_of_password_hash_iterations: 50_000n, // the app's DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS
+		}
+	})
+
+	const employee_id_by_arbostar_user_id = new Map(matched)
+	if (employee_rows.length > 0) {
+		const { insert_ids } = await insert_helper.bulk_insert(connection, 'employee', employee_rows, ROWS_PER_BATCH)
+		new_users.forEach((user, index) => {
+			employee_id_by_arbostar_user_id.set(user.user_id, insert_ids[index]!)
+			const normalized = normalize_name(user.full_name)
+			if (!employee_id_by_name.has(normalized)) employee_id_by_name.set(normalized, insert_ids[index]!)
+		})
+	}
+
+	return {
+		employee_id_by_arbostar_user_id,
+		employee_id_by_name,
+		counts: {
+			employees: employee_rows.length,
+			matched_existing_employees: matched.length,
+		},
+	}
+}
 
 // clients.js + contacts.js + addresses.js → client, client_address, client_contact.
 // client and client_address reference each other, so clients are inserted with a placeholder
@@ -502,23 +583,32 @@ const import_arbostar_export = async (
 	context: ArbostarImportContext,
 	data: ArbostarExportData,
 ) => {
-	const imported_clients = await import_clients(connection, context, data)
-	const imported_projects = await import_projects(connection, context, data, imported_clients)
+	// Employees first: the enriched name map lets project estimator names resolve to the
+	// imported users, not just pre-existing employees.
+	const imported_employees = await import_employees(connection, context, data.users)
+	const context_with_employees: ArbostarImportContext = {
+		...context,
+		employee_id_by_name: imported_employees.employee_id_by_name,
+	}
+
+	const imported_clients = await import_clients(connection, context_with_employees, data)
+	const imported_projects = await import_projects(connection, context_with_employees, data, imported_clients)
 	const imported_line_items = await import_line_items(
 		connection,
-		context,
+		context_with_employees,
 		data.line_items,
 		imported_projects.project_id_by_arbostar_lead_id,
 	)
 	const imported_payments = await import_payments(
 		connection,
-		context,
+		context_with_employees,
 		data.invoices,
 		imported_clients,
 		imported_projects.project_id_by_arbostar_lead_id,
 	)
 
 	return {
+		...imported_employees.counts,
 		...imported_clients.counts,
 		...imported_projects.counts,
 		...imported_line_items.counts,

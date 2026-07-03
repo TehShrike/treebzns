@@ -32,6 +32,7 @@ import type { Client } from '#arbostar_export/clients.d.ts' // the record type o
 | `invoices.js` | 826 | `Invoice` | Invoices incl. Paid. `client_id` → clients, `lead_id` → leads. |
 | `workorders.js` | 836 | `WorkOrder` | "Projects" / scheduled jobs. `client_id` → clients, `lead_id` → leads. |
 | `line_items.js` | 3592 | `LineItem` | Service lines. `estimate_id` → estimates; rows with an `invoice_id` are the invoice's lines; work orders schedule the same rows. |
+| `users.js` | 6 | `User` | User accounts (estimators, office staff, field workers), all statuses. Merged from the user list + each user's detail page; deliberately excludes SIN/MFA/credential fields. |
 
 \* counts as of the last run (June 2026); they grow as the account is used.
 
@@ -48,6 +49,7 @@ node ../scripts/arbostar/export_invoices.ts     # invoices.js
 node ../scripts/arbostar/export_workorders.ts   # workorders.js
 node ../scripts/arbostar/export_addresses.ts    # addresses.js   (reads clients.js)
 node ../scripts/arbostar/export_line_items.ts   # line_items.js  (reads estimates.js; slowest — ~355 KB/estimate)
+node ../scripts/arbostar/export_users.ts        # users.js
 ```
 
 If you add/remove fields in an export script's mapper, update the matching `.d.ts` here so it

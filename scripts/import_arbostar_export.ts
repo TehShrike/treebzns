@@ -19,6 +19,7 @@ import estimates from '#arbostar_export/estimates.js'
 import invoices from '#arbostar_export/invoices.js'
 import workorders from '#arbostar_export/workorders.js'
 import line_items from '#arbostar_export/line_items.js'
+import users from '#arbostar_export/users.js'
 
 function requireEnv(key: string): string {
 	const val = process.env[key]
@@ -57,7 +58,7 @@ const resolve_context = async (connection: Connection): Promise<ArbostarImportCo
 		.from('employee')
 		.where(b => b.comparison('employee.company_id', '=', { value: company_id }))
 		.order_by('employee.is_owner', 'DESC')
-		.select(() => ['employee.employee_id', 'employee.name'])
+		.select(() => ['employee.employee_id', 'employee.name', 'employee.email'])
 		.build()
 	const employee_rows = await run_select(connection, employee_query)
 	assert(employee_rows.length > 0, `Company ${company_id} has no employees — imported projects need a created_by employee`)
@@ -91,6 +92,7 @@ const resolve_context = async (connection: Connection): Promise<ArbostarImportCo
 			employee_rows,
 			row => [normalize_name(row.employee.name), BigInt(row.employee.employee_id)] as const,
 		)),
+		existing_employee_emails: new Set(map(employee_rows, row => row.employee.email.toLowerCase())),
 	}
 }
 
@@ -121,6 +123,7 @@ try {
 			invoices,
 			workorders,
 			line_items,
+			users,
 		})
 		await connection.commit()
 

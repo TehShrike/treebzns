@@ -30,6 +30,7 @@ node scripts/arbostar/export_estimates.ts    # -> estimates.js   (two passes)
 node scripts/arbostar/export_invoices.ts     # -> invoices.js
 node scripts/arbostar/export_addresses.ts    # -> addresses.js   (reads clients.js; ~1430 profile fetches)
 node scripts/arbostar/export_line_items.ts   # -> line_items.js  (reads estimates.js; ~1684 × 355 KB — slowest)
+node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
 ```
 
 Each dataset is written to `arbostar_export/<name>.js` as an ESM `export default [...]` (gitignored;
@@ -38,8 +39,8 @@ the committed `arbostar_export/<name>.d.ts` types it). `export_addresses.ts` and
 [`arbostar_export/readme.md`](../../arbostar_export/readme.md) for the output side.
 
 Approximate volumes (June 2026): clients 1435 / contacts 1496, leads 1850, workorders 836,
-estimates 1684, invoices 826, addresses 1430, line items 3592. "Projects" in ArboStar are
-**Work Orders** (`/workorders`).
+estimates 1684, invoices 826, addresses 1430, line items 3592, users 6. "Projects" in ArboStar
+are **Work Orders** (`/workorders`).
 
 ## Auth / refreshing the session
 
@@ -126,6 +127,30 @@ record via `fetch_record.ts`.
   `primary`|`secondary`).
 - Only the **primary** address is geocoded (`client_lat`/`client_lng`); secondary rows have
   null lat/lng.
+
+## Users (the non-DataTables module)
+
+The Users screen (`/user/active`) is the one list that is **not** DataTables-backed, and none
+of it shows up in `arbostar_endpoints.json` (the crawler never visited it). Found by reading
+`/assets/js/config/routes.js` (which maps the `user` module) and
+`/assets/js/modules/user/users.js` (which makes the calls):
+
+- **List** — `POST /user/list_ajax` (form-encoded) with repeated `users_status_id[]` params.
+  The sentinel `-1` = the "All" tab; the named tabs are `active` / `inactive` / `dismissed`
+  (returned in the response's `statuses` array). Rows come back under `data`, but they're
+  thin (id, names, login, position, phone, color, worker/user type — no email or rates).
+- **Detail** — `GET /user/get/{user_id}` is an HTML page, but it embeds the full record as an
+  inline `window.UserFormConfig = {...};` JSON blob (login email, personal email, rates, hire /
+  fired dates, address, and also credential/MFA config plus `emp_sin`, which the export
+  deliberately leaves out).
+- `GET /user/getData` returns only the status counts/config for the screen, no rows.
+  `/employees/*` and `/users*` route guesses all 404 — `user` (singular) is the module name.
+- `user_type` is `admin`/`user`; `worker_type` `1` = field worker, `2` = office (the list's
+  "field workers" filter matches `1`). `active_status` on the detail record is `yes` for
+  active users (not `active`).
+
+`export_users.ts` unions the `-1` pass with the named-status pass by id (same belt-and-braces
+approach as the DataTables modules), then enriches each id from its detail page.
 
 ## Datatable vs. full-endpoint columns
 

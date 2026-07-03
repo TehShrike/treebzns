@@ -15,7 +15,10 @@ related records pick its document stage, and anything without a home is summariz
 | `project.closed` | any work order with status 7 (Finished by field worker), or the lead has invoices and every one has `total_due <= 0` |
 | `sent_for_client_approval` | any estimate with status 2 (Sent for approval) or 3 (Pending approval) |
 | `needs_client_approval` | project landed on the Estimate document |
-| Estimator | matched to an employee by normalized name; unmatched names are kept as an `Estimator:` line in `lead_details` |
+| Users → employees | every ArboStar user account becomes an `employee` row — including suspended ones and ArboStar's own support account, since they appear as estimators. A user whose name matches an existing employee (normalized) is reused, not re-inserted |
+| Employee emails | `employee.email` is unique per company and ArboStar reuses/omits login emails, so the import falls from login email → personal email → a synthesized `arbostar.user.{id}@import.invalid` placeholder |
+| Employee passwords | imported employees get an empty `password_hash`, which can never match a computed hash — they **cannot log in** until someone sets a real password |
+| Estimator | matched to an employee by normalized name (existing employees plus the imported users); unmatched names (e.g. ArboStar's "system system") are kept as an `Estimator:` line in `lead_details` |
 | Primary contact | ArboStar doesn't flag one, so each client's first contact gets `is_primary` |
 | Primary address | taken from the client row itself (addresses.js has no second address line and misses a few clients); `client.primary_client_address_id` is fixed up after the address rows insert, per the schema's convention |
 | Payments | each invoice with `amount_paid > 0` becomes one `payment` (`payment_method` = `'arbostar import'`, `status` = `'completed'`) plus a `payment_project` against the lead's project |
@@ -54,6 +57,26 @@ related records pick its document stage, and anything without a home is summariz
 | `main_intersection`, `lat`, `lng`, `country` | dropped |
 
 (The current export contains zero `secondary` rows; if a re-export has any, they become extra `client_address` rows.)
+
+### users.js
+
+The `employee` table only holds name, email, phone, and login fields, so most user data has
+nowhere to go.
+
+| Field | Fate |
+| --- | --- |
+| `emp_position` | dropped (no title/position column) |
+| `emp_yearly_rate` / `emp_hourly_rate` | dropped (pay lives on `work_skill.hourly_rate`, which isn't per-employee) |
+| `active_status` / `active_employee` | dropped — suspended users import as normal employees |
+| `user_type` (admin/user) | dropped (not mapped to `is_owner` or software roles; imported employees get `is_owner = 0`) |
+| `worker_type` (field/office) | dropped |
+| `emp_date_hire` / `emp_date_fired` | dropped |
+| `emp_birthday` / `emp_sex` | dropped |
+| `address1` / `address2` / `city` / `state` / `user_zip` / `user_country` / lat/lng | dropped |
+| `color` | dropped (`crew.color` exists, but crews aren't imported) |
+| `emailid` (login username) / `extention_key` | dropped |
+| `personal_email` | only used as the email fallback; otherwise dropped |
+| `internal_employee_id` / `emp_custom_id` | dropped |
 
 ### leads.js
 
@@ -123,6 +146,7 @@ related records pick its document stage, and anything without a home is summariz
 | `client.billing_client_address_id` | no billing-address concept in the export |
 | `client.referred_by` | lead-level `utm_*` data doesn't identify a referrer per client |
 | `client_address.contact` / `.phone` / `.email` | no per-address contact info in the export |
+| `employee.password_hash` | intentionally unusable — imported employees can't log in until given a real password |
 | `project.due_date` | no schedule dates in the export subset |
 | `project.emergency` | not inferable from `lead_priority` values |
 | `project.tax_rate_id` / `project.tax_rate` | only tax *amounts* exist on invoices, not rates |
@@ -131,7 +155,7 @@ related records pick its document stage, and anything without a home is summariz
 | `payment.payment_method` | actual method (cash/check/card) isn't in the invoice export — hardcoded to `'arbostar import'` |
 | `project_number.last_number` | untouched; ArboStar lead numbers live only in lead_details text |
 
-Whole tables that get nothing: `employee`, `crew` / `crew_member`, `work_skill` /
+Whole tables that get nothing: `crew` / `crew_member`, `work_skill` /
 `project_work_skill`, `time_entry`, `tax_rate`, `estimate_availability`,
 `project_client_approval`, `project_document` (global codebook), `project_line_item_image`.
 
