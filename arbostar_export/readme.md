@@ -24,9 +24,7 @@ import type { ArbostarClient } from '#arbostar_export/clients.d.ts' // the recor
 
 | File | Records* | Record type | What it is |
 | --- | ---: | --- | --- |
-| `clients.js` | 1435 | `ArbostarClient` | Customers. Curated subset of columns — see the column-gap tables in the scripts readme. |
-| `contacts.js` | 1496 | `ArbostarContact` | Per-client contacts (phone/email). `client_id` → clients. |
-| `addresses.js` | 1430 | `ArbostarClientAddress` | One row per client address (`primary`/`secondary`). `client_id` → clients. Only primary is geocoded. |
+| `clients.js` | 1435 | `ArbostarClient` | Customers — the raw `/clients` datatable rows, unmodified. Contacts (`contacts[]`, phone/email per contact) and geocoding (`address_related`) come nested on each row. |
 | `leads.js` | 1850 | `ArbostarLead` | Every lead across all statuses (most convert to "Estimated"). `client_id` → clients. |
 | `estimates.js` | 1684 | `ArbostarEstimate` | Quotes, all statuses. `lead_id` → leads, `client_id` → clients. |
 | `invoices.js` | 826 | `ArbostarInvoice` | Invoices incl. Paid. `client_id` → clients, `lead_id` → leads. |
@@ -42,12 +40,11 @@ Run the scripts in `../scripts/arbostar/` (each needs a valid `.arbostar_session
 a stale session fails with `request failed: 302`). Some read earlier outputs, so mind the order:
 
 ```sh
-node ../scripts/arbostar/export_clients.ts      # clients.js + contacts.js
+node ../scripts/arbostar/export_clients.ts      # clients.js (raw rows, contacts nested)
 node ../scripts/arbostar/export_leads.ts        # leads.js
 node ../scripts/arbostar/export_estimates.ts    # estimates.js
 node ../scripts/arbostar/export_invoices.ts     # invoices.js
 node ../scripts/arbostar/export_workorders.ts   # workorders.js
-node ../scripts/arbostar/export_addresses.ts    # addresses.js   (reads clients.js)
 node ../scripts/arbostar/export_line_items.ts   # line_items.js  (reads estimates.js; slowest — ~355 KB/estimate)
 node ../scripts/arbostar/export_users.ts        # users.js
 ```

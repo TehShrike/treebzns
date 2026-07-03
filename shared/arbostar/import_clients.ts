@@ -1,10 +1,8 @@
 import type { Connection } from 'mysql2/promise'
-import type { ArbostarClient } from '#arbostar_export/clients.d.ts'
-import type { ArbostarContact } from '#arbostar_export/contacts.d.ts'
-import type { ArbostarClientAddress } from '#arbostar_export/addresses.d.ts'
+import type { ArbostarClient, ArbostarContact } from '#arbostar_export/clients.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
-import { map, filter, flatten, chunk } from '#shared/array.ts'
-import { insert_helper, ROWS_PER_BATCH, group_by, join_lines } from './import_common.ts'
+import { map, flatten, chunk } from '#shared/array.ts'
+import { insert_helper, ROWS_PER_BATCH, join_lines } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 type ImportedPrimaryAddress = {
@@ -23,7 +21,6 @@ export type ImportedClients = {
 		clients: number
 		client_addresses: number
 		client_contacts: number
-		skipped_contacts_without_client: number
 	}
 }
 
@@ -37,23 +34,17 @@ const client_type_label = (client_type: string): string =>
 	: client_type === '2' ? 'Commercial'
 	: client_type
 
-// clients.js + contacts.js + addresses.js → client, client_address, client_contact.
+// clients.js → client, client_address, client_contact (contacts come nested on each client).
 // client and client_address reference each other, so clients are inserted with a placeholder
 // primary_client_address_id (there are no FK constraints) and fixed up once addresses exist —
 // the same populate-after-insert convention the schema documents.
 export const import_clients = async (
 	connection: Connection,
 	context: ArbostarImportContext,
-	{ clients, contacts, addresses }: {
-		clients: ArbostarClient[]
-		contacts: ArbostarContact[]
-		addresses: ArbostarClientAddress[]
-	},
+	clients: ArbostarClient[],
 ): Promise<ImportedClients> => {
-	const contacts_by_client_id = group_by(contacts, contact => contact.client_id)
-
 	const client_rows = map(clients, client => {
-		const client_contacts = contacts_by_client_id.get(client.client_id) ?? []
+		const client_contacts = client.contacts ?? []
 		const first_phone = map(client_contacts, contact_phone).find(phone => phone !== null) ?? null
 		const first_email = map(client_contacts, contact => contact.cc_email).find(email => email !== null) ?? null
 
@@ -77,8 +68,9 @@ export const import_clients = async (
 	const { insert_ids: client_ids } = await insert_helper.bulk_insert(connection, 'client', client_rows, ROWS_PER_BATCH)
 	const client_id_by_arbostar_client_id = new Map(map(clients, (client, index) => [client.client_id, client_ids[index]!] as const))
 
-	// The primary address comes from the client row itself: addresses.js has no second address line
-	// and is missing a few clients, while every client row carries its primary address columns.
+	// The client row's own address columns are the primary address. client_address2 has never
+	// been non-empty in an export; ArboStar's optional "second address" (profile-only, dropped
+	// along with addresses.js) has never had data either.
 	const primary_address_rows = map(clients, (client, index) => ({
 		company_id: context.company_id,
 		client_id: client_ids[index]!,
@@ -92,28 +84,10 @@ export const import_clients = async (
 		phone: '',
 		email: '',
 	}))
-	const secondary_addresses = filter(
-		addresses,
-		address => address.address_type === 'secondary' && client_id_by_arbostar_client_id.has(address.client_id),
-	)
-	const secondary_address_rows = map(secondary_addresses, address => ({
-		company_id: context.company_id,
-		client_id: client_id_by_arbostar_client_id.get(address.client_id)!,
-		name: 'Secondary',
-		address_line_1: address.address ?? '',
-		address_line_2: '',
-		city: address.city ?? '',
-		state: address.state ?? '',
-		zip: address.zip ?? '',
-		contact: '',
-		phone: '',
-		email: '',
-	}))
-	// Primaries first so address ids stay index-aligned with `clients`.
 	const { insert_ids: address_ids } = await insert_helper.bulk_insert(
 		connection,
 		'client_address',
-		[...primary_address_rows, ...secondary_address_rows],
+		primary_address_rows,
 		ROWS_PER_BATCH,
 	)
 
@@ -145,9 +119,8 @@ export const import_clients = async (
 		},
 	] as const))
 
-	const contact_rows = flatten(map(clients, client => {
-		const client_contacts = contacts_by_client_id.get(client.client_id) ?? []
-		return map(client_contacts, (contact, index) => ({
+	const contact_rows = flatten(map(clients, client =>
+		map(client.contacts ?? [], (contact, index) => ({
 			company_id: context.company_id,
 			client_id: client_id_by_arbostar_client_id.get(client.client_id)!,
 			contact_name: join_lines([contact.cc_title, contact.cc_name]).replace('\n', ' ') || `ArboStar contact ${contact.cc_id}`,
@@ -156,8 +129,7 @@ export const import_clients = async (
 			// ArboStar doesn't flag a primary contact; treat each client's first one as primary.
 			is_primary: index === 0,
 			sort_order: BigInt(index),
-		}))
-	}))
+		}))))
 	if (contact_rows.length > 0) {
 		await insert_helper.bulk_insert(connection, 'client_contact', contact_rows, ROWS_PER_BATCH)
 	}
@@ -167,9 +139,8 @@ export const import_clients = async (
 		primary_address_by_arbostar_client_id,
 		counts: {
 			clients: client_rows.length,
-			client_addresses: primary_address_rows.length + secondary_address_rows.length,
+			client_addresses: primary_address_rows.length,
 			client_contacts: contact_rows.length,
-			skipped_contacts_without_client: contacts.length - contact_rows.length,
 		},
 	}
 }

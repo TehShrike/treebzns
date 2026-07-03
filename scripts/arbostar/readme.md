@@ -4,14 +4,14 @@ One-off scripts to pull data out of ArboStar
 into JSON. ArboStar has no bulk/export API and no
 single "give me everything" endpoint — the list screens are each backed by their own
 [jQuery DataTables](https://datatables.net/manual/server-side) endpoint (paged through), and
-line items / full addresses only exist behind per-record detail endpoints (fetched one by one).
+line items only exist behind per-record detail endpoints (fetched one by one).
 
 ## Files
 
 | File | What it is |
 | --- | --- |
 | `fetch_datatable.ts` | Generic DataTables fetcher (pagination + the status-union logic below). Engine behind the list exports. |
-| `fetch_record.ts` | Single-record JSON GET + a concurrency-limited mapper. Engine behind the per-record exports (line items, addresses). |
+| `fetch_record.ts` | Single-record JSON GET + a concurrency-limited mapper. Engine behind the per-record exports (line items). |
 | `fetch_clients.ts` | Thin typed wrapper over the generic fetcher, pinned to `/clients`. |
 | `.arbostar_session.json` | **Credentials + account base URL. Gitignored — never committed.** Copy `.arbostar_session.example.json` to it and fill in. |
 | `session.ts` | Loads `.arbostar_session.json` and exposes `BASE_URL` / `AUTH_HEADERS` / `BROWSER_COOKIES`. |
@@ -23,23 +23,22 @@ line items / full addresses only exist behind per-record detail endpoints (fetch
 ## Running an export
 
 ```sh
-node scripts/arbostar/export_clients.ts      # -> clients.js + contacts.js
+node scripts/arbostar/export_clients.ts      # -> clients.js (raw rows; contacts + address_related nested)
 node scripts/arbostar/export_workorders.ts   # -> workorders.js
 node scripts/arbostar/export_leads.ts        # -> leads.js
 node scripts/arbostar/export_estimates.ts    # -> estimates.js   (two passes)
 node scripts/arbostar/export_invoices.ts     # -> invoices.js
-node scripts/arbostar/export_addresses.ts    # -> addresses.js   (reads clients.js; ~1430 profile fetches)
 node scripts/arbostar/export_line_items.ts   # -> line_items.js  (reads estimates.js; ~1684 × 355 KB — slowest)
 node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
 ```
 
 Each dataset is written to `arbostar_export/<name>.js` as an ESM `export default [...]` (gitignored;
-the committed `arbostar_export/<name>.d.ts` types it). `export_addresses.ts` and
-`export_line_items.ts` read `clients.js` / `estimates.js`, so run those first. See
+the committed `arbostar_export/<name>.d.ts` types it). `export_line_items.ts` reads
+`estimates.js`, so run that first. See
 [`arbostar_export/readme.md`](../../arbostar_export/readme.md) for the output side.
 
-Approximate volumes (June 2026): clients 1435 / contacts 1496, leads 1850, workorders 836,
-estimates 1684, invoices 826, addresses 1430, line items 3592, users 6. "Projects" in ArboStar
+Approximate volumes (June 2026): clients 1435, leads 1850, workorders 836,
+estimates 1684, invoices 826, line items 3592, users 6. "Projects" in ArboStar
 are **Work Orders** (`/workorders`).
 
 ## Auth / refreshing the session
@@ -98,7 +97,7 @@ to special-case each one. (Passing unknown ids — the string `overpaid`, the ne
 Declined — is harmless; the server ignores them, and those rows are already covered by the
 other pass.)
 
-## Line items & full addresses (per-record detail endpoints)
+## Line items (per-record detail endpoint)
 
 These don't exist on the list endpoints — each is a single-record JSON GET, fetched one per
 record via `fetch_record.ts`.
@@ -119,14 +118,12 @@ record via `fetch_record.ts`.
   `line_items.js` by `invoice_id` instead.
 - Line totals won't sum to the estimate total: `optional` lines and discounts are applied on top.
 
-**Client addresses** — `GET /clients/profile/indexData/{client_id}`, under `client`:
-
-- The clients **list** only exposes the primary address. A client may also have a **secondary**
-  address (`client_address2`/`client_city2`/`client_state2`/`client_zip2`), which only appears
-  on the profile. `export_addresses.ts` emits one row per non-empty address (`address_type`
-  `primary`|`secondary`).
-- Only the **primary** address is geocoded (`client_lat`/`client_lng`); secondary rows have
-  null lat/lng.
+**Client secondary addresses** — a client may have a secondary address
+(`client_address2`/`client_city2`/`client_state2`/`client_zip2`) that only appears on the
+client **profile** (`GET /clients/profile/indexData/{client_id}`, under `client`), not the
+list. There used to be an `export_addresses.ts` that fetched every profile for these, but no
+client in the account has ever had one, so it was removed — the raw list rows in `clients.js`
+are the only address source now.
 
 ## Users (the non-DataTables module)
 

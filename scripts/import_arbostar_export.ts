@@ -13,8 +13,6 @@ import import_arbostar_export from '#shared/arbostar/import_arbostar_export.ts'
 import { normalize_name } from '#shared/arbostar/import_common.ts'
 import type { ArbostarImportContext } from '#shared/arbostar/import_common.ts'
 import clients from '#arbostar_export/clients.js'
-import contacts from '#arbostar_export/contacts.js'
-import addresses from '#arbostar_export/addresses.js'
 import leads from '#arbostar_export/leads.js'
 import estimates from '#arbostar_export/estimates.js'
 import invoices from '#arbostar_export/invoices.js'
@@ -116,8 +114,6 @@ try {
 	try {
 		const summary = await import_arbostar_export(connection, context, {
 			clients,
-			contacts,
-			addresses,
 			leads,
 			estimates,
 			invoices,

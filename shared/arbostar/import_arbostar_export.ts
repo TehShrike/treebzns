@@ -4,8 +4,6 @@
 // documents what does and doesn't survive the mapping.
 import type { Connection } from 'mysql2/promise'
 import type { ArbostarClient } from '#arbostar_export/clients.d.ts'
-import type { ArbostarContact } from '#arbostar_export/contacts.d.ts'
-import type { ArbostarClientAddress } from '#arbostar_export/addresses.d.ts'
 import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
 import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
@@ -21,8 +19,6 @@ import { import_payments } from './import_payments.ts'
 
 export type ArbostarExportData = {
 	clients: ArbostarClient[]
-	contacts: ArbostarContact[]
-	addresses: ArbostarClientAddress[]
 	leads: ArbostarLead[]
 	estimates: ArbostarEstimate[]
 	invoices: ArbostarInvoice[]
@@ -44,7 +40,7 @@ const import_arbostar_export = async (
 		employee_id_by_name: imported_employees.employee_id_by_name,
 	}
 
-	const imported_clients = await import_clients(connection, context_with_employees, data)
+	const imported_clients = await import_clients(connection, context_with_employees, data.clients)
 	const imported_projects = await import_projects(connection, context_with_employees, data, imported_clients)
 	const imported_line_items = await import_line_items(
 		connection,

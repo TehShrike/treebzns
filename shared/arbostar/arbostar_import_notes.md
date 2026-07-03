@@ -20,7 +20,7 @@ related records pick its document stage, and anything without a home is summariz
 | Employee passwords | imported employees get an empty `password_hash`, which can never match a computed hash — they **cannot log in** until someone sets a real password |
 | Estimator | matched to an employee by normalized name (existing employees plus the imported users); unmatched names (e.g. ArboStar's "system system") are kept as an `Estimator:` line in `lead_details` |
 | Primary contact | ArboStar doesn't flag one, so each client's first contact gets `is_primary` |
-| Primary address | taken from the client row itself (addresses.js has no second address line and misses a few clients); `client.primary_client_address_id` is fixed up after the address rows insert, per the schema's convention |
+| Primary address | taken from the client row's own address columns (the only address source — ArboStar's profile-only "secondary address" has never had data and is not exported); `client.primary_client_address_id` is fixed up after the address rows insert, per the schema's convention |
 | Payments | each invoice with `amount_paid > 0` becomes one `payment` (`payment_method` = `'arbostar import'`, `status` = `'completed'`) plus a `payment_project` against the lead's project |
 | Item types | one `item_type` per distinct line-item `service_name`; `taxable` from the first line item seen with that name |
 | Client type | ArboStar's numeric `client_type` code becomes a label in `client.notes` (1 → Residential, 2 → Commercial; unknown codes kept raw). Notes-only for now — worth an explicit schema column eventually |
@@ -38,25 +38,9 @@ related records pick its document stage, and anything without a home is summariz
 | `client_date_created` | → `client.notes` as a `Created in ArboStar: YYYY-MM-DD` line (`created_at` itself becomes the import time) |
 | `client_integration_id` | dropped |
 | `client_main_intersection` | dropped |
-| `address_country` | dropped (`client_address` has no country column) |
-| `address_lat` / `address_lon` / `address_place_id` | dropped (no geocoding columns) |
-
-### contacts.js
-
-| Field | Fate |
-| --- | --- |
-| `cc_id` | dropped (only used as a fallback contact name) |
-| `cc_email_blocked` | dropped |
-| `cc_email_unsubscribed` | dropped |
-
-### addresses.js
-
-| Field | Fate |
-| --- | --- |
-| primary rows | superseded by the client row's own address columns (see decisions above) |
-| `main_intersection`, `lat`, `lng`, `country` | dropped |
-
-(The current export contains zero `secondary` rows; if a re-export has any, they become extra `client_address` rows.)
+| `address_related` (country / lat / lon / place_id) | dropped (no geocoding columns) |
+| nested `contacts[]` | → `client_contact` rows; per contact, `cc_id` is dropped (only used as a fallback contact name), `cc_email_blocked` / `cc_email_unsubscribed` are dropped |
+| any other raw columns | clients.js is now the raw datatable row — everything not listed in the typed fields of `clients.d.ts` is untouched by the import |
 
 ### users.js
 
