@@ -13,8 +13,8 @@
 import { fetch_json, map_with_concurrency } from './fetch_record.ts'
 import { read_output, write_output } from './output.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
-import type { Estimate } from '#arbostar_export/estimates.d.ts'
-import type { LineItem } from '#arbostar_export/line_items.d.ts'
+import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
+import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 
 type ArboStarService = {
 	id: number
@@ -46,7 +46,7 @@ type EstimateEditor = {
 const number_or_null = (value: number | string | null | undefined): number | null =>
 	value == null || value === '' ? null : Number(value)
 
-function to_line_item(service: ArboStarService, lead_id: number): LineItem {
+function to_line_item(service: ArboStarService, lead_id: number): ArbostarLineItem {
 	return {
 		line_item_id: service.id,
 		lead_id,
@@ -72,7 +72,7 @@ function to_line_item(service: ArboStarService, lead_id: number): LineItem {
 	}
 }
 
-const estimates = await read_output<Estimate[]>('estimates.js')
+const estimates = await read_output<ArbostarEstimate[]>('estimates.js')
 const lead_ids = [...new Set(estimates.map(e => e.lead_id).filter((id): id is number => id != null))]
 console.log(`Fetching line items for ${lead_ids.length} estimates (by lead id)...`)
 
@@ -80,7 +80,7 @@ let failures = 0
 const per_estimate = await map_with_concurrency(
 	lead_ids,
 	6,
-	async (lead_id): Promise<LineItem[]> => {
+	async (lead_id): Promise<ArbostarLineItem[]> => {
 		try {
 			const editor = await fetch_json<EstimateEditor>(`/estimates/edit/${lead_id}`, { base_url: BASE_URL, headers: AUTH_HEADERS })
 			const services = editor.lead?.estimate?.estimates_service ?? []

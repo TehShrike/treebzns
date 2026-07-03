@@ -16,7 +16,7 @@ related records pick its document stage, and anything without a home is summariz
 | `sent_for_client_approval` | any estimate with status 2 (Sent for approval) or 3 (Pending approval) |
 | `needs_client_approval` | project landed on the Estimate document |
 | Users → employees | every ArboStar user account becomes an `employee` row — including suspended ones and ArboStar's own support account, since they appear as estimators. A user whose name matches an existing employee (normalized) is reused, not re-inserted |
-| Employee emails | `employee.email` is unique per company and ArboStar reuses/omits login emails, so the import falls from login email → personal email → a synthesized `arbostar.user.{id}@import.invalid` placeholder |
+| Employee identity | ArboStar's login username (`emailid`) → `employee.login_name`; its `personal_email` → `employee.email`, both taken verbatim (empty string → null; a user with neither gets a synthesized `arbostar.user.{id}@import.invalid` email, since at least one is required). Both columns are unique across the **whole employee table** and the import does **not** dedupe against existing rows yet — a collision (e.g. re-importing the same export) fails the insert and rolls the run back |
 | Employee passwords | imported employees get an empty `password_hash`, which can never match a computed hash — they **cannot log in** until someone sets a real password |
 | Estimator | matched to an employee by normalized name (existing employees plus the imported users); unmatched names (e.g. ArboStar's "system system") are kept as an `Estimator:` line in `lead_details` |
 | Primary contact | ArboStar doesn't flag one, so each client's first contact gets `is_primary` |
@@ -74,8 +74,8 @@ nowhere to go.
 | `emp_birthday` / `emp_sex` | dropped |
 | `address1` / `address2` / `city` / `state` / `user_zip` / `user_country` / lat/lng | dropped |
 | `color` | dropped (`crew.color` exists, but crews aren't imported) |
-| `emailid` (login username) / `extention_key` | dropped |
-| `personal_email` | only used as the email fallback; otherwise dropped |
+| `user_email` (ArboStar login/notification email) | dropped — `personal_email` maps to `employee.email` instead |
+| `extention_key` | dropped |
 | `internal_employee_id` / `emp_custom_id` | dropped |
 
 ### leads.js
@@ -167,6 +167,8 @@ whole run is a single transaction, so a failure imports nothing.
 
 ## Export-type gotcha found during verification
 
-`leads.estimator` and `workorders.estimator` are typed `string | null` in the committed
-`.d.ts` files, but ArboStar actually returns `[]` for a few records with no estimator (30
-leads, 2 work orders in the June 2026 export). The import treats any non-string as missing.
+`leads.estimator` and `workorders.estimator` are typed `string | null | []`: ArboStar returns
+a literal empty array instead of null for a few records with no estimator (30 leads, 2 work
+orders in the June 2026 export — PHP's empty-array serialization artifact; on the raw leads
+endpoint it's `estimator.full_name` that is `[]`). `string_or_null` in `import_common.ts`
+collapses the `[]` to null during import.

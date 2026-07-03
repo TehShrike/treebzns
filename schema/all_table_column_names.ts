@@ -77,6 +77,7 @@ export const employee = {
 	company_id: 'company_id',
 	name: 'name',
 	email: 'email',
+	login_name: 'login_name',
 	phone: 'phone',
 	password_hash: 'password_hash',
 	is_owner: 'is_owner',

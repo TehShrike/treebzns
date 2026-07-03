@@ -5,28 +5,28 @@ import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.
 import * as jv from '#shared/json_validator.ts'
 
 const log_in_validator = jv.object({
-	email: jv.is_string,
+	email_or_login_name: jv.is_string,
 	password: jv.is_string,
 })
 
-export const log_in_with_email_and_password = async <OkResponseBody = unknown>({
+export const log_in_with_password = async <OkResponseBody = unknown>({
 	request,
 	mysql,
-	email,
+	email_or_login_name,
 	password,
 	ok_response_body
 }: {
 	request: Request,
 	mysql: MysqlHelpersObject,
-	email: string,
+	email_or_login_name: string,
 	password: string,
 	ok_response_body?: OkResponseBody,
 }): Promise<Response> => {
 	const user_agent = request.headers.get('User-Agent') ?? ''
-	const { logged_in, session_identifier } = await db_log_in({ email, password, user_agent }, mysql)
+	const { logged_in, session_identifier } = await db_log_in({ email_or_login_name, password, user_agent }, mysql)
 
 	if (!logged_in) {
-		return error_response({ message: 'Invalid email or password', status: 401 })
+		return error_response({ message: 'Invalid credentials', status: 401 })
 	}
 
 	return json_response({
@@ -43,7 +43,11 @@ export default async (request: Request, mysql: MysqlHelpersObject): Promise<Resp
 		return error_response({ message: messages.join(', ') })
 	}
 
-	const { email, password } = body
-
-	return log_in_with_email_and_password({ request, mysql, email, password, ok_response_body: { ok: true } })
+	return log_in_with_password({
+		request,
+		mysql,
+		email_or_login_name: body.email_or_login_name,
+		password: body.password,
+		ok_response_body: { ok: true },
+	})
 }

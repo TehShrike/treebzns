@@ -1,6 +1,6 @@
 // Shape of one element in arbostar_export/contacts.js (see export_clients.ts).
 // One row per client contact; `client_id` links back to clients.js.
-export type Contact = {
+export type ArbostarContact = {
 	client_id: number
 	cc_id: number
 	cc_title: string | null
@@ -13,5 +13,5 @@ export type Contact = {
 }
 
 // contacts.js is an ESM module whose default export is the full array of records.
-declare const contacts: Contact[]
+declare const contacts: ArbostarContact[]
 export default contacts

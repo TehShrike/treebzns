@@ -14,7 +14,7 @@
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { map_with_concurrency } from './fetch_record.ts'
 import { write_output } from './output.ts'
-import type { User } from '#arbostar_export/users.d.ts'
+import type { ArbostarUser } from '#arbostar_export/users.d.ts'
 
 type UserListRow = {
 	id: number
@@ -113,7 +113,7 @@ async function fetch_user_detail(user_id: number): Promise<UserFormConfig> {
 	return JSON.parse(html.slice(json_start, json_end)) as UserFormConfig
 }
 
-function to_user_export(config: UserFormConfig): User {
+function to_user_export(config: UserFormConfig): ArbostarUser {
 	return {
 		user_id: config.user_id,
 		user_type: config.user_type,

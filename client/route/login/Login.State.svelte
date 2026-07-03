@@ -12,7 +12,7 @@
 
 	let { message }: { message?: string } = $props()
 
-	let email = $state(``)
+	let email_or_login_name = $state(``)
 	let password = $state(``)
 	let result = $state<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -21,7 +21,7 @@
 		try {
 			await f3tch(`/api/log_in`, {
 				method: `POST`,
-				body: { email, password },
+				body: { email_or_login_name, password },
 			})
 			result = { type: `success`, text: `Logged in!` }
 		} catch (err: any) {
@@ -35,8 +35,8 @@
 	<h1>Log in</h1>
 	{#if message}<p>{message}</p>{/if}
 	<form onsubmit={submit}>
-		<label>Email
-			<input type="email" bind:value={email} required>
+		<label>Email/login name
+			<input type="text" bind:value={email_or_login_name} required>
 		</label>
 		<label>Password
 			<input type="password" bind:value={password} required>

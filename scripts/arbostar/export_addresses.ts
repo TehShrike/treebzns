@@ -10,8 +10,8 @@
 import { fetch_json, map_with_concurrency } from './fetch_record.ts'
 import { read_output, write_output } from './output.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
-import type { Client } from '#arbostar_export/clients.d.ts'
-import type { ClientAddress } from '#arbostar_export/addresses.d.ts'
+import type { ArbostarClient } from '#arbostar_export/clients.d.ts'
+import type { ArbostarClientAddress } from '#arbostar_export/addresses.d.ts'
 
 type ArboStarClientProfile = {
 	client?: {
@@ -35,10 +35,10 @@ type ArboStarClientProfile = {
 const number_or_null = (value: number | string | null | undefined): number | null =>
 	value == null || value === '' ? null : Number(value)
 
-function addresses_of(profile: ArboStarClientProfile): ClientAddress[] {
+function addresses_of(profile: ArboStarClientProfile): ArbostarClientAddress[] {
 	const c = profile.client
 	if (!c) return []
-	const rows: ClientAddress[] = [
+	const rows: ArbostarClientAddress[] = [
 		{
 			client_id: c.client_id,
 			address_type: 'primary',
@@ -69,7 +69,7 @@ function addresses_of(profile: ArboStarClientProfile): ClientAddress[] {
 	return rows
 }
 
-const clients = await read_output<Client[]>('clients.js')
+const clients = await read_output<ArbostarClient[]>('clients.js')
 const client_ids = clients.map(c => c.client_id)
 console.log(`Fetching profiles for ${client_ids.length} clients...`)
 
@@ -77,7 +77,7 @@ let failures = 0
 const per_client = await map_with_concurrency(
 	client_ids,
 	8,
-	async (client_id): Promise<ClientAddress[]> => {
+	async (client_id): Promise<ArbostarClientAddress[]> => {
 		try {
 			const profile = await fetch_json<ArboStarClientProfile>(
 				`/clients/profile/indexData/${client_id}`,

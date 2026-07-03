@@ -2,7 +2,7 @@
 // One row per client address. A client always has a `primary`; some also have a
 // `secondary`. `client_id` links back to clients.js. lat/lng are only populated for
 // the primary (ArboStar only geocodes the primary address).
-export type ClientAddress = {
+export type ArbostarClientAddress = {
 	client_id: number
 	address_type: 'primary' | 'secondary'
 	address: string | null
@@ -16,5 +16,5 @@ export type ClientAddress = {
 }
 
 // addresses.js is an ESM module whose default export is the full array of records.
-declare const addresses: ClientAddress[]
+declare const addresses: ArbostarClientAddress[]
 export default addresses

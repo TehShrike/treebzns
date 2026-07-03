@@ -12,27 +12,27 @@ Two files per dataset:
 - **`<name>.js`** — the data. An ESM module: `export default [ ...records ]`. **Gitignored**
   (`*.js` in this dir) because it's client PII. Regenerate with the export scripts.
 - **`<name>.d.ts`** — committed. Types the matching `.js`: it exports the record type (e.g.
-  `Client`) and declares the default export as an array of it. So
-  `import clients from '#arbostar_export/clients.js'` is typed `Client[]`.
+  `ArbostarClient`) and declares the default export as an array of it. So
+  `import clients from '#arbostar_export/clients.js'` is typed `ArbostarClient[]`.
 
 Consume via the `#arbostar_export/*` import map (defined in package.json / tsconfig):
 
 ```ts
-import clients from '#arbostar_export/clients.js'            // Client[]  (data — must exist locally)
-import type { Client } from '#arbostar_export/clients.d.ts' // the record type only
+import clients from '#arbostar_export/clients.js'            // ArbostarClient[]  (data — must exist locally)
+import type { ArbostarClient } from '#arbostar_export/clients.d.ts' // the record type only
 ```
 
 | File | Records* | Record type | What it is |
 | --- | ---: | --- | --- |
-| `clients.js` | 1435 | `Client` | Customers. Curated subset of columns — see the column-gap tables in the scripts readme. |
-| `contacts.js` | 1496 | `Contact` | Per-client contacts (phone/email). `client_id` → clients. |
-| `addresses.js` | 1430 | `ClientAddress` | One row per client address (`primary`/`secondary`). `client_id` → clients. Only primary is geocoded. |
-| `leads.js` | 1850 | `Lead` | Every lead across all statuses (most convert to "Estimated"). `client_id` → clients. |
-| `estimates.js` | 1684 | `Estimate` | Quotes, all statuses. `lead_id` → leads, `client_id` → clients. |
-| `invoices.js` | 826 | `Invoice` | Invoices incl. Paid. `client_id` → clients, `lead_id` → leads. |
-| `workorders.js` | 836 | `WorkOrder` | "Projects" / scheduled jobs. `client_id` → clients, `lead_id` → leads. |
-| `line_items.js` | 3592 | `LineItem` | Service lines. `estimate_id` → estimates; rows with an `invoice_id` are the invoice's lines; work orders schedule the same rows. |
-| `users.js` | 6 | `User` | User accounts (estimators, office staff, field workers), all statuses. Merged from the user list + each user's detail page; deliberately excludes SIN/MFA/credential fields. |
+| `clients.js` | 1435 | `ArbostarClient` | Customers. Curated subset of columns — see the column-gap tables in the scripts readme. |
+| `contacts.js` | 1496 | `ArbostarContact` | Per-client contacts (phone/email). `client_id` → clients. |
+| `addresses.js` | 1430 | `ArbostarClientAddress` | One row per client address (`primary`/`secondary`). `client_id` → clients. Only primary is geocoded. |
+| `leads.js` | 1850 | `ArbostarLead` | Every lead across all statuses (most convert to "Estimated"). `client_id` → clients. |
+| `estimates.js` | 1684 | `ArbostarEstimate` | Quotes, all statuses. `lead_id` → leads, `client_id` → clients. |
+| `invoices.js` | 826 | `ArbostarInvoice` | Invoices incl. Paid. `client_id` → clients, `lead_id` → leads. |
+| `workorders.js` | 836 | `ArbostarWorkOrder` | "Projects" / scheduled jobs. `client_id` → clients, `lead_id` → leads. |
+| `line_items.js` | 3592 | `ArbostarLineItem` | Service lines. `estimate_id` → estimates; rows with an `invoice_id` are the invoice's lines; work orders schedule the same rows. |
+| `users.js` | 6 | `ArbostarUser` | User accounts (estimators, office staff, field workers), all statuses. Merged from the user list + each user's detail page; deliberately excludes SIN/MFA/credential fields. |
 
 \* counts as of the last run (June 2026); they grow as the account is used.
 

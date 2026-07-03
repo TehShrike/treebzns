@@ -5,7 +5,7 @@ import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
 
 type LogInArg = {
-	email: string
+	email_or_login_name: string
 	password: string
 	user_agent: string
 }
@@ -20,10 +20,13 @@ type LogInResult = {
 
 const failed_log_in_result: LogInResult = { logged_in: false, session_identifier: null }
 
-export const log_in = async ({ email, password, user_agent }: LogInArg, mysql: MysqlHelpersObject): Promise<LogInResult> => {
+export const log_in = async ({ email_or_login_name, password, user_agent }: LogInArg, mysql: MysqlHelpersObject): Promise<LogInResult> => {
 	const employee_query = query_builder<Schema>()
 		.from('employee')
-		.where(q => q.comparison('employee.email', '=', { value: email }))
+		.where(q => q.or(
+			q.comparison('employee.email', '=', { value: email_or_login_name }),
+			q.comparison('employee.login_name', '=', { value: email_or_login_name }),
+		))
 		.select(() => [
 			'employee.employee_id',
 			'employee.company_id',

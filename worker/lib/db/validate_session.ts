@@ -9,6 +9,7 @@ const employee_columns = [
 	`employee.${employee.company_id}`,
 	`employee.${employee.name}`,
 	`employee.${employee.email}`,
+	`employee.${employee.login_name}`,
 	`employee.${employee.phone}`,
 	`employee.${employee.is_owner}`,
 ] as const

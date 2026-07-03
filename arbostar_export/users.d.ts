@@ -3,7 +3,7 @@
 // field workers). Merged from the /user/list_ajax list row and the richer JSON embedded
 // in each /user/get/{id} page. Deliberately excluded: emp_sin, MFA/credential fields,
 // pictures, permission config.
-export type User = {
+export type ArbostarUser = {
 	user_id: number
 	/** 'admin' | 'user' */
 	user_type: string
@@ -45,5 +45,5 @@ export type User = {
 }
 
 // users.js is an ESM module whose default export is the full array of records.
-declare const users: User[]
+declare const users: ArbostarUser[]
 export default users

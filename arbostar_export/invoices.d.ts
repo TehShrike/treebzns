@@ -1,7 +1,7 @@
 // Shape of one element in arbostar_export/invoices.js (see export_invoices.ts).
 // `client_id` links back to clients.js; `lead_id` to leads.js. Money fields are the
 // API's numeric values. See readme.md for what the invoice list's status tabs mean.
-export type Invoice = {
+export type ArbostarInvoice = {
 	invoice_id: number
 	invoice_no: string | null
 	date_created: string | null
@@ -22,5 +22,5 @@ export type Invoice = {
 }
 
 // invoices.js is an ESM module whose default export is the full array of records.
-declare const invoices: Invoice[]
+declare const invoices: ArbostarInvoice[]
 export default invoices

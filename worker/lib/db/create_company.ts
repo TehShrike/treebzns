@@ -27,7 +27,8 @@ const default_software_roles: {
 
 type CreateCompanyArg = Omit<DbInsertableCompany, 'default_initial_project_document_id'>
 
-type OwnerEmployeeArg = Omit<DbInsertableEmployee, 'company_id' | 'is_owner' | 'password_hash' | 'number_of_password_hash_iterations'> & { password: string }
+type EmployeeWithEmailAndPassword = Extract<DbInsertableEmployee, { email: string }> & { password: string }
+type OwnerEmployeeArg = Omit<EmployeeWithEmailAndPassword, 'company_id' | 'is_owner' | 'password_hash' | 'number_of_password_hash_iterations'>
 
 export const create_company = async (
 	company: CreateCompanyArg,

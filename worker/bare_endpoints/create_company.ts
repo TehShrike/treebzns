@@ -1,7 +1,7 @@
 import { json_response, error_response } from '#worker/lib/response_helpers.ts'
 import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
 import { create_company as db_create_company } from '#worker/lib/db/create_company.ts'
-import { log_in_with_email_and_password } from './log_in.ts'
+import { log_in_with_password } from './log_in.ts'
 import * as jv from '#shared/json_validator.ts'
 
 const create_company_validator = jv.object({
@@ -27,12 +27,15 @@ export default async (request: Request, mysql: MysqlHelpersObject): Promise<Resp
 	const company_id = await db_create_company({
 		logo: null,
 		...body.company,
-	}, body.owner_employee, mysql)
+	}, {
+		...body.owner_employee,
+		login_name: null,
+	}, mysql)
 
-	return log_in_with_email_and_password({
+	return log_in_with_password({
 		request,
 		mysql,
-		email: body.owner_employee.email,
+		email_or_login_name: body.owner_employee.email,
 		password: body.owner_employee.password,
 		ok_response_body: { company_id: company_id.toString() },
 	})

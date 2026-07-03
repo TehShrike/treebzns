@@ -10,7 +10,7 @@
 import { fetch_all_rows_every_status } from './fetch_datatable.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
-import type { WorkOrder } from '#arbostar_export/workorders.d.ts'
+import type { ArbostarWorkOrder } from '#arbostar_export/workorders.d.ts'
 
 type ArboStarWorkOrder = {
 	id: number
@@ -18,7 +18,7 @@ type ArboStarWorkOrder = {
 	date_created: string | null
 	status: string | null
 	wo_status_id: number | null
-	estimator: string | null
+	estimator: string | null | []
 	estimate_office_notes: string | null
 	latest_status_update: string | null
 	lead_id: number | null
@@ -37,7 +37,7 @@ type ArboStarWorkOrder = {
 	mh_total_unscheduled: number | null
 }
 
-function to_export(wo: ArboStarWorkOrder): WorkOrder {
+function to_export(wo: ArboStarWorkOrder): ArbostarWorkOrder {
 	return {
 		workorder_id: wo.id,
 		workorder_no: wo.workorder_no,

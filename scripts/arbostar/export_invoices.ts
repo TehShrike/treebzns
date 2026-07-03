@@ -10,7 +10,7 @@
 import { fetch_all_rows_every_status } from './fetch_datatable.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
-import type { Invoice } from '#arbostar_export/invoices.d.ts'
+import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 
 type ArboStarInvoice = {
 	id: number
@@ -37,7 +37,7 @@ function full_name(first: string | null | undefined, last: string | null | undef
 	return name === '' ? null : name
 }
 
-function to_export(invoice: ArboStarInvoice): Invoice {
+function to_export(invoice: ArboStarInvoice): ArbostarInvoice {
 	return {
 		invoice_id: invoice.id,
 		invoice_no: invoice.invoice_no,

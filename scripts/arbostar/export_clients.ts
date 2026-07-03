@@ -13,10 +13,10 @@ import {
 } from './fetch_clients.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
-import type { Client } from '#arbostar_export/clients.d.ts'
-import type { Contact } from '#arbostar_export/contacts.d.ts'
+import type { ArbostarClient } from '#arbostar_export/clients.d.ts'
+import type { ArbostarContact } from '#arbostar_export/contacts.d.ts'
 
-function to_client_export(client: ArboStarClient): Client {
+function to_client_export(client: ArboStarClient): ArbostarClient {
 	return {
 		client_id: client.client_id,
 		client_name: client.client_name,
@@ -37,7 +37,7 @@ function to_client_export(client: ArboStarClient): Client {
 	}
 }
 
-function to_contact_export(client_id: number, contact: ArboStarContact): Contact {
+function to_contact_export(client_id: number, contact: ArboStarContact): ArbostarContact {
 	return {
 		client_id,
 		cc_id: contact.cc_id,

@@ -2,7 +2,7 @@
 // One row per service line on an estimate. `estimate_id` links to estimates.js,
 // `lead_id` to leads.js, and `invoice_id` (when set) to invoices.js — the same line
 // rows carry through from quote → invoice → work order.
-export type LineItem = {
+export type ArbostarLineItem = {
 	line_item_id: number
 	lead_id: number
 	estimate_id: number | null
@@ -27,5 +27,5 @@ export type LineItem = {
 }
 
 // line_items.js is an ESM module whose default export is the full array of records.
-declare const lineItems: LineItem[]
+declare const lineItems: ArbostarLineItem[]
 export default lineItems

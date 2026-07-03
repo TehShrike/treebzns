@@ -9,8 +9,9 @@ import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import { make_safe_query_builder } from '#shared/sql_request/safe_sql_query.ts'
 import * as schema from '#schema/all_table_column_names.ts'
 import type { Schema } from '#schema/types.ts'
-import import_arbostar_export, { normalize_name } from '#shared/arbostar/import_arbostar_export.ts'
-import type { ArbostarImportContext } from '#shared/arbostar/import_arbostar_export.ts'
+import import_arbostar_export from '#shared/arbostar/import_arbostar_export.ts'
+import { normalize_name } from '#shared/arbostar/import_common.ts'
+import type { ArbostarImportContext } from '#shared/arbostar/import_common.ts'
 import clients from '#arbostar_export/clients.js'
 import contacts from '#arbostar_export/contacts.js'
 import addresses from '#arbostar_export/addresses.js'
@@ -58,7 +59,7 @@ const resolve_context = async (connection: Connection): Promise<ArbostarImportCo
 		.from('employee')
 		.where(b => b.comparison('employee.company_id', '=', { value: company_id }))
 		.order_by('employee.is_owner', 'DESC')
-		.select(() => ['employee.employee_id', 'employee.name', 'employee.email'])
+		.select(() => ['employee.employee_id', 'employee.name'])
 		.build()
 	const employee_rows = await run_select(connection, employee_query)
 	assert(employee_rows.length > 0, `Company ${company_id} has no employees — imported projects need a created_by employee`)
@@ -92,7 +93,6 @@ const resolve_context = async (connection: Connection): Promise<ArbostarImportCo
 			employee_rows,
 			row => [normalize_name(row.employee.name), BigInt(row.employee.employee_id)] as const,
 		)),
-		existing_employee_emails: new Set(map(employee_rows, row => row.employee.email.toLowerCase())),
 	}
 }
 

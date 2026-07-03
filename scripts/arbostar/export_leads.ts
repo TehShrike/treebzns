@@ -9,7 +9,7 @@
 import { fetch_all_rows_every_status } from './fetch_datatable.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
-import type { Lead } from '#arbostar_export/leads.d.ts'
+import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
 
 type ArboStarLead = {
 	lead_id: number
@@ -25,7 +25,7 @@ type ArboStarLead = {
 	lead_address: string | null
 	address_line_display: string | null
 	client: { client_id: number; client_name: string | null } | null
-	estimator: { full_name: string | null } | null
+	estimator: { full_name: string | null | [] } | null
 	utm_source: string | null
 	utm_medium: string | null
 	utm_campaign: string | null
@@ -36,7 +36,7 @@ type ArboStarLead = {
 	form_id: string | null
 }
 
-function to_export(lead: ArboStarLead): Lead {
+function to_export(lead: ArboStarLead): ArbostarLead {
 	return {
 		lead_id: lead.lead_id,
 		lead_no: lead.lead_no,

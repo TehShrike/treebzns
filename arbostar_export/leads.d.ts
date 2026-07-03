@@ -1,6 +1,6 @@
 // Shape of one element in arbostar_export/leads.js (see export_leads.ts).
 // `client_id` links back to clients.js. See readme.md for what lead_status_id means.
-export type Lead = {
+export type ArbostarLead = {
 	lead_id: number
 	lead_no: string | null
 	lead_date_created: string | null
@@ -13,7 +13,7 @@ export type Lead = {
 	lead_reason_status_id: number | null
 	client_id: number | null
 	client_name: string | null
-	estimator: string | null
+	estimator: string | null | []
 	lead_address: string | null
 	address_line_display: string | null
 	utm_source: string | null
@@ -27,5 +27,5 @@ export type Lead = {
 }
 
 // leads.js is an ESM module whose default export is the full array of records.
-declare const leads: Lead[]
+declare const leads: ArbostarLead[]
 export default leads

@@ -1,7 +1,7 @@
 // Shape of one element in arbostar_export/estimates.js (see export_estimates.ts).
 // `client_id` links back to clients.js; `lead_id` to leads.js. `date_created` is the
 // MM/DD/YYYY string the API returns. See readme.md for what status_id means.
-export type Estimate = {
+export type ArbostarEstimate = {
 	estimate_id: number
 	estimate_no: string | null
 	lead_id: number | null
@@ -18,5 +18,5 @@ export type Estimate = {
 }
 
 // estimates.js is an ESM module whose default export is the full array of records.
-declare const estimates: Estimate[]
+declare const estimates: ArbostarEstimate[]
 export default estimates
