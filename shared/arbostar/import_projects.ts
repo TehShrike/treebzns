@@ -12,7 +12,9 @@ import type { ImportedClients } from './import_clients.ts'
 export type ImportedProjects = {
 	project_id_by_arbostar_lead_id: Map<number, bigint>
 	counts: {
-		projects: number
+		projects_inserted: number
+		projects_updated: number
+		projects_no_longer_in_export: number
 		skipped_leads_without_client: number
 	}
 }
@@ -52,6 +54,9 @@ const ARBOSTAR_WO_STATUS_FINISHED = 7
 // One project per ArboStar lead — this schema models the whole lead → estimate → work order
 // pipeline as a single project moving between project documents, so the related estimates,
 // work orders, and invoices choose the document stage and are summarized into lead_details.
+// Update-or-insert: `project.number` (the parsed lead integer) is the correlation, and updates
+// only touch the ArboStar-derived columns — locally-populated ones (due_date, emergency, tax,
+// notes_for_crew, closed_at/closed_date, created_by_employee_id) are left alone.
 export const import_projects = async (
 	connection: Connection,
 	context: ArbostarImportContext,
@@ -70,7 +75,8 @@ export const import_projects = async (
 
 	const importable = filter(leads, lead => lead.client_id !== null && client_id_by_arbostar_client_id.has(lead.client_id))
 
-	const project_rows = map(importable, lead => {
+	// The ArboStar-derived columns — everything an update overwrites.
+	const project_fields = (lead: ArbostarLead) => {
 		const lead_estimates = estimates_by_lead_id.get(lead.lead_id) ?? []
 		const lead_workorders = workorders_by_lead_id.get(lead.lead_id) ?? []
 		const lead_invoices = invoices_by_lead_id.get(lead.lead_id) ?? []
@@ -118,8 +124,6 @@ export const import_projects = async (
 		])
 
 		return {
-			company_id: context.company_id,
-			number: lead_number(lead),
 			project_document_id,
 			client_id: client_id_by_arbostar_client_id.get(lead.client_id!)!,
 			client_address_id: address.client_address_id,
@@ -128,44 +132,79 @@ export const import_projects = async (
 			city: address.city,
 			state: address.state,
 			zip: address.zip,
-			due_date: null,
-			emergency: false,
 			assigned_estimator_employee_id,
 			lead_details: lead_details === '' ? null : lead_details,
-			created_by_employee_id: context.created_by_employee_id,
 			needs_client_approval: project_document_id === documents.estimate,
 			sent_for_client_approval: lead_estimates.some(
 				estimate => estimate.status_id !== null && ARBOSTAR_ESTIMATE_STATUSES_SENT.includes(estimate.status_id),
 			),
+			notes_for_office: notes_for_office === '' ? null : notes_for_office,
+			closed,
+			lead_source: lead.utm_source,
+		}
+	}
+
+	const existing_leads = filter(importable, lead => context.existing.project_id_by_number.has(Number(lead_number(lead))))
+	const new_leads = filter(importable, lead => !context.existing.project_id_by_number.has(Number(lead_number(lead))))
+
+	await insert_helper.bulk_update(
+		connection,
+		'project',
+		'project_id',
+		map(existing_leads, lead => ({
+			key: context.existing.project_id_by_number.get(Number(lead_number(lead)))!,
+			set: project_fields(lead),
+		})),
+		ROWS_PER_BATCH,
+	)
+	const project_id_by_arbostar_lead_id = new Map(map(
+		existing_leads,
+		lead => [lead.lead_id, context.existing.project_id_by_number.get(Number(lead_number(lead)))!] as const,
+	))
+
+	if (new_leads.length > 0) {
+		const project_rows = map(new_leads, lead => ({
+			company_id: context.company_id,
+			number: lead_number(lead),
+			...project_fields(lead),
+			due_date: null,
+			emergency: false,
+			created_by_employee_id: context.created_by_employee_id,
 			tax_rate_id: null,
 			tax_rate: null,
 			notes_for_crew: null,
-			notes_for_office: notes_for_office === '' ? null : notes_for_office,
-			closed,
 			closed_at: null,
 			closed_date: null,
-			lead_source: lead.utm_source,
-		}
-	})
-
-	const project_id_by_arbostar_lead_id = new Map<number, bigint>()
-	if (project_rows.length > 0) {
+		}))
 		const { insert_ids } = await insert_helper.bulk_insert(connection, 'project', project_rows, ROWS_PER_BATCH)
-		importable.forEach((lead, index) => project_id_by_arbostar_lead_id.set(lead.lead_id, insert_ids[index]!))
+		new_leads.forEach((lead, index) => project_id_by_arbostar_lead_id.set(lead.lead_id, insert_ids[index]!))
+	}
 
+	if (importable.length > 0) {
 		// Keep the company's allocator ahead of the imported numbers so in-app projects
 		// created after the import can't collide.
-		const max_number = map(project_rows, row => row.number).reduce((a, b) => (b > a ? b : a))
+		const max_number = map(importable, lead_number).reduce((a, b) => (b > a ? b : a))
 		await connection.query(
 			'UPDATE project_number SET last_number = GREATEST(last_number, ?) WHERE company_id = ?',
 			[max_number, context.company_id],
 		)
 	}
 
+	// Numbers allocated to in-app projects also live in project_id_by_number, so this count
+	// includes them alongside genuinely deleted ArboStar leads — treat it as a flag to
+	// investigate, not an exact deletion count.
+	const incoming_numbers = new Set(map(leads, lead => (lead.lead_no === null ? null : Number(lead_number(lead)))))
+	const no_longer_in_export = filter(
+		[...context.existing.project_id_by_number.keys()],
+		number => !incoming_numbers.has(number),
+	).length
+
 	return {
 		project_id_by_arbostar_lead_id,
 		counts: {
-			projects: project_rows.length,
+			projects_inserted: new_leads.length,
+			projects_updated: existing_leads.length,
+			projects_no_longer_in_export: no_longer_in_export,
 			skipped_leads_without_client: leads.length - importable.length,
 		},
 	}

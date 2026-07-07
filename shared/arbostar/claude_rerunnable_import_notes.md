@@ -5,8 +5,10 @@ company — first run inserts, later runs update rows that already exist and ins
 Today the import is **not idempotent** (running it twice doubles every row) and re-importing
 the same users fails on the globally unique `employee.email` / `employee.login_name` keys.
 
-Status: planning/discussion done (July 2026), implementation not started. This file is the
-plan of record — update it as decisions change or steps land.
+Status: **implemented and verified (July 2026)**. All importers are update-or-insert, each
+phase runs in its own transaction, and the import was run three times against the test
+company (9) — first run inserts, later runs update everything with zero duplicates, zero
+deletes, stable row counts. Remaining loose ends are in "Open items" at the bottom.
 
 ## Approach
 
@@ -84,7 +86,15 @@ employees can't log in anyway (empty `password_hash`).
   entity removed in ArboStar just lingers locally — log a count of mapped local rows the new
   export no longer mentions. Child rows (contacts, line items) DO get the targeted
   delete-missing pass described above.
-- The whole run stays one transaction.
+- Transactions (decided July 2026): the whole-run transaction stays **until** every importer
+  is update-or-insert — today a mid-run crash without it leaves rows a re-run can't recognize
+  (correlation columns null → duplicates). Once conversion is complete, replace it with
+  **per-importer transactions**: re-runnability becomes the recovery mechanism for a crash
+  between phases, lock windows shrink (notably the *global* employee email/login_name unique
+  indexes, where a long transaction could stall other companies), and the client → address
+  `primary_client_address_id = 0` fix-up window is never observable half-done. A single
+  connection remains fine — phases are sequential and volumes are seconds-long; per-phase
+  transactions are also the natural boundary if pooled parallelism is ever wanted.
 
 ## Implementation order
 
@@ -98,17 +108,49 @@ employees can't log in anyway (empty `password_hash`).
    user type (`worker/lib/context.ts`) and in-app employee-creation args deliberately omit
    `arbostar_user_id`. `import_projects.ts` already writes `number` (parsed `lead_no`) and
    bumps `last_number` after insert, so a plain first import works against the new schema.
-2. Orchestrator: bulk-SELECT existing correlations for the company into the same
-   `Map<arbostar_id, local_id>` shapes the importers already use (first import = empty maps).
-3. Convert `import_employees.ts` to split-then-bulk-write update-or-insert, with the up-front
-   global email/login_name collision query and identity downgrade — the template for the rest.
-4. `import_clients.ts` (client update-or-insert, primary address update via pointer,
-   contacts update-or-insert by `arbostar_contact_id` + delete-missing),
-   `import_projects.ts` (number parsing + update-or-insert),
-   `import_line_items.ts` (item_type reuse by name, line items update-or-insert by
-   `arbostar_line_item_id` + delete-missing), `import_payments.ts` (update-or-insert by
-   `arbostar_invoice_id`, `payment_project` amount update in place).
-5. Bump `project_number.last_number`; log unmatched-mapping counts.
+2. ~~Correlation priming~~ **DONE (July 2026)**:
+   `shared/arbostar/load_existing_correlations.ts` bulk-SELECTs the company's correlations
+   (five arbostar_* columns, `project.number`, `item_type` by name, and each correlated
+   client's `primary_client_address_id`) into `Map<number, bigint>`s. Exposed to the
+   importers as `context.existing` on `ArbostarImportContext`, populated by
+   `shared/arbostar/resolve_context.ts` — which the orchestrator calls itself (it takes a
+   pool + company_id; its four lookups run in parallel on pooled connections). The node
+   script is only environment glue: env vars, CLI args, data files, console output.
+3. ~~import_employees~~ **DONE**: split correlated / name-matched (backfills the correlation)
+   / new; updates touch only name + phone + arbostar_user_id. **Identity columns are
+   insert-only** (decided during implementation): email/login_name are login credentials, so
+   re-imports never overwrite them — which also means collision handling only applies to
+   inserts (checked up front against every identity in the table, downgraded on collision).
+   Writes use `insert_helper.bulk_update` (generic CASE-per-key batched UPDATE, added to
+   typed_insert_helper.ts).
+4. ~~Other importers~~ **DONE**, per the table above. Only ArboStar-derived columns are
+   updated; locally-populated ones (project due_date/emergency/tax/notes_for_crew/closed
+   dates/created_by, client billing/tax/referred_by, payment method/status) are never
+   touched after insert.
+5. ~~Finish-up~~ **DONE**: `*_no_longer_in_export` counts in the summary (the project one
+   also counts in-app-allocated numbers — flag, not exact); per-importer transactions in the
+   orchestrator, no whole-run transaction in the script.
+
+## Findings from the live test
+
+- ArboStar's estimate editor payload reuses line-item ids: 13 ids appear twice in the June
+  2026 export (one real row + one phantom with null service/price/quantity on an unrelated
+  newer lead). `import_line_items` dedupes by keeping the copy with the most data
+  (`duplicate_line_items_dropped`).
+- The mid-run failure that surfaced that bug doubled as a live test of crash recovery:
+  employees/clients/projects had committed, line items rolled back, and the re-run updated
+  the committed phases and inserted the rest. Exactly the designed behavior.
+
+## Open items
+
+- `clients.js` on disk predates the raw-export rework, so it has no nested contacts —
+  contacts import as zero until `export_clients.ts` is re-run with a live ArboStar session.
+- Distribution: the import runs as a local script over a connection pool — the orchestrator
+  takes a `Pool`, each phase runs in `pool_transaction` (own connection, own transaction; see
+  `worker/lib/mysql/helpers.ts`), and independent phases run concurrently:
+  (employees ∥ clients) → projects → (line items ∥ payments). That's the maximum the data
+  dependencies allow — projects consume the client ids, line items/payments consume the
+  project ids. Running it in prod (upload + import per client company) still needs a home.
 
 ## Test company
 

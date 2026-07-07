@@ -54,7 +54,7 @@ export type Field = {
 type MysqlDateTypes = 'TIMESTAMP' | 'DATETIME' | 'DATE'
 const date_types_we_want_returned_as_strings: MysqlDateTypes[] = [ `TIMESTAMP`, `DATETIME`, `DATE` ]
 
-const static_connection_options: ConnectionOptions = {
+export const static_connection_options: ConnectionOptions = {
 	rowsAsArray: true,
 	multipleStatements: true,
 	supportBigNumbers: true,
@@ -104,7 +104,18 @@ const static_connection_options: ConnectionOptions = {
 	},
 }
 
-export const create_pool = (env: Env): Pool =>
+// Structural rather than the worker's global Env so non-worker scripts (which aren't in the
+// worker tsconfig) can create pools with the exact same connection options as the app.
+type MysqlEnv = {
+	MYSQL_HOST: string
+	MYSQL_PORT: string
+	MYSQL_USER: string
+	MYSQL_PASS: string
+	MYSQL_DB: string
+	MYSQL_CA_CERT?: string
+}
+
+export const create_pool = (env: MysqlEnv): Pool =>
 	createPool({
 		host: env.MYSQL_HOST,
 		port: Number(env.MYSQL_PORT),

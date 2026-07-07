@@ -16,7 +16,7 @@ related records pick its document stage, and anything without a home is summariz
 | `sent_for_client_approval` | any estimate with status 2 (Sent for approval) or 3 (Pending approval) |
 | `needs_client_approval` | project landed on the Estimate document |
 | Users → employees | every ArboStar user account becomes an `employee` row — including suspended ones and ArboStar's own support account, since they appear as estimators. A user whose name matches an existing employee (normalized) is reused, not re-inserted |
-| Employee identity | ArboStar's login username (`emailid`) → `employee.login_name`; its `personal_email` → `employee.email`, both taken verbatim (empty string → null; a user with neither gets a synthesized `arbostar.user.{id}@import.invalid` email, since at least one is required). Both columns are unique across the **whole employee table** and the import does **not** dedupe against existing rows yet — a collision (e.g. re-importing the same export) fails the insert and rolls the run back |
+| Employee identity | ArboStar's login username (`emailid`) → `employee.login_name`; its `personal_email` → `employee.email` (empty string → null; a user with neither gets a synthesized `arbostar.user.{id}@company.{company_id}.import.invalid` email, since at least one is required). Both columns are unique across the **whole employee table**, so inserts are checked against every existing identity up front — a collision downgrades the identity (login_name nulled / email replaced with the placeholder) instead of failing. Identity columns are **insert-only**: re-imports never overwrite email/login_name, since they're login credentials |
 | Employee passwords | imported employees get an empty `password_hash`, which can never match a computed hash — they **cannot log in** until someone sets a real password |
 | Estimator | matched to an employee by normalized name (existing employees plus the imported users); unmatched names (e.g. ArboStar's "system system") are kept as an `Estimator:` line in `lead_details` |
 | Primary contact | ArboStar doesn't flag one, so each client's first contact gets `is_primary` |
@@ -66,7 +66,7 @@ nowhere to go.
 
 | Field | Fate |
 | --- | --- |
-| `lead_no` | → lead_details (projects have no number column; `project_number.last_number` is untouched) |
+| `lead_no` | integer parsed out (`123-L` → 123) → `project.number` (the user-facing project number and the re-import correlation key); the full string also survives in lead_details. `project_number.last_number` is bumped past the max imported number |
 | `lead_status_id` / `lead_status_name` | picks the document stage; name → lead_details |
 | `lead_reason_status_id` | dropped (No Go reason codes) |
 | `lead_priority` | → lead_details (schema only has an `emergency` bit, which is not inferred) |
@@ -137,19 +137,29 @@ nowhere to go.
 | `project.notes_for_crew` | work orders only carry office notes |
 | `project.closed_at` / `project.closed_date` | `closed` is set, but no reliable close date exists (see `latest_status_update` above) |
 | `payment.payment_method` | actual method (cash/check/card) isn't in the invoice export — hardcoded to `'arbostar import'` |
-| `project_number.last_number` | untouched; ArboStar lead numbers live only in lead_details text |
 
 Whole tables that get nothing: `crew` / `crew_member`, `work_skill` /
 `project_work_skill`, `time_entry`, `tax_rate`, `estimate_availability`,
 `project_client_approval`, `project_document` (global codebook), `project_line_item_image`.
 
-## No ArboStar ids are stored anywhere
+## Re-runnable: ArboStar ids are stored as correlations
 
-The schema has no external-id columns, so imported rows can't be traced back to their ArboStar
-records, and the import is **not idempotent** — running the script twice doubles every row. The
-whole run is a single transaction, so a failure imports nothing.
+Every imported row carries its ArboStar identity (migration 0016): `employee.arbostar_user_id`,
+`client.arbostar_client_id`, `payment.arbostar_invoice_id`, `client_contact.arbostar_contact_id`,
+`project_line_item.arbostar_line_item_id`, and `project.number` (the parsed `lead_no` integer).
+The import is **idempotent**: re-running updates the ArboStar-derived columns of existing rows
+and inserts only what's new (see `claude_rerunnable_import_notes.md` for the design). Each
+entity phase runs in its own transaction; a crash between phases is recovered by re-running.
+Contacts and line items that disappear from the export are deleted (rows with a null arbostar
+id — created in-app — are never touched); top-level entities that disappear just linger, with
+`*_no_longer_in_export` counts in the summary.
 
-## Export-type gotcha found during verification
+## Export-type gotchas found during verification
+
+ArboStar's estimate editor payload **reuses a handful of line-item ids**: the June 2026 export
+has 13 `line_item_id`s appearing twice — one real row and one phantom (null
+service/price/quantity) on an unrelated newer lead. The import keeps whichever copy carries
+the most data (`duplicate_line_items_dropped` in the summary).
 
 `leads.estimator` and `workorders.estimator` are typed `string | null | []`: ArboStar returns
 a literal empty array instead of null for a few records with no estimator (30 leads, 2 work
