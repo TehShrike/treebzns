@@ -4,7 +4,7 @@
 // independent, so they run in parallel on their own pooled connections.
 import type { Pool } from 'mysql2/promise'
 import assert from '#shared/assert.ts'
-import { map } from '#shared/array.ts'
+import { map, filter } from '#shared/array.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
 import { normalize_name, run_select } from './import_common.ts'
@@ -25,7 +25,15 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 		.build()
 	const document_query = query_builder<Schema>()
 		.from('project_document')
-		.select(() => ['project_document.project_document_id', 'project_document.name'])
+		.select(() => [
+			'project_document.project_document_id',
+			'project_document.needs_to_be_contacted_by_lead_qualifier',
+			'project_document.needs_estimate_to_move_on',
+			'project_document.needs_client_approval_to_move_on',
+			'project_document.should_be_worked',
+			'project_document.can_be_closed',
+			'project_document.represents_billable_sale_when_closed',
+		])
 		.build()
 
 	const [company_rows, employee_rows, document_rows, existing] = await Promise.all([
@@ -38,25 +46,40 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 	assert(company_rows.length === 1, `Company ${company_id} does not exist`)
 	assert(employee_rows.length > 0, `Company ${company_id} has no employees — imported projects need a created_by employee`)
 
-	const document_id_by_name = new Map(map(
-		document_rows,
-		row => [row.project_document.name, BigInt(row.project_document.project_document_id)] as const,
-	))
-	const document_id = (name: string): bigint => {
-		const id = document_id_by_name.get(name)
-		assert(id !== undefined, `Missing project document "${name}" — run migrations first`)
-		return id
+	type DocumentFlags = Partial<{
+		needs_to_be_contacted_by_lead_qualifier: boolean
+		needs_estimate_to_move_on: boolean
+		needs_client_approval_to_move_on: boolean
+		should_be_worked: boolean
+		can_be_closed: boolean
+		represents_billable_sale_when_closed: boolean
+	}>
+	const document_id = (flags: DocumentFlags): bigint => {
+		const matches = filter(document_rows, row =>
+			Object.entries(flags).every(
+				([flag, value]) => row.project_document[flag as keyof DocumentFlags] === value,
+			))
+		assert(
+			matches.length === 1,
+			`Exactly one project document must match ${JSON.stringify(flags)} — found ${matches.length}`,
+		)
+		return BigInt(matches[0]!.project_document.project_document_id)
 	}
 
 	return {
 		company_id,
 		created_by_employee_id: BigInt(employee_rows[0]!.employee.employee_id),
 		project_document_ids: {
-			lead_unqualified: document_id('Lead (Unqualified)'),
-			lead_qualified: document_id('Lead (Qualified)'),
-			estimate: document_id('Estimate'),
-			work_order: document_id('Work Order'),
-			void: document_id('Void'),
+			lead_unqualified: document_id({ needs_to_be_contacted_by_lead_qualifier: true }),
+			lead_qualified: document_id({ needs_estimate_to_move_on: true }),
+			estimate: document_id({ needs_client_approval_to_move_on: true }),
+			work_order: document_id({ can_be_closed: true, represents_billable_sale_when_closed: true }),
+			void: document_id({
+				needs_to_be_contacted_by_lead_qualifier: false,
+				needs_estimate_to_move_on: false,
+				needs_client_approval_to_move_on: false,
+				should_be_worked: false,
+			}),
 		},
 		employee_id_by_name: new Map(map(
 			employee_rows,

@@ -62,6 +62,7 @@ export const import_employees = async (
 				set: {
 					name: user.full_name,
 					phone: user.emp_phone,
+					is_owner: user.user_type === 'admin',
 					arbostar_user_id: BigInt(user.user_id),
 				},
 			})),
@@ -115,7 +116,7 @@ export const import_employees = async (
 				// An empty hash can never equal a computed PBKDF2 hex digest, so imported employees
 				// cannot log in until someone sets a real password for them.
 				password_hash: '',
-				is_owner: false,
+				is_owner: user.user_type === 'admin',
 				number_of_password_hash_iterations: 50_000n, // the app's DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS
 				arbostar_user_id: BigInt(user.user_id),
 			}

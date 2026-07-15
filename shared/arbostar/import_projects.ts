@@ -56,7 +56,10 @@ const ARBOSTAR_WO_STATUS_FINISHED = 7
 // work orders, and invoices choose the document stage and are summarized into lead_details.
 // Update-or-insert: `project.number` (the parsed lead integer) is the correlation, and updates
 // only touch the ArboStar-derived columns — locally-populated ones (due_date, emergency, tax,
-// notes_for_crew, closed_at/closed_date, created_by_employee_id) are left alone.
+// notes_for_crew, closed_at/closed_date, created_by_employee_id) are left alone. `closed` means
+// "no more work to do" (payment state is the billing system's concern, tracked separately as
+// payment rows) and is a one-way ratchet on updates: the import can close a project but never
+// reopens one that was closed in-app.
 export const import_projects = async (
 	connection: Connection,
 	context: ArbostarImportContext,
@@ -92,7 +95,7 @@ export const import_projects = async (
 				: documents.lead_qualified
 
 		const closed = lead_workorders.some(workorder => workorder.wo_status_id === ARBOSTAR_WO_STATUS_FINISHED)
-			|| (lead_invoices.length > 0 && lead_invoices.every(invoice => (invoice.total_due ?? 0) <= 0))
+			|| lead_invoices.length > 0
 
 		const estimator_name = string_or_null(lead.estimator)
 			?? map(lead_estimates, estimate => string_or_null(estimate.estimator)).find(name => name !== null)
@@ -147,16 +150,17 @@ export const import_projects = async (
 	const existing_leads = filter(importable, lead => context.existing.project_id_by_number.has(Number(lead_number(lead))))
 	const new_leads = filter(importable, lead => !context.existing.project_id_by_number.has(Number(lead_number(lead))))
 
-	await insert_helper.bulk_update(
-		connection,
-		'project',
-		'project_id',
-		map(existing_leads, lead => ({
-			key: context.existing.project_id_by_number.get(Number(lead_number(lead)))!,
-			set: project_fields(lead),
-		})),
-		ROWS_PER_BATCH,
+	const existing_rows = map(existing_leads, lead => ({
+		key: context.existing.project_id_by_number.get(Number(lead_number(lead)))!,
+		set: project_fields(lead),
+	}))
+	const closing_rows = filter(existing_rows, row => row.set.closed)
+	const still_open_rows = map(
+		filter(existing_rows, row => !row.set.closed),
+		({ key, set: { closed, ...set } }) => ({ key, set }),
 	)
+	await insert_helper.bulk_update(connection, 'project', 'project_id', closing_rows, ROWS_PER_BATCH)
+	await insert_helper.bulk_update(connection, 'project', 'project_id', still_open_rows, ROWS_PER_BATCH)
 	const project_id_by_arbostar_lead_id = new Map(map(
 		existing_leads,
 		lead => [lead.lead_id, context.existing.project_id_by_number.get(Number(lead_number(lead)))!] as const,

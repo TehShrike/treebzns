@@ -37,7 +37,7 @@ export type ArbostarImportContext = {
 	company_id: bigint
 	// Imported projects are attributed to this employee (project.created_by_employee_id).
 	created_by_employee_id: bigint
-	// Resolved from the global project_document codebook by name.
+	// Resolved from the global project_document codebook by behavior flags (see resolve_context).
 	project_document_ids: {
 		lead_unqualified: bigint
 		lead_qualified: bigint

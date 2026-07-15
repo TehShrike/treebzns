@@ -12,7 +12,7 @@ related records pick its document stage, and anything without a home is summariz
 | Decision | Rule |
 | --- | --- |
 | Project document stage | lead has a work order or invoice → **Work Order**; else lead status is No Go → **Void**; else lead has an estimate → **Estimate**; else lead status is New/Draft → **Lead (Unqualified)**; else → **Lead (Qualified)** |
-| `project.closed` | any work order with status 7 (Finished by field worker), or the lead has invoices and every one has `total_due <= 0` |
+| `project.closed` | any work order with status 7 (Finished by field worker), or the lead has any invoice (invoicing means the work happened — whether it's *paid* is the billing system's concern, tracked as `payment` rows). One-way on re-imports: the import can close a project but never reopens one closed in-app |
 | `sent_for_client_approval` | any estimate with status 2 (Sent for approval) or 3 (Pending approval) |
 | `needs_client_approval` | project landed on the Estimate document |
 | Users → employees | every ArboStar user account becomes an `employee` row — including suspended ones and ArboStar's own support account, since they appear as estimators. A user whose name matches an existing employee (normalized) is reused, not re-inserted |
@@ -105,7 +105,7 @@ nowhere to go.
 | `date_created` | dropped (payment `created_at` becomes the import time) |
 | `total_for_services` / `discount` / `deposit_amount` | dropped |
 | `tax` | dropped — it's an **amount**, so it can't populate `project.tax_rate` (a rate) or pick a `tax_rate_id` |
-| `total_due` | drives `closed`, then dropped |
+| `total_due` | dropped — deliberately kept out of `closed`, which means "no more work to do", not "paid" |
 | `interest_status`, `client_phone` | dropped |
 
 ### line_items.js

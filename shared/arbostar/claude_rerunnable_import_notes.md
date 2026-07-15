@@ -126,7 +126,8 @@ employees can't log in anyway (empty `password_hash`).
 4. ~~Other importers~~ **DONE**, per the table above. Only ArboStar-derived columns are
    updated; locally-populated ones (project due_date/emergency/tax/notes_for_crew/closed
    dates/created_by, client billing/tax/referred_by, payment method/status) are never
-   touched after insert.
+   touched after insert. `project.closed` is a one-way ratchet on updates: the import can
+   set it but never clears it, so a re-run can't reopen a project closed in-app.
 5. ~~Finish-up~~ **DONE**: `*_no_longer_in_export` counts in the summary (the project one
    also counts in-app-allocated numbers — flag, not exact); per-importer transactions in the
    orchestrator, no whole-run transaction in the script.
