@@ -3,6 +3,7 @@
 export const client = {
 	company_id: 'company_id',
 	name: 'name',
+	is_commercial: 'is_commercial',
 	primary_client_address_id: 'primary_client_address_id',
 	billing_client_address_id: 'billing_client_address_id',
 	primary_phone: 'primary_phone',

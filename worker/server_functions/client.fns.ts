@@ -17,6 +17,7 @@ const address_validator = jv.object({
 
 const create_client_validator = jv.object({
 	name: jv.is_string,
+	is_commercial: jv.is_boolean,
 	primary_phone: jv.is_string,
 	primary_email: jv.is_string,
 	tax_rate_id: jv.optional(jv.nullable(jv.is_bigint)),
@@ -36,6 +37,7 @@ export const functions = {
 				const { insert_id: client_id } = await insert_helper.insert(mysql.connection, 'client', {
 					company_id,
 					name: arg.name,
+					is_commercial: arg.is_commercial,
 					primary_client_address_id: 0n,
 					primary_phone: arg.primary_phone,
 					primary_email: arg.primary_email,

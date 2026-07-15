@@ -30,12 +30,12 @@ export type ImportedClients = {
 // ArboStar's contacts carry both a raw and a display-formatted phone; prefer the formatted one.
 const contact_phone = (contact: ArbostarContact): string | null => contact.cc_phone_view ?? contact.cc_phone
 
-// ArboStar's client_type is a numeric code; the June 2026 export contains only these two, and the
-// type-2 client list is unmistakably businesses/HOAs/churches. An unknown code stays as-is.
-const client_type_label = (client_type: string): string =>
-	client_type === '1' ? 'Residential'
-	: client_type === '2' ? 'Commercial'
-	: client_type
+// ArboStar's client_type is a numeric code; the June 2026 export contains only '1' and '2', and
+// the type-2 client list is unmistakably businesses/HOAs/churches. An unknown code is kept in the
+// notes so it isn't silently flattened into is_commercial = false.
+const is_commercial = (client_type: string | null): boolean => client_type === '2'
+const is_known_client_type = (client_type: string | null): boolean =>
+	client_type === null || client_type === '1' || client_type === '2'
 
 // clients.js → client, client_address, client_contact, update-or-insert. Client correlation is
 // arbostar_client_id; a correlated client's row and its primary address (reached through
@@ -60,10 +60,11 @@ export const import_clients = async (
 
 		return {
 			name: client.client_name ?? `ArboStar client ${client.client_id}`,
+			is_commercial: is_commercial(client.client_type),
 			primary_phone: first_phone ?? '',
 			primary_email: first_email ?? '',
 			notes: join_lines([
-				client.client_type === null ? null : `ArboStar client type: ${client_type_label(client.client_type)}`,
+				is_known_client_type(client.client_type) ? null : `ArboStar client type: ${client.client_type}`,
 				// client_date_created is already YYYY-MM-DD; the slice guards against a future
 				// export switching to full timestamps.
 				client.client_date_created === null ? null : `Created in ArboStar: ${client.client_date_created.slice(0, 10)}`,

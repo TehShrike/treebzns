@@ -6,6 +6,7 @@ export const validator_object = {
 	client_id: jv.is_bigint,
 	company_id: jv.is_bigint,
 	name: jv.is_string,
+	is_commercial: jv.is_boolean,
 	primary_client_address_id: jv.is_bigint,
 	billing_client_address_id: jv.nullable(jv.is_bigint),
 	primary_phone: jv.is_string,
