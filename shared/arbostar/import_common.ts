@@ -49,12 +49,20 @@ export type ArbostarImportContext = {
 	// employees. import_employees folds the imported ArboStar users into this map before it's
 	// used to match estimator names.
 	employee_id_by_name: Map<string, bigint>
+	// Identity key (see identity_key) of the company's existing employees' email and
+	// login_name → employee_id, so an ArboStar user account can adopt the employee row a
+	// person created in-app before the first import.
+	employee_id_by_identity: Map<string, bigint>
 	// The company's rows from previous imports (see load_existing_correlations.ts) — how each
 	// importer decides update-vs-insert. All empty on a first import.
 	existing: ExistingCorrelations
 }
 
 export const normalize_name = (name: string): string => name.trim().toLowerCase()
+
+// Identity keys (email / login_name) are unique across the whole employee table with
+// case-insensitive collation.
+export const identity_key = (value: string): string => value.trim().toLowerCase()
 
 export const group_by = <T, K>(items: readonly T[], key: (item: T) => K): Map<K, T[]> => {
 	const groups = new Map<K, T[]>()

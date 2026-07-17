@@ -15,7 +15,7 @@ related records pick its document stage, and anything without a home is summariz
 | `project.closed` | any work order whose status name is `Finished` (matched by name — row-level `wo_status_id`s don't line up with the readme's status-tab table), or the lead has any invoice (invoicing means the work happened — whether it's *paid* is the billing system's concern, tracked as `payment` rows). One-way on re-imports: the import can close a project but never reopens one closed in-app |
 | `sent_for_client_approval` | any estimate with status 2 (Sent for approval) or 3 (Pending approval) |
 | `needs_client_approval` | project landed on the Estimate document |
-| Users → employees | every ArboStar user account becomes an `employee` row — including suspended ones and ArboStar's own support account, since they appear as estimators. A user whose name matches an existing employee (normalized) is reused, not re-inserted |
+| Users → employees | only **active** (`active_status = 'yes'`) ArboStar accounts become `employee` rows — suspended/inactive ones are ignored entirely, on first import and re-imports, so their estimator names survive only as lead_details text. An uncorrelated user whose login/emails match an existing employee's `login_name`/`email` (or, failing that, whose name matches, normalized) adopts that row instead of inserting — this is how the account a person created in-app before the first import becomes their ArboStar-linked row. `is_owner` is an in-app permission: inserted as false, never updated |
 | Employee identity | ArboStar's login username (`emailid`) → `employee.login_name`; its `personal_email` → `employee.email` (empty string → null; a user with neither gets a synthesized `arbostar.user.{id}@company.{company_id}.import.invalid` email, since at least one is required). Both columns are unique across the **whole employee table**, so inserts are checked against every existing identity up front — a collision downgrades the identity (login_name nulled / email replaced with the placeholder) instead of failing. Identity columns are **insert-only**: re-imports never overwrite email/login_name, since they're login credentials |
 | Employee passwords | imported employees get an empty `password_hash`, which can never match a computed hash — they **cannot log in** until someone sets a real password |
 | Estimator | matched to an employee by normalized name (existing employees plus the imported users); unmatched names (e.g. ArboStar's "system system") are kept as an `Estimator:` line in `lead_details` |
@@ -51,14 +51,15 @@ nowhere to go.
 | --- | --- |
 | `emp_position` | dropped (no title/position column) |
 | `emp_yearly_rate` / `emp_hourly_rate` | dropped (pay lives on `work_skill.hourly_rate`, which isn't per-employee) |
-| `active_status` / `active_employee` | dropped — suspended users import as normal employees |
+| `active_status` | drives the import filter — only `'yes'` accounts import, everything else is ignored |
+| `active_employee` | dropped |
 | `user_type` (admin/user) | dropped (not mapped to `is_owner` or software roles; imported employees get `is_owner = 0`) |
 | `worker_type` (field/office) | dropped |
 | `emp_date_hire` / `emp_date_fired` | dropped |
 | `emp_birthday` / `emp_sex` | dropped |
 | `address1` / `address2` / `city` / `state` / `user_zip` / `user_country` / lat/lng | dropped |
 | `color` | dropped (`crew.color` exists, but crews aren't imported) |
-| `user_email` (ArboStar login/notification email) | dropped — `personal_email` maps to `employee.email` instead |
+| `user_email` (ArboStar login/notification email) | used (alongside `emailid` and `personal_email`) to match pre-existing in-app employees by identity, but not stored — `personal_email` maps to `employee.email` instead |
 | `extention_key` | dropped |
 | `internal_employee_id` / `emp_custom_id` | dropped |
 

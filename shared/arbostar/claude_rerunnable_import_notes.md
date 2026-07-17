@@ -116,13 +116,17 @@ employees can't log in anyway (empty `password_hash`).
    `shared/arbostar/resolve_context.ts` — which the orchestrator calls itself (it takes a
    pool + company_id; its four lookups run in parallel on pooled connections). The node
    script is only environment glue: env vars, CLI args, data files, console output.
-3. ~~import_employees~~ **DONE**: split correlated / name-matched (backfills the correlation)
-   / new; updates touch only name + phone + arbostar_user_id. **Identity columns are
-   insert-only** (decided during implementation): email/login_name are login credentials, so
-   re-imports never overwrite them — which also means collision handling only applies to
-   inserts (checked up front against every identity in the table, downgraded on collision).
-   Writes use `insert_helper.bulk_update` (generic CASE-per-key batched UPDATE, added to
-   typed_insert_helper.ts).
+3. ~~import_employees~~ **DONE**: split correlated / identity-matched / name-matched (both
+   matches backfill the correlation) / new; updates touch only name + phone +
+   arbostar_user_id. **Identity columns are insert-only** (decided during implementation):
+   email/login_name are login credentials, so re-imports never overwrite them — which also
+   means collision handling only applies to inserts (checked up front against every identity
+   in the table, downgraded on collision). Writes use `insert_helper.bulk_update` (generic
+   CASE-per-key batched UPDATE, added to typed_insert_helper.ts). Later decisions (July
+   2026): only active (`'yes'`) ArboStar accounts import — suspended/inactive are ignored on
+   every run; `is_owner` is in-app-managed — inserted false, never updated; identity matching
+   (ArboStar emailid/personal_email/user_email vs the company's employee login_name/email)
+   runs before name matching so a pre-created in-app account adopts its ArboStar user.
 4. ~~Other importers~~ **DONE**, per the table above. Only ArboStar-derived columns are
    updated; locally-populated ones (project due_date/emergency/tax/notes_for_crew/closed
    dates/created_by, client billing/tax/referred_by, payment method/status) are never

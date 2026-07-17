@@ -4,10 +4,10 @@
 // independent, so they run in parallel on their own pooled connections.
 import type { Pool } from 'mysql2/promise'
 import assert from '#shared/assert.ts'
-import { map, filter } from '#shared/array.ts'
+import { map, filter, flatten } from '#shared/array.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
-import { normalize_name, run_select } from './import_common.ts'
+import { normalize_name, identity_key, run_select } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { load_existing_correlations } from './load_existing_correlations.ts'
 
@@ -21,7 +21,7 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 		.from('employee')
 		.where(b => b.comparison('employee.company_id', '=', { value: company_id }))
 		.order_by('employee.is_owner', 'DESC')
-		.select(() => ['employee.employee_id', 'employee.name'])
+		.select(() => ['employee.employee_id', 'employee.name', 'employee.email', 'employee.login_name'])
 		.build()
 	const document_query = query_builder<Schema>()
 		.from('project_document')
@@ -85,6 +85,13 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 			employee_rows,
 			row => [normalize_name(row.employee.name), BigInt(row.employee.employee_id)] as const,
 		)),
+		employee_id_by_identity: new Map(flatten(map(
+			employee_rows,
+			row => map(
+				filter([row.employee.email, row.employee.login_name], value => value !== null),
+				value => [identity_key(value!), BigInt(row.employee.employee_id)] as const,
+			),
+		))),
 		existing,
 	}
 }
