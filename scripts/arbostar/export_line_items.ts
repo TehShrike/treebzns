@@ -12,6 +12,7 @@
 
 import { fetch_json, map_with_concurrency } from './fetch_record.ts'
 import { read_output, write_output } from './output.ts'
+import type { ExportShape } from './output.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
@@ -46,7 +47,7 @@ type EstimateEditor = {
 const number_or_null = (value: number | string | null | undefined): number | null =>
 	value == null || value === '' ? null : Number(value)
 
-function to_line_item(service: ArboStarService, lead_id: number): ArbostarLineItem {
+function to_line_item(service: ArboStarService, lead_id: number): ExportShape<ArbostarLineItem> {
 	return {
 		line_item_id: service.id,
 		lead_id,
@@ -80,7 +81,7 @@ let failures = 0
 const per_estimate = await map_with_concurrency(
 	lead_ids,
 	6,
-	async (lead_id): Promise<ArbostarLineItem[]> => {
+	async (lead_id): Promise<ExportShape<ArbostarLineItem>[]> => {
 		try {
 			const editor = await fetch_json<EstimateEditor>(`/estimates/edit/${lead_id}`, { base_url: BASE_URL, headers: AUTH_HEADERS })
 			const services = editor.lead?.estimate?.estimates_service ?? []

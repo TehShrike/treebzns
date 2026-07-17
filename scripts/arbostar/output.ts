@@ -9,6 +9,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const OUTPUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'arbostar_export')
 
+// Return type for the export mappers: same keys as the committed record type, any values.
+// The .d.ts types narrow many fields to unions/non-null based on the observed data, which a
+// mapper can't prove from the raw API types — so mappers check key-completeness only.
+// undefined values are fine: JSON.stringify drops those keys (the .d.ts marks them `?`).
+export type ExportShape<T> = { [K in keyof T]-?: unknown }
+
 /** Write `rows` to arbostar_export/<filename> (a .js) as `export default <rows>`. */
 export function write_output(filename: string, rows: unknown): string {
 	mkdirSync(OUTPUT_DIR, { recursive: true })

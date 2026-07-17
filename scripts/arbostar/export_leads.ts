@@ -9,6 +9,7 @@
 import { fetch_all_rows_every_status } from './fetch_datatable.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
+import type { ExportShape } from './output.ts'
 import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
 
 type ArboStarLead = {
@@ -36,7 +37,7 @@ type ArboStarLead = {
 	form_id: string | null
 }
 
-function to_export(lead: ArboStarLead): ArbostarLead {
+function to_export(lead: ArboStarLead): ExportShape<ArbostarLead> {
 	return {
 		lead_id: lead.lead_id,
 		lead_no: lead.lead_no,

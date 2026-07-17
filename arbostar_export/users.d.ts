@@ -3,14 +3,14 @@
 // field workers). Merged from the /user/list_ajax list row and the richer JSON embedded
 // in each /user/get/{id} page. Deliberately excluded: emp_sin, MFA/credential fields,
 // pictures, permission config.
+// Unions enumerate the values observed in the July 2026 export (see estimates.d.ts).
 export type ArbostarUser = {
 	user_id: number
-	/** 'admin' | 'user' */
-	user_type: string
+	user_type: 'admin' | 'user'
 	/** 1 = field worker, 2 = office (the user list's "field workers" filter matches 1). */
-	worker_type: number
-	/** 'yes' (active) | 'suspended' | ... (the list page's status tabs are active/inactive/dismissed). */
-	active_status: string
+	worker_type: 1 | 2
+	/** 'yes' = active. The list page's status tabs are active/inactive/dismissed, so other values likely exist. */
+	active_status: 'yes' | 'suspended'
 	active_employee: boolean
 	firstname: string
 	lastname: string
@@ -22,10 +22,14 @@ export type ArbostarUser = {
 	personal_email: string
 	emp_phone: string
 	extention_key: string
+	/** Free-entry job title. */
 	emp_position: string
-	emp_sex: string
+	emp_sex: 'male' | 'female'
+	/** MM/DD/YYYY. */
 	emp_birthday: string | null
-	emp_date_hire: string | null
+	/** Present in the API but never populated in the export. */
+	emp_date_hire: null
+	/** MM/DD/YYYY. */
 	emp_date_fired: string | null
 	emp_yearly_rate: number
 	emp_hourly_rate: number
@@ -40,7 +44,8 @@ export type ArbostarUser = {
 	user_formatted_address: string
 	user_lat: string
 	user_lng: string
-	internal_employee_id: number
+	/** '' on one account (API quirk); otherwise a number. */
+	internal_employee_id: number | ''
 	emp_custom_id: string
 }
 

@@ -10,6 +10,7 @@
 import { fetch_all_rows_every_status } from './fetch_datatable.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
+import type { ExportShape } from './output.ts'
 import type { ArbostarWorkOrder } from '#arbostar_export/workorders.d.ts'
 
 type ArboStarWorkOrder = {
@@ -37,7 +38,7 @@ type ArboStarWorkOrder = {
 	mh_total_unscheduled: number | null
 }
 
-function to_export(wo: ArboStarWorkOrder): ArbostarWorkOrder {
+function to_export(wo: ArboStarWorkOrder): ExportShape<ArbostarWorkOrder> {
 	return {
 		workorder_id: wo.id,
 		workorder_no: wo.workorder_no,
