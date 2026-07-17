@@ -22,6 +22,9 @@ export type ImportedLineItems = {
 const data_score = (item: ArbostarLineItem): number =>
 	(item.service_name === null ? 0 : 1) + (item.price === null ? 0 : 1) + (item.quantity === null ? 0 : 1)
 
+// A Declined line is imported as client_optional even when ArboStar didn't flag it optional:
+// this schema only allows declining optional lines, and a declined line's fate (never billed —
+// verified against invoice totals) matters more than how it was originally offered.
 // line_items.js → item_type + project_line_item, update-or-insert. Item types are naturally
 // keyed by name per company — existing ones are reused (their taxable flag is left as set at
 // creation), only unseen names are inserted. Line items correlate by arbostar_line_item_id,
@@ -73,6 +76,8 @@ export const import_line_items = async (
 			item_type_id: item.service_name === null ? null : item_type_id_by_name.get(item.service_name)!,
 			estimated_hours: BigInt(Math.round(item.man_hours ?? 0)),
 			taxable: !item.non_taxable,
+			client_optional: item.optional || item.status === 'Declined',
+			client_declined: item.status === 'Declined',
 			quantity: money(item.quantity ?? 1),
 			price: money(item.price ?? 0),
 		}

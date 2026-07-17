@@ -10,6 +10,8 @@ export const validator_object = {
 	item_type_id: jv.nullable(jv.is_bigint),
 	estimated_hours: jv.is_bigint,
 	taxable: jv.is_boolean,
+	client_optional: jv.is_boolean,
+	client_declined: jv.is_boolean,
 	quantity: is_financial_number,
 	price: is_financial_number,
 	arbostar_line_item_id: jv.nullable(jv.is_bigint),

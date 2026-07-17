@@ -115,8 +115,9 @@ nowhere to go.
 | `size` / `species` / `reason` | → appended to `description` as text |
 | `man_hours` | → `estimated_hours`, **rounded to whole hours** (the column is an integer) |
 | `cost` | dropped (no cost column — margin data is lost) |
-| `optional` / `is_fee` / `is_additional_work` | dropped |
-| `status` | dropped |
+| `optional` | → `client_optional` (forced true on Declined lines — this schema only allows declining optional lines, and a declined line was never billed regardless of how it was offered) |
+| `status` | `Declined` → `client_declined`; otherwise dropped (`New` = still-undecided proposal, `Completed` = accepted/invoiced work — both import as not-declined) |
+| `is_fee` / `is_additional_work` | dropped |
 | `crews` | dropped (no crews are imported) |
 | `sort_order` | dropped (table has no sort column) |
 | `estimate_id` / `invoice_id` | dropped — every line attaches to the lead's single project, so which estimate/invoice a line belonged to is lost |

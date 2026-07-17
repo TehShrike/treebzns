@@ -234,6 +234,8 @@ export const project_line_item = {
 	item_type_id: 'item_type_id',
 	estimated_hours: 'estimated_hours',
 	taxable: 'taxable',
+	client_optional: 'client_optional',
+	client_declined: 'client_declined',
 	quantity: 'quantity',
 	price: 'price',
 	created_at: 'created_at',
