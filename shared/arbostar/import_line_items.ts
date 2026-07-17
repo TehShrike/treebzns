@@ -29,7 +29,9 @@ const data_score = (item: ArbostarLineItem): number =>
 // keyed by name per company — existing ones are reused (their taxable flag is left as set at
 // creation), only unseen names are inserted. Line items correlate by arbostar_line_item_id,
 // and ones that disappeared from the export are deleted — stale lines would inflate project
-// totals, which derive from line items. In-app lines (null arbostar id) are never touched.
+// totals, which derive from line items — but only within projects present in this run, so a
+// lead missing from a (possibly partial) export keeps its lines just like it keeps its
+// project. In-app lines (null arbostar id) are never touched.
 export const import_line_items = async (
 	connection: Connection,
 	context: ArbostarImportContext,
@@ -108,11 +110,17 @@ export const import_line_items = async (
 	}
 
 	const incoming_id_list = map(importable, item => escape_value(item.line_item_id)).join(', ')
-	const [{ affectedRows: deleted }] = await connection.query<ResultSetHeader>(
-		`DELETE FROM project_line_item WHERE company_id = ${escape_value(context.company_id)}`
-		+ ' AND arbostar_line_item_id IS NOT NULL'
-		+ (importable.length > 0 ? ` AND arbostar_line_item_id NOT IN (${incoming_id_list})` : ''),
-	)
+	const imported_project_ids = [...project_id_by_arbostar_lead_id.values()]
+	const imported_project_id_list = map(imported_project_ids, escape_value).join(', ')
+	const deleted = imported_project_ids.length === 0 ? 0 : await (async () => {
+		const [{ affectedRows }] = await connection.query<ResultSetHeader>(
+			`DELETE FROM project_line_item WHERE company_id = ${escape_value(context.company_id)}`
+			+ ' AND arbostar_line_item_id IS NOT NULL'
+			+ ` AND project_id IN (${imported_project_id_list})`
+			+ (importable.length > 0 ? ` AND arbostar_line_item_id NOT IN (${incoming_id_list})` : ''),
+		)
+		return affectedRows
+	})()
 
 	return {
 		counts: {

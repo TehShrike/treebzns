@@ -36,8 +36,8 @@ ArboStar ids are assumed unique only per ArboStar tenant, so every unique key be
 | `project` | new user-facing `number` column, unique `(company_id, number)`, populated from the integer parsed out of `lead_no` | doubles as the app's own project number; see "Project numbers" below |
 | `client` | new `arbostar_client_id` column, unique `(company_id, arbostar_client_id)` | the most load-bearing correlation — addresses, contacts, projects, and payments all resolve through it |
 | `payment` | new `arbostar_invoice_id` column, unique `(company_id, arbostar_invoice_id)` | payments are synthesized from paid invoices; `amount_paid` grows between exports, so updates matter most here (unpaid → paid becomes a new insert; partially → more paid becomes an update) |
-| `client_contact` | new `arbostar_contact_id` column (ArboStar `cc_id`), unique `(company_id, arbostar_contact_id)` | update-or-insert; after upserting a client's contacts, delete rows whose `arbostar_contact_id` is set but absent from the export |
-| `project_line_item` | new `arbostar_line_item_id` column (ArboStar `line_item_id`), unique `(company_id, arbostar_line_item_id)` | update-or-insert; then delete rows whose `arbostar_line_item_id` is set but missing from the export — stale line items would inflate project totals (totals derive from line items). In-app rows (null arbostar id) are never touched |
+| `client_contact` | new `arbostar_contact_id` column (ArboStar `cc_id`), unique `(company_id, arbostar_contact_id)` | update-or-insert; contacts absent from the export are only counted, never deleted (decided July 2026 — deletion was too dangerous against partial exports) |
+| `project_line_item` | new `arbostar_line_item_id` column (ArboStar `line_item_id`), unique `(company_id, arbostar_line_item_id)` | update-or-insert; then delete rows whose `arbostar_line_item_id` is set but missing from the export — stale line items would inflate project totals (totals derive from line items) — scoped to projects present in the current run so absent leads keep their lines. In-app rows (null arbostar id) are never touched |
 | `item_type` | none — natural key `(company_id, name)` (the service name) | re-run must SELECT existing item types by name and reuse them. **Latent bug today**: even a first re-run duplicates every item type |
 | `client_address` (primary) | none — reachable via `client.primary_client_address_id` once the client is correlated | update in place. A secondary address (none exist to date) also needs no id: ArboStar allows at most one per client, so "this client's `Secondary` row" is a complete natural key |
 | `payment_project` | none — natural key `(payment_id, project_id)` (each synthesized payment has at most one project row) | update the amount in place |
@@ -84,8 +84,8 @@ employees can't log in anyway (empty `password_hash`).
   starts working in this system for real.
 - Deletes of top-level entities (employees, clients, projects, payments) are ignored: an
   entity removed in ArboStar just lingers locally — log a count of mapped local rows the new
-  export no longer mentions. Child rows (contacts, line items) DO get the targeted
-  delete-missing pass described above.
+  export no longer mentions. Line items get the targeted delete-missing pass described above
+  (scoped to this run's projects); contacts are counted but never deleted.
 - Transactions (decided July 2026): the whole-run transaction stays **until** every importer
   is update-or-insert — today a mid-run crash without it leaves rows a re-run can't recognize
   (correlation columns null → duplicates). Once conversion is complete, replace it with

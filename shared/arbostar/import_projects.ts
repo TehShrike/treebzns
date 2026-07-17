@@ -48,8 +48,10 @@ const ARBOSTAR_LEAD_STATUS_NEW = 1
 const ARBOSTAR_LEAD_STATUS_DRAFT = 5
 // ArboStar estimate statuses: 2 Sent for approval · 3 Pending approval.
 const ARBOSTAR_ESTIMATE_STATUSES_SENT = [2, 3]
-// ArboStar work order status 7: Finished by field worker.
-const ARBOSTAR_WO_STATUS_FINISHED = 7
+// Matched on the row-level status name: work order rows use a different status-id space than
+// the status tabs documented in scripts/arbostar/readme.md (finished rows carry wo_status_id 0,
+// not the tab table's 7).
+const ARBOSTAR_WO_STATUS_FINISHED = 'Finished'
 
 // One project per ArboStar lead — this schema models the whole lead → estimate → work order
 // pipeline as a single project moving between project documents, so the related estimates,
@@ -94,7 +96,7 @@ export const import_projects = async (
 				? documents.lead_unqualified
 				: documents.lead_qualified
 
-		const closed = lead_workorders.some(workorder => workorder.wo_status_id === ARBOSTAR_WO_STATUS_FINISHED)
+		const closed = lead_workorders.some(workorder => workorder.status === ARBOSTAR_WO_STATUS_FINISHED)
 			|| lead_invoices.length > 0
 
 		const estimator_name = string_or_null(lead.estimator)

@@ -1,4 +1,4 @@
-import type { Connection, ResultSetHeader } from 'mysql2/promise'
+import type { Connection } from 'mysql2/promise'
 import type { ArbostarClient, ArbostarContact } from '#arbostar_export/clients.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten, chunk } from '#shared/array.ts'
@@ -23,7 +23,7 @@ export type ImportedClients = {
 		clients_no_longer_in_export: number
 		client_contacts_inserted: number
 		client_contacts_updated: number
-		client_contacts_deleted: number
+		client_contacts_no_longer_in_export: number
 	}
 }
 
@@ -41,8 +41,9 @@ const is_known_client_type = (client_type: string | null): boolean =>
 // arbostar_client_id; a correlated client's row and its primary address (reached through
 // client.primary_client_address_id) update in place, and only the ArboStar-derived columns are
 // touched — locally-populated ones (billing address, tax rate, referred_by) are left alone.
-// Contacts correlate by arbostar_contact_id (cc_id), and contacts that disappeared from the
-// export are deleted (in-app contacts, with a null arbostar id, are never touched).
+// Contacts correlate by arbostar_contact_id (cc_id); ones that disappeared from the export
+// are only counted, never deleted (and in-app contacts, with a null arbostar id, are never
+// touched at all).
 // New clients are inserted with a placeholder primary_client_address_id (there are no FK
 // constraints) and fixed up once their address rows exist — the same populate-after-insert
 // convention the schema documents.
@@ -210,14 +211,14 @@ export const import_clients = async (
 		)
 	}
 
-	// Contacts that disappeared from the export. In-app contacts have a null arbostar id and
-	// are never touched.
-	const incoming_contact_id_list = map(incoming_contacts, ({ contact }) => escape_value(contact.cc_id)).join(', ')
-	const [{ affectedRows: contacts_deleted }] = await connection.query<ResultSetHeader>(
-		`DELETE FROM client_contact WHERE company_id = ${escape_value(context.company_id)}`
-		+ ' AND arbostar_contact_id IS NOT NULL'
-		+ (incoming_contacts.length > 0 ? ` AND arbostar_contact_id NOT IN (${incoming_contact_id_list})` : ''),
-	)
+	// Contacts that disappeared from the export are counted but never deleted — a partial
+	// export must not destroy data. If ArboStar-side deletions ever need reconciling, that
+	// will be handled deliberately, not on every re-import.
+	const incoming_contact_ids = new Set(map(incoming_contacts, ({ contact }) => contact.cc_id))
+	const contacts_no_longer_in_export = filter(
+		[...correlated_contacts.keys()],
+		contact_id => !incoming_contact_ids.has(contact_id),
+	).length
 
 	const incoming_client_ids = new Set(map(clients, client => client.client_id))
 	const no_longer_in_export = filter([...correlated.keys()], client_id => !incoming_client_ids.has(client_id)).length
@@ -231,7 +232,7 @@ export const import_clients = async (
 			clients_no_longer_in_export: no_longer_in_export,
 			client_contacts_inserted: new_contacts.length,
 			client_contacts_updated: existing_contacts.length,
-			client_contacts_deleted: contacts_deleted,
+			client_contacts_no_longer_in_export: contacts_no_longer_in_export,
 		},
 	}
 }

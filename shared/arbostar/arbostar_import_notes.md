@@ -12,7 +12,7 @@ related records pick its document stage, and anything without a home is summariz
 | Decision | Rule |
 | --- | --- |
 | Project document stage | lead has a work order or invoice → **Work Order**; else lead status is No Go → **Void**; else lead has an estimate → **Estimate**; else lead status is New/Draft → **Lead (Unqualified)**; else → **Lead (Qualified)** |
-| `project.closed` | any work order with status 7 (Finished by field worker), or the lead has any invoice (invoicing means the work happened — whether it's *paid* is the billing system's concern, tracked as `payment` rows). One-way on re-imports: the import can close a project but never reopens one closed in-app |
+| `project.closed` | any work order whose status name is `Finished` (matched by name — row-level `wo_status_id`s don't line up with the readme's status-tab table), or the lead has any invoice (invoicing means the work happened — whether it's *paid* is the billing system's concern, tracked as `payment` rows). One-way on re-imports: the import can close a project but never reopens one closed in-app |
 | `sent_for_client_approval` | any estimate with status 2 (Sent for approval) or 3 (Pending approval) |
 | `needs_client_approval` | project landed on the Estimate document |
 | Users → employees | every ArboStar user account becomes an `employee` row — including suspended ones and ArboStar's own support account, since they appear as estimators. A user whose name matches an existing employee (normalized) is reused, not re-inserted |
@@ -89,8 +89,8 @@ nowhere to go.
 
 | Field | Fate |
 | --- | --- |
-| `workorder_no`, `status`, `total_price` | → lead_details line |
-| `wo_status_id` | drives `closed` (status 7), then dropped |
+| `workorder_no`, `status`, `total_price` | → lead_details line; `status` also drives `closed` when `Finished` |
+| `wo_status_id` | dropped — row-level ids don't match the status-tab ids (finished rows carry 0, not the tab table's 7), so the status *name* is the reliable signal |
 | `office_notes` | → `notes_for_office` |
 | `latest_status_update` | dropped (would have been the only source for `closed_at`/`closed_date`, but its format isn't trustworthy) |
 | `total_done` / `total_completed_not_invoiced` / `total_invoiced` / `total_scheduled` / `total_unscheduled` | dropped |
@@ -151,9 +151,12 @@ Every imported row carries its ArboStar identity (migration 0016): `employee.arb
 The import is **idempotent**: re-running updates the ArboStar-derived columns of existing rows
 and inserts only what's new (see `claude_rerunnable_import_notes.md` for the design). Each
 entity phase runs in its own transaction; a crash between phases is recovered by re-running.
-Contacts and line items that disappear from the export are deleted (rows with a null arbostar
-id — created in-app — are never touched); top-level entities that disappear just linger, with
-`*_no_longer_in_export` counts in the summary.
+Line items that disappear from the export are deleted, but only within projects present in the
+current run — so a lead missing from a (possibly partial) export keeps its lines just like it
+keeps its project. Contacts are never deleted (decided July 2026: too dangerous against partial
+exports; ArboStar-side contact deletions will be reconciled deliberately if ever needed). Rows
+with a null arbostar id — created in-app — are never touched, and top-level entities that
+disappear just linger. All of the above surface as `*_no_longer_in_export` counts in the summary.
 
 ## Export-type gotchas found during verification
 

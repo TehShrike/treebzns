@@ -485,6 +485,12 @@ Captured June 2026 from each module's `statuses` array. IDs are **not** contiguo
 across modules. `wo_status_id` / `lead_status_id` / `est_status_id` / `invoice_status_id` in
 the exports map as follows.
 
+**Warning: these are the status-*tab* definitions, and row-level status ids don't always use
+the same id space.** Verified divergences in the June 2026 export: work order rows carry
+`wo_status_id: 0` with `status: 'Finished'` (no row uses the tab table's 7), and estimate rows
+use `status_id: 4` for Declined where the tab table says -4. Lead rows do match the tab ids.
+When consuming rows, trust the status *name* on the row over these numbers.
+
 ### Leads — `lead_status_id`
 | id | name | notes |
 | --- | --- | --- |
