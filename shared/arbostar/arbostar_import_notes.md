@@ -21,7 +21,7 @@ related records pick its document stage, and anything without a home is summariz
 | Estimator | matched to an employee by normalized name (existing employees plus the imported users); unmatched names (e.g. ArboStar's "system system") are kept as an `Estimator:` line in `lead_details` |
 | Primary contact | ArboStar doesn't flag one, so each client's first contact gets `is_primary` |
 | Primary address | taken from the client row's own address columns (the only address source — ArboStar's profile-only "secondary address" has never had data and is not exported); `client.primary_client_address_id` is fixed up after the address rows insert, per the schema's convention |
-| Payments | each invoice with `amount_paid > 0` becomes one `payment` (`payment_method` = `'arbostar import'`, `status` = `'completed'`) plus a `payment_project` against the lead's project |
+| Payments | each ArboStar payment record (payments.js — real amounts and methods, not invoice-derived) becomes one `payment` plus a `payment_project` applying the full amount against the first of the payment's leads that resolved to a project. Payment methods are natural-keyed by name per company like item types: the tenant's method names (Cash / Credit Card / Cheque / Direct Deposit) are created on first use and reused after. Payments that vanish from the export are counted, not deleted — usually an ArboStar-side deletion/refund worth a manual look |
 | Item types | one `item_type` per distinct line-item `service_name`; `taxable` from the first line item seen with that name |
 | Client type | ArboStar's numeric `client_type` code becomes a label in `client.notes` (1 → Residential, 2 → Commercial; unknown codes kept raw). Notes-only for now — worth an explicit schema column eventually |
 
@@ -98,17 +98,28 @@ nowhere to go.
 | `total_done` / `total_completed_not_invoiced` / `total_invoiced` / `total_scheduled` / `total_unscheduled` | dropped |
 | `man_hours_*` (total/done/invoiced/scheduled/unscheduled) | dropped |
 
-### invoices.js (no invoice entity — payments + lead_details)
+### invoices.js (no invoice entity — lead_details only)
 
 | Field | Fate |
 | --- | --- |
-| `invoice_no`, `total_including_tax`, `amount_paid` | → lead_details line; `amount_paid` also → `payment.amount` |
+| `invoice_no`, `total_including_tax`, `amount_paid` | → lead_details line (payments themselves come from payments.js) |
 | `invoice_notes` | → `notes_for_office` |
-| `date_created` | dropped (payment `created_at` becomes the import time) |
+| `date_created` | dropped |
 | `total_for_services` / `discount` / `deposit_amount` | dropped |
 | `tax` | dropped — it's an **amount**, so it can't populate `project.tax_rate` (a rate) or pick a `tax_rate_id` |
 | `total_due` | dropped — deliberately kept out of `closed`, which means "no more work to do", not "paid" |
 | `interest_status`, `client_phone` | dropped |
+
+### payments.js
+
+| Field | Fate |
+| --- | --- |
+| `payment_amount` | → `payment.amount` |
+| `payment_method_name` (from `payment_method_int`) | → `payment.payment_method_id`, creating the company's `payment_method` row on first use |
+| `payment_date` / `payment_date_view` | dropped (`payment.created_at` becomes the import time — a real paid-date column would be worth adding) |
+| `payment_fee` / `payment_fee_percent` | dropped (merchant expense, charged on top of the amount) |
+| `payment_tips` | dropped |
+| `payment_type`, `payment_notes`, `payment_author`, `is_cc_payment_method`, `invoice_id`, `estimate_ids` | dropped |
 
 ### line_items.js
 
@@ -139,7 +150,6 @@ nowhere to go.
 | `project.tax_rate_id` / `project.tax_rate` | only tax *amounts* exist on invoices, not rates |
 | `project.notes_for_crew` | work orders only carry office notes |
 | `project.closed_at` / `project.closed_date` | `closed` is set, but no reliable close date exists (see `latest_status_update` above) |
-| `payment.payment_method` | actual method (cash/check/card) isn't in the invoice export — hardcoded to `'arbostar import'` |
 
 Whole tables that get nothing: `crew` / `crew_member`, `work_skill` /
 `project_work_skill`, `time_entry`, `tax_rate`, `estimate_availability`,
@@ -148,7 +158,7 @@ Whole tables that get nothing: `crew` / `crew_member`, `work_skill` /
 ## Re-runnable: ArboStar ids are stored as correlations
 
 Every imported row carries its ArboStar identity (migration 0016): `employee.arbostar_user_id`,
-`client.arbostar_client_id`, `payment.arbostar_invoice_id`, `client_contact.arbostar_contact_id`,
+`client.arbostar_client_id`, `payment.arbostar_payment_id`, `client_contact.arbostar_contact_id`,
 `project_line_item.arbostar_line_item_id`, and `project.number` (the parsed `lead_no` integer).
 The import is **idempotent**: re-running updates the ArboStar-derived columns of existing rows
 and inserts only what's new (see `claude_rerunnable_import_notes.md` for the design). Each

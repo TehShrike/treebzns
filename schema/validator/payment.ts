@@ -7,9 +7,8 @@ export const validator_object = {
 	company_id: jv.is_bigint,
 	client_id: jv.is_bigint,
 	amount: is_financial_number,
-	payment_method: jv.is_string,
-	status: jv.is_string,
-	arbostar_invoice_id: jv.nullable(jv.is_bigint),
+	payment_method_id: jv.is_bigint,
+	arbostar_payment_id: jv.nullable(jv.is_bigint),
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 }

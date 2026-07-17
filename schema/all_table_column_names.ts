@@ -143,11 +143,18 @@ export const payment = {
 	company_id: 'company_id',
 	client_id: 'client_id',
 	amount: 'amount',
-	payment_method: 'payment_method',
-	status: 'status',
+	payment_method_id: 'payment_method_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
-	arbostar_invoice_id: 'arbostar_invoice_id',
+	arbostar_payment_id: 'arbostar_payment_id',
+} as const
+
+export const payment_method = {
+	payment_method_id: 'payment_method_id',
+	company_id: 'company_id',
+	name: 'name',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
 } as const
 
 export const payment_project = {

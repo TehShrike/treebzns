@@ -12,6 +12,7 @@ import estimates from '#arbostar_export/estimates.js'
 import invoices from '#arbostar_export/invoices.js'
 import workorders from '#arbostar_export/workorders.js'
 import line_items from '#arbostar_export/line_items.js'
+import payments from '#arbostar_export/payments.js'
 import users from '#arbostar_export/users.js'
 
 function requireEnv(key: string): string {
@@ -46,6 +47,7 @@ try {
 		invoices,
 		workorders,
 		line_items,
+		payments,
 		users,
 	})
 

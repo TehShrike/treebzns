@@ -12,10 +12,11 @@ export type ExistingCorrelations = {
 	client_id_by_arbostar_client_id: Map<number, bigint>
 	primary_client_address_id_by_arbostar_client_id: Map<number, bigint>
 	project_id_by_number: Map<number, bigint>
-	payment_id_by_arbostar_invoice_id: Map<number, bigint>
+	payment_id_by_arbostar_payment_id: Map<number, bigint>
 	client_contact_id_by_arbostar_contact_id: Map<number, bigint>
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
 	item_type_id_by_name: Map<string, bigint>
+	payment_method_id_by_name: Map<string, bigint>
 }
 
 // BigInt()/Number() rather than trusting the schema types: the worker connection typecasts
@@ -52,7 +53,7 @@ export const load_existing_correlations = async (
 	const payment_query = query_builder<Schema>()
 		.from('payment')
 		.where(b => b.comparison('payment.company_id', '=', { value: company_id }))
-		.select(() => ['payment.payment_id', 'payment.arbostar_invoice_id'])
+		.select(() => ['payment.payment_id', 'payment.arbostar_payment_id'])
 		.build()
 	const contact_query = query_builder<Schema>()
 		.from('client_contact')
@@ -69,8 +70,13 @@ export const load_existing_correlations = async (
 		.where(b => b.comparison('item_type.company_id', '=', { value: company_id }))
 		.select(() => ['item_type.item_type_id', 'item_type.name'])
 		.build()
+	const payment_method_query = query_builder<Schema>()
+		.from('payment_method')
+		.where(b => b.comparison('payment_method.company_id', '=', { value: company_id }))
+		.select(() => ['payment_method.payment_method_id', 'payment_method.name'])
+		.build()
 
-	const [employees, clients, projects, payments, contacts, line_items, item_types] = await Promise.all([
+	const [employees, clients, projects, payments, contacts, line_items, item_types, payment_methods] = await Promise.all([
 		run_select(connection, employee_query),
 		run_select(connection, client_query),
 		run_select(connection, project_query),
@@ -78,6 +84,7 @@ export const load_existing_correlations = async (
 		run_select(connection, contact_query),
 		run_select(connection, line_item_query),
 		run_select(connection, item_type_query),
+		run_select(connection, payment_method_query),
 	])
 
 	return {
@@ -101,9 +108,9 @@ export const load_existing_correlations = async (
 			row => row.project.number,
 			row => row.project.project_id,
 		),
-		payment_id_by_arbostar_invoice_id: correlation_map(
+		payment_id_by_arbostar_payment_id: correlation_map(
 			payments,
-			row => row.payment.arbostar_invoice_id,
+			row => row.payment.arbostar_payment_id,
 			row => row.payment.payment_id,
 		),
 		client_contact_id_by_arbostar_contact_id: correlation_map(
@@ -119,6 +126,10 @@ export const load_existing_correlations = async (
 		item_type_id_by_name: new Map(map(
 			item_types,
 			row => [row.item_type.name, BigInt(row.item_type.item_type_id)] as const,
+		)),
+		payment_method_id_by_name: new Map(map(
+			payment_methods,
+			row => [row.payment_method.name, BigInt(row.payment_method.payment_method_id)] as const,
 		)),
 	}
 }

@@ -9,6 +9,7 @@ import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarWorkOrder } from '#arbostar_export/workorders.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
+import type { ArbostarPayment } from '#arbostar_export/payments.d.ts'
 import type { ArbostarUser } from '#arbostar_export/users.d.ts'
 import { pool_transaction } from '#worker/lib/mysql/helpers.ts'
 import type { ArbostarImportContext } from './import_common.ts'
@@ -26,6 +27,7 @@ export type ArbostarExportData = {
 	invoices: ArbostarInvoice[]
 	workorders: ArbostarWorkOrder[]
 	line_items: ArbostarLineItem[]
+	payments: ArbostarPayment[]
 	users: ArbostarUser[]
 }
 
@@ -70,7 +72,7 @@ const import_arbostar_export = async (
 		pool_transaction(pool, connection => import_payments(
 			connection,
 			context_with_employees,
-			data.invoices,
+			data.payments,
 			imported_clients,
 			imported_projects.project_id_by_arbostar_lead_id,
 		)),

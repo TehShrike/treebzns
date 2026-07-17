@@ -6,6 +6,8 @@ import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
 
+const default_payment_method_names = ['Cash', 'Credit Card', 'Check']
+
 const default_software_roles: {
 	name: string
 	permission_codes: DbPermission['code'][]
@@ -60,6 +62,11 @@ export const create_company = async (
 		await mysql.query({
 			sql: 'INSERT INTO project_number SET ?',
 			values: { company_id },
+		})
+
+		await mysql.query({
+			sql: 'INSERT INTO payment_method (company_id, name) VALUES ?',
+			values: [map(default_payment_method_names, name => [company_id, name])],
 		})
 
 		const permission_query = query_builder<Schema>()

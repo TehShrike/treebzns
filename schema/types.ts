@@ -14,6 +14,7 @@ export type Schema = {
 	item_type: DbItemType
 	migration: DbMigration
 	payment: DbPayment
+	payment_method: DbPaymentMethod
 	payment_project: DbPaymentProject
 	permission: DbPermission
 	project: DbProject
@@ -44,6 +45,7 @@ export type InsertableSchema = {
 	item_type: DbInsertableItemType
 	migration: DbInsertableMigration
 	payment: DbInsertablePayment
+	payment_method: DbInsertablePaymentMethod
 	payment_project: DbInsertablePaymentProject
 	permission: DbInsertablePermission
 	project: DbInsertableProject
