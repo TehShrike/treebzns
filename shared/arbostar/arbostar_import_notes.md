@@ -22,6 +22,7 @@ related records pick its document stage, and anything without a home is summariz
 | Primary contact | ArboStar doesn't flag one, so each client's first contact gets `is_primary` |
 | Primary address | taken from the client row's own address columns (the only address source — ArboStar's profile-only "secondary address" has never had data and is not exported); `client.primary_client_address_id` is fixed up after the address rows insert, per the schema's convention |
 | Payments | each ArboStar payment record (payments.js — real amounts and methods, not invoice-derived) becomes one `payment` plus a `payment_project` applying the full amount against the first of the payment's leads that resolved to a project. Payment methods are natural-keyed by name per company like item types: the tenant's method names (Cash / Credit Card / Cheque / Direct Deposit) are created on first use and reused after. Payments that vanish from the export are counted, not deleted — usually an ArboStar-side deletion/refund worth a manual look |
+| Project totals | `subtotal` / `tax_total` / `total`: from the lead's invoices when any exist (Σ `total_for_services` / Σ `tax` / Σ `total_including_tax` — the real discounts and tax); otherwise subtotal = the **non-declined line sum** (ArboStar's own current-state math — its work order `total_price` equals exactly that, while estimate `total_price` is a stale snapshot that usually still counts declined lines), tax_total = 0 (no tax rates in the export), total = subtotal. A lead with no line items has no quote yet — all three null |
 | Item types | one `item_type` per distinct line-item `service_name`; `taxable` from the first line item seen with that name |
 | Client type | ArboStar's numeric `client_type` code becomes a label in `client.notes` (1 → Residential, 2 → Commercial; unknown codes kept raw). Notes-only for now — worth an explicit schema column eventually |
 
@@ -83,7 +84,7 @@ nowhere to go.
 | --- | --- |
 | `estimate_no`, `status_name`, `total_price` | → lead_details line |
 | `status_id` | picks document stage / `sent_for_client_approval`, then dropped |
-| `total_price` | **not stored numerically** — totals in this schema derive from line items |
+| `total_price` | **not stored** — a stale snapshot that usually still counts declined lines; `project.subtotal` uses the non-declined line sum instead |
 | `email_status` | non-null drives `sent_for_client_approval`, then dropped |
 | `date_created`, `email_created_at` | dropped |
 
@@ -91,7 +92,7 @@ nowhere to go.
 
 | Field | Fate |
 | --- | --- |
-| `workorder_no`, `status`, `total_price` | → lead_details line; `status` also drives `closed` when `Finished` |
+| `workorder_no`, `status`, `total_price` | → lead_details line; `status` also drives `closed` when `Finished`. `total_price` itself is not stored — it equals the non-declined line sum that `project.subtotal` is computed from (pre-tax) |
 | `wo_status_id` | dropped — row-level ids don't match the status-tab ids (finished rows carry 0, not the tab table's 7), so the status *name* is the reliable signal |
 | `office_notes` | → `notes_for_office` |
 | `latest_status_update` | dropped (would have been the only source for `closed_at`/`closed_date`, but its format isn't trustworthy) |
@@ -105,8 +106,9 @@ nowhere to go.
 | `invoice_no`, `total_including_tax`, `amount_paid` | → lead_details line (payments themselves come from payments.js) |
 | `invoice_notes` | → `notes_for_office` |
 | `date_created` | dropped |
-| `total_for_services` / `discount` / `deposit_amount` | dropped |
-| `tax` | dropped — it's an **amount**, so it can't populate `project.tax_rate` (a rate) or pick a `tax_rate_id` |
+| `total_for_services` | → summed into `project.subtotal` (it is already discount-adjusted); `total_including_tax` also → summed into `project.total` |
+| `discount` / `deposit_amount` | dropped (`total_for_services` already reflects the discount) |
+| `tax` | → summed into `project.tax_total`; still can't populate `project.tax_rate` (a rate) or pick a `tax_rate_id`, being an **amount** |
 | `total_due` | dropped — deliberately kept out of `closed`, which means "no more work to do", not "paid" |
 | `interest_status`, `client_phone` | dropped |
 

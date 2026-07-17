@@ -3,9 +3,10 @@ import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
 import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import type { ArbostarWorkOrder } from '#arbostar_export/workorders.d.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
+import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import { map, filter } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
-import { insert_helper, ROWS_PER_BATCH, group_by, join_lines, money_display, normalize_name, string_or_null } from './import_common.ts'
+import { insert_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 
@@ -69,11 +70,12 @@ const ARBOSTAR_WO_STATUS_FINISHED = 'Finished'
 export const import_projects = async (
 	connection: Connection,
 	context: ArbostarImportContext,
-	{ leads, estimates, workorders, invoices }: {
+	{ leads, estimates, workorders, invoices, line_items }: {
 		leads: ArbostarLead[]
 		estimates: ArbostarEstimate[]
 		workorders: ArbostarWorkOrder[]
 		invoices: ArbostarInvoice[]
+		line_items: ArbostarLineItem[]
 	},
 	imported_clients: ImportedClients,
 ): Promise<ImportedProjects> => {
@@ -81,6 +83,7 @@ export const import_projects = async (
 	const estimates_by_lead_id = group_by(filter(estimates, estimate => estimate.lead_id !== null), estimate => estimate.lead_id!)
 	const workorders_by_lead_id = group_by(filter(workorders, workorder => workorder.lead_id !== null), workorder => workorder.lead_id!)
 	const invoices_by_lead_id = group_by(filter(invoices, invoice => invoice.lead_id !== null), invoice => invoice.lead_id!)
+	const line_items_by_lead_id = group_by(line_items, item => item.lead_id)
 
 	const importable = filter(leads, lead => lead.client_id !== null && client_id_by_arbostar_client_id.has(lead.client_id))
 
@@ -102,6 +105,29 @@ export const import_projects = async (
 
 		const closed = lead_workorders.some(workorder => workorder.status === ARBOSTAR_WO_STATUS_FINISHED)
 			|| lead_invoices.length > 0
+
+		// Invoice totals are authoritative when they exist (they carry the real discounts and
+		// tax, which line items can't reproduce). Otherwise the subtotal is the non-declined
+		// line sum — ArboStar's own current-state math (its work order total_price equals
+		// exactly that; its estimate total_price is a stale snapshot that usually still counts
+		// declined lines) — with no tax, since the export has no tax rates. A lead with no
+		// lines has no quote yet: all three stay null.
+		const lead_lines = line_items_by_lead_id.get(lead.lead_id) ?? []
+		const totals = lead_invoices.length > 0
+			? {
+				subtotal: money(lead_invoices.reduce((sum, invoice) => sum + (invoice.total_for_services ?? 0), 0)),
+				tax_total: money(lead_invoices.reduce((sum, invoice) => sum + (invoice.tax ?? 0), 0)),
+				total: money(lead_invoices.reduce((sum, invoice) => sum + (invoice.total_including_tax ?? 0), 0)),
+			}
+			: lead_lines.length === 0
+				? { subtotal: null, tax_total: null, total: null }
+				: (() => {
+					const subtotal = money(
+						filter(lead_lines, line => line.status !== 'Declined')
+							.reduce((sum, line) => sum + (line.price ?? 0) * (line.quantity ?? 1), 0),
+					)
+					return { subtotal, tax_total: money(0), total: subtotal }
+				})()
 
 		const estimator_name = string_or_null(lead.estimator)
 			?? map(lead_estimates, estimate => string_or_null(estimate.estimator)).find(name => name !== null)
@@ -151,6 +177,7 @@ export const import_projects = async (
 			notes_for_office: notes_for_office === '' ? null : notes_for_office,
 			closed,
 			lead_source: lead.utm_source,
+			...totals,
 		}
 	}
 
