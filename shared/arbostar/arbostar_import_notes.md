@@ -13,7 +13,7 @@ related records pick its document stage, and anything without a home is summariz
 | --- | --- |
 | Project document stage | lead has a work order or invoice → **Work Order**; else lead status is No Go → **Void**; else lead has an estimate → **Estimate**; else lead status is New/Draft → **Lead (Unqualified)**; else → **Lead (Qualified)** |
 | `project.closed` | any work order whose status name is `Finished` (matched by name — row-level `wo_status_id`s don't line up with the readme's status-tab table), or the lead has any invoice (invoicing means the work happened — whether it's *paid* is the billing system's concern, tracked as `payment` rows). One-way on re-imports: the import can close a project but never reopens one closed in-app |
-| `sent_for_client_approval` | any estimate with status 2 (Sent for approval) or 3 (Pending approval) |
+| `sent_for_client_approval` | any estimate with email delivery tracking (`email_status` non-null — statuses alone undercount, since sent-then-resolved estimates move on to Confirmed/Declined/Expired), or with status 2 (Sent for approval) / 3 (Pending approval) for the few sent without email tracking |
 | `needs_client_approval` | project landed on the Estimate document |
 | Users → employees | only **active** (`active_status = 'yes'`) ArboStar accounts become `employee` rows — suspended/inactive ones are ignored entirely, on first import and re-imports, so their estimator names survive only as lead_details text. An uncorrelated user whose login/emails match an existing employee's `login_name`/`email` (or, failing that, whose name matches, normalized) adopts that row instead of inserting — this is how the account a person created in-app before the first import becomes their ArboStar-linked row. `is_owner` is an in-app permission: inserted as false, never updated |
 | Employee identity | ArboStar's login username (`emailid`) → `employee.login_name`; its `personal_email` → `employee.email` (empty string → null; a user with neither gets a synthesized `arbostar.user.{id}@company.{company_id}.import.invalid` email, since at least one is required). Both columns are unique across the **whole employee table**, so inserts are checked against every existing identity up front — a collision downgrades the identity (login_name nulled / email replaced with the placeholder) instead of failing. Identity columns are **insert-only**: re-imports never overwrite email/login_name, since they're login credentials |
@@ -84,7 +84,8 @@ nowhere to go.
 | `estimate_no`, `status_name`, `total_price` | → lead_details line |
 | `status_id` | picks document stage / `sent_for_client_approval`, then dropped |
 | `total_price` | **not stored numerically** — totals in this schema derive from line items |
-| `date_created`, `email_status`, `email_created_at` | dropped |
+| `email_status` | non-null drives `sent_for_client_approval`, then dropped |
+| `date_created`, `email_created_at` | dropped |
 
 ### workorders.js (no work-order entity — document stage + lead_details)
 

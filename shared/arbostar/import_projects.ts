@@ -46,6 +46,10 @@ const lead_number = (lead: ArbostarLead): bigint => {
 const ARBOSTAR_LEAD_STATUS_NO_GO = 3
 const ARBOSTAR_LEAD_STATUS_NEW = 1
 const ARBOSTAR_LEAD_STATUS_DRAFT = 5
+// An estimate was sent to the client if its email has any delivery tracking (email_status) —
+// statuses alone undercount, because sent-then-resolved estimates move on to Confirmed /
+// Declined / Expired. The status check still matters for the handful marked sent without
+// email tracking (sent by other means).
 // ArboStar estimate statuses: 2 Sent for approval · 3 Pending approval.
 const ARBOSTAR_ESTIMATE_STATUSES_SENT = [2, 3]
 // Matched on the row-level status name: work order rows use a different status-id space than
@@ -141,7 +145,8 @@ export const import_projects = async (
 			lead_details: lead_details === '' ? null : lead_details,
 			needs_client_approval: project_document_id === documents.estimate,
 			sent_for_client_approval: lead_estimates.some(
-				estimate => estimate.status_id !== null && ARBOSTAR_ESTIMATE_STATUSES_SENT.includes(estimate.status_id),
+				estimate => estimate.email_status !== null
+					|| (estimate.status_id !== null && ARBOSTAR_ESTIMATE_STATUSES_SENT.includes(estimate.status_id)),
 			),
 			notes_for_office: notes_for_office === '' ? null : notes_for_office,
 			closed,
