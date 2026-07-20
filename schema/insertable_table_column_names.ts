@@ -109,6 +109,7 @@ export const payment = {
 	company_id: 'company_id',
 	client_id: 'client_id',
 	amount: 'amount',
+	pay_date: 'pay_date',
 	payment_method_id: 'payment_method_id',
 	arbostar_payment_id: 'arbostar_payment_id',
 } as const

@@ -21,7 +21,7 @@ related records pick its document stage, and anything without a home is summariz
 | Estimator | matched to an employee by normalized name (existing employees plus the imported users); unmatched names (e.g. ArboStar's "system system") are kept as an `Estimator:` line in `lead_details` |
 | Primary contact | ArboStar doesn't flag one, so each client's first contact gets `is_primary` |
 | Primary address | taken from the client row's own address columns (the only address source — ArboStar's profile-only "secondary address" has never had data and is not exported); `client.primary_client_address_id` is fixed up after the address rows insert, per the schema's convention |
-| Payments | each ArboStar payment record (payments.js — real amounts and methods, not invoice-derived) becomes one `payment` plus a `payment_project` applying the full amount against the first of the payment's leads that resolved to a project. Payment methods are natural-keyed by name per company like item types: the tenant's method names (Cash / Credit Card / Cheque / Direct Deposit) are created on first use and reused after. Payments that vanish from the export are counted, not deleted — usually an ArboStar-side deletion/refund worth a manual look |
+| Payments | each ArboStar payment record (payments.js — real amounts and methods, not invoice-derived) becomes one `payment`, and ArboStar's own allocations (payment → estimate applications with real split amounts) become its `payment_project` rows — resolved to projects via each estimate's lead, collapsed to one row per (payment, project), reconciled (update/insert/delete) on re-import. Payment methods are natural-keyed by name per company like item types: the server-resolved labels (`pay_method_string` — Cash / Credit Card / Cheque…) are created on first use and reused after; no method recorded → `Unknown`. Payments that vanish from the export are counted, not deleted — usually an ArboStar-side deletion/refund worth a manual look |
 | Project totals | `subtotal` / `tax_total` / `total`: from the lead's invoices when any exist (Σ `total_for_services` / Σ `tax` / Σ `total_including_tax` — the real discounts and tax); otherwise subtotal = the **non-declined line sum** (ArboStar's own current-state math — its work order `total_price` equals exactly that, while estimate `total_price` is a stale snapshot that usually still counts declined lines), tax_total = 0 (no tax rates in the export), total = subtotal. A lead with no line items has no quote yet — all three null |
 | Item types | one `item_type` per distinct line-item `service_name`; `taxable` from the first line item seen with that name |
 | Client type | ArboStar's numeric `client_type` code becomes a label in `client.notes` (1 → Residential, 2 → Commercial; unknown codes kept raw). Notes-only for now — worth an explicit schema column eventually |
@@ -117,11 +117,12 @@ nowhere to go.
 | Field | Fate |
 | --- | --- |
 | `payment_amount` | → `payment.amount` |
-| `payment_method_name` (from `payment_method_int`) | → `payment.payment_method_id`, creating the company's `payment_method` row on first use |
-| `payment_date` / `payment_date_view` | dropped (`payment.created_at` becomes the import time — a real paid-date column would be worth adding) |
+| `pay_method_string` | → `payment.payment_method_id`, creating the company's `payment_method` row on first use |
+| `allocations[]` (amount, estimate → lead) | → `payment_project` rows (one per payment × project, amounts summed); allocations whose lead has no project are dropped, counted as `skipped_allocations_without_project` |
+| `payment_date` | → `payment.pay_date`, converted from the UTC timestamp to the tenant's local (America/Chicago) calendar date (`payment.created_at` is still the import time) |
 | `payment_fee` / `payment_fee_percent` | dropped (merchant expense, charged on top of the amount) |
-| `payment_tips` | dropped |
-| `payment_type`, `payment_notes`, `payment_author`, `is_cc_payment_method`, `invoice_id`, `estimate_ids` | dropped |
+| `payment_tips` / `unapplied_amount` | dropped |
+| `payment_type`, `payment_notes`, `payment_author`, `payment_method_int` | dropped |
 
 ### line_items.js
 
