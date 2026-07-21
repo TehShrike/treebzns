@@ -22,7 +22,7 @@ related records pick its document stage, and anything without a home is summariz
 | Primary contact | ArboStar doesn't flag one, so each client's first contact gets `is_primary` |
 | Primary address | taken from the client row's own address columns (the only address source — ArboStar's profile-only "secondary address" has never had data and is not exported); `client.primary_client_address_id` is fixed up after the address rows insert, per the schema's convention |
 | Payments | each ArboStar payment record (payments.js — real amounts and methods, not invoice-derived) becomes one `payment`, and ArboStar's own allocations (payment → estimate applications with real split amounts) become its `payment_project` rows — resolved to projects via each estimate's lead, collapsed to one row per (payment, project), reconciled (update/insert/delete) on re-import. Payment methods are natural-keyed by name per company like item types: the server-resolved labels (`pay_method_string` — Cash / Credit Card / Cheque…) are created on first use and reused after; no method recorded → `Unknown`. Payments that vanish from the export are counted, not deleted — usually an ArboStar-side deletion/refund worth a manual look |
-| Project totals | `subtotal` / `tax_total` / `total`: from the lead's invoices when any exist (Σ `total_for_services` / Σ `tax` / Σ `total_including_tax` — the real discounts and tax); otherwise subtotal = the **non-declined line sum** (ArboStar's own current-state math — its work order `total_price` equals exactly that, while estimate `total_price` is a stale snapshot that usually still counts declined lines), tax_total = 0 (no tax rates in the export), total = subtotal. A lead with no line items has no quote yet — all three null |
+| Project totals | `subtotal` / `tax_total` / `total`: from the lead's invoices when any exist (Σ `total_for_services` / Σ `tax` / Σ `total_including_tax` — the real discounts and tax); otherwise subtotal = the **non-declined line sum** (ArboStar's own current-state math — its work order `total_price` equals exactly that, while estimate `total_price` is a stale snapshot that usually still counts declined lines), tax_total = 0 (only invoices carry tax), total = subtotal. A lead with no line items has no quote yet — all three null |
 | Item types | one `item_type` per distinct line-item `service_name`; `taxable` from the first line item seen with that name |
 | Client type | ArboStar's numeric `client_type` code becomes a label in `client.notes` (1 → Residential, 2 → Commercial; unknown codes kept raw). Notes-only for now — worth an explicit schema column eventually |
 
@@ -108,7 +108,7 @@ nowhere to go.
 | `date_created` | dropped |
 | `total_for_services` | → summed into `project.subtotal` (it is already discount-adjusted); `total_including_tax` also → summed into `project.total` |
 | `discount` / `deposit_amount` | dropped (`total_for_services` already reflects the discount) |
-| `tax` | → summed into `project.tax_total`; still can't populate `project.tax_rate` (a rate) or pick a `tax_rate_id`, being an **amount** |
+| `tax` | → summed into `project.tax_total`; also implies the project's rate: Σ `tax` / the taxable non-declined line sum (what ArboStar applied the rate to — falls back to Σ `total_including_tax` − Σ `tax` when the lead's lines are missing), snapped to the nearest entry in the official tax list (taxes.js). Any charged tax sets `taxable`, snapping among the *nonzero* official rates (partially non-taxable invoices blend the implied rate down, and a taxed invoice can't be on a 0% rate) and get-or-creating a `tax_rate` row (named "Tax (5.5%)"-style since ArboStar reuses bare names across rates; storing the ratio, 0.0550); no tax leaves the project not taxable |
 | `total_due` | dropped — deliberately kept out of `closed`, which means "no more work to do", not "paid" |
 | `interest_status`, `client_phone` | dropped |
 
@@ -150,12 +150,11 @@ nowhere to go.
 | `employee.password_hash` | intentionally unusable — imported employees can't log in until given a real password |
 | `project.due_date` | no schedule dates in the export subset |
 | `project.emergency` | not inferable from `lead_priority` values |
-| `project.tax_rate_id` / `project.tax_rate` | only tax *amounts* exist on invoices, not rates |
 | `project.notes_for_crew` | work orders only carry office notes |
 | `project.closed_at` / `project.closed_date` | `closed` is set, but no reliable close date exists (see `latest_status_update` above) |
 
 Whole tables that get nothing: `crew` / `crew_member`, `work_skill` /
-`project_work_skill`, `time_entry`, `tax_rate`, `estimate_availability`,
+`project_work_skill`, `time_entry`, `estimate_availability`,
 `project_client_approval`, `project_document` (global codebook), `project_line_item_image`.
 
 ## Re-runnable: ArboStar ids are stored as correlations

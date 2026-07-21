@@ -14,6 +14,7 @@ import workorders from '#arbostar_export/workorders.js'
 import line_items from '#arbostar_export/line_items.js'
 import payments from '#arbostar_export/payments.js'
 import users from '#arbostar_export/users.js'
+import taxes from '#arbostar_export/taxes.js'
 
 function requireEnv(key: string): string {
 	const val = process.env[key]
@@ -49,6 +50,7 @@ try {
 		line_items,
 		payments,
 		users,
+		taxes,
 	})
 
 	console.log(`Imported ArboStar export into company ${company_id}:`)

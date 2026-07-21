@@ -71,6 +71,7 @@ export const functions = {
 				created_by_employee_id: user.employee_id,
 				needs_client_approval: false,
 				sent_for_client_approval: false,
+				taxable: false,
 				closed: false,
 			})
 

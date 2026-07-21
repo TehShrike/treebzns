@@ -30,6 +30,7 @@ node scripts/arbostar/export_estimates.ts    # -> estimates.js   (two passes)
 node scripts/arbostar/export_invoices.ts     # -> invoices.js
 node scripts/arbostar/export_line_items.ts   # -> line_items.js  (reads estimates.js; ~1684 × 355 KB — slowest)
 node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
+node scripts/arbostar/export_taxes.ts        # -> taxes.js       (official tax list, scraped from /settings)
 ```
 
 Each dataset is written to `arbostar_export/<name>.js` as an ESM `export default [...]` (gitignored;

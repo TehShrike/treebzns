@@ -149,6 +149,7 @@ export const project = {
 	created_by_employee_id: 'created_by_employee_id',
 	needs_client_approval: 'needs_client_approval',
 	sent_for_client_approval: 'sent_for_client_approval',
+	taxable: 'taxable',
 	tax_rate_id: 'tax_rate_id',
 	tax_rate: 'tax_rate',
 	subtotal: 'subtotal',

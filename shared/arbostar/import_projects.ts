@@ -1,11 +1,14 @@
 import type { Connection } from 'mysql2/promise'
+import type { FinancialNumber } from 'financial-number'
 import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
 import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import type { ArbostarWorkOrder } from '#arbostar_export/workorders.d.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
+import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
 import { map, filter } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
+import fnum from '#shared/number.ts'
 import { insert_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
@@ -13,6 +16,7 @@ import type { ImportedClients } from './import_clients.ts'
 export type ImportedProjects = {
 	project_id_by_arbostar_lead_id: Map<number, bigint>
 	counts: {
+		tax_rates_inserted: number
 		projects_inserted: number
 		projects_updated: number
 		projects_no_longer_in_export: number
@@ -58,11 +62,53 @@ const ARBOSTAR_ESTIMATE_STATUSES_SENT = [2, 3]
 // not the tab table's 7).
 const ARBOSTAR_WO_STATUS_FINISHED = 'Finished'
 
+// The export only carries tax *amounts*, so a project's rate is recovered by implying it from
+// the invoice tax over the taxable line sum and snapping to the nearest entry in the company's
+// official tax list (taxes.js). ArboStar reuses bare tax names across rates ("Tax" at both 0%
+// and 5.5%), so the created tax_rate rows embed the rate in the name ("Tax (5.5%)") to satisfy
+// the unique (company_id, name) key. tax_rate.tax_rate stores the ratio (0.0550), not the
+// percentage.
+type OfficialTax = { name: string; ratio: number }
+
+const official_tax_list = (taxes: ArbostarTax[]): OfficialTax[] =>
+	map(taxes, tax => ({
+		name: `${tax.name} (${tax.value}%)`.trim(),
+		ratio: tax.value / 100,
+	}))
+
+// The taxable, non-declined line sum is what ArboStar applied the rate to, so it recovers the
+// exact rate on partially non-taxable invoices, where dividing by the invoice total would
+// blend the rate down. Leads whose lines are missing from the export fall back to the invoice
+// sums; invoice-level discounts live on neither base, so both can still land slightly off the
+// real rate — the snap absorbs that.
+const implied_tax_ratio = (invoices: ArbostarInvoice[], lines: ArbostarLineItem[]): number => {
+	const tax = invoices.reduce((sum, invoice) => sum + (invoice.tax ?? 0), 0)
+	if (tax <= 0) return 0
+	const taxable_line_sum = filter(lines, line => !line.non_taxable && line.status !== 'Declined')
+		.reduce((sum, line) => sum + (line.price ?? 0) * (line.quantity ?? 1), 0)
+	const base = taxable_line_sum > 0
+		? taxable_line_sum
+		: invoices.reduce((sum, invoice) => sum + (invoice.total_including_tax ?? 0), 0) - tax
+	return base > 0 ? tax / base : 0
+}
+
+const nearest_official_tax = (official_taxes: OfficialTax[], implied: number): OfficialTax => {
+	assert(official_taxes.length > 0, 'the official tax list has at least one entry')
+	return official_taxes.reduce((best, entry) =>
+		(Math.abs(entry.ratio - implied) < Math.abs(best.ratio - implied) ? entry : best))
+}
+
+type ProjectTax =
+	| { taxable: true; tax_rate_id: bigint; tax_rate: FinancialNumber }
+	| { taxable: false; tax_rate_id: null; tax_rate: null }
+
+const NOT_TAXABLE: ProjectTax = { taxable: false, tax_rate_id: null, tax_rate: null }
+
 // One project per ArboStar lead — this schema models the whole lead → estimate → work order
 // pipeline as a single project moving between project documents, so the related estimates,
 // work orders, and invoices choose the document stage and are summarized into lead_details.
 // Update-or-insert: `project.number` (the parsed lead integer) is the correlation, and updates
-// only touch the ArboStar-derived columns — locally-populated ones (due_date, emergency, tax,
+// only touch the ArboStar-derived columns — locally-populated ones (due_date, emergency,
 // notes_for_crew, closed_at/closed_date, created_by_employee_id) are left alone. `closed` means
 // "no more work to do" (payment state is the billing system's concern, tracked separately as
 // payment rows) and is a one-way ratchet on updates: the import can close a project but never
@@ -70,12 +116,13 @@ const ARBOSTAR_WO_STATUS_FINISHED = 'Finished'
 export const import_projects = async (
 	connection: Connection,
 	context: ArbostarImportContext,
-	{ leads, estimates, workorders, invoices, line_items }: {
+	{ leads, estimates, workorders, invoices, line_items, taxes }: {
 		leads: ArbostarLead[]
 		estimates: ArbostarEstimate[]
 		workorders: ArbostarWorkOrder[]
 		invoices: ArbostarInvoice[]
 		line_items: ArbostarLineItem[]
+		taxes: ArbostarTax[]
 	},
 	imported_clients: ImportedClients,
 ): Promise<ImportedProjects> => {
@@ -86,6 +133,63 @@ export const import_projects = async (
 	const line_items_by_lead_id = group_by(line_items, item => item.lead_id)
 
 	const importable = filter(leads, lead => lead.client_id !== null && client_id_by_arbostar_client_id.has(lead.client_id))
+
+	// Each lead's official tax entry (null = not taxable), resolved up front so the needed
+	// tax_rate rows can be created in one batch before the project rows reference them. A
+	// lead whose invoices charged no tax is not taxable; one that charged any tax cannot be
+	// on a 0% rate, so it snaps among the nonzero official rates — the invoice-total
+	// fallback in implied_tax_ratio can blend the rate down (even to exactly halfway
+	// between 0% and the real rate), and 0% must not win.
+	const nonzero_official_taxes = filter(official_tax_list(taxes), entry => entry.ratio > 0)
+	const official_tax_by_lead_id = new Map<number, OfficialTax | null>(map(importable, lead => {
+		const implied = implied_tax_ratio(
+			invoices_by_lead_id.get(lead.lead_id) ?? [],
+			line_items_by_lead_id.get(lead.lead_id) ?? [],
+		)
+		return [lead.lead_id, implied === 0 ? null : nearest_official_tax(nonzero_official_taxes, implied)] as const
+	}))
+
+	const needed_taxes = new Map<string, OfficialTax>()
+	for (const entry of official_tax_by_lead_id.values()) {
+		if (entry !== null) needed_taxes.set(entry.name, entry)
+	}
+
+	const tax_rate_row_by_name = new Map<string, { tax_rate_id: bigint; tax_rate: FinancialNumber }>()
+	const new_tax_rates: OfficialTax[] = []
+	for (const entry of needed_taxes.values()) {
+		const ratio_string = entry.ratio.toFixed(4)
+		const existing = context.existing.tax_rate_by_name.get(normalize_name(entry.name))
+		if (existing === undefined) new_tax_rates.push(entry)
+		else {
+			assert(
+				existing.tax_rate === ratio_string,
+				`existing tax rate "${entry.name}" (${existing.tax_rate}) carries the ArboStar rate ${ratio_string}`,
+			)
+			tax_rate_row_by_name.set(entry.name, { tax_rate_id: existing.tax_rate_id, tax_rate: fnum(ratio_string) })
+		}
+	}
+	if (new_tax_rates.length > 0) {
+		const { insert_ids } = await insert_helper.bulk_insert(
+			connection,
+			'tax_rate',
+			map(new_tax_rates, entry => ({
+				company_id: context.company_id,
+				name: entry.name,
+				tax_rate: fnum(entry.ratio.toFixed(4)),
+			})),
+			ROWS_PER_BATCH,
+		)
+		new_tax_rates.forEach((entry, index) =>
+			tax_rate_row_by_name.set(entry.name, { tax_rate_id: insert_ids[index]!, tax_rate: fnum(entry.ratio.toFixed(4)) }))
+	}
+
+	const project_tax = (lead: ArbostarLead): ProjectTax => {
+		const entry = official_tax_by_lead_id.get(lead.lead_id) ?? null
+		if (entry === null) return NOT_TAXABLE
+		const row = tax_rate_row_by_name.get(entry.name)
+		assert(row, `tax rate "${entry.name}" has a row`)
+		return { taxable: true, ...row }
+	}
 
 	// The ArboStar-derived columns — everything an update overwrites.
 	const project_fields = (lead: ArbostarLead) => {
@@ -110,8 +214,8 @@ export const import_projects = async (
 		// tax, which line items can't reproduce). Otherwise the subtotal is the non-declined
 		// line sum — ArboStar's own current-state math (its work order total_price equals
 		// exactly that; its estimate total_price is a stale snapshot that usually still counts
-		// declined lines) — with no tax, since the export has no tax rates. A lead with no
-		// lines has no quote yet: all three stay null.
+		// declined lines) — with no tax, since only invoices carry a tax amount to imply a
+		// rate from. A lead with no lines has no quote yet: all three stay null.
 		const lead_lines = line_items_by_lead_id.get(lead.lead_id) ?? []
 		const totals = lead_invoices.length > 0
 			? {
@@ -178,6 +282,7 @@ export const import_projects = async (
 			closed,
 			lead_source: lead.utm_source,
 			...totals,
+			...project_tax(lead),
 		}
 	}
 
@@ -208,8 +313,6 @@ export const import_projects = async (
 			due_date: null,
 			emergency: false,
 			created_by_employee_id: context.created_by_employee_id,
-			tax_rate_id: null,
-			tax_rate: null,
 			notes_for_crew: null,
 			closed_at: null,
 			closed_date: null,
@@ -240,6 +343,7 @@ export const import_projects = async (
 	return {
 		project_id_by_arbostar_lead_id,
 		counts: {
+			tax_rates_inserted: new_tax_rates.length,
 			projects_inserted: new_leads.length,
 			projects_updated: existing_leads.length,
 			projects_no_longer_in_export: no_longer_in_export,

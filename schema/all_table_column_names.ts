@@ -197,6 +197,7 @@ export const project = {
 	updated_at: 'updated_at',
 	needs_client_approval: 'needs_client_approval',
 	sent_for_client_approval: 'sent_for_client_approval',
+	taxable: 'taxable',
 	tax_rate_id: 'tax_rate_id',
 	tax_rate: 'tax_rate',
 	subtotal: 'subtotal',

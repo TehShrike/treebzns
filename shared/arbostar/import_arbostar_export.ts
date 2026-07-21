@@ -11,6 +11,7 @@ import type { ArbostarWorkOrder } from '#arbostar_export/workorders.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import type { ArbostarPayment } from '#arbostar_export/payments.d.ts'
 import type { ArbostarUser } from '#arbostar_export/users.d.ts'
+import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
 import { pool_transaction } from '#worker/lib/mysql/helpers.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { resolve_context } from './resolve_context.ts'
@@ -29,6 +30,7 @@ export type ArbostarExportData = {
 	line_items: ArbostarLineItem[]
 	payments: ArbostarPayment[]
 	users: ArbostarUser[]
+	taxes: ArbostarTax[]
 }
 
 const import_arbostar_export = async (

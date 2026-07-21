@@ -23,6 +23,7 @@ export const validator_object = {
 	updated_at: is_temporal_instant,
 	needs_client_approval: jv.is_boolean,
 	sent_for_client_approval: jv.is_boolean,
+	taxable: jv.is_boolean,
 	tax_rate_id: jv.nullable(jv.is_bigint),
 	tax_rate: jv.nullable(is_financial_number),
 	subtotal: jv.nullable(is_financial_number),
@@ -36,6 +37,28 @@ export const validator_object = {
 	lead_source: jv.nullable(jv.is_string),
 }
 
-export const project_validator: jv.Validator<DbProject> = jv.object(validator_object)
+type FlatTaxFields = { taxable: boolean; tax_rate_id: bigint | null; tax_rate: unknown }
 
-export const insertable_project_validator: jv.Validator<DbInsertableProject> = jv.object(omit(validator_object, ['project_id', 'created_at', 'updated_at']))
+const tax_fields_consistent = (input: FlatTaxFields): boolean =>
+	input.taxable
+		? input.tax_rate_id !== null && input.tax_rate !== null
+		: input.tax_rate_id === null && input.tax_rate === null
+
+const with_tax_consistency = <NARROWED extends FlatTaxFields>(
+	flat_validator: jv.Validator<FlatTaxFields>,
+): jv.Validator<NARROWED> => jv.custom({
+	is_valid: (input): input is NARROWED => flat_validator.is_valid(input) && tax_fields_consistent(input),
+	get_messages: (input, name) => {
+		const messages = flat_validator.get_messages(input, name)
+		if (messages.length === 0 && !tax_fields_consistent(input as FlatTaxFields)) {
+			return [`"${name}.tax_rate_id" and "${name}.tax_rate" are non-null exactly when "${name}.taxable" is true`]
+		}
+		return messages
+	},
+})
+
+export const project_validator: jv.Validator<DbProject> = with_tax_consistency<DbProject>(jv.object(validator_object))
+
+export const insertable_project_validator: jv.Validator<DbInsertableProject> = with_tax_consistency<DbInsertableProject>(
+	jv.object(omit(validator_object, ['project_id', 'created_at', 'updated_at'])),
+)
