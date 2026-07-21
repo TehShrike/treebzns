@@ -72,7 +72,7 @@ const import_arbostar_export = async (
 		pool_transaction(pool, connection => import_payments(
 			connection,
 			context_with_employees,
-			data.payments,
+			data,
 			imported_clients,
 			imported_projects.project_id_by_arbostar_lead_id,
 		)),

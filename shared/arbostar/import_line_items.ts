@@ -2,7 +2,7 @@ import type { Connection, ResultSetHeader } from 'mysql2/promise'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter } from '#shared/array.ts'
-import { insert_helper, ROWS_PER_BATCH, join_lines, money } from './import_common.ts'
+import { insert_helper, ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedLineItems = {
@@ -47,22 +47,24 @@ export const import_line_items = async (
 	const importable = [...best_by_line_item_id.values()]
 
 	const item_type_id_by_name = new Map(context.existing.item_type_id_by_name)
-	const taxable_by_new_service_name = new Map<string, boolean>()
+	const normalized_item_type_name_to_new_item_type = new Map<string, { name: string; taxable: boolean }>()
 	for (const item of importable) {
-		if (item.service_name !== null && !item_type_id_by_name.has(item.service_name) && !taxable_by_new_service_name.has(item.service_name)) {
-			taxable_by_new_service_name.set(item.service_name, !item.non_taxable)
+		if (item.service_name === null) continue
+		const normalized_name = normalize_name(item.service_name)
+		if (!item_type_id_by_name.has(normalized_name) && !normalized_item_type_name_to_new_item_type.has(normalized_name)) {
+			normalized_item_type_name_to_new_item_type.set(normalized_name, { name: item.service_name.trim(), taxable: !item.non_taxable })
 		}
 	}
-	const new_service_names = [...taxable_by_new_service_name.keys()]
+	const new_item_types = [...normalized_item_type_name_to_new_item_type.entries()]
 
-	if (new_service_names.length > 0) {
-		const item_type_rows = map(new_service_names, name => ({
+	if (new_item_types.length > 0) {
+		const item_type_rows = map(new_item_types, ([, { name, taxable }]) => ({
 			company_id: context.company_id,
 			name,
-			taxable: taxable_by_new_service_name.get(name)!,
+			taxable,
 		}))
 		const { insert_ids } = await insert_helper.bulk_insert(connection, 'item_type', item_type_rows, ROWS_PER_BATCH)
-		new_service_names.forEach((name, index) => item_type_id_by_name.set(name, insert_ids[index]!))
+		new_item_types.forEach(([normalized_name], index) => item_type_id_by_name.set(normalized_name, insert_ids[index]!))
 	}
 
 	const line_item_fields = (item: ArbostarLineItem) => {
@@ -75,7 +77,7 @@ export const import_line_items = async (
 		return {
 			project_id: project_id_by_arbostar_lead_id.get(item.lead_id)!,
 			description: description === '' ? null : description,
-			item_type_id: item.service_name === null ? null : item_type_id_by_name.get(item.service_name)!,
+			item_type_id: item.service_name === null ? null : item_type_id_by_name.get(normalize_name(item.service_name))!,
 			estimated_hours: BigInt(Math.round(item.man_hours ?? 0)),
 			taxable: !item.non_taxable,
 			client_optional: item.optional || item.status === 'Declined',
@@ -124,7 +126,7 @@ export const import_line_items = async (
 
 	return {
 		counts: {
-			item_types_inserted: new_service_names.length,
+			item_types_inserted: new_item_types.length,
 			project_line_items_inserted: new_items.length,
 			project_line_items_updated: existing_items.length,
 			project_line_items_deleted: deleted,

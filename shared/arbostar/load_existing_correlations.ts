@@ -4,7 +4,7 @@
 import type { Connection, Pool } from 'mysql2/promise'
 import { map, filter } from '#shared/array.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
-import { run_select } from './import_common.ts'
+import { run_select, normalize_name } from './import_common.ts'
 import type { Schema } from '#schema/types.ts'
 
 export type ExistingCorrelations = {
@@ -15,6 +15,8 @@ export type ExistingCorrelations = {
 	payment_id_by_arbostar_payment_id: Map<number, bigint>
 	client_contact_id_by_arbostar_contact_id: Map<number, bigint>
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
+	// Keyed by normalize_name(name), matching the case-insensitive unique keys on
+	// (company_id, name).
 	item_type_id_by_name: Map<string, bigint>
 	payment_method_id_by_name: Map<string, bigint>
 }
@@ -125,11 +127,11 @@ export const load_existing_correlations = async (
 		),
 		item_type_id_by_name: new Map(map(
 			item_types,
-			row => [row.item_type.name, BigInt(row.item_type.item_type_id)] as const,
+			row => [normalize_name(row.item_type.name), BigInt(row.item_type.item_type_id)] as const,
 		)),
 		payment_method_id_by_name: new Map(map(
 			payment_methods,
-			row => [row.payment_method.name, BigInt(row.payment_method.payment_method_id)] as const,
+			row => [normalize_name(row.payment_method.name), BigInt(row.payment_method.payment_method_id)] as const,
 		)),
 	}
 }
