@@ -1,0 +1,6 @@
+.env
+.claude/settings.local.json
+arbostar_export/*.js
+scripts/arbostar/.arbostar_session.json
+client/globbed_states.generated.ts
+worker/server_functions.generated.ts
