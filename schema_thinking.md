@@ -71,9 +71,11 @@ add actual permission scheme
 - client_contact_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
 - client_id BIGINT NOT NULL REFERENCES client(client_id)
-- contact_name VARCHAR(200) NOT NULL
+- description VARCHAR(200) NOT NULL (ArboStar cc_title, boilerplate titles filtered to empty)
+- name VARCHAR(200) NOT NULL
 - phone VARCHAR(30)
 - email VARCHAR(500)
+- arbostar_email_data JSON (import-owned ArboStar email-deliverability snapshot, NULL for in-app contacts)
 - is_primary BIT(1) NOT NULL DEFAULT 0
 - sort_order SMALLINT NOT NULL DEFAULT 0
 

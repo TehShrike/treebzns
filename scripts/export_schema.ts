@@ -26,6 +26,7 @@ const MYSQL_TYPE_TO_TS: Record<string, (col: ColumnMeta) => string> = {
 	date: () => 'Temporal.PlainDate',
 	time: () => 'Temporal.PlainTime',
 	varchar: () => 'string',
+	json: () => 'string',
 	char: () => 'string',
 	text: () => 'string',
 	blob: () => 'Buffer',

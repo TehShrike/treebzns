@@ -31,9 +31,11 @@ export const client_address = {
 export const client_contact = {
 	company_id: 'company_id',
 	client_id: 'client_id',
-	contact_name: 'contact_name',
+	description: 'description',
+	name: 'name',
 	phone: 'phone',
 	email: 'email',
+	arbostar_email_data: 'arbostar_email_data',
 	is_primary: 'is_primary',
 	sort_order: 'sort_order',
 	arbostar_contact_id: 'arbostar_contact_id',

@@ -30,6 +30,23 @@ export type ImportedClients = {
 // ArboStar's contacts carry both a raw and a display-formatted phone; prefer the formatted one.
 const contact_phone = (contact: ArbostarContact): string | null => contact.cc_phone_view ?? contact.cc_phone
 
+const BOILERPLATE_TITLE = /^\s*(contact\s*#?\s*\d+|primary\s+contact)\s*$/i
+
+const contact_description = (title: string): string => {
+	const trimmed = title.trim()
+	return BOILERPLATE_TITLE.test(trimmed) ? '' : trimmed
+}
+
+const contact_email_data = (contact: ArbostarContact): string => JSON.stringify({
+	email_check: contact.cc_email_check,
+	email_manual_approve: contact.cc_email_manual_approve,
+	email_blocked: contact.cc_email_blocked,
+	email_blocked_reason: contact.cc_email_blocked_reason,
+	email_blocked_date: contact.cc_email_blocked_date,
+	email_unsubscribed: contact.cc_email_unsubscribed,
+	email_unsubscribe: contact.email_unsubscribe,
+})
+
 // ArboStar's client_type is a numeric code; the June 2026 export contains only '1' and '2', and
 // the type-2 client list is unmistakably businesses/HOAs/churches. An unknown code is kept in the
 // notes so it isn't silently flattened into is_commercial = false.
@@ -177,9 +194,11 @@ export const import_clients = async (
 			sort_order: BigInt(index),
 		}))))
 	const contact_fields = ({ contact, is_primary, sort_order }: (typeof incoming_contacts)[number]) => ({
-		contact_name: join_lines([contact.cc_title, contact.cc_name]).replace('\n', ' ') || `ArboStar contact ${contact.cc_id}`,
+		description: contact_description(contact.cc_title),
+		name: contact.cc_name.trim() || `ArboStar contact ${contact.cc_id}`,
 		phone: contact_phone(contact),
 		email: contact.cc_email,
+		arbostar_email_data: contact_email_data(contact),
 		is_primary,
 		sort_order,
 	})
