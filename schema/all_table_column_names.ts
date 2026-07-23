@@ -233,7 +233,6 @@ export const project_document = {
 	next_project_document_id: 'next_project_document_id',
 	should_be_worked: 'should_be_worked',
 	needs_to_be_contacted_by_lead_qualifier: 'needs_to_be_contacted_by_lead_qualifier',
-	can_be_closed: 'can_be_closed',
 	represents_billable_sale_when_closed: 'represents_billable_sale_when_closed',
 	created_at: 'created_at',
 	updated_at: 'updated_at',

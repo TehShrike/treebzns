@@ -137,7 +137,6 @@ add actual permission scheme
 - next_project_document_id BIGINT
 - should_be_worked BIT(1)
 - needs_to_be_contacted_by_lead_qualifier BIT(1)
-- can_be_closed BIT(1)
 - represents_billable_sale_when_closed BIT(1)
 
 ```
@@ -146,9 +145,9 @@ Example:
 Lead (Unqualified), needs_to_be_contacted_by_lead_qualifier, next_project_document: Qualified Lead
 Lead (Qualified), needs_estimate_to_move_on, next_project_document: Estimate
 Estimate, needs_client_approval_to_move_on, can_expire, next_project_document: Work Order
-Work Order, should_be_worked, can_be_closed, represents_billable_sale_when_closed
-Work Order (Errand), should_be_worked, can_be_closed
-Work Order (Customer Sat), should_be_worked, can_be_closed
+Work Order, should_be_worked, represents_billable_sale_when_closed
+Work Order (Errand), should_be_worked
+Work Order (Customer Sat), should_be_worked
 Void
 
 maybe estimate "needs double-checked by foreman" and "sent to customer"?  Nah, those probably go on the documents, at least the "sent to customer" does.

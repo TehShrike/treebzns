@@ -12,7 +12,6 @@ export const validator_object = {
 	next_project_document_id: jv.nullable(jv.is_bigint),
 	should_be_worked: jv.is_boolean,
 	needs_to_be_contacted_by_lead_qualifier: jv.is_boolean,
-	can_be_closed: jv.is_boolean,
 	represents_billable_sale_when_closed: jv.is_boolean,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,

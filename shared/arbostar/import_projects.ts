@@ -57,6 +57,9 @@ const ARBOSTAR_LEAD_STATUS_DRAFT = 5
 // email tracking (sent by other means).
 // ArboStar estimate statuses: 2 Sent for approval · 3 Pending approval.
 const ARBOSTAR_ESTIMATE_STATUSES_SENT = [2, 3]
+// Row-level ids (the readme's status-tab table differs: Declined is -4 there):
+// 4 Declined · 8 Thinking – No Follow Up Needed · 9 Expired.
+const ARBOSTAR_ESTIMATE_STATUSES_DEAD = [4, 8, 9]
 // Matched on the row-level status name: work order rows use a different status-id space than
 // the status tabs documented in scripts/arbostar/readme.md (finished rows carry wo_status_id 0,
 // not the tab table's 7).
@@ -207,8 +210,17 @@ export const import_projects = async (
 				? documents.lead_unqualified
 				: documents.lead_qualified
 
+		// Work completed, or the deal is dead: No Go leads (Void) and leads whose every
+		// estimate was Declined/Expired/Thinking have no more work to do. Dying at the
+		// Estimate stage doesn't count as a sale — only the Work Order document has
+		// represents_billable_sale_when_closed.
+		const all_estimates_dead = lead_estimates.length > 0 && lead_estimates.every(
+			estimate => estimate.status_id !== null && ARBOSTAR_ESTIMATE_STATUSES_DEAD.includes(estimate.status_id),
+		)
 		const closed = lead_workorders.some(workorder => workorder.status === ARBOSTAR_WO_STATUS_FINISHED)
 			|| lead_invoices.length > 0
+			|| project_document_id === documents.void
+			|| (project_document_id === documents.estimate && all_estimates_dead)
 
 		// Invoice totals are authoritative when they exist (they carry the real discounts and
 		// tax, which line items can't reproduce). Otherwise the subtotal is the non-declined

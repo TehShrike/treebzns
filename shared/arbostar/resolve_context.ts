@@ -31,7 +31,6 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 			'project_document.needs_estimate_to_move_on',
 			'project_document.needs_client_approval_to_move_on',
 			'project_document.should_be_worked',
-			'project_document.can_be_closed',
 			'project_document.represents_billable_sale_when_closed',
 		])
 		.build()
@@ -51,7 +50,6 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 		needs_estimate_to_move_on: boolean
 		needs_client_approval_to_move_on: boolean
 		should_be_worked: boolean
-		can_be_closed: boolean
 		represents_billable_sale_when_closed: boolean
 	}>
 	const document_id = (flags: DocumentFlags): bigint => {
@@ -73,7 +71,7 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 			lead_unqualified: document_id({ needs_to_be_contacted_by_lead_qualifier: true }),
 			lead_qualified: document_id({ needs_estimate_to_move_on: true }),
 			estimate: document_id({ needs_client_approval_to_move_on: true }),
-			work_order: document_id({ can_be_closed: true, represents_billable_sale_when_closed: true }),
+			work_order: document_id({ represents_billable_sale_when_closed: true }),
 			void: document_id({
 				needs_to_be_contacted_by_lead_qualifier: false,
 				needs_estimate_to_move_on: false,
