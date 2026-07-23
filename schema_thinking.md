@@ -47,7 +47,6 @@ add actual permission scheme
 - name VARCHAR(500) NOT NULL
 - logo BLOB
 - brand_color VARCHAR(20)
-- default_initial_project_document_id BIGINT NOT NULL (Lead, Unqualified)
 
 ---
 
@@ -206,7 +205,7 @@ Stump grinding, limb removal, tree removal, tree planting, injecting
 
 - project_number_id BIGINT NOT NULL
 - company_id BIGINT NOT NULL REFERENCES company(company_id)
-- last_number INT UNSIGNED
+- next_number INT UNSIGNED
 
 ---
 

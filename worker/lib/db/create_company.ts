@@ -27,7 +27,7 @@ const default_software_roles: {
 	permission_codes: ['CAN_ESTIMATE', 'CAN_QUALIFY_LEAD']
 }]
 
-type CreateCompanyArg = Omit<DbInsertableCompany, 'default_initial_project_document_id'>
+type CreateCompanyArg = DbInsertableCompany
 
 type EmployeeWithEmailAndPassword = Extract<DbInsertableEmployee, { email: string }> & { password: string }
 type OwnerEmployeeArg = Omit<EmployeeWithEmailAndPassword, 'company_id' | 'is_owner' | 'password_hash' | 'number_of_password_hash_iterations' | 'arbostar_user_id'>
@@ -38,25 +38,9 @@ export const create_company = async (
 	mysql: MysqlHelpersObject,
 ): Promise<bigint> => {
 	return transaction(mysql.connection, async () => {
-		const project_document_query = query_builder<Schema>()
-			.from('project_document')
-			.select(() => ['project_document.project_document_id'])
-			.order_by('project_document.sort', 'ASC')
-			.limit(1n)
-			.build()
-
-		const project_document_row = await mysql.query(safe_query_builder.to_sql(project_document_query.query)).get_first_row()
-		if (!project_document_row) {
-			throw new Error('Cannot create a company: no project_document rows exist to use as the default initial project document')
-		}
-		const default_initial_project_document_id = project_document_query.positional_row_to_named(project_document_row).project_document.project_document_id
-
 		const company_id = await mysql.query({
 			sql: 'INSERT INTO company SET ?',
-			values: {
-				...company,
-				default_initial_project_document_id,
-			},
+			values: company,
 		}).get_insert_id()
 
 		await mysql.query({

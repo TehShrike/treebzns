@@ -68,7 +68,7 @@ nowhere to go.
 
 | Field | Fate |
 | --- | --- |
-| `lead_no` | integer parsed out (`123-L` → 123) → `project.number` (the user-facing project number and the re-import correlation key); the full string also survives in lead_details. `project_number.last_number` is bumped past the max imported number |
+| `lead_no` | integer parsed out (`123-L` → 123) → `project.number` (the user-facing project number and the re-import correlation key); the full string also survives in lead_details. `project_number.next_number` is raised to the max number across all leads in the export + 1000 (GREATEST — never backwards) before any project writes, so in-app numbering can't collide with imported or soon-to-be-imported numbers |
 | `lead_status_id` / `lead_status_name` | picks the document stage; name → lead_details |
 | `lead_reason_status_id` | dropped (No Go reason codes) |
 | `lead_priority` | → lead_details (schema only has an `emergency` bit, which is not inferred) |

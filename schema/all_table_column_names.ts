@@ -55,7 +55,6 @@ export const company = {
 	name: 'name',
 	logo: 'logo',
 	brand_color: 'brand_color',
-	default_initial_project_document_id: 'default_initial_project_document_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const
@@ -269,7 +268,7 @@ export const project_line_item_image = {
 export const project_number = {
 	project_number_id: 'project_number_id',
 	company_id: 'company_id',
-	last_number: 'last_number',
+	next_number: 'next_number',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const

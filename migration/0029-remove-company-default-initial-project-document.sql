@@ -1,0 +1,1 @@
+ALTER TABLE company DROP COLUMN default_initial_project_document_id;

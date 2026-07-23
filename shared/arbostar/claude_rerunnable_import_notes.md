@@ -59,11 +59,22 @@ ArboStar id or a complete natural key. ArboStar-side deletions are handled by th
   project numbers") — but `project` has no `number` column yet, the table has **zero rows**
   (nothing seeds it, not even `create_company`), and nothing reads it. The app's only project
   insert site is `worker/server_functions/lead.fns.ts` (`insert_helper.insert(…, 'project', …)`).
-- Plan: add `project.number` (NOT NULL): backfill existing projects per company ordered by
-  `project_id`, seed a `project_number` row per company + on company creation, make
-  `lead.fns.ts` atomically bump `last_number` and use it, and have the import write the parsed
-  `lead_no` integer. After each import bump the company's `last_number` to at least the max
-  imported number so in-app allocation never collides.
+- Plan (done, migration 0016): add `project.number` (NOT NULL): backfill existing projects
+  per company ordered by `project_id`, seed a `project_number` row per company + on company
+  creation, make `lead.fns.ts` atomically take a number, and have the import write the parsed
+  `lead_no` integer.
+- Renamed `last_number` → `next_number` (migration 0028; DEFAULT 1, `lead.fns.ts` takes
+  `next_number` via `LAST_INSERT_ID(next_number) + 1`). Before writing any projects, the
+  import raises the allocator to `GREATEST(next_number, max ArboStar number + 1000)` —
+  computed over **all** leads in the export (a lead skipped for having no client still burned
+  its number), so an in-app lead created mid-import or between exports can't collide with an
+  imported number. The 1000 gap only has to cover ArboStar's new leads between two
+  consecutive imports; GREATEST means a re-import never moves the allocator backwards.
+  Decided 2026-07-23 (notes.md item 9): numbers are client-facing and must match ArboStar,
+  so `number` stays the correlation key — accepted that projects created in-app *before* the
+  first import can collide with imported numbers (rely on importing first), and that
+  import-created rows are indistinguishable from in-app rows (an `arbostar_lead_id` marker
+  column can be added later if that ever bites).
 
 ## Employee identity collisions (cross-company)
 

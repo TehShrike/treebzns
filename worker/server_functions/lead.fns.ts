@@ -44,10 +44,25 @@ export const functions = {
 			}
 			const { client_address } = address_query.positional_row_to_named(address_row)
 
-			// LAST_INSERT_ID(expr) makes the atomically incremented value readable from this
-			// UPDATE's insertId, so no second query or explicit lock is needed.
+			// The initial document is the lowest-sort project_document — the same rule
+			// create_company used when this lived on company.default_initial_project_document_id.
+			const initial_document_query = query_builder<Schema>()
+				.from('project_document')
+				.order_by('project_document.sort', 'ASC')
+				.limit(1n)
+				.select(() => ['project_document.project_document_id'])
+				.build()
+			const initial_document_row = await mysql.query(safe_query_builder.to_sql(initial_document_query.query)).get_first_row()
+			if (!initial_document_row) {
+				throw new Error('No project_document rows exist to use as the initial project document')
+			}
+			const initial_project_document_id = initial_document_query.positional_row_to_named(initial_document_row).project_document.project_document_id
+
+			// LAST_INSERT_ID(expr) makes the taken number readable from this UPDATE's insertId,
+			// so no second query or explicit lock is needed — the UPDATE's own row lock is what
+			// makes each number claimable by only one transaction.
 			const number = await mysql.query({
-				sql: 'UPDATE project_number SET last_number = LAST_INSERT_ID(last_number + 1) WHERE company_id = ?',
+				sql: 'UPDATE project_number SET next_number = LAST_INSERT_ID(next_number) + 1 WHERE company_id = ?',
 				values: [company_id],
 			}).get_insert_id()
 			if (number === 0n) {
@@ -57,7 +72,7 @@ export const functions = {
 			const { insert_id: project_id } = await insert_helper.insert(mysql.connection, 'project', {
 				company_id,
 				number,
-				project_document_id: company.default_initial_project_document_id,
+				project_document_id: initial_project_document_id,
 				client_id: arg.client_id,
 				client_address_id: arg.client_address_id,
 				address_line_1: client_address.address_line_1,

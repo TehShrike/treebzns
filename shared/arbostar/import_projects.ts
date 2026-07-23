@@ -137,6 +137,21 @@ export const import_projects = async (
 
 	const importable = filter(leads, lead => lead.client_id !== null && client_id_by_arbostar_client_id.has(lead.client_id))
 
+	// Raise the company's allocator above every number ArboStar has issued — before any
+	// project writes, so an in-app lead created mid-import gets a number that can't collide
+	// with the ones being inserted. All leads count (a lead skipped for having no client
+	// still burned its number in ArboStar), and the 1000 gap covers ArboStar issuing new
+	// numbers between this export and the next while both systems run. GREATEST so a
+	// re-import never moves the allocator backwards past numbers already handed out in-app.
+	const lead_numbers = map(filter(leads, lead => lead.lead_no !== null), lead_number)
+	const max_arbostar_number = lead_numbers.length === 0 ? null : lead_numbers.reduce((a, b) => (b > a ? b : a))
+	if (max_arbostar_number !== null) {
+		await connection.query(
+			'UPDATE project_number SET next_number = GREATEST(next_number, ?) WHERE company_id = ?',
+			[max_arbostar_number + 1000n, context.company_id],
+		)
+	}
+
 	// Each lead's official tax entry (null = not taxable), resolved up front so the needed
 	// tax_rate rows can be created in one batch before the project rows reference them. A
 	// lead whose invoices charged no tax is not taxable; one that charged any tax cannot be
@@ -333,23 +348,14 @@ export const import_projects = async (
 		new_leads.forEach((lead, index) => project_id_by_arbostar_lead_id.set(lead.lead_id, insert_ids[index]!))
 	}
 
-	if (importable.length > 0) {
-		// Keep the company's allocator ahead of the imported numbers so in-app projects
-		// created after the import can't collide.
-		const max_number = map(importable, lead_number).reduce((a, b) => (b > a ? b : a))
-		await connection.query(
-			'UPDATE project_number SET last_number = GREATEST(last_number, ?) WHERE company_id = ?',
-			[max_number, context.company_id],
-		)
-	}
-
-	// Numbers allocated to in-app projects also live in project_id_by_number, so this count
-	// includes them alongside genuinely deleted ArboStar leads — treat it as a flag to
+	// Only numbers within ArboStar's issued range can be missing-from-export — anything above
+	// max_arbostar_number is an in-app allocation, not a deleted lead. A pre-import in-app
+	// project with a low number could still land in this count, so treat it as a flag to
 	// investigate, not an exact deletion count.
 	const incoming_numbers = new Set(map(leads, lead => (lead.lead_no === null ? null : Number(lead_number(lead)))))
 	const no_longer_in_export = filter(
 		[...context.existing.project_id_by_number.keys()],
-		number => !incoming_numbers.has(number),
+		number => number <= Number(max_arbostar_number ?? 0n) && !incoming_numbers.has(number),
 	).length
 
 	return {

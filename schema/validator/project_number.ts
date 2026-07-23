@@ -5,7 +5,7 @@ import { is_temporal_instant } from './_helpers.ts'
 export const validator_object = {
 	project_number_id: jv.is_bigint,
 	company_id: jv.is_bigint,
-	last_number: jv.is_bigint,
+	next_number: jv.is_bigint,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 }
