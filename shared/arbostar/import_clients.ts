@@ -196,8 +196,8 @@ export const import_clients = async (
 	const contact_fields = ({ contact, is_primary, sort_order }: (typeof incoming_contacts)[number]) => ({
 		description: contact_description(contact.cc_title),
 		name: contact.cc_name.trim() || `ArboStar contact ${contact.cc_id}`,
-		phone: contact_phone(contact),
-		email: contact.cc_email,
+		phone: contact_phone(contact) ?? '',
+		email: contact.cc_email ?? '',
 		arbostar_email_data: contact_email_data(contact),
 		is_primary,
 		sort_order,

@@ -10,7 +10,7 @@ import type { Schema } from '#schema/types.ts'
 const create_lead_validator = jv.object({
 	client_id: jv.is_bigint,
 	client_address_id: jv.is_bigint,
-	lead_details: jv.nullable(jv.is_string),
+	lead_details: jv.is_string,
 	emergency: jv.is_boolean,
 	due_date: jv.optional(jv.nullable(is_temporal_plain_date)),
 })
@@ -68,6 +68,9 @@ export const functions = {
 				due_date: arg.due_date ?? null,
 				emergency: arg.emergency,
 				lead_details: arg.lead_details,
+				lead_source: '',
+				notes_for_crew: '',
+				notes_for_office: '',
 				created_by_employee_id: user.employee_id,
 				needs_client_approval: false,
 				sent_for_client_approval: false,

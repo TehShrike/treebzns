@@ -284,15 +284,15 @@ export const import_projects = async (
 			state: address.state,
 			zip: address.zip,
 			assigned_estimator_employee_id,
-			lead_details: lead_details === '' ? null : lead_details,
+			lead_details,
 			needs_client_approval: project_document_id === documents.estimate,
 			sent_for_client_approval: lead_estimates.some(
 				estimate => estimate.email_status !== null
 					|| (estimate.status_id !== null && ARBOSTAR_ESTIMATE_STATUSES_SENT.includes(estimate.status_id)),
 			),
-			notes_for_office: notes_for_office === '' ? null : notes_for_office,
+			notes_for_office,
 			closed,
-			lead_source: lead.utm_source,
+			lead_source: lead.utm_source ?? '',
 			...totals,
 			...project_tax(lead),
 		}
@@ -325,7 +325,7 @@ export const import_projects = async (
 			due_date: null,
 			emergency: false,
 			created_by_employee_id: context.created_by_employee_id,
-			notes_for_crew: null,
+			notes_for_crew: '',
 			closed_at: null,
 			closed_date: null,
 		}))
