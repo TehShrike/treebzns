@@ -1,5 +1,5 @@
-import { createPool } from 'mysql2/promise'
-import type { Pool, ConnectionOptions } from 'mysql2/promise'
+import { createPool, createConnection } from 'mysql2/promise'
+import type { Pool, Connection, ConnectionOptions } from 'mysql2/promise'
 import { Temporal } from '@js-temporal/polyfill'
 import fnum from '#shared/number.ts'
 
@@ -117,18 +117,23 @@ type MysqlEnv = {
 	MYSQL_CA_CERT?: string
 }
 
+const connection_options_from_env = (env: MysqlEnv): ConnectionOptions => ({
+	host: env.MYSQL_HOST,
+	port: Number(env.MYSQL_PORT),
+	user: env.MYSQL_USER,
+	password: env.MYSQL_PASS,
+	database: env.MYSQL_DB,
+	// In prod, MYSQL_CA_CERT (base64-encoded PEM) is set, which makes TLS required and
+	// verifies the server against the CA. Unset locally, so the connection is plaintext.
+	...(env.MYSQL_CA_CERT
+		? { ssl: { ca: Buffer.from(env.MYSQL_CA_CERT, 'base64').toString('utf8') } }
+		: {}),
+	disableEval: true,
+	...static_connection_options
+})
+
 export const create_pool = (env: MysqlEnv): Pool =>
-	createPool({
-		host: env.MYSQL_HOST,
-		port: Number(env.MYSQL_PORT),
-		user: env.MYSQL_USER,
-		password: env.MYSQL_PASS,
-		database: env.MYSQL_DB,
-		// In prod, MYSQL_CA_CERT (base64-encoded PEM) is set, which makes TLS required and
-		// verifies the server against the CA. Unset locally, so the connection is plaintext.
-		...(env.MYSQL_CA_CERT
-			? { ssl: { ca: Buffer.from(env.MYSQL_CA_CERT, 'base64').toString('utf8') } }
-			: {}),
-		disableEval: true,
-		...static_connection_options
-	})
+	createPool(connection_options_from_env(env))
+
+export const create_connection = (env: MysqlEnv): Promise<Connection> =>
+	createConnection(connection_options_from_env(env))
