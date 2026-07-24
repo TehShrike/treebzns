@@ -1,7 +1,7 @@
 import * as jv from '#shared/json_validator.ts'
 import { sfn } from '#worker/lib/server_functions_api.ts'
 import { transaction } from '#worker/lib/mysql/helpers.ts'
-import insert_helper from '#worker/lib/mysql/insert_helper.ts'
+import write_helper from '#worker/lib/mysql/write_helper.ts'
 
 const address_validator = jv.object({
 	name: jv.is_string,
@@ -34,7 +34,7 @@ export const functions = {
 			const company_id = company.company_id
 
 			return transaction(mysql.connection, async () => {
-				const { insert_id: client_id } = await insert_helper.insert(mysql.connection, 'client', {
+				const { insert_id: client_id } = await write_helper.insert(mysql.connection, 'client', {
 					company_id,
 					name: arg.name,
 					is_commercial: arg.is_commercial,
@@ -47,7 +47,7 @@ export const functions = {
 				})
 
 				const { primary_address } = arg
-				const { insert_id: client_address_id } = await insert_helper.insert(mysql.connection, 'client_address', {
+				const { insert_id: client_address_id } = await write_helper.insert(mysql.connection, 'client_address', {
 					company_id,
 					client_id,
 					name: primary_address.name,

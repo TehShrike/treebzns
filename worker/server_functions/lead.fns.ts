@@ -3,7 +3,7 @@ import { sfn } from '#worker/lib/server_functions_api.ts'
 import { is_temporal_plain_date } from '#schema/validator/_helpers.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
-import insert_helper from '#worker/lib/mysql/insert_helper.ts'
+import write_helper from '#worker/lib/mysql/write_helper.ts'
 import { transaction } from '#worker/lib/mysql/helpers.ts'
 import type { Schema } from '#schema/types.ts'
 
@@ -69,7 +69,7 @@ export const functions = {
 				throw new Error(`No project_number row exists for company "${ company_id }"`)
 			}
 
-			const { insert_id: project_id } = await insert_helper.insert(mysql.connection, 'project', {
+			const { insert_id: project_id } = await write_helper.insert(mysql.connection, 'project', {
 				company_id,
 				number,
 				project_document_id: initial_project_document_id,

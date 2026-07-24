@@ -1,6 +1,6 @@
 import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
 import { password_hash } from '#worker/lib/password_hash.ts'
-import insert_helper from '#worker/lib/mysql/insert_helper.ts'
+import write_helper from '#worker/lib/mysql/write_helper.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
@@ -28,7 +28,7 @@ const password_hash_column_values = async (password: string, company_id: bigint)
 export const create_employee = async (employee: CreateEmployeeArg, mysql: MysqlHelpersObject): Promise<bigint> => {
 	const { password, ...employee_fields } = employee
 
-	const { insert_id } = await insert_helper.insert(mysql.connection, 'employee', {
+	const { insert_id } = await write_helper.insert(mysql.connection, 'employee', {
 		...employee_fields,
 		...await password_hash_column_values(password, employee.company_id),
 	})
@@ -50,8 +50,11 @@ export const update_password = async (employee_id: bigint, password: string, mys
 
 	const { employee } = employee_query.positional_row_to_named(employee_row)
 
-	await insert_helper.bulk_update(mysql.connection, 'employee', 'employee_id', [{
-		key: employee_id,
-		set: await password_hash_column_values(password, employee.company_id),
-	}], 1)
+	await write_helper.update(
+		mysql.connection,
+		'employee',
+		'employee_id',
+		employee_id,
+		await password_hash_column_values(password, employee.company_id),
+	)
 }

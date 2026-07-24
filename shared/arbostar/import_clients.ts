@@ -2,7 +2,7 @@ import type { Connection } from 'mysql2/promise'
 import type { ArbostarClient, ArbostarContact } from '#arbostar_export/clients.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten, chunk } from '#shared/array.ts'
-import { insert_helper, ROWS_PER_BATCH, join_lines } from './import_common.ts'
+import { write_helper, ROWS_PER_BATCH, join_lines } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 type ImportedPrimaryAddress = {
@@ -100,14 +100,14 @@ export const import_clients = async (
 	const existing_clients = filter(clients, client => correlated.has(client.client_id))
 	const new_clients = filter(clients, client => !correlated.has(client.client_id))
 
-	await insert_helper.bulk_update(
+	await write_helper.bulk_update(
 		connection,
 		'client',
 		'client_id',
 		map(existing_clients, client => ({ key: correlated.get(client.client_id)!, set: client_fields(client) })),
 		ROWS_PER_BATCH,
 	)
-	await insert_helper.bulk_update(
+	await write_helper.bulk_update(
 		connection,
 		'client_address',
 		'client_address_id',
@@ -140,7 +140,7 @@ export const import_clients = async (
 			referred_by: '',
 			arbostar_client_id: BigInt(client.client_id),
 		}))
-		const { insert_ids: client_ids } = await insert_helper.bulk_insert(connection, 'client', client_rows, ROWS_PER_BATCH)
+		const { insert_ids: client_ids } = await write_helper.bulk_insert(connection, 'client', client_rows, ROWS_PER_BATCH)
 		new_clients.forEach((client, index) => client_id_by_arbostar_client_id.set(client.client_id, client_ids[index]!))
 
 		// The client row's own address columns are the primary address. client_address2 has never
@@ -155,7 +155,7 @@ export const import_clients = async (
 			phone: '',
 			email: '',
 		}))
-		const { insert_ids: address_ids } = await insert_helper.bulk_insert(
+		const { insert_ids: address_ids } = await write_helper.bulk_insert(
 			connection,
 			'client_address',
 			primary_address_rows,
@@ -206,7 +206,7 @@ export const import_clients = async (
 	const existing_contacts = filter(incoming_contacts, ({ contact }) => correlated_contacts.has(contact.cc_id))
 	const new_contacts = filter(incoming_contacts, ({ contact }) => !correlated_contacts.has(contact.cc_id))
 
-	await insert_helper.bulk_update(
+	await write_helper.bulk_update(
 		connection,
 		'client_contact',
 		'client_contact_id',
@@ -217,7 +217,7 @@ export const import_clients = async (
 		ROWS_PER_BATCH,
 	)
 	if (new_contacts.length > 0) {
-		await insert_helper.bulk_insert(
+		await write_helper.bulk_insert(
 			connection,
 			'client_contact',
 			map(new_contacts, incoming => ({

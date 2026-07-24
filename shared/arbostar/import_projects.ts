@@ -9,7 +9,7 @@ import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
 import { map, filter } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import fnum from '#shared/number.ts'
-import { insert_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
+import { write_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 
@@ -187,7 +187,7 @@ export const import_projects = async (
 		}
 	}
 	if (new_tax_rates.length > 0) {
-		const { insert_ids } = await insert_helper.bulk_insert(
+		const { insert_ids } = await write_helper.bulk_insert(
 			connection,
 			'tax_rate',
 			map(new_tax_rates, entry => ({
@@ -316,17 +316,16 @@ export const import_projects = async (
 	const existing_leads = filter(importable, lead => context.existing.project_id_by_number.has(Number(lead_number(lead))))
 	const new_leads = filter(importable, lead => !context.existing.project_id_by_number.has(Number(lead_number(lead))))
 
-	const existing_rows = map(existing_leads, lead => ({
-		key: context.existing.project_id_by_number.get(Number(lead_number(lead)))!,
-		set: project_fields(lead),
-	}))
-	const closing_rows = filter(existing_rows, row => row.set.closed)
-	const still_open_rows = map(
-		filter(existing_rows, row => !row.set.closed),
-		({ key, set: { closed, ...set } }) => ({ key, set }),
-	)
-	await insert_helper.bulk_update(connection, 'project', 'project_id', closing_rows, ROWS_PER_BATCH)
-	await insert_helper.bulk_update(connection, 'project', 'project_id', still_open_rows, ROWS_PER_BATCH)
+	// A lead that is no longer closing must not reopen a project, so still-open rows leave
+	// the closed column alone.
+	const existing_rows = map(existing_leads, lead => {
+		const { closed, ...set } = project_fields(lead)
+		return {
+			key: context.existing.project_id_by_number.get(Number(lead_number(lead)))!,
+			set: closed ? { closed, ...set } : set,
+		}
+	})
+	await write_helper.bulk_update(connection, 'project', 'project_id', existing_rows, ROWS_PER_BATCH)
 	const project_id_by_arbostar_lead_id = new Map(map(
 		existing_leads,
 		lead => [lead.lead_id, context.existing.project_id_by_number.get(Number(lead_number(lead)))!] as const,
@@ -344,7 +343,7 @@ export const import_projects = async (
 			closed_at: null,
 			closed_date: null,
 		}))
-		const { insert_ids } = await insert_helper.bulk_insert(connection, 'project', project_rows, ROWS_PER_BATCH)
+		const { insert_ids } = await write_helper.bulk_insert(connection, 'project', project_rows, ROWS_PER_BATCH)
 		new_leads.forEach((lead, index) => project_id_by_arbostar_lead_id.set(lead.lead_id, insert_ids[index]!))
 	}
 

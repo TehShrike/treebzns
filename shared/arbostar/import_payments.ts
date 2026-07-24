@@ -7,7 +7,7 @@ import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten } from '#shared/array.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
-import { insert_helper, ROWS_PER_BATCH, group_by, money, normalize_name, run_select, string_or_null } from './import_common.ts'
+import { write_helper, ROWS_PER_BATCH, group_by, money, normalize_name, run_select, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 
@@ -114,7 +114,7 @@ export const import_payments = async (
 	}
 	const new_payment_methods = [...normalized_payment_method_name_to_payment_method_name.entries()]
 	if (new_payment_methods.length > 0) {
-		const { insert_ids } = await insert_helper.bulk_insert(
+		const { insert_ids } = await write_helper.bulk_insert(
 			connection,
 			'payment_method',
 			map(new_payment_methods, ([, name]) => ({ company_id: context.company_id, name })),
@@ -133,7 +133,7 @@ export const import_payments = async (
 	const existing_payments = filter(importable, payment => correlated.has(payment.payment_id))
 	const new_payments = filter(importable, payment => !correlated.has(payment.payment_id))
 
-	await insert_helper.bulk_update(
+	await write_helper.bulk_update(
 		connection,
 		'payment',
 		'payment_id',
@@ -151,7 +151,7 @@ export const import_payments = async (
 			...payment_fields(payment),
 			arbostar_payment_id: BigInt(payment.payment_id),
 		}))
-		const { insert_ids } = await insert_helper.bulk_insert(connection, 'payment', payment_rows, ROWS_PER_BATCH)
+		const { insert_ids } = await write_helper.bulk_insert(connection, 'payment', payment_rows, ROWS_PER_BATCH)
 		new_payments.forEach((payment, index) => payment_id_by_arbostar_payment_id.set(payment.payment_id, insert_ids[index]!))
 	}
 
@@ -204,7 +204,7 @@ export const import_payments = async (
 	)
 
 	if (pp_inserts.length > 0) {
-		await insert_helper.bulk_insert(
+		await write_helper.bulk_insert(
 			connection,
 			'payment_project',
 			map(pp_inserts, ({ payment_id, project_id, amount }) => ({
@@ -216,7 +216,7 @@ export const import_payments = async (
 			ROWS_PER_BATCH,
 		)
 	}
-	await insert_helper.bulk_update(
+	await write_helper.bulk_update(
 		connection,
 		'payment_project',
 		'payment_project_id',

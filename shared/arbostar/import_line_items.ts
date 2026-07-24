@@ -2,7 +2,7 @@ import type { Connection, ResultSetHeader } from 'mysql2/promise'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter } from '#shared/array.ts'
-import { insert_helper, ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
+import { write_helper, ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedLineItems = {
@@ -63,7 +63,7 @@ export const import_line_items = async (
 			name,
 			taxable,
 		}))
-		const { insert_ids } = await insert_helper.bulk_insert(connection, 'item_type', item_type_rows, ROWS_PER_BATCH)
+		const { insert_ids } = await write_helper.bulk_insert(connection, 'item_type', item_type_rows, ROWS_PER_BATCH)
 		new_item_types.forEach(([normalized_name], index) => item_type_id_by_name.set(normalized_name, insert_ids[index]!))
 	}
 
@@ -91,7 +91,7 @@ export const import_line_items = async (
 	const existing_items = filter(importable, item => correlated.has(item.line_item_id))
 	const new_items = filter(importable, item => !correlated.has(item.line_item_id))
 
-	await insert_helper.bulk_update(
+	await write_helper.bulk_update(
 		connection,
 		'project_line_item',
 		'project_line_item_id',
@@ -99,7 +99,7 @@ export const import_line_items = async (
 		ROWS_PER_BATCH,
 	)
 	if (new_items.length > 0) {
-		await insert_helper.bulk_insert(
+		await write_helper.bulk_insert(
 			connection,
 			'project_line_item',
 			map(new_items, item => ({

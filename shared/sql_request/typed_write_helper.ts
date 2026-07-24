@@ -1,18 +1,18 @@
 import type { Connection, ResultSetHeader } from 'mysql2/promise'
-import { map, chunk, for_each } from '#shared/array.ts'
+import { map, chunk, filter, for_each } from '#shared/array.ts'
 import object_keys from '#shared/object_keys.ts'
 import assert from '#shared/assert.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 
-type InsertableSchemaShape = {
+type SchemaShape = {
 	[table_name: string]: {
 		[column_name: string]: unknown
 	}
 }
 
-type SchemaConstantsCovering<Insertable extends InsertableSchemaShape> = {
-	[Table in keyof Insertable]: {
-		[Column in keyof Insertable[Table]]: string
+type SchemaConstantsCovering<S extends SchemaShape> = {
+	[Table in keyof S]: {
+		[Column in keyof S[Table]]: string
 	}
 }
 
@@ -22,15 +22,39 @@ type InsertRow<Row> =
 	& { [Column in keyof Row as null extends Row[Column] ? never : Column]: Row[Column] }
 	& { [Column in keyof Row as null extends Row[Column] ? Column : never]?: Row[Column] }
 
+// Explicitly-undefined columns are allowed (unlike Partial under exactOptionalPropertyTypes)
+// and are skipped, so callers can build a set conditionally.
+type UpdateSet<TableRow> = { [Column in keyof TableRow]?: TableRow[Column] | undefined }
+
 const escape_identifier = (column_name: string): string => {
 	assert(!column_name.includes('`'), `Column name "${column_name}" must not contain backticks`)
 	return `\`${column_name}\``
 }
 
-const typed_insert_helper = <Insertable extends InsertableSchemaShape>(
-	schema_constants: SchemaConstantsCovering<Insertable>,
+const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaShape>(
+	schema_constants: SchemaConstantsCovering<Insertable> & SchemaConstantsCovering<Row>,
 	insertable_column_names: SchemaConstantsCovering<Insertable>,
 ) => {
+	const build_update_sql = <Table extends keyof Row & string, Key extends keyof Row[Table] & string>(
+		table_name: Table,
+		key_column: Key,
+		key: Row[Table][Key],
+		set: UpdateSet<Row[Table]>,
+	): string => {
+		assert(table_name in schema_constants, `Table "${table_name}" must exist in schema constants`)
+		const table_columns = schema_constants[table_name] as Record<string, string>
+		assert(key_column in table_columns, `Key column "${key_column}" must exist in schema constants for table "${table_name}"`)
+
+		const entries = filter(Object.entries(set), ([, value]) => value !== undefined)
+		assert(entries.length > 0, `An update of table "${table_name}" must set at least one column`)
+		const set_sql = map(entries, ([column, value]) => {
+			assert(column in table_columns, `Column "${column}" must exist in schema constants for table "${table_name}"`)
+			return `${escape_identifier(column)} = ${escape_value(value)}`
+		}).join(', ')
+
+		return `UPDATE ${escape_identifier(table_name)} SET ${set_sql} WHERE ${escape_identifier(key_column)} = ${escape_value(key)}`
+	}
+
 	return {
 		insert: async <Table extends keyof Insertable & string>(
 			connection: Connection,
@@ -89,48 +113,44 @@ const typed_insert_helper = <Insertable extends InsertableSchemaShape>(
 			return { insert_ids }
 		},
 
-		// One UPDATE per batch: each column becomes a CASE over the key column, so a batch of
-		// heterogeneous row values still updates in a single statement without touching
-		// auto-increment (unlike INSERT ... ON DUPLICATE KEY UPDATE). Every row must set the
-		// same columns (they're taken from the first row).
-		bulk_update: async <Table extends keyof Insertable & string>(
+		build_update_sql,
+
+		update: async <Table extends keyof Row & string, Key extends keyof Row[Table] & string>(
 			connection: Connection,
 			table_name: Table,
-			key_column: string,
-			rows: Array<{ key: bigint; set: Partial<Insertable[Table]> }>,
+			key_column: Key,
+			key: Row[Table][Key],
+			set: UpdateSet<Row[Table]>,
+		): Promise<{ affected_rows: bigint }> => {
+			const [{ affectedRows }] = await connection.query<ResultSetHeader>(
+				build_update_sql(table_name, key_column, key, set),
+			)
+			return { affected_rows: BigInt(affectedRows) }
+		},
+
+		// One query round-trip per batch, containing one UPDATE statement per row (the connection
+		// must have multipleStatements enabled). Rows may each set a different subset of columns.
+		bulk_update: async <Table extends keyof Row & string, Key extends keyof Row[Table] & string>(
+			connection: Connection,
+			table_name: Table,
+			key_column: Key,
+			rows: Array<{ key: Row[Table][Key]; set: UpdateSet<Row[Table]> }>,
 			rows_per_batch: number,
 		): Promise<{ affected_rows: bigint }> => {
-			assert(table_name in schema_constants, `Table "${table_name}" must exist in schema constants`)
-			assert(key_column in schema_constants[table_name], `Key column "${key_column}" must exist in schema constants for table "${table_name}"`)
 			assert(
 				Number.isInteger(rows_per_batch) && rows_per_batch > 0,
 				`rows_per_batch must be a positive integer, got ${rows_per_batch}`,
 			)
 			if (rows.length === 0) return { affected_rows: 0n }
 
-			const columns = Object.keys(rows[0]!.set)
-			assert(columns.length > 0, `bulk_update rows must set at least one column for table "${table_name}"`)
-			for_each(columns, column => {
-				assert(column in schema_constants[table_name], `Column "${column}" must exist in schema constants for table "${table_name}"`)
-			})
-
 			let affected_rows = 0n
 			for (const batch of chunk(rows, rows_per_batch)) {
-				const set_sql = map(columns, column =>
-					`${escape_identifier(column)} = CASE ${escape_identifier(key_column)} ${
-						map(batch, ({ key, set }) => {
-							const value = (set as Record<string, unknown>)[column]
-							assert(value !== undefined, `bulk_update row for key ${key} must set column "${column}" like the first row does`)
-							return `WHEN ${escape_value(key)} THEN ${escape_value(value)}`
-						}).join(' ')
-					} END`
-				).join(', ')
-				const key_list = map(batch, ({ key }) => escape_value(key)).join(', ')
-
-				const [{ affectedRows }] = await connection.query<ResultSetHeader>(
-					`UPDATE ${escape_identifier(table_name)} SET ${set_sql} WHERE ${escape_identifier(key_column)} IN (${key_list})`,
-				)
-				affected_rows += BigInt(affectedRows)
+				const sql = map(batch, ({ key, set }) => build_update_sql(table_name, key_column, key, set)).join(';\n')
+				const [result] = await connection.query<ResultSetHeader | ResultSetHeader[]>(sql)
+				const headers = Array.isArray(result) ? result : [result]
+				for_each(headers, ({ affectedRows }) => {
+					affected_rows += BigInt(affectedRows)
+				})
 			}
 
 			return { affected_rows }
@@ -138,4 +158,4 @@ const typed_insert_helper = <Insertable extends InsertableSchemaShape>(
 	}
 }
 
-export default typed_insert_helper
+export default typed_write_helper

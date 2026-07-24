@@ -1,16 +1,16 @@
 // Shared pieces of the ArboStar → current-schema import (see import_arbostar_export.ts for
 // the orchestrator and arbostar_import_notes.md for what does/doesn't survive the mapping).
 import type { Connection, Pool, RowDataPacket } from 'mysql2/promise'
-import type { InsertableSchema } from '#schema/types.ts'
+import type { InsertableSchema, Schema } from '#schema/types.ts'
 import * as schema from '#schema/all_table_column_names.ts'
 import * as insertable_schema from '#schema/insertable_table_column_names.ts'
-import typed_insert_helper from '#shared/sql_request/typed_insert_helper.ts'
+import typed_write_helper from '#shared/sql_request/typed_write_helper.ts'
 import { make_safe_query_builder } from '#shared/sql_request/safe_sql_query.ts'
 import fnum from '#shared/number.ts'
 import { map, filter } from '#shared/array.ts'
 import type { ExistingCorrelations } from './load_existing_correlations.ts'
 
-export const insert_helper = typed_insert_helper<InsertableSchema>(schema, insertable_schema)
+export const write_helper = typed_write_helper<InsertableSchema, Schema>(schema, insertable_schema)
 
 export const ROWS_PER_BATCH = 1000
 

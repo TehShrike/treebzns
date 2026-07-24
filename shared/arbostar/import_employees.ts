@@ -4,7 +4,7 @@ import { DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS } from '#worker/lib/employee
 import { map, filter } from '#shared/array.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
-import { insert_helper, ROWS_PER_BATCH, normalize_name, identity_key, placeholder_email, run_select } from './import_common.ts'
+import { write_helper, ROWS_PER_BATCH, normalize_name, identity_key, placeholder_email, run_select } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedEmployees = {
@@ -79,7 +79,7 @@ export const import_employees = async (
 	}
 
 	if (updates.length > 0) {
-		await insert_helper.bulk_update(
+		await write_helper.bulk_update(
 			connection,
 			'employee',
 			'employee_id',
@@ -150,7 +150,7 @@ export const import_employees = async (
 
 	const employee_id_by_arbostar_user_id = new Map(map(updates, ({ user, employee_id }) => [user.user_id, employee_id] as const))
 	if (employee_rows.length > 0) {
-		const { insert_ids } = await insert_helper.bulk_insert(connection, 'employee', employee_rows, ROWS_PER_BATCH)
+		const { insert_ids } = await write_helper.bulk_insert(connection, 'employee', employee_rows, ROWS_PER_BATCH)
 		new_users.forEach((user, index) => employee_id_by_arbostar_user_id.set(user.user_id, insert_ids[index]!))
 	}
 	for (const user of active_users) {
