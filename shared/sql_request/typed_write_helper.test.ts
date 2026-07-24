@@ -434,6 +434,31 @@ test('typed_write_helper: build_update_sql enforces table, key column, key type,
 	assert.throws(() => helper.build_update_sql('widget', 'widget_id', 5n, { sprockets: 1n } as UpdateSetSmuggledColumn))
 })
 
+test('typed_write_helper: updates reject a set whose type has a column not on the table', async () => {
+	const { connection } = make_update_mock_connection()
+	const helper = make_helper()
+
+	// A non-literal value dodges excess-property checking, and one valid column alongside the
+	// misnamed one dodges the weak-type check, so the misnamed column must be rejected
+	// structurally, not just when the set is written inline.
+	const misnamed_fields = (): { namez: string; description: string } => ({ namez: 'Sprocket', description: 'x' })
+
+	assert.throws(() => {
+		// @ts-expect-error: 'namez' is not a column on widget
+		helper.build_update_sql('widget', 'widget_id', 5n, misnamed_fields())
+	})
+
+	await assert.rejects(async () => {
+		// @ts-expect-error: 'namez' is not a column on widget
+		await helper.update(connection, 'widget', 'widget_id', 5n, misnamed_fields())
+	})
+
+	await assert.rejects(async () => {
+		// @ts-expect-error: 'namez' is not a column on widget
+		await helper.bulk_update(connection, 'widget', 'widget_id', [{ key: 1n, set: misnamed_fields() }], 10)
+	})
+})
+
 test('typed_write_helper: update runs a single UPDATE and returns its affected rows', async () => {
 	const { connection, calls } = make_update_mock_connection([{ affectedRows: 1 }])
 	const helper = make_helper()

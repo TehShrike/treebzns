@@ -26,6 +26,10 @@ type InsertRow<Row> =
 // and are skipped, so callers can build a set conditionally.
 type UpdateSet<TableRow> = { [Column in keyof TableRow]?: TableRow[Column] | undefined }
 
+// Excess-property checks only apply to object literals, so a set built elsewhere could smuggle
+// in a column the table doesn't have; intersecting with this marks such columns as never.
+type NoUnknownColumns<TableRow, Set> = { [Column in Exclude<keyof Set, keyof TableRow>]: never }
+
 const escape_identifier = (column_name: string): string => {
 	assert(!column_name.includes('`'), `Column name "${column_name}" must not contain backticks`)
 	return `\`${column_name}\``
@@ -35,11 +39,15 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 	schema_constants: SchemaConstantsCovering<Insertable> & SchemaConstantsCovering<Row>,
 	insertable_column_names: SchemaConstantsCovering<Insertable>,
 ) => {
-	const build_update_sql = <Table extends keyof Row & string, Key extends keyof Row[Table] & string>(
+	const build_update_sql = <
+		Table extends keyof Row & string,
+		Key extends keyof Row[Table] & string,
+		Set extends UpdateSet<Row[Table]>,
+	>(
 		table_name: Table,
 		key_column: Key,
 		key: Row[Table][Key],
-		set: UpdateSet<Row[Table]>,
+		set: Set & NoUnknownColumns<Row[Table], Set>,
 	): string => {
 		assert(table_name in schema_constants, `Table "${table_name}" must exist in schema constants`)
 		const table_columns = schema_constants[table_name] as Record<string, string>
@@ -115,12 +123,16 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 
 		build_update_sql,
 
-		update: async <Table extends keyof Row & string, Key extends keyof Row[Table] & string>(
+		update: async <
+			Table extends keyof Row & string,
+			Key extends keyof Row[Table] & string,
+			Set extends UpdateSet<Row[Table]>,
+		>(
 			connection: Connection,
 			table_name: Table,
 			key_column: Key,
 			key: Row[Table][Key],
-			set: UpdateSet<Row[Table]>,
+			set: Set & NoUnknownColumns<Row[Table], Set>,
 		): Promise<{ affected_rows: bigint }> => {
 			const [{ affectedRows }] = await connection.query<ResultSetHeader>(
 				build_update_sql(table_name, key_column, key, set),
@@ -130,11 +142,15 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 
 		// One query round-trip per batch, containing one UPDATE statement per row (the connection
 		// must have multipleStatements enabled). Rows may each set a different subset of columns.
-		bulk_update: async <Table extends keyof Row & string, Key extends keyof Row[Table] & string>(
+		bulk_update: async <
+			Table extends keyof Row & string,
+			Key extends keyof Row[Table] & string,
+			Set extends UpdateSet<Row[Table]>,
+		>(
 			connection: Connection,
 			table_name: Table,
 			key_column: Key,
-			rows: Array<{ key: Row[Table][Key]; set: UpdateSet<Row[Table]> }>,
+			rows: Array<{ key: Row[Table][Key]; set: Set & NoUnknownColumns<Row[Table], Set> }>,
 			rows_per_batch: number,
 		): Promise<{ affected_rows: bigint }> => {
 			assert(
