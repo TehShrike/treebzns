@@ -58,6 +58,7 @@ export type CachedClient = Awaited<ReturnType<typeof get_query_results>>[number]
 
 const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refresh_interval_ms: number}) => {
 	let cache = $state<readonly CachedClient[]>([])
+	const first_refresh_returned = Promise.withResolvers()
 
 	const refresh = () => get_query_results(query, client_query).then(clients => {
 		cache = clients
@@ -66,7 +67,7 @@ const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refre
 	let interval_id: number | null = null
 
 	const start = () => {
-		refresh()
+		refresh().then(first_refresh_returned.resolve)
 		interval_id = setInterval(refresh, refresh_interval_ms)
 	}
 
@@ -88,6 +89,7 @@ const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refre
 		},
 		start,
 		started: () => interval_id !== null,
+		been_fetched_at_least_once: first_refresh_returned.promise
 	}
 }
 
