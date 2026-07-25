@@ -2,7 +2,6 @@ import { build, context } from 'esbuild'
 import { mkdirSync } from 'fs'
 import type { CompileOptions } from "svelte/compiler";
 import sveltePlugin from 'esbuild-svelte'
-import { for_each } from '#shared/array.ts'
 
 const is_watch = process.argv.includes('--watch')
 
@@ -11,18 +10,18 @@ const compiler_options: CompileOptions = {
 	dev,
 }
 
-mkdirSync(`public/build`, {
+mkdirSync(`src/public/build`, {
 	recursive: true
 })
 
 const get_build_options = () => ({
 	alias: {
-		'@js-temporal/polyfill': './client/temporal_browser_shim.ts',
+		'@js-temporal/polyfill': './src/client/temporal_browser_shim.ts',
 	},
-	entryPoints: ['client/index.ts'],
+	entryPoints: ['src/client/index.ts'],
 	bundle: true,
 	splitting: true,
-	outdir: `public/build`,
+	outdir: `src/public/build`,
 	plugins: [
 		// @ts-expect-error - not sure what's up with TS not picking up the types
 		sveltePlugin({

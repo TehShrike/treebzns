@@ -1,5 +1,5 @@
 name = "treebzns"
-main = "worker/index.ts"
+main = "src/worker/index.ts"
 compatibility_flags = [ "nodejs_compat" ]
 compatibility_date = "2025-01-01"
 
@@ -18,7 +18,7 @@ required = [
 ]
 
 [assets]
-directory = "./public"
+directory = "./src/public"
 binding = "ASSETS"
 
 [observability.logs]

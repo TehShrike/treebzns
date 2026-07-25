@@ -1,5 +1,5 @@
 {
-	"extends": "../tsconfig.json",
+	"extends": "../../tsconfig.json",
 	"compilerOptions": {
 		"types": [],
 		"module": "nodenext",
@@ -9,7 +9,7 @@
 		"declaration": false,
 		"declarationMap": false,
 		"paths": {
-			"#schema/*": ["../schema/*"],
+			"#schema/*": ["../../schema/*"],
 			"#shared/*": ["../shared/*"],
 			"#client/lib/*": ["./lib/*"],
 			"#client/component/*": ["./component/*"]
@@ -17,5 +17,5 @@
 		"verbatimModuleSyntax": true,
 		"plugins": [{ "name": "typescript-svelte-plugin" }]
 	},
-	"include": ["./**/*", "../schema/type/**/*.d.ts"]
+	"include": ["./**/*", "../../schema/type/**/*.d.ts"]
 }

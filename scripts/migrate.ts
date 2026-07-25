@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import assert from '#shared/assert.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const MIGRATION_DIR = join(__dirname, '..', 'migration')
+const MIGRATION_DIR = join(__dirname, '..', 'src', 'migration')
 
 type Migration = {
 	number: number

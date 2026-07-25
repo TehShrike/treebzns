@@ -1,6 +1,6 @@
 {
 	"include": [
-		"shared/**/*",
+		"src/shared/**/*",
 		"schema/**/*",
 		"scripts/**/*",
 		"*"
@@ -23,7 +23,7 @@
 		// Path mappings
 		"paths": {
 			"#schema/*": ["./schema/*"],
-			"#shared/*": ["./shared/*"],
+			"#shared/*": ["./src/shared/*"],
 			"#arbostar_export/*": ["./arbostar_export/*"]
 		},
 
