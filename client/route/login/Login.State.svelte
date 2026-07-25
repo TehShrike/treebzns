@@ -1,16 +1,32 @@
 <script module lang="ts">
 	import { state_type } from '#client/lib/state_type.ts'
+	import redirect_resolve_to from '#client/lib/redirect_resolve_to.ts'
+
+	const redirect_to_state = 'app'
 
 	export const asr_state = state_type({
 		name: `login`,
 		route: `/login`,
+		async resolve({ get_session }) {
+			const session = await get_session()
+
+			if (session.logged_in) {
+				redirect_resolve_to({ name: redirect_to_state })
+			}
+
+			return {}
+		}
 	})
 </script>
 
 <script lang="ts">
 	import f3tch from '#shared/f3tch.ts'
 
-	let { message }: { message?: string } = $props()
+	let {
+		asr
+	}: {
+		asr: StateAsr
+	} = $props()
 
 	let email_or_login_name = $state(``)
 	let password = $state(``)
@@ -24,6 +40,7 @@
 				body: { email_or_login_name, password },
 			})
 			result = { type: `success`, text: `Logged in!` }
+			asr.go(redirect_to_state)
 		} catch (err: any) {
 			const message = err?.body?.message ?? err?.message ?? `Something went wrong`
 			result = { type: `error`, text: `Error: ${message}` }
@@ -33,7 +50,6 @@
 
 <div class="login">
 	<h1>Log in</h1>
-	{#if message}<p>{message}</p>{/if}
 	<form onsubmit={submit}>
 		<label>Email/login name
 			<input type="text" bind:value={email_or_login_name} required>

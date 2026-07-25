@@ -1,7 +1,7 @@
 import type { Context } from './client_context.ts'
 import assert from '#shared/assert.ts'
 
-type StateParams = {
+export type StateParams = {
 	[key: string]: string | { toString: () => string }
 }
 
