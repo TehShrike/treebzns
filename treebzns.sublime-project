@@ -2,10 +2,12 @@
 	"folders":
 	[
 		{
-			"path": "."
+			"name": "everything",
+			"path": ".",
 		},
 		{
-			"path": "./src/"
+			"name": "source",
+			"path": "src",
 		}
-	]
+	],
 }
