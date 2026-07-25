@@ -8,9 +8,9 @@ import assert_child_states_are_below_parents from './assert_child_states_are_bel
 import type { State } from './lib/state_type.ts'
 import type { Component } from 'svelte'
 
-assert_child_states_are_below_parents(paths_and_states as any)
+assert_child_states_are_below_parents(paths_and_states)
 
-type GoodEnoughState = State<string, any, Context, {}>
+type GoodEnoughState = State<string, string, any, {}, {}>
 
 const add_state = ({
 	Component,
@@ -23,7 +23,7 @@ const add_state = ({
 	default_parameters: defaultParameters,
 	param_validator,
 	...rest
-}: GoodEnoughState & { Component: Component }) => {
+}: GoodEnoughState & { Component: Component<any, any, any> }) => {
 	const rest_keys = Object.keys(rest)
 	if (rest_keys.length > 0) {
 		console.error(`Found unexpected exports: "${ rest_keys.join(`, `) }" for state`, name)
@@ -59,7 +59,7 @@ const state_router = make_state_router(
 	document.getElementById(`app-target`)
 )
 
-for_each(paths_and_states as any, (globbed_state: { export: { asr_state: GoodEnoughState, default: Component } }) => {
+for_each(paths_and_states, (globbed_state) => {
 	add_state({ ...globbed_state.export.asr_state, Component: globbed_state.export.default })
 })
 

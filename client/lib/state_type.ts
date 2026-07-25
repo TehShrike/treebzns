@@ -16,12 +16,13 @@ type DefaultParameters<PARAMS> = {
 type ParamValidator<T> = (query_params: { [key: string]: string | string[] }) => T
 
 export type State<
+	NAME extends string,
 	QUERYSTRING_PARAM_KEYS extends string,
 	ALL_PARAMS,
 	DATA extends object,
 	RESOLVE extends object
 > = {
-	name: string
+	name: NAME
 	route: string
 	default_child?: string
 	data?: DATA
@@ -32,11 +33,12 @@ export type State<
 }
 
 export const state_type = <
+	NAME extends string,
 	QUERYSTRING_PARAM_KEYS extends string,
 	ALL_PARAMS = StringParameters<QUERYSTRING_PARAM_KEYS>,
 	DATA extends object = {},
 	RESOLVE extends object = {}
->(endpoint: State<QUERYSTRING_PARAM_KEYS, ALL_PARAMS, DATA, RESOLVE>) => {
+>(endpoint: State<NAME, QUERYSTRING_PARAM_KEYS, ALL_PARAMS, DATA, RESOLVE>) => {
 	if (endpoint.querystring_parameters || endpoint.default_parameters) {
 		assert(endpoint.param_validator !== undefined)
 	}

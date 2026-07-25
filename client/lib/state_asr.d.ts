@@ -1,14 +1,11 @@
-import type { AbstractStateRouter } from 'abstract-state-router'
-import type { Component } from 'svelte'
-import type create_renderer from 'svelte-state-renderer'
-
-// The DOM API the router works with is whatever svelte-state-renderer's `render` returns
-// (its `RenderedComponent`), derived from the exported renderer factory so it stays in sync.
-type SvelteStateRendererDomApi = ReturnType<ReturnType<ReturnType<typeof create_renderer>>['render']>
+import type { GoOptions } from 'abstract-state-router'
+import type { StateName, StateParamsByName } from './state_names.ts'
 
 declare global {
-	type StateAsr = Pick<
-		AbstractStateRouter<Component, SvelteStateRendererDomApi>,
-		'makePath' | 'stateIsActive' | 'go' | 'getActiveState'
-	>
+	type StateAsr = {
+		go<NAME extends StateName>(state_name: NAME | null, state_parameters?: StateParamsByName[NAME], options?: GoOptions): void
+		stateIsActive<NAME extends StateName>(state_name?: NAME | null, state_parameters?: StateParamsByName[NAME] | null): boolean
+		makePath<NAME extends StateName>(state_name: NAME | null, state_parameters?: StateParamsByName[NAME], options?: { inherit?: boolean }): string
+		getActiveState(): { name: StateName, parameters: Record<string, string | null> }
+	}
 }

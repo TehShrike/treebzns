@@ -14,7 +14,8 @@
 			"#client/lib/*": ["./lib/*"],
 			"#client/component/*": ["./component/*"]
 		},
-		"verbatimModuleSyntax": true
+		"verbatimModuleSyntax": true,
+		"plugins": [{ "name": "typescript-svelte-plugin" }]
 	},
 	"include": ["./**/*", "../schema/type/**/*.d.ts"]
 }
