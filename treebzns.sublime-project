@@ -2,12 +2,12 @@
 	"folders":
 	[
 		{
-			"name": "everything",
-			"path": ".",
+			"name": "app code",
+			"path": "src"
 		},
 		{
-			"name": "source",
-			"path": "src",
+			"name": "everything",
+			"path": "."
 		}
-	],
+	]
 }
