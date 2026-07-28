@@ -4,7 +4,7 @@ When possible, use the functions in #shared/array.ts rather than built-in array 
 
 Assertion messages should say the thing that they are asserting, they should not be phrased as error messages.
 
-In local dev, look at the .env file to get the credentials to run new migrations manually using the mysql cli.
+Never apply schema changes to the database by hand with the mysql cli.  To run new migrations in local dev, use `pnpm run local:db_up` — it validates migration numbering (e.g. duplicate numbers), applies pending migrations, records them in the `migration` table, and regenerates the exported schema, so problems surface before committing.  The mysql cli (credentials in the .env file) is fine for inspecting data, but not for DDL.
 
 To check the type of a specific type or variable in a file, use tsserver directly, e.g.
 
