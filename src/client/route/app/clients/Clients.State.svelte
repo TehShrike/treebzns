@@ -4,6 +4,7 @@
 	import type { CachedClient } from '#client/lib/client_cache.svelte.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
 	import FormLayout from '#client/component/FormLayout.svelte'
+	import ListInput from '#client/component/list_input/ListInput.svelte'
 	import { filter_clients } from '#client/lib/filter_clients.ts'
 	import { filter } from '#shared/array.ts'
 
@@ -20,7 +21,7 @@
 </script>
 
 <script lang="ts">
-	let { client_cache }: { client_cache: Context['client_cache'] } = $props()
+	let { client_cache, asr }: { client_cache: Context['client_cache'], asr: StateAsr } = $props()
 
 	let name = $state(``)
 	let phone = $state(``)
@@ -34,6 +35,22 @@
 			Boolean
 		).join(`, `)
 </script>
+
+{#snippet name_cell(client: CachedClient)}
+	<a href={asr.makePath(`app.client`, { client_id: client.client.client_id })}>{client.client.name}</a>
+{/snippet}
+
+{#snippet address_cell(client: CachedClient)}
+	<div>{format_address(client.primary_address)}</div>
+{/snippet}
+
+{#snippet phone_cell(client: CachedClient)}
+	<div>{client.client.primary_phone}</div>
+{/snippet}
+
+{#snippet notes_cell(client: CachedClient)}
+	<div>{client.client.notes}</div>
+{/snippet}
 
 <AppScreen>
 	<h1>Clients</h1>
@@ -53,26 +70,14 @@
 		</label>
 	</FormLayout>
 
-	<div class="sunken-panel">
-		<table>
-			<thead>
-				<tr>
-					<th>Name</th>
-					<th>Address</th>
-					<th>Phone</th>
-					<th>Notes</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each filtered_clients as client (client.client.client_id)}
-					<tr>
-						<td>{client.client.name}</td>
-						<td>{format_address(client.primary_address)}</td>
-						<td>{client.client.primary_phone}</td>
-						<td>{client.client.notes}</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</div>
+	<ListInput
+		rows={filtered_clients}
+		get_key={client => client.client.client_id}
+		columns={[
+			{ header: `Name`, cell: name_cell },
+			{ header: `Address`, cell: address_cell, width: `2fr` },
+			{ header: `Phone`, cell: phone_cell },
+			{ header: `Notes`, cell: notes_cell, width: `2fr` },
+		]}
+	/>
 </AppScreen>
