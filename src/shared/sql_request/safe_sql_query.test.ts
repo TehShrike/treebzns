@@ -745,3 +745,17 @@ test('the column whitelist argument typechecks column names against the table', 
 	// @ts-expect-error - "not_a_real_table" is not a table in the schema
 	make_safe_query_builder(test_schema, { not_a_real_table: ['project_id'] })
 })
+
+test('safe_sql_query: left join renders LEFT JOIN', () => {
+	const q = typed_query_builder<TestSchema>()
+	const query = q.from('project AS p')
+		.left_join('client AS c', on => on.comparison('p.client_id', '=', 'c.client_id'))
+		.select(() => ['p.project_id', 'c.name'])
+		.build()
+
+	const { to_sql } = make_safe_query_builder(test_schema)
+	const { sql, values } = to_sql(query.query)
+
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`, `c`.`name`\nFROM `project` AS `p`\nLEFT JOIN `client` AS `c` ON `p`.`client_id` = `c`.`client_id`')
+	assert.deepStrictEqual(values, [])
+})

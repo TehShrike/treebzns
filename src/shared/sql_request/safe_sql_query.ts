@@ -353,7 +353,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(
 		const join_chunks = map(query.joins, join => {
 			const on = merge_chunks(map(join.on_clause, on_clause_item_to_chunk), '\n\tAND ')
 			return {
-				sql: `JOIN \`${join.table_name}\` AS \`${join.alias}\` ON ${on.sql}`,
+				sql: `${join.left ? 'LEFT JOIN' : 'JOIN'} \`${join.table_name}\` AS \`${join.alias}\` ON ${on.sql}`,
 				parameters: on.parameters,
 			} satisfies SqlChunk
 		})

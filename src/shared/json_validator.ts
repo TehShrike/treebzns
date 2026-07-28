@@ -68,8 +68,15 @@ type ValidatorShape<DESIRED_OBJECT extends { [key: string]: any }> = {
 const keys_plz = <const KEY extends string>(object: { [key in KEY]: any }): KEY[] => Object.keys(object) as KEY[]
 const values_plz = <const VALUE>(object: { [key: string]: VALUE }): VALUE[] => Object.values(object) as VALUE[]
 
+// A key whose validator accepts undefined (jv.optional) may be omitted at runtime, so it becomes an optional key.
+export type OptionalizeUndefinedKeys<OBJECT> = {
+	[K in keyof OBJECT as undefined extends OBJECT[K] ? never : K]: OBJECT[K]
+} & {
+	[K in keyof OBJECT as undefined extends OBJECT[K] ? K : never]?: OBJECT[K]
+}
+
 const make_object_validator = <const OBJECT extends { [key: string]: any }>(shape: ValidatorShape<OBJECT>) => {
-	const is_valid = (input: unknown): input is OBJECT => {
+	const is_valid = (input: unknown): input is OptionalizeUndefinedKeys<OBJECT> => {
 		if (!is_object(input)) {
 			return false
 		}

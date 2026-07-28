@@ -467,3 +467,59 @@ test('typed_query_builder: type errors on invalid references', () => {
 			),
 		])
 })
+
+test('typed_query_builder: left_join marks the join left and nulls its selected columns', () => {
+	const built = q.from('project AS p')
+		.left_join('project_document AS pd', on => on.comparison('p.project_document_id', '=', 'pd.project_document_id'))
+		.select(() => [
+			'p.project_id',
+			'pd.name',
+			'pd.group_name AS grp',
+		])
+		.build()
+
+	type ExpectedRowType = {
+		p: {
+			project_id: bigint
+		}
+		pd: {
+			name: string | null
+			grp: string | null
+		}
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
+	assert.strictEqual(built.query.joins[0]!.left, true)
+
+	assert_valid_query_output(built)
+})
+
+test('typed_query_builder: inner join columns stay non-null alongside a left_join', () => {
+	const built = q.from('project AS p')
+		.left_join('project_document AS pd', on => on.comparison('p.project_document_id', '=', 'pd.project_document_id'))
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
+		.select(() => [
+			'pd.name',
+			'pli.price',
+		])
+		.build()
+
+	type ExpectedRowType = {
+		pd: {
+			name: string | null
+		}
+		pli: {
+			price: FinancialNumber
+		}
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
+	assert.strictEqual(built.query.joins[0]!.left, true)
+	assert.strictEqual(built.query.joins[1]!.left, false)
+
+	assert_valid_query_output(built)
+})

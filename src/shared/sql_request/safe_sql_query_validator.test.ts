@@ -372,3 +372,22 @@ test('safe_sql_query_validator: select OR grouping is valid', () => {
 	}
 	assert.strictEqual(safe_sql_query_validator.is_valid(query), true)
 })
+
+test('safe_sql_query_validator: join left flag accepts booleans', () => {
+	const with_left = (left: unknown) => ({
+		...valid_query,
+		joins: [{ ...valid_query.joins[0], left }],
+	})
+	assert.strictEqual(safe_sql_query_validator.is_valid(with_left(true)), true)
+	assert.strictEqual(safe_sql_query_validator.is_valid(with_left(false)), true)
+})
+
+test('safe_sql_query_validator: join left flag rejects non-booleans', () => {
+	const with_left = (left: unknown) => ({
+		...valid_query,
+		joins: [{ ...valid_query.joins[0], left }],
+	})
+	assert.strictEqual(safe_sql_query_validator.is_valid(with_left('LEFT')), false)
+	assert.strictEqual(safe_sql_query_validator.is_valid(with_left(1)), false)
+	assert.strictEqual(safe_sql_query_validator.is_valid(with_left(null)), false)
+})

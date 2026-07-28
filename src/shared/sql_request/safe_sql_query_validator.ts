@@ -71,8 +71,7 @@ export const comparison_validator = jv.object({
 const column_reference_select_validator = jv.object({
 	...column_reference_object_properties,
 	alias: jv.optional(identifier_validator),
-// defined manually because jv.optional produces `string | undefined`
-}) as Validator<ColumnReference & { alias?: string }>
+})
 
 export const select_expression_validator = jv.one_of(
 	column_reference_select_validator,
@@ -164,6 +163,7 @@ export const join_validator = jv.object({
 	table_name: identifier_validator,
 	alias: identifier_validator,
 	on_clause: jv.array(jv.one_of(comparison_validator, function_expression_validator, where_grouping_validator)),
+	left: jv.optional(jv.is_boolean),
 })
 
 export const safe_sql_query_validator = jv.object({
@@ -200,6 +200,7 @@ export type Join = {
 	table_name: string
 	alias: string
 	on_clause: Array<Comparison | FunctionExpression | WhereGrouping>
+	left?: boolean | undefined
 }
 export type SelectGrouping = {
 	type: 'and' | 'or'

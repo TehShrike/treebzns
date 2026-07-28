@@ -111,7 +111,11 @@ type SelectInput<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
 	| SelectableFunctionExpression
 	| SelectGrouping
 
-type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Expr> =
+// A LEFT JOIN can produce a row where the joined table matched nothing, so every column selected
+// through a left-joined alias picks up null.
+type NullIfLeftJoined<Value, T extends string, LeftJoined extends string> = T extends LeftJoined ? Value | null : Value
+
+type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoined extends string, Expr> =
 	Expr extends { type: 'function'; table_identifier: infer T extends string; alias: infer K extends string; function: infer Fn extends FunctionName }
 		? T extends keyof A
 			? { [_ in T]: { [_ in K]: FunctionReturnType<Fn> } }
@@ -119,13 +123,13 @@ type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Expr
 		: Expr extends `${infer T}.${infer C} AS ${infer K}`
 			? T extends keyof A
 				? C extends keyof Schema[A[T] & keyof Schema]
-					? { [_ in T]: { [_ in K]: Schema[A[T] & keyof Schema][C] } }
+					? { [_ in T]: { [_ in K]: NullIfLeftJoined<Schema[A[T] & keyof Schema][C], T, LeftJoined> } }
 					: never
 				: never
 			: Expr extends `${infer T}.${infer C}`
 				? T extends keyof A
 					? C extends keyof Schema[A[T] & keyof Schema]
-						? { [_ in T]: { [_ in C]: Schema[A[T] & keyof Schema][C] } }
+						? { [_ in T]: { [_ in C]: NullIfLeftJoined<Schema[A[T] & keyof Schema][C], T, LeftJoined> } }
 						: never
 					: never
 				: never
@@ -133,8 +137,8 @@ type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Expr
 type UnionToIntersection<U> =
 	(U extends any ? (x: U) => void : never) extends (x: infer I) => void ? I : never
 
-type RowFromSelectExprs<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Exprs extends ReadonlyArray<unknown>> =
-	UnionToIntersection<{ [I in keyof Exprs]: RowEntry<Schema, A, Exprs[I]> }[number]>
+type RowFromSelectExprs<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoined extends string, Exprs extends ReadonlyArray<unknown>> =
+	UnionToIntersection<{ [I in keyof Exprs]: RowEntry<Schema, A, LeftJoined, Exprs[I]> }[number]>
 
 // Each selected column contributes a `{ table: { column: type } }` entry, and they get intersected
 // into `{ table: { a } } & { table: { b } } & ...`. Re-mapping both levels collapses those `&`s into
@@ -185,30 +189,45 @@ type ParseTableAlias<S extends string, Schema extends SchemaColumnTypes> =
 			? { [K in S]: S }
 			: never
 
-type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Row = {}> = {
-	join: <S extends TableAliasArg<Schema>>(
-		table_alias: S,
-		on: (b: ExpressionBuilder<Schema, A & ParseTableAlias<S, Schema>>) => Expression,
-	) => Stage<Schema, A & ParseTableAlias<S, Schema>, Row>
+type Joiner<
+	Schema extends SchemaColumnTypes,
+	A extends AliasMap<Schema>,
+	LeftJoined extends string,
+	Row,
+	Left extends boolean,
+> = <S extends TableAliasArg<Schema>>(
+	table_alias: S,
+	on: (b: ExpressionBuilder<Schema, A & ParseTableAlias<S, Schema>>) => Expression,
+) => Stage<
+	Schema,
+	A & ParseTableAlias<S, Schema>,
+	Left extends true ? LeftJoined | (keyof ParseTableAlias<S, Schema> & string) : LeftJoined,
+	Row
+>
+
+type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoined extends string = never, Row = {}> = {
+	join: Joiner<Schema, A, LeftJoined, Row, false>
+
+	left_join: Joiner<Schema, A, LeftJoined, Row, true>
 
 	where: (
 		cb: (b: ExpressionBuilder<Schema, A>) => Expression,
-	) => Stage<Schema, A, Row>
+	) => Stage<Schema, A, LeftJoined, Row>
 
 	select: <const Exprs extends ReadonlyArray<SelectInput<Schema, A>>>(
 		cb: (b: SelectExpressionBuilder<Schema, A>) => Exprs,
-	) => Stage<Schema, A, Row & RowFromSelectExprs<Schema, A, Exprs>>
+	) => Stage<Schema, A, LeftJoined, Row & RowFromSelectExprs<Schema, A, LeftJoined, Exprs>>
 
-	group_by: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A, Row>
+	group_by: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A, LeftJoined, Row>
 
 	order_by: (
 		column: ColumnRef<Schema, A> | RowIdentifiers<Row> | ((b: ExpressionBuilder<Schema, A>) => FunctionExpression),
 		direction?: OrderByDirection,
-	) => Stage<Schema, A, Row>
+	) => Stage<Schema, A, LeftJoined, Row>
 
-	having: (cb: (b: HavingExpressionBuilder<RowIdentifiers<Row>>) => Expression) => Stage<Schema, A, Row>
+	having: (cb: (b: HavingExpressionBuilder<RowIdentifiers<Row>>) => Expression) => Stage<Schema, A, LeftJoined, Row>
 
-	limit: (count: bigint) => Stage<Schema, A, Row>
+	limit: (count: bigint) => Stage<Schema, A, LeftJoined, Row>
 
 	build: () => BuiltQuery<FlattenRow<Row>>
 }
@@ -361,15 +380,18 @@ const bool_expr_to_where_grouping = (expr: BoolExpr): WhereGrouping =>
 		? expr
 		: { type: 'and' as const, expressions: [expr] }
 
+const joiner = ({ left, state }: { left: boolean, state: State }) => (table_alias: string, on: (b: typeof expression_builder) => BoolExpr) => {
+	const { table, alias } = parse_table_alias(table_alias)
+	const expr = on(expression_builder)
+	return make_stage({
+		...state,
+		joins: [...state.joins, { table_name: table, alias, on_clause: [expr], left }],
+	})
+}
+
 const make_stage = (state: State): any => ({
-	join: (table_alias: string, on: (b: typeof expression_builder) => BoolExpr) => {
-		const { table, alias } = parse_table_alias(table_alias)
-		const expr = on(expression_builder)
-		return make_stage({
-			...state,
-			joins: [...state.joins, { table_name: table, alias, on_clause: [expr] }],
-		})
-	},
+	join: joiner({ left: false, state }),
+	left_join: joiner({ left: true, state }),
 	where: (cb: (b: typeof expression_builder) => BoolExpr) => {
 		return make_stage({ ...state, where_expressions: [...state.where_expressions, cb(expression_builder)] })
 	},
