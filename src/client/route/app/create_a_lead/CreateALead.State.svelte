@@ -30,11 +30,11 @@
 		const words = filter(search_text.toLowerCase().split(/\s+/), Boolean)
 
 		return search_numbers
-			? (client: CachedClient) => client.client.primary_phone.includes(search_text)
-				|| client.primary_address.address_line_1.includes(search_text)
-				|| client.primary_address.address_line_2.includes(search_text)
-				|| client.billing_address.address_line_1.includes(search_text)
-				|| client.billing_address.address_line_2.includes(search_text)
+			? (client: CachedClient) => Boolean(client.client.primary_phone.includes(search_text)
+				|| client.primary_address.address_line_1?.includes(search_text)
+				|| client.primary_address.address_line_2?.includes(search_text)
+				|| client.billing_address.address_line_1?.includes(search_text)
+				|| client.billing_address.address_line_2?.includes(search_text))
 			: (client: CachedClient) =>
 				words.length > 0 && words.every(word => client.client.name.toLowerCase().includes(word))
 	}

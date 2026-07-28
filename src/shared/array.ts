@@ -33,6 +33,16 @@ export const filter = <T>(arr: readonly T[], predicate: Predicate<T>) => {
 	return res
 }
 
+export const every = <T>(arr: readonly T[], predicate: Predicate<T>) => {
+	const length = arr.length
+	for (let i = 0; i < length; i++) {
+		if (!predicate(arr[i] as T)) {
+			return false
+		}
+	}
+	return true
+}
+
 type MapperWithIndex<T, U> = (item: T, index: number) => U
 export const map = <T, U>(arr: readonly T[], mapper: MapperWithIndex<T, U>): U[] => {
 	const length = arr.length,

@@ -7,6 +7,7 @@
 	<ul class="menu-items">
 		<li><a class="menu-item" href={asr.makePath('app.home')} data-active={asr.stateIsActive('app.home')}>Home</a></li>
 		<li><a class="menu-item" href={asr.makePath('app.create_a_lead')} data-active={asr.stateIsActive('app.create_a_lead')}>Create A Lead</a></li>
+		<li><a class="menu-item" href={asr.makePath('app.clients')} data-active={asr.stateIsActive('app.clients')}>Clients</a></li>
 	</ul>
 </nav>
 

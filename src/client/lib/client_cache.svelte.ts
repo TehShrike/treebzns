@@ -39,8 +39,8 @@ const client_and_address_columns = [
 
 const client_query = query_builder<Schema>()
 	.from('client')
-	.join('client_address AS primary_address', on => on.comparison(`client.${client.primary_client_address_id}`, '=', `primary_address.${client_address.client_address_id}`))
-	.join('client_address AS billing_address', on => on.comparison(`client.${client.billing_client_address_id}`, '=', `billing_address.${client_address.client_address_id}`))
+	.left_join('client_address AS primary_address', on => on.comparison(`client.${client.primary_client_address_id}`, '=', `primary_address.${client_address.client_address_id}`))
+	.left_join('client_address AS billing_address', on => on.comparison(`client.${client.billing_client_address_id}`, '=', `billing_address.${client_address.client_address_id}`))
 	.select(() => client_and_address_columns)
 
 const get_query_results = async (query: ClientQueryFn, query_instance: typeof client_query) => {
