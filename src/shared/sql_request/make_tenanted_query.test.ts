@@ -3,6 +3,7 @@ import * as assert from 'node:assert'
 import { type Temporal } from '@js-temporal/polyfill'
 import { type FinancialNumber } from 'financial-number'
 import prep_tenant_function from './make_tenanted_query.ts'
+import { every, some } from '#shared/array.ts'
 import { comparison_validator, column_reference_validator, type Comparison, type SafeSqlQuery } from './safe_sql_query_validator.ts'
 
 const test_schema = {
@@ -216,6 +217,6 @@ test(`company_id is injected into the where and joins of tenanted tables`, () =>
 	assert_has_two_elements(tenanted_query.joins[0].on_clause)
 	assert.strictEqual(tenanted_query.joins[1].on_clause.length, 1)
 
-	assert.ok(tenanted_query.joins[0].on_clause.some(node => is_company_id_filter(node, `project_line_item_alias`, 42n)))
-	assert.ok(tenanted_query.joins[1].on_clause.every(node => !is_company_id_filter(node, `permission_alias`, 42n)))
+	assert.ok(some(tenanted_query.joins[0].on_clause, node => is_company_id_filter(node, `project_line_item_alias`, 42n)))
+	assert.ok(every(tenanted_query.joins[1].on_clause, node => !is_company_id_filter(node, `permission_alias`, 42n)))
 })

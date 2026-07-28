@@ -6,7 +6,7 @@ import type { ArbostarWorkOrder } from '#arbostar_export/workorders.d.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
-import { map, filter } from '#shared/array.ts'
+import { map, filter, every, some } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import fnum from '#shared/number.ts'
 import { write_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
@@ -229,10 +229,11 @@ export const import_projects = async (
 		// estimate was Declined/Expired/Thinking have no more work to do. Dying at the
 		// Estimate stage doesn't count as a sale — only the Work Order document has
 		// represents_billable_sale_when_closed.
-		const all_estimates_dead = lead_estimates.length > 0 && lead_estimates.every(
+		const all_estimates_dead = lead_estimates.length > 0 && every(
+			lead_estimates,
 			estimate => estimate.status_id !== null && ARBOSTAR_ESTIMATE_STATUSES_DEAD.includes(estimate.status_id),
 		)
-		const closed = lead_workorders.some(workorder => workorder.status === ARBOSTAR_WO_STATUS_FINISHED)
+		const closed = some(lead_workorders, workorder => workorder.status === ARBOSTAR_WO_STATUS_FINISHED)
 			|| lead_invoices.length > 0
 			|| project_document_id === documents.void
 			|| (project_document_id === documents.estimate && all_estimates_dead)
@@ -301,7 +302,8 @@ export const import_projects = async (
 			assigned_estimator_employee_id,
 			lead_details,
 			needs_client_approval: project_document_id === documents.estimate,
-			sent_for_client_approval: lead_estimates.some(
+			sent_for_client_approval: some(
+				lead_estimates,
 				estimate => estimate.email_status !== null
 					|| (estimate.status_id !== null && ARBOSTAR_ESTIMATE_STATUSES_SENT.includes(estimate.status_id)),
 			),

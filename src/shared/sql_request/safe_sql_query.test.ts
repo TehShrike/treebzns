@@ -4,6 +4,7 @@ import { make_safe_query_builder, type SafeSqlQuery } from './safe_sql_query.ts'
 import { type FinancialNumber } from 'financial-number'
 import { type Temporal } from '@js-temporal/polyfill'
 import typed_query_builder from './typed_query_builder.ts'
+import { some } from '#shared/array.ts'
 
 const test_schema = {
 	project: {
@@ -229,7 +230,7 @@ test('safe_sql_query: invalid table identifier in from', () => {
 
 	assert.strictEqual(result.valid, false)
 	console.log(result.messages)
-	assert.ok(result.messages.some(message => message.includes('nonexistent_table')))
+	assert.ok(some(result.messages, message => message.includes('nonexistent_table')))
 })
 
 test('safe_sql_query: invalid table identifier in join', () => {
@@ -273,7 +274,7 @@ test('safe_sql_query: invalid table identifier in join', () => {
 
 	assert.strictEqual(result.valid, false)
 	console.log(result.messages)
-	assert.ok(result.messages.some(message => message.includes('nonexistent_table')))
+	assert.ok(some(result.messages, message => message.includes('nonexistent_table')))
 })
 
 test('safe_sql_query: invalid table identifier in select', () => {
@@ -664,7 +665,7 @@ test('safe_sql_query: order_by / having alias references must name a select alia
 		},
 	})
 	assert.strictEqual(bad.valid, false)
-	assert.ok(bad.valid === false && bad.messages.some(m => m.includes('nope')))
+	assert.ok(bad.valid === false && some(bad.messages, m => m.includes('nope')))
 })
 
 test('safe_sql_query: order_by by alias and inline function, plus having on an alias', () => {

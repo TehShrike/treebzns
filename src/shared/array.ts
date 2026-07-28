@@ -33,6 +33,16 @@ export const filter = <T>(arr: readonly T[], predicate: Predicate<T>) => {
 	return res
 }
 
+export const some = <T>(arr: readonly T[], predicate: Predicate<T>) => {
+	const length = arr.length
+	for (let i = 0; i < length; i++) {
+		if (predicate(arr[i] as T)) {
+			return true
+		}
+	}
+	return false
+}
+
 export const every = <T>(arr: readonly T[], predicate: Predicate<T>) => {
 	const length = arr.length
 	for (let i = 0; i < length; i++) {

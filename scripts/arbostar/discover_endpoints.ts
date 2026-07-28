@@ -10,6 +10,7 @@
 // metadata (method, path, status, content-type, top-level JSON keys, record counts).
 
 import { launch, type Browser, type HTTPResponse } from 'puppeteer-core'
+import { some } from '#shared/array.ts'
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -160,7 +161,7 @@ try {
 	// Round 2: visit harvested links that match a target module keyword.
 	const targets = [...discovered_links]
 		.filter(path => !visited.has(path))
-		.filter(path => TARGET_KEYWORDS.some(keyword => path.toLowerCase().includes(keyword)))
+		.filter(path => some(TARGET_KEYWORDS, keyword => path.toLowerCase().includes(keyword)))
 		.filter(path => !/\/\d+(\/|$)/.test(path)) // skip per-record detail pages
 		.sort()
 

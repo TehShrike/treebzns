@@ -4,7 +4,7 @@
 // independent, so they run in parallel on their own pooled connections.
 import type { Pool } from 'mysql2/promise'
 import assert from '#shared/assert.ts'
-import { map, filter, flatten } from '#shared/array.ts'
+import { map, filter, flatten, every } from '#shared/array.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
 import { normalize_name, identity_key, run_select } from './import_common.ts'
@@ -54,7 +54,8 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 	}>
 	const document_id = (flags: DocumentFlags): bigint => {
 		const matches = filter(document_rows, row =>
-			Object.entries(flags).every(
+			every(
+				Object.entries(flags),
 				([flag, value]) => row.project_document[flag as keyof DocumentFlags] === value,
 			))
 		assert(

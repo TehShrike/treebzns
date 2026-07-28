@@ -1,5 +1,5 @@
 import assert from '#shared/assert.ts'
-import { map, filter } from '#shared/array.ts'
+import { map, filter, every, some } from '#shared/array.ts'
 
 type MessageReturningFunction = (input: unknown, name: string) => string[]
 
@@ -81,13 +81,13 @@ const make_object_validator = <const OBJECT extends { [key: string]: any }>(shap
 			return false
 		}
 
-		const all_input_keys_exist_in_shape = keys_plz(input).every((key) => key in shape)
+		const all_input_keys_exist_in_shape = every(keys_plz(input), (key) => key in shape)
 
 		if (!all_input_keys_exist_in_shape) {
 			return false
 		}
 
-		return keys_plz(shape).every((key) => {
+		return every(keys_plz(shape), (key) => {
 			const validator = shape[key]
 			assert(validator)
 
@@ -128,7 +128,7 @@ const make_array_validator = <T>(element_validator: NonOptionalValidator<T>) => 
 			return false
 		}
 
-		return input.every(element_validator.is_valid)
+		return every(input, element_validator.is_valid)
 	}
 
 	const get_messages = (input: unknown, name: string) => {
@@ -151,7 +151,7 @@ const make_object_values_validator = <T>(element_validator: NonOptionalValidator
 			return false
 		}
 
-		return values_plz(input).every((value) => element_validator.is_valid(value))
+		return every(values_plz(input), (value) => element_validator.is_valid(value))
 	}
 
 	const get_messages = (input: unknown, name: string) => {
@@ -175,7 +175,7 @@ export type UnpackValidator<T> = T extends Validator<infer U> ? U : T
 
 const one_of = <T extends Validator<any>[]>(...validators: T): Validator<UnpackValidator<UnpackArray<T>>> => {
 	const is_valid = (input: unknown): input is UnpackValidator<UnpackArray<T>> =>
-		validators.some((validator) => validator.is_valid(input))
+		some(validators, (validator) => validator.is_valid(input))
 
 	const get_messages = (input: unknown, name: string) => {
 		if (!is_valid(input)) {

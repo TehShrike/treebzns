@@ -5,7 +5,7 @@
 	import type { CachedClient } from '#client/lib/client_cache.svelte.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
 	import BetterDataList from '#client/component/dropdown_input/BetterDataList.svelte'
-	import { filter } from '#shared/array.ts'
+	import { filter, every } from '#shared/array.ts'
 
 	export const asr_state = state_type({
 		name: `app.create_a_lead`,
@@ -36,7 +36,7 @@
 				|| client.billing_address.address_line_1?.includes(search_text)
 				|| client.billing_address.address_line_2?.includes(search_text))
 			: (client: CachedClient) =>
-				words.length > 0 && words.every(word => client.client.name.toLowerCase().includes(word))
+				words.length > 0 && every(words, word => client.client.name.toLowerCase().includes(word))
 	}
 
 	const by_name = (a: CachedClient, b: CachedClient) => a.client.name.localeCompare(b.client.name)
