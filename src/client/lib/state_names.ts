@@ -1,5 +1,5 @@
 import type globbed_states from '../globbed_states.generated.ts'
-import type { State } from './state_type.ts'
+import type { State } from './client_type.ts'
 
 type GlobbedAsrState = (typeof globbed_states)[number]['export']['asr_state']
 

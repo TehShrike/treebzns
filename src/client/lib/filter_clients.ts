@@ -1,5 +1,6 @@
 import type { CachedClient } from './client_cache.svelte.ts'
 import { every, filter } from '#shared/array.ts'
+import { get_phone_digits } from '#shared/phone_number.ts'
 
 export type ClientFilterArguments = {
 	name: string
@@ -17,12 +18,12 @@ const contains_all_tokens = (text: string, tokens: readonly string[]) =>
 
 export const filter_clients = (filter_arguments: ClientFilterArguments, clients: readonly CachedClient[]) => {
 	const name_tokens = tokenize(filter_arguments.name)
-	const phone_tokens = tokenize(filter_arguments.phone)
+	const phone_digits = get_phone_digits(filter_arguments.phone)
 	const address_tokens = tokenize(filter_arguments.address)
 
 	return filter(clients, client =>
 		contains_all_tokens(client.client.name.toLowerCase(), name_tokens)
-		&& contains_all_tokens(client.client.primary_phone.toLowerCase(), phone_tokens)
+		&& client.search_helpers.primary_phone_digits.includes(phone_digits)
 		&& contains_all_tokens(
 			`${address_text(client.primary_address)} ${address_text(client.billing_address)}`.toLowerCase(),
 			address_tokens,

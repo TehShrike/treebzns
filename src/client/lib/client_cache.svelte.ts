@@ -3,6 +3,7 @@ import query_builder from "#shared/sql_request/typed_query_builder.ts"
 import { client, client_address } from "#schema/all_table_column_names.ts"
 import type { Schema } from "#schema/types.ts"
 import { map } from "#shared/array.ts"
+import { get_phone_digits } from "#shared/phone_number.ts"
 
 const table_identifier = <TableIdentifier extends string, Column extends string>(table_name: TableIdentifier, column: Column) => `${table_name}.${column}` as const
 
@@ -54,14 +55,23 @@ const get_query_results = async (query: ClientQueryFn, query_instance: typeof cl
 	})
 }
 
-export type CachedClient = Awaited<ReturnType<typeof get_query_results>>[number]
+const transform_clients_for_searching = (clients: Awaited<ReturnType<typeof get_query_results>>) => map(clients, client => {
+	return {
+		...client,
+		search_helpers: {
+			primary_phone_digits: client.client.primary_phone ? get_phone_digits(client.client.primary_phone) : '',
+		}
+	}
+})
+
+export type CachedClient = ReturnType<typeof transform_clients_for_searching>[number]
 
 const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refresh_interval_ms: number}) => {
 	let cache = $state<readonly CachedClient[]>([])
 	const first_refresh_returned = Promise.withResolvers()
 
 	const refresh = () => get_query_results(query, client_query).then(clients => {
-		cache = clients
+		cache = transform_clients_for_searching(clients)
 	})
 
 	let interval_id: number | null = null

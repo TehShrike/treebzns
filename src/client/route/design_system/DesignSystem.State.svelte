@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { state_type } from "#client/lib/state_type.ts";
+	import { state_type } from "#client/lib/client_type.ts";
 	import AppScreen from "#client/component/AppScreen.svelte";
 	import FormLayout from "#client/component/FormLayout.svelte";
 

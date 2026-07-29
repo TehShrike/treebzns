@@ -1,10 +1,11 @@
 <script module lang="ts">
-	import { state_type } from '#client/lib/state_type.ts'
+	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
 	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
 	import FormLayout from '#client/component/FormLayout.svelte'
 	import ListInput from '#client/component/list_input/ListInput.svelte'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
+	import param_validator from '#shared/param_validator.ts'
 	import type { Schema } from '#schema/types.ts'
 	import assert from '#shared/assert.ts'
 	import { map } from '#shared/array.ts'
@@ -55,15 +56,14 @@
 		return map(rows, row => row.client_address)
 	}
 
+	const validate_params = param_validator({
+		client_id: param_validator.bigint,
+	})
+
 	export const asr_state = state_type({
 		name: `app.client`,
 		route: `/client/:client_id`,
-		param_validator: params => {
-			assert(typeof params.client_id === `string`, `client_id is a single string`)
-			return {
-				client_id: BigInt(params.client_id),
-			}
-		},
+		param_validator: validate_params,
 		resolve: async ({ query }, { client_id }) => {
 			const [client, addresses] = await Promise.all([
 				fetch_client(query, client_id),
@@ -79,12 +79,12 @@
 		},
 	})
 
-	type ClientRow = Awaited<ReturnType<typeof fetch_client>>
-	type AddressRow = Awaited<ReturnType<typeof fetch_addresses>>[number]
+	type Resolved = StateResolve<typeof asr_state>
+	type AddressRow = Resolved['addresses'][number]
 </script>
 
 <script lang="ts">
-	const { client, addresses: loaded_addresses }: { client: ClientRow, addresses: readonly AddressRow[] } = $props()
+	const { client, addresses: loaded_addresses }: Resolved = $props()
 
 	// svelte-ignore state_referenced_locally
 	const client_form = $state({ ...client })

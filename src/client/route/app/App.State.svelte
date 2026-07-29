@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import AppWrapper from './AppWrapper.svelte'
-	import { state_type } from '#client/lib/state_type.ts'
+	import { state_type } from '#client/lib/client_type.ts'
 	import redirect_resolve_to from '#client/lib/redirect_resolve_to.ts'
 	import type { SessionResponse } from '#client/lib/session_response.ts'
 

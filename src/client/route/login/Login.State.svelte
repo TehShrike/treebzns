@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { state_type } from '#client/lib/state_type.ts'
+	import { state_type } from '#client/lib/client_type.ts'
 	import redirect_resolve_to from '#client/lib/redirect_resolve_to.ts'
 
 	const redirect_to_state = 'app'

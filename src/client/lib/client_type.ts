@@ -32,6 +32,8 @@ export type State<
 	param_validator?: ParamValidator<ALL_PARAMS>
 }
 
+export type StateResolve<STATE> = STATE extends State<string, string, any, object, infer RESOLVE> ? RESOLVE : never
+
 export const state_type = <
 	NAME extends string,
 	QUERYSTRING_PARAM_KEYS extends string,

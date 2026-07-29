@@ -41,6 +41,14 @@ const to_integer = ensure_is_defined(ensure_is_not_array((input: string, name: s
 	return number
 }))
 
+const to_bigint = ensure_is_defined(ensure_is_not_array((input: string, name: string): bigint => {
+	if (!/^-?\d+$/.test(input)) {
+		throw bad_request_error(`Querystring parameter "${ name }" should be an integer`)
+	}
+
+	return BigInt(input)
+}))
+
 const to_boolean = ensure_is_defined(ensure_is_not_array((input: string, name: string): boolean => {
 	if (input === `true` || input === `1`) {
 		return true
@@ -192,6 +200,7 @@ const make_validator: MakeValidator = <
 
 export default Object.assign(make_validator, {
 	integer: to_integer,
+	bigint: to_bigint,
 	boolean: to_boolean,
 	string: to_string,
 	// iso_date: to_iso_date,

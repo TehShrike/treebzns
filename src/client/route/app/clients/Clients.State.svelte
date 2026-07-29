@@ -1,31 +1,61 @@
 <script module lang="ts">
-	import { state_type } from '#client/lib/state_type.ts'
-	import type { Context } from '#client/lib/client_context.ts'
+	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
 	import type { CachedClient } from '#client/lib/client_cache.svelte.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
 	import FormLayout from '#client/component/FormLayout.svelte'
 	import ListInput from '#client/component/list_input/ListInput.svelte'
 	import { filter_clients } from '#client/lib/filter_clients.ts'
 	import { filter } from '#shared/array.ts'
+	import param_validator from '#shared/param_validator.ts'
+	import { untrack } from 'svelte'
+
+	const validate_params = param_validator({
+		name: param_validator.optional(param_validator.string),
+		phone: param_validator.optional(param_validator.string),
+		address: param_validator.optional(param_validator.string),
+	})
 
 	export const asr_state = state_type({
 		name: `app.clients`,
 		route: `/clients`,
-		async resolve({ client_cache }) {
+		param_validator: validate_params,
+		async resolve({ client_cache }, params) {
 			await client_cache.been_fetched_at_least_once
 			return {
-				client_cache
+				client_cache,
+				initial_filter: {
+					name: params.name ?? ``,
+					phone: params.phone ?? ``,
+					address: params.address ?? ``,
+				},
 			}
 		}
 	})
 </script>
 
 <script lang="ts">
-	let { client_cache, asr }: { client_cache: Context['client_cache'], asr: StateAsr } = $props()
+	let { client_cache, initial_filter, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
 
-	let name = $state(``)
-	let phone = $state(``)
-	let address = $state(``)
+	// svelte-ignore state_referenced_locally
+	let name = $state(initial_filter.name)
+	// svelte-ignore state_referenced_locally
+	let phone = $state(initial_filter.phone)
+	// svelte-ignore state_referenced_locally
+	let address = $state(initial_filter.address)
+
+	$effect(() => {
+		const filter_params: { name?: string, phone?: string, address?: string } = {}
+		if (name) {
+			filter_params.name = name
+		}
+		if (phone) {
+			filter_params.phone = phone
+		}
+		if (address) {
+			filter_params.address = address
+		}
+		untrack(() => asr.go(`app.clients`, filter_params, { replace: true }))
+	})
 
 	const filtered_clients = $derived(filter_clients({ name, phone, address }, client_cache.clients))
 

@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { state_type } from '#client/lib/state_type.ts'
+	import { state_type } from '#client/lib/client_type.ts'
 	import type { SessionResponse } from '#client/lib/session_response.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
 	import LinkThatLooksLikeAButton from '#client/component/LinkThatLooksLikeAButton.svelte'

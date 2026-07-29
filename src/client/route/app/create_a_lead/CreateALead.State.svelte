@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { state_type } from '#client/lib/state_type.ts'
+	import { state_type } from '#client/lib/client_type.ts'
 	import type { SessionResponse } from '#client/lib/session_response.ts'
 	import type { Context } from '#client/lib/client_context.ts'
 	import type { CachedClient } from '#client/lib/client_cache.svelte.ts'
