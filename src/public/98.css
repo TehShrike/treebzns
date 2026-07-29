@@ -378,7 +378,7 @@ input[type="number"],
 input[type="search"],
 select,
 textarea {
-	padding: 3px 4px;
+	padding: 3px 6px;
 	border: none;
 	box-shadow: var(--border-field);
 	background-color: var(--button-highlight);
@@ -463,18 +463,6 @@ select {
 	&:active {
 		background-image: url("./98-icon/button-down-active.svg");
 	}
-}
-
-select:focus,
-input[type="text"]:focus,
-input[type="password"]:focus,
-input[type="email"]:focus,
-input[type="url"]:focus,
-input[type="tel"]:focus,
-input[type="number"]:focus,
-input[type="search"]:focus,
-textarea:focus {
-	outline: none;
 }
 
 a {

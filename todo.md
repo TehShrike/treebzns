@@ -1,8 +1,7 @@
 Review the import_arbostar_export scripts.
 
-- Need optional line items on estimates/quotes, and a way to indicate which ones the client selected
-
-Keep going through the arbostar_import_notes.md and look for things that need to be resolved.
+- Strip irrelevant characters when comparing phone numbers
+- Input focus border needs to look the same everywhere (embrace the rounding I guess)
 
 # "Create A Lead" interface
 

@@ -129,7 +129,7 @@
 
 	[role=cell]:focus-within {
 		border-radius: var(--default_border_radius);
-		box-shadow: 0 0 0 var(--focus_outline_width) var(--focus_color);
+		outline: var(--focus_outline_width) solid var(--focus_color);
 		z-index: 1;
 	}
 
@@ -155,7 +155,7 @@
 		resize: none;
 	}
 
-	[role=cell] :global(:is(input, textarea, select):focus-visible) {
+	[role=cell] :global(:is(input, textarea, select):focus) {
 		outline: none;
 	}
 
