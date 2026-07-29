@@ -1,6 +1,8 @@
 Review the import_arbostar_export scripts.
 
-- Strip irrelevant characters when comparing phone numbers
+- Make a module that takes an ASR instance and returns a store/reactive that exposes the current state and the state being transitioned to
+	- May as well also expose "are we transitioning to another state" as a boolean
+	- When at app.projects.*, if we are transitioning to another state, and that target state is also app.projects.*, we should hide the ui-slot and display "loading" in the app.projects state
 - Input focus border needs to look the same everywhere (embrace the rounding I guess)
 
 # "Create A Lead" interface
