@@ -37,7 +37,7 @@
 		"prod:db_export_schema": "node scripts/export_schema.ts",
 		"prod:db_migrate": "node scripts/migrate.ts",
 		"dev": "npm-run-all build --parallel dev:*",
-		"dev:wrangler": "wrangler dev",
+		"dev:wrangler": "wrangler dev --live-reload",
 		"dev:glob": "run-p dev:glob:*",
 		"dev:glob:states": "watchlist src/client/route --no-clear -- npm run build:glob:states",
 		"dev:glob:server_functions": "watchlist src/worker/server_functions --no-clear -- run-p build:server_function_types build:glob:server_functions",
