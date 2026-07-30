@@ -28,8 +28,9 @@
 		route: `/projects`,
 		default_child: `results`,
 		param_validator: validate_project_search_params,
-		resolve: async ({ query }, params) => {
+		resolve: async ({ query, transition_state }, params) => {
 			return {
+				transition_state,
 				project_documents: await fetch_project_documents(query),
 				initial_search: {
 					project_document_ids: params.project_document_ids ?? [],
@@ -42,7 +43,13 @@
 </script>
 
 <script lang="ts">
-	const { project_documents, initial_search, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
+	const { project_documents, initial_search, transition_state, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
+
+	const loading_new_results = $derived(
+		transition_state.currently_transitioning
+		&& (transition_state.state_being_transitioned_to.name === `app.projects`
+			|| transition_state.state_being_transitioned_to.name.startsWith(`app.projects.`))
+	)
 
 	// svelte-ignore state_referenced_locally
 	let selected_project_document_ids = $state([...initial_search.project_document_ids])
@@ -101,7 +108,11 @@
 		</fieldset>
 	</div>
 
-	<uiView></uiView>
+	<div class="results" data-loading-new-results={loading_new_results}>
+		<div class="results">
+			<uiView></uiView>
+		</div>
+	</div>
 </AppScreen>
 
 <style>
@@ -124,5 +135,9 @@
 		display: flex;
 		align-items: center;
 		gap: var(--gap_half);
+	}
+
+	.results[data-loading-new-results=true] {
+		display: none;
 	}
 </style>

@@ -2,7 +2,8 @@ import make_state_router from 'abstract-state-router'
 import { for_each } from '#shared/array.ts'
 import make_svelte_state_renderer from 'svelte-state-renderer'
 
-import context, { type Context } from './lib/client_context.ts'
+import make_context, { type Context } from './lib/client_context.ts'
+import { asr_transition_state } from './lib/asr_transition_state.svelte.ts'
 import paths_and_states from './globbed_states.generated.ts'
 import assert_child_states_are_below_parents from './assert_child_states_are_below_parents.ts'
 import type { State } from './lib/client_type.ts'
@@ -58,6 +59,8 @@ const state_router = make_state_router(
 	make_svelte_state_renderer(),
 	document.getElementById(`app-target`)
 )
+
+const context = make_context(asr_transition_state(state_router))
 
 for_each(paths_and_states, (globbed_state) => {
 	add_state({ ...globbed_state.export.asr_state, Component: globbed_state.export.default })
