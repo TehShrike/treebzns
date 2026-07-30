@@ -31,7 +31,7 @@ const get_build_options = () => ({
 	format: 'esm' as const,
 	target: 'es2020',
 	define: {
-		// '__IS_DEV__': JSON.stringify(dev),
+		'import.meta.env.DEV': JSON.stringify(dev),
 	},
 	sourcemap: true
 })

@@ -67,3 +67,7 @@ for_each(paths_and_states, (globbed_state) => {
 })
 
 state_router.evaluateCurrentRoute(`login`)
+
+if (import.meta.env?.DEV) {
+	void import(`./dev_claude_code_comment/index.ts`)
+}
