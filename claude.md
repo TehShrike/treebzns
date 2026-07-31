@@ -2,6 +2,8 @@ Don't add comments unless something truly exceptional is happening that can't be
 
 When possible, use the functions in #shared/array.ts rather than built-in array functions or for of loop.  The ones in shared/array are more performant.
 
+CSS layout is the parent's job.  Never use self-placement properties (align-self, justify-self, place-self) on children — parents define how their children are laid out (display, flex-direction, align-items, justify-items, gap).  A child may size itself (e.g. width: fit-content) but not place itself.
+
 Assertion messages should say the thing that they are asserting, they should not be phrased as error messages.
 
 Never apply schema changes to the database by hand with the mysql cli.  To run new migrations in local dev, use `pnpm run local:db_up` — it validates migration numbering (e.g. duplicate numbers), applies pending migrations, records them in the `migration` table, and regenerates the exported schema, so problems surface before committing.  The mysql cli (credentials in the .env file) is fine for inspecting data, but not for DDL.
