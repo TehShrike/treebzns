@@ -29,6 +29,12 @@ Every time you write a Svelte component or a Svelte module you MUST invoke the `
 
 - all `asr` properties are reset when the state changes, so all `asr` methods used inside of Svelte components are reactive even though they appear not to be
 
+## In-page comments addressed to Claude
+
+The dev-only tool in src/client/dev_claude_code_comment/ lets the developer option-click any element in the running app and leave a comment for Claude.  Saving a comment sets `data-claude-comment="<text>"` on the clicked element and inserts an HTML comment node ` claude: <text> ` directly above it.
+
+When asked to address comments, use the Chrome MCP tools.  Check `tabs_context_mcp` for an existing tab on localhost:8787; if there is none, create a tab and navigate it to http://localhost:8787/app (log in is via cookie, already set in the browser).  Collect comments with javascript_tool: `[...document.querySelectorAll('[data-claude-comment]')]`, gathering each element's comment plus identifying context (tag, classes, text content, ancestor chain — the extension may redact full outerHTML).  Use that context to locate the matching component under src/client/route/ or src/client/component/.  Comments exist only in the live DOM, so collect them before changing code, reloading, or navigating the tab.
+
 ## SQL queries
 
 Use the typed_query_builder for all SELECT queries.
