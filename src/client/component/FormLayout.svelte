@@ -62,12 +62,8 @@
 			auto-fill,
 			minmax(var(--min_field_width), var(--max_field_width))
 		);
+		align-items: start;
 		gap: var(--gap_unit);
-	}
-
-	.fields > :global(label) {
-		display: flex;
-		flex-direction: column;
 	}
 
 	.fields :global(input),

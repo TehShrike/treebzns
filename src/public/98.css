@@ -276,12 +276,24 @@ input[type="checkbox"] {
 	position: fixed;
 	opacity: 0;
 	border: none;
+	/* The invisible input can be stretched by context styles (e.g. width: 100%);
+	   it must never intercept clicks aimed at whatever it happens to overlap */
+	pointer-events: none;
 }
 
 label:has(input[type="radio"]),
 label:has(input[type="checkbox"]) {
 	position: relative;
 	line-height: 1;
+	/* Keep the text vertically centered on the control even when context styles
+	   stretch the label taller than one line */
+	display: inline-flex;
+	align-items: center;
+	/* An explicit width opts the label out of grid/flex stretching, so the
+	   focus outline hugs the control and text instead of tracing a stretched
+	   label box.  Sizing, not self-alignment — where the shrunk box lands
+	   stays the parent's decision */
+	width: fit-content;
 	/* Enlarge the click target above/below the control and past the text */
 	padding-block: var(--checkable-padding-block);
 	padding-right: var(--checkable-padding-inline-end);

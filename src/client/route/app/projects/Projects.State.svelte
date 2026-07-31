@@ -126,15 +126,10 @@
 	fieldset {
 		display: flex;
 		flex-direction: column;
+		align-items: flex-start;
 		gap: var(--gap_half);
 		border: 1px solid var(--generic_border_color);
 		border-radius: var(--default_border_radius);
-	}
-
-	fieldset label {
-		display: flex;
-		align-items: center;
-		gap: var(--gap_half);
 	}
 
 	.results[data-loading-new-results=true] {
