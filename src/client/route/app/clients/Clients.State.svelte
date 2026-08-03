@@ -75,7 +75,9 @@
 {/snippet}
 
 {#snippet phone_cell(client: CachedClient)}
-	<div>{client.client.primary_phone}</div>
+	{#if client.client.primary_phone}
+		<a href={`tel:${client.client.primary_phone.replace(/[^\d+]/gu, ``)}`}>{client.client.primary_phone}</a>
+	{/if}
 {/snippet}
 
 {#snippet notes_cell(client: CachedClient)}
