@@ -1,0 +1,23 @@
+Two kinds of expiration:
+- stops showing up in searching
+- doesn't go straight to approved any more if they approve it
+
+- "Stops showing up in searches" expiration: default 3 month
+- New project document: "Declined Proposal"
+	- closed by default (add as new boolean on project_document)
+	- new "declined_project_document_id" column – "Propsal/Estimate" statuses have that id set to whatever "Declined Proposal" id is
+	- new boolean column "ask for decline reason"
+	- add "decline_reason" text column to project table
+	- add "project_decline_reason" table
+		- Price too high
+		- Went with a lower bid
+		- Weren't pleased
+		- Didn't like credentials
+- Call it "Proposal" by default instead of "Estimate"
+- Make sure "accept" flow from Proposal -> Work Order is modeled
+- Have a "Work Order (Cancelled)"
+	- What you get when you "decline" a work order project document
+	- Closed by default
+	- Declined reason probably – maybe slightly different list?
+		- Scheduling troubles
+		- Financial troubles

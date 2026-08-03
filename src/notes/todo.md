@@ -1,6 +1,10 @@
 Review the import_arbostar_export scripts.
 
 - Input focus border needs to look the same everywhere (embrace the rounding I guess)
+- Projects/line item have photos – photos need a "visible to client" checkbox
+- Client page needs some kind of default filter so that it doesn't list everything – maybe "has open project" or something
+
+# Customer-facing page for proposals/projects
 
 # "Create A Lead" interface
 
