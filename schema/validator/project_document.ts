@@ -15,7 +15,7 @@ export const validator_object = {
 	represents_billable_sale_when_closed: jv.is_boolean,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
-	sort: jv.is_boolean,
+	sort: jv.is_bigint,
 }
 
 export const project_document_validator: jv.Validator<DbProjectDocument> = jv.object(validator_object)

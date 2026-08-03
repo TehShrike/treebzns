@@ -21,7 +21,7 @@ const MYSQL_TYPE_TO_TS: Record<string, (col: ColumnMeta) => string> = {
 	smallint: () => 'bigint',
 	decimal: () => 'FinancialNumber',
 	bit: () => 'boolean',
-	tinyint: () => 'boolean',
+	tinyint: () => 'bigint',
 	datetime: () => 'Temporal.Instant',
 	date: () => 'Temporal.PlainDate',
 	time: () => 'Temporal.PlainTime',
