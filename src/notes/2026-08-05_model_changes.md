@@ -1,0 +1,133 @@
+# Model changes needed for the screen buildout
+
+Comparison of `screens_needed.md` against the current schema (through migration 0031).
+
+Two sections: open questions that need product decisions, and clear gaps that just need migrations.
+
+## Open questions
+
+### 1. How do we assign a job to a crew and a day?
+
+Nothing links a project to a crew or a date today.  The job scheduling screen, the work crew interface, and the worker/foreman screen all need this link.  The customer work order screen needs it too, for the "when will you come out" estimate.
+
+Options:
+
+- **`scheduled_work` table**: project_id, crew_id, work_date, sort_order, locked.  One row per crew-day.  A multi-day job gets multiple rows.  `locked` covers line-drop jobs that can not move on the schedule.
+- **Columns on project**: scheduled_date + crew_id on the project row.  Simplest, but a job can only ever be one day and one crew.
+
+Sub-question: can one job span multiple days or multiple crews?  The answer decides between these.
+
+#### Answer
+
+project should have a nullable start_day that is a date.  Projects should also have a nullable work_order
+
+-
+
+### 2. How do we model day-specific crew composition?
+
+People get pulled to another crew for one day.  `crew_member` is a static roster and can not express that.  The "video game character assignment" UI needs to edit something per-day.
+
+Options:
+
+- **Roster + day overrides**: keep `crew_member` as the default.  Add `crew_day_member` (crew_id, employee_id, work_date, added/removed flag).  The crew on a date = roster ± overrides.
+- **Static crews only for v1**: no day moves in the model.  `time_entry` records who actually worked.
+- **Per-day snapshots**: every workday's crew is explicit rows, copied forward from the previous day.  `crew_member` goes away.
+
+### 3. Where do skill requirements live?
+
+Skills attach only to projects today (`project_work_skill`).  The notes say line items define the skills/equipment needed.  The scheduling screen matches project requirements against crew capabilities, so it needs a clear rollup rule.
+
+Options:
+
+- **Line items, rolled up**: new `project_line_item_work_skill` table.  A project's requirements = union of its line items' skills.  Keep `project_work_skill` for lead-stage projects that have no line items yet.
+- **Project level only**: keep the current table as the one place.  Simpler, but you can not see which line item needs the crane.
+
+#### Answer
+
+We will replace project_work_skill with project_line_item_work_skill.
+
+Other line item changes: line items should have a title, as well as a description.  The title will be a short name, more generic, and can be used on invoices where the full work details are not needed.  Rename `description` to `work_details`.
+
+We should also add a line_item_template table with company_id + title, and a line_item_template_work_skill table.  work_types from arbostar can be imported into line_item_template.
+
+project_line_item should have a nullable line_item_template_id column for informational purposes.
+
+### 4. Is equipment separate from work skills?
+
+The settings screen says "skill/equipment list".  Skills belong to people.  Equipment belongs to the company or a crew.  That difference may or may not matter to the schedule.
+
+Options:
+
+- **One list**: equipment items are `work_skill` rows with no hourly_rate ("crane", "bucket truck").  One tagging system, one settings list.
+- **Separate tables**: an `equipment` table with its own join tables.  More tables, but scheduling could later track which crew has the crane on which day.
+
+#### Answer
+
+I'm not modelling equipment explicitly yet.  Some equipment use is implicit in work skills, and that's fine for now.
+
+### 5. How do project photos work before line items exist?
+
+The estimating flow is: dump in photos, dump in text, then pull it apart into line items.  Today photos only exist as `project_line_item_image`, so a photo can not exist before its line item does.
+
+Proposed shape, needs confirmation:
+
+- New `project_image` table at the project level: image, description, visible_to_client, markup data.
+- Linking photos to line items: nullable FK on the image, or a join table so one photo can illustrate several line items?
+- Markup: store the marked-up render, the overlay data (JSON), or both?
+
+#### Answer
+
+New `project_image` table at the project level: original_image, description, display_image (potentially marked up).
+
+New project_line_item_image table that links images to line items, with a visible_to_client boolean.
+
+### 6. Where do image bytes live?
+
+Current schema stores images as BLOBs in MySQL.  Estimators will dump in many large photos.  This runs on Cloudflare Workers, where R2 is the natural object store.
+
+Options: keep BLOBs in MySQL for simplicity, or store bytes in R2 and keep only keys + metadata in MySQL.  Affects the offline/Cloudflare-downtime resiliency goal from big_todos.
+
+#### Answer
+
+Blobs in MySQL for now.
+
+### 7. How does the customer reach the customer-facing project screen?
+
+No access mechanism exists.  The proposal, work order, and invoice screens all need one.
+
+Options: an unguessable token column (or table) per project baked into the URL, or a real client login.  A token is the likely v1.  Sub-question: does the token ever expire or get revoked?
+
+#### Answer
+
+This is not a schema modelling concern, at least not for today.  The url will contain the project number.  There will be some unguessable value, maybe in the querystring, maybe a hash of company_id + project_id.
+
+### 8. How do we record what the customer approved?
+
+`project_client_approval` has no project_id today, so an approval can not attach to a project at all.  Beyond that fix: the proposal screen offers "just the basics" / "approve all" / "extra mile", so an approval selects a subset of line items.
+
+Questions:
+
+- Record the approved line item set per approval event (join table), or is `client_declined` on the line item enough?
+- Snapshot prices at approval time, or trust that line items do not change after approval (the CAN_CHANGE_WORK_ORDERS_WITHOUT_CUSTOMER_APPROVAL permission implies they can)?
+- Down payments come later, but the approval shape should leave room.
+
+### 9. Are "optional" and "add-on" the same flag?
+
+Line items have `client_optional` today.  The proposal CTA describes "just the basics" (excludes optional) and "extra mile" (includes add-ons) as different tiers.  If those are distinct, line items need two flags.  If not, the CTA is two tiers, not three.
+
+### 10. Do we bake client contact info onto the project?
+
+The project screen notes say address and contact info should be baked into the document, not read from the client record.  Address columns are already copied onto the project.  Client name, phone, and email are not.  Decide whether to copy them at some transition point (estimate sent?) or keep reading them live.
+
+#### Answer
+
+Add a contact_name, contact_phone, contact_email varchar to the project table.  They'll be written at lead creation time same as the address.
+
+## Clear gaps (no product decision expected, just migrations)
+
+- **`project_document_history`**: project_id, project_document_id, changed_by_employee_id, created_at.  The project screen shows transition dates, and expiration math needs the timestamp of the transition into the expiring document.  Flagged in screens_needed already.
+- **`project_client_approval.project_id`**: missing FK, approvals are orphaned today.
+- **`crew.name`**: crews have a color and a leader but no name.
+- **`employee_work_skill`**: employee_id + work_skill_id.  "Crews have workers with different skills" has no data behind it today.  Scheduling and the crew UI both need it.
+- **Geocoding for the map view**: latitude/longitude columns (floating point) on project (and maybe client_address).  Also decide which geocoding service fills them, but the columns are needed regardless.
+- **`project_image.visible_to_client`**: the "visible to customer" checkbox from todo.md, wherever the photo model lands (see question 5).
