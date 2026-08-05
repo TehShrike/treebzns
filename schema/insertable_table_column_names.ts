@@ -161,6 +161,7 @@ export const project = {
 	closed: 'closed',
 	closed_at: 'closed_at',
 	closed_date: 'closed_date',
+	project_decline_reason_id: 'project_decline_reason_id',
 	lead_source: 'lead_source',
 } as const
 
@@ -169,6 +170,11 @@ export const project_client_approval = {
 	customer_signature: 'customer_signature',
 	verbal_approval: 'verbal_approval',
 	added_by_employee_id: 'added_by_employee_id',
+} as const
+
+export const project_decline_reason = {
+	company_id: 'company_id',
+	reason: 'reason',
 } as const
 
 export const project_document = {
@@ -181,6 +187,9 @@ export const project_document = {
 	should_be_worked: 'should_be_worked',
 	needs_to_be_contacted_by_lead_qualifier: 'needs_to_be_contacted_by_lead_qualifier',
 	represents_billable_sale_when_closed: 'represents_billable_sale_when_closed',
+	declined: 'declined',
+	closed_by_default: 'closed_by_default',
+	declined_project_document_id: 'declined_project_document_id',
 	sort: 'sort',
 } as const
 

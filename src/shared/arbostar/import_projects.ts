@@ -5,6 +5,7 @@ import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import type { ArbostarWorkOrder } from '#arbostar_export/workorders.d.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
+import type { ArbostarDecline } from '#arbostar_export/declines.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
 import { map, filter, every, some } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
@@ -24,9 +25,9 @@ export type ImportedProjects = {
 	}
 }
 
-const describe_estimate = (estimate: ArbostarEstimate): string =>
+const describe_estimate = (estimate: ArbostarEstimate, decline: ArbostarDecline | undefined): string =>
 	`Estimate ${estimate.estimate_no ?? estimate.estimate_id}`
-	+ (estimate.status_name === null ? '' : ` (${estimate.status_name})`)
+	+ (estimate.status_name === null ? '' : ` (${estimate.status_name}${decline?.reason_name ? ` — ${decline.reason_name}` : ''})`)
 	+ (estimate.total_price === null ? '' : `: ${money_display(estimate.total_price)}`)
 
 const describe_workorder = (workorder: ArbostarWorkOrder): string =>
@@ -59,11 +60,22 @@ const ARBOSTAR_LEAD_STATUS_DRAFT = 5
 const ARBOSTAR_ESTIMATE_STATUSES_SENT = [2, 3]
 // Row-level ids (the readme's status-tab table differs: Declined is -4 there):
 // 4 Declined · 8 Thinking – No Follow Up Needed · 9 Expired.
-const ARBOSTAR_ESTIMATE_STATUSES_DEAD = [4, 8, 9]
+const ARBOSTAR_ESTIMATE_STATUS_DECLINED = 4
+const ARBOSTAR_ESTIMATE_STATUSES_DEAD = [ARBOSTAR_ESTIMATE_STATUS_DECLINED, 8, 9]
 // Matched on the row-level status name: work order rows use a different status-id space than
 // the status tabs documented in scripts/arbostar/readme.md (finished rows carry wo_status_id 0,
 // not the tab table's 7).
 const ARBOSTAR_WO_STATUS_FINISHED = 'Finished'
+// ArboStar's canned decline reasons → the seeded project_decline_reason rows, both sides
+// normalized (see normalize_name and the mapping table in
+// 2026-08-03-project-status-work-plan.md). ArboStar reasons with no natural seed equivalent
+// import with a null reason id; the reason name still survives in lead_details prose.
+const SEED_DECLINE_REASON_BY_ARBOSTAR_REASON = new Map([
+	['price is too high', 'price too high'],
+	['preferred the competition', 'went with a lower bid'],
+	['scheduling delays/conflicts', 'scheduling troubles'],
+	[`client can't be pleased`, `weren't pleased`],
+])
 
 // The export only carries tax *amounts*, so a project's rate is recovered by implying it from
 // the invoice tax over the taxable line sum and snapping to the nearest entry in the company's
@@ -119,12 +131,13 @@ const NOT_TAXABLE: ProjectTax = { taxable: false, tax_rate_id: null, tax_rate: n
 export const import_projects = async (
 	connection: Connection,
 	context: ArbostarImportContext,
-	{ leads, estimates, workorders, invoices, line_items, taxes }: {
+	{ leads, estimates, workorders, invoices, line_items, declines, taxes }: {
 		leads: ArbostarLead[]
 		estimates: ArbostarEstimate[]
 		workorders: ArbostarWorkOrder[]
 		invoices: ArbostarInvoice[]
 		line_items: ArbostarLineItem[]
+		declines: ArbostarDecline[]
 		taxes: ArbostarTax[]
 	},
 	imported_clients: ImportedClients,
@@ -134,6 +147,7 @@ export const import_projects = async (
 	const workorders_by_lead_id = group_by(filter(workorders, workorder => workorder.lead_id !== null), workorder => workorder.lead_id!)
 	const invoices_by_lead_id = group_by(filter(invoices, invoice => invoice.lead_id !== null), invoice => invoice.lead_id!)
 	const line_items_by_lead_id = group_by(line_items, item => item.lead_id)
+	const decline_by_estimate_id = new Map(map(declines, decline => [decline.estimate_id, decline] as const))
 
 	const importable = filter(leads, lead => lead.client_id !== null && client_id_by_arbostar_client_id.has(lead.client_id))
 
@@ -217,26 +231,53 @@ export const import_projects = async (
 		const address = primary_address_by_arbostar_client_id.get(lead.client_id!)!
 
 		const documents = context.project_document_ids
-		const project_document_id =
-			lead_workorders.length > 0 || lead_invoices.length > 0 ? documents.work_order
-			: lead.lead_status_id === ARBOSTAR_LEAD_STATUS_NO_GO ? documents.void
-			: lead_estimates.length > 0 ? documents.estimate
-			: lead.lead_status_id === ARBOSTAR_LEAD_STATUS_NEW || lead.lead_status_id === ARBOSTAR_LEAD_STATUS_DRAFT
-				? documents.lead_unqualified
-				: documents.lead_qualified
-
-		// Work completed, or the deal is dead: No Go leads (Void) and leads whose every
-		// estimate was Declined/Expired/Thinking have no more work to do. Dying at the
-		// Estimate stage doesn't count as a sale — only the Work Order document has
-		// represents_billable_sale_when_closed.
+		// Dead at the estimate stage means every estimate is Declined/Expired/Thinking. An
+		// active client "no" (at least one Declined estimate) lands on the Declined Proposal
+		// document; all-dead with no Declined (Expired/Thinking only) stays on the Proposal
+		// document, keeping silence distinguishable from a decline.
 		const all_estimates_dead = lead_estimates.length > 0 && every(
 			lead_estimates,
 			estimate => estimate.status_id !== null && ARBOSTAR_ESTIMATE_STATUSES_DEAD.includes(estimate.status_id),
 		)
+		const declined_estimates = filter(lead_estimates, estimate => estimate.status_id === ARBOSTAR_ESTIMATE_STATUS_DECLINED)
+		const project_document_id =
+			lead_workorders.length > 0 || lead_invoices.length > 0 ? documents.work_order
+			: lead.lead_status_id === ARBOSTAR_LEAD_STATUS_NO_GO ? documents.void
+			: lead_estimates.length > 0
+				? (all_estimates_dead && declined_estimates.length > 0 ? documents.declined_proposal : documents.estimate)
+			: lead.lead_status_id === ARBOSTAR_LEAD_STATUS_NEW || lead.lead_status_id === ARBOSTAR_LEAD_STATUS_DRAFT
+				? documents.lead_unqualified
+				: documents.lead_qualified
+
+		// Work completed, or the deal is dead: No Go leads (Void), declined proposals, and
+		// leads whose every estimate Expired / went Thinking have no more work to do. Dying
+		// before the Work Order document doesn't count as a sale — only that document has
+		// represents_billable_sale_when_closed.
 		const closed = some(lead_workorders, workorder => workorder.status === ARBOSTAR_WO_STATUS_FINISHED)
 			|| lead_invoices.length > 0
 			|| project_document_id === documents.void
+			|| project_document_id === documents.declined_proposal
 			|| (project_document_id === documents.estimate && all_estimates_dead)
+
+		// The most recently created declined estimate's reason, mapped onto the company's
+		// seeded reasons. Only projects dying on Declined Proposal carry a reason, so a
+		// decline that was later superseded (the lead went on to a work order) doesn't leave
+		// a stale reason behind.
+		const latest_decline = declined_estimates.reduce<ArbostarDecline | null>((latest, estimate) => {
+			const decline = decline_by_estimate_id.get(estimate.estimate_id)
+			if (decline === undefined) return latest
+			if (latest === null) return decline
+			return (decline.date_created_unix ?? 0) > (latest.date_created_unix ?? 0)
+				|| ((decline.date_created_unix ?? 0) === (latest.date_created_unix ?? 0) && decline.estimate_id > latest.estimate_id)
+				? decline
+				: latest
+		}, null)
+		const mapped_seed_reason = latest_decline?.reason_name == null
+			? undefined
+			: SEED_DECLINE_REASON_BY_ARBOSTAR_REASON.get(normalize_name(latest_decline.reason_name))
+		const project_decline_reason_id = project_document_id === documents.declined_proposal && mapped_seed_reason !== undefined
+			? context.decline_reason_id_by_reason.get(mapped_seed_reason) ?? null
+			: null
 
 		// Invoice totals are authoritative when they exist (they carry the real discounts and
 		// tax, which line items can't reproduce). Otherwise the subtotal is the non-declined
@@ -280,7 +321,7 @@ export const import_projects = async (
 			(lead.lead_address ?? lead.address_line_display) === null
 				? null
 				: `Lead address: ${lead.lead_address ?? lead.address_line_display}`,
-			...map(lead_estimates, describe_estimate),
+			...map(lead_estimates, estimate => describe_estimate(estimate, decline_by_estimate_id.get(estimate.estimate_id))),
 			...map(lead_workorders, describe_workorder),
 			...map(lead_invoices, describe_invoice),
 		])
@@ -309,6 +350,7 @@ export const import_projects = async (
 			),
 			notes_for_office,
 			closed,
+			project_decline_reason_id,
 			lead_source: lead.utm_source ?? '',
 			...totals,
 			...project_tax(lead),

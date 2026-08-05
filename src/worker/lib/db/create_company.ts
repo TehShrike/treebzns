@@ -8,6 +8,15 @@ import type { Schema } from '#schema/types.ts'
 
 const default_payment_method_names = ['Cash', 'Credit Card', 'Check']
 
+const default_decline_reasons = [
+	'Price too high',
+	'Went with a lower bid',
+	`Weren't pleased`,
+	`Didn't like credentials`,
+	'Scheduling troubles',
+	'Financial troubles',
+]
+
 const default_software_roles: {
 	name: string
 	permission_codes: DbPermission['code'][]
@@ -51,6 +60,11 @@ export const create_company = async (
 		await mysql.query({
 			sql: 'INSERT INTO payment_method (company_id, name) VALUES ?',
 			values: [map(default_payment_method_names, name => [company_id, name])],
+		})
+
+		await mysql.query({
+			sql: 'INSERT INTO project_decline_reason (company_id, reason) VALUES ?',
+			values: [map(default_decline_reasons, reason => [company_id, reason])],
 		})
 
 		const permission_query = query_builder<Schema>()

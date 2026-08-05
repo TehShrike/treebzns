@@ -9,6 +9,7 @@ import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarWorkOrder } from '#arbostar_export/workorders.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
+import type { ArbostarDecline } from '#arbostar_export/declines.d.ts'
 import type { ArbostarPayment } from '#arbostar_export/payments.d.ts'
 import type { ArbostarUser } from '#arbostar_export/users.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
@@ -28,6 +29,7 @@ export type ArbostarExportData = {
 	invoices: ArbostarInvoice[]
 	workorders: ArbostarWorkOrder[]
 	line_items: ArbostarLineItem[]
+	declines: ArbostarDecline[]
 	payments: ArbostarPayment[]
 	users: ArbostarUser[]
 	taxes: ArbostarTax[]

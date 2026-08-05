@@ -71,7 +71,7 @@ matter.
 
 ## Steps
 
-### 1. Migration `src/migration/0031-project-decline-modeling.sql`
+### 1. ✅ Migration `src/migration/0031-project-decline-modeling.sql`
 
 Target end state for `project_document` (global codebook, currently 7 rows):
 
@@ -112,12 +112,12 @@ Target end state for `project_document` (global codebook, currently 7 rows):
 Apply with `pnpm run local:db_up` (never the mysql cli) — this also regenerates
 `schema/` types/validators.
 
-### 2. Company creation seeds the reasons
+### 2. ✅ Company creation seeds the reasons
 
 `src/worker/lib/db/create_company.ts`: insert the same 6 reasons inside the creation
 transaction, mirroring the `default_payment_method_names` block.
 
-### 3. Fix `resolve_context.ts` document resolution (breaks without this)
+### 3. ✅ Fix `resolve_context.ts` document resolution (breaks without this)
 
 `src/shared/arbostar/resolve_context.ts` resolves `void` as "all four behavior flags false" and
 asserts exactly one match — the two new documents also have all-false behavior flags, so the
@@ -130,7 +130,7 @@ assert fires on the next import run after the migration. Changes:
 - Extend the `ArbostarImportContext.project_document_ids` type in `import_common.ts`, and add
   the new columns to the document query's select list.
 
-### 4. New export: `scripts/arbostar/export_declines.ts` → `arbostar_export/declines.js`
+### 4. ✅ New export: `scripts/arbostar/export_declines.ts` → `arbostar_export/declines.js`
 
 - Page `/estimates/declines` (wide `from`/`to` range, e.g. 01/01/2015–12/31/2026, length 200)
   with the DataTables params above. Reuse `fetch_datatable.ts` if its param shape fits
@@ -142,7 +142,7 @@ assert fires on the next import run after the migration. Changes:
 - Document in `scripts/arbostar/readme.md`: the endpoint, its required params, and the
   15-reason id table.
 
-### 5. Import changes
+### 5. ✅ Import changes
 
 - `scripts/import_arbostar_export.ts` + `ArbostarExportData`: add `declines` dataset.
 - `src/shared/arbostar/import_projects.ts`:
@@ -160,7 +160,7 @@ assert fires on the next import run after the migration. Changes:
   (Expired/Thinking still conflated by choice; unmapped reasons → NULL with prose in
   `lead_details`).
 
-### 6. Verify
+### 6. ✅ Verify
 
 - `pnpm run test` (includes all type checks). The regenerated schema types flow through the
   query-builder tests on their own.
@@ -171,12 +171,24 @@ assert fires on the next import run after the migration. Changes:
 - Projects search UI (`Projects.State.svelte`) lists documents by name — the new documents
   appear with no code change; eyeball the filter dropdown.
 
-### 7. Doc updates (last)
+**Results (2026-08-03):** 108/108 tests pass, all type checks clean. Exports refreshed
+(estimates 1864, leads 2046, declines 365) and the import run against company 9 came back
+clean. Distribution: Declined Proposal 346 projects (all closed, 272 with a reason — Price too
+high 161, Went with a lower bid 97, Scheduling troubles 10, Weren't pleased 4), Proposal 553
+(45 closed = the Expired/Thinking-only leads), Work Order 841, Void 168, Lead (Unqualified) 3.
+Null-reason spot-checks confirm the ArboStar reason survives in the lead_details estimate line
+(e.g. `Estimate 01873-E (Declined — Not interested in the job anymore)`). UI eyeballed: both
+new documents and the Proposal rename show in the filter, and Declined Proposal + Closed
+returns the imported projects.
 
-- Update `arbostar_client_state_differences.md`: Declined and its reasons are now
-  representable; note what deliberately remains lossy.
-- Fold the implemented subset out of `model-project-terminal-states.md` or mark items done
-  (expiration behaviors, `ask_for_decline_reason`, free-text reason remain open).
+### 7. ✅ Doc updates (last)
+
+- Update `src/notes/arbostar_client_state_differences.md`: Declined and its reasons are now
+  representable; note what deliberately remains lossy. (Done — the Declined/Expired/Thinking
+  rows and the closing paragraph now describe the post-0031 state.)
+- Mark items done in `src/notes/project-terminal-states.md` (the notes moved there from
+  model-project-terminal-states.md). Done — ✅/⏳ annotations; expiration behaviors, the
+  accept flow, `ask_for_decline_reason`, and the free-text reason remain open.
 
 ## Known quirks / out of scope
 

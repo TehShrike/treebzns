@@ -34,6 +34,7 @@ export const validator_object = {
 	closed: jv.is_boolean,
 	closed_at: jv.nullable(is_temporal_instant),
 	closed_date: jv.nullable(is_temporal_plain_date),
+	project_decline_reason_id: jv.nullable(jv.is_bigint),
 	lead_source: jv.is_string,
 }
 

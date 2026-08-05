@@ -19,6 +19,7 @@ export type Schema = {
 	permission: DbPermission
 	project: DbProject
 	project_client_approval: DbProjectClientApproval
+	project_decline_reason: DbProjectDeclineReason
 	project_document: DbProjectDocument
 	project_line_item: DbProjectLineItem
 	project_line_item_image: DbProjectLineItemImage
@@ -50,6 +51,7 @@ export type InsertableSchema = {
 	permission: DbInsertablePermission
 	project: DbInsertableProject
 	project_client_approval: DbInsertableProjectClientApproval
+	project_decline_reason: DbInsertableProjectDeclineReason
 	project_document: DbInsertableProjectDocument
 	project_line_item: DbInsertableProjectLineItem
 	project_line_item_image: DbInsertableProjectLineItemImage

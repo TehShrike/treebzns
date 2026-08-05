@@ -1,7 +1,8 @@
 // Resolves everything the import needs to know about the target company: its existence, the
 // employee imported projects are attributed to, the global project_document codebook, the
-// existing-employee name map, and the prior-import correlations. The four lookups are
-// independent, so they run in parallel on their own pooled connections.
+// company's decline reasons, the existing-employee name map, and the prior-import
+// correlations. The lookups are independent, so they run in parallel on their own pooled
+// connections.
 import type { Pool } from 'mysql2/promise'
 import assert from '#shared/assert.ts'
 import { map, filter, flatten, every } from '#shared/array.ts'
@@ -32,13 +33,25 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 			'project_document.needs_client_approval_to_move_on',
 			'project_document.should_be_worked',
 			'project_document.represents_billable_sale_when_closed',
+			'project_document.declined',
+			'project_document.closed_by_default',
+			'project_document.declined_project_document_id',
+		])
+		.build()
+	const decline_reason_query = query_builder<Schema>()
+		.from('project_decline_reason')
+		.where(b => b.comparison('project_decline_reason.company_id', '=', { value: company_id }))
+		.select(() => [
+			'project_decline_reason.project_decline_reason_id',
+			'project_decline_reason.reason',
 		])
 		.build()
 
-	const [company_rows, employee_rows, document_rows, existing] = await Promise.all([
+	const [company_rows, employee_rows, document_rows, decline_reason_rows, existing] = await Promise.all([
 		run_select(pool, company_query),
 		run_select(pool, employee_query),
 		run_select(pool, document_query),
+		run_select(pool, decline_reason_query),
 		load_existing_correlations(pool, company_id),
 	])
 
@@ -51,8 +64,10 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 		needs_client_approval_to_move_on: boolean
 		should_be_worked: boolean
 		represents_billable_sale_when_closed: boolean
+		declined: boolean
+		closed_by_default: boolean
 	}>
-	const document_id = (flags: DocumentFlags): bigint => {
+	const document_row = (flags: DocumentFlags) => {
 		const matches = filter(document_rows, row =>
 			every(
 				Object.entries(flags),
@@ -62,7 +77,16 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 			matches.length === 1,
 			`Exactly one project document must match ${JSON.stringify(flags)} — found ${matches.length}`,
 		)
-		return BigInt(matches[0]!.project_document.project_document_id)
+		return matches[0]!.project_document
+	}
+	const document_id = (flags: DocumentFlags): bigint => BigInt(document_row(flags).project_document_id)
+	const declined_document_id = (flags: DocumentFlags): bigint => {
+		const document = document_row(flags)
+		assert(
+			document.declined_project_document_id !== null,
+			`The document matching ${JSON.stringify(flags)} has a declined document to route declines to`,
+		)
+		return BigInt(document.declined_project_document_id)
 	}
 
 	return {
@@ -73,13 +97,14 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 			lead_qualified: document_id({ needs_estimate_to_move_on: true }),
 			estimate: document_id({ needs_client_approval_to_move_on: true }),
 			work_order: document_id({ represents_billable_sale_when_closed: true }),
-			void: document_id({
-				needs_to_be_contacted_by_lead_qualifier: false,
-				needs_estimate_to_move_on: false,
-				needs_client_approval_to_move_on: false,
-				should_be_worked: false,
-			}),
+			void: document_id({ closed_by_default: true, declined: false }),
+			declined_proposal: declined_document_id({ needs_client_approval_to_move_on: true }),
+			cancelled_work_order: declined_document_id({ represents_billable_sale_when_closed: true }),
 		},
+		decline_reason_id_by_reason: new Map(map(
+			decline_reason_rows,
+			row => [normalize_name(row.project_decline_reason.reason), BigInt(row.project_decline_reason.project_decline_reason_id)] as const,
+		)),
 		employee_id_by_name: new Map(map(
 			employee_rows,
 			row => [normalize_name(row.employee.name), BigInt(row.employee.employee_id)] as const,

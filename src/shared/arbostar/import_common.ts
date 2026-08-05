@@ -44,7 +44,12 @@ export type ArbostarImportContext = {
 		estimate: bigint
 		work_order: bigint
 		void: bigint
+		declined_proposal: bigint
+		cancelled_work_order: bigint
 	}
+	// Normalized reason (see normalize_name) → project_decline_reason_id for the company's
+	// canned decline reasons.
+	decline_reason_id_by_reason: Map<string, bigint>
 	// Normalized employee name (see normalize_name) → employee_id, for the company's existing
 	// employees. import_employees folds the imported ArboStar users into this map before it's
 	// used to match estimator names.

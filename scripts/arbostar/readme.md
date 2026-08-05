@@ -31,6 +31,7 @@ node scripts/arbostar/export_invoices.ts     # -> invoices.js
 node scripts/arbostar/export_line_items.ts   # -> line_items.js  (reads estimates.js; ~1684 × 355 KB — slowest)
 node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
 node scripts/arbostar/export_taxes.ts        # -> taxes.js       (official tax list, scraped from /settings)
+node scripts/arbostar/export_declines.ts     # -> declines.js    (decline reasons; see the Decline reasons section)
 ```
 
 Each dataset is written to `arbostar_export/<name>.js` as an ESM `export default [...]` (gitignored;
@@ -118,6 +119,44 @@ record via `fetch_record.ts`.
   separate line-item JSON endpoint** (the invoice editor renders them into HTML) — filter
   `line_items.js` by `invoice_id` instead.
 - Line totals won't sum to the estimate total: `optional` lines and discounts are applied on top.
+
+## Decline reasons (`/estimates/declines`)
+
+Estimate decline reasons exist as data in exactly one place: the **Decline Reasons report**
+(`GET /estimates/declines`, the settings-nav "Decline Reasons" page). The estimate list rows
+don't carry them, and on the full estimate entity `estimate_reason_decline` is just the bare
+id (one ~355 KB editor fetch per estimate). The report speaks the usual DataTables protocol
+(same headers, `data.original` rows, declared order column) with one extra requirement: a
+`from`/`to` date range (`MM/DD/YYYY`) — without the DataTables params the endpoint 500s with
+PHP notices, which makes it look broken. `export_declines.ts` passes a wide range
+(01/01/2015–12/31/2099) to get everything.
+
+Each row carries `estimate_id`, `estimate_reason_decline` (id), `reason_name`, client info,
+and `total_price` — so one paged fetch covers every declined estimate. The response also
+carries `reason_status`: the tenant's full canned reason list as parallel `labels`/`data`
+(counts) arrays, ordered so reason id N = `labels[N-1]`. The August 2026 list:
+
+| id | reason |
+| --- | --- |
+| 1 | Price is too high |
+| 2 | Unclear Estimate |
+| 3 | Preferred the competition |
+| 4 | Not interested in the job anymore |
+| 5 | Unable to reach the client |
+| 6 | Scheduling delays/conflicts |
+| 7 | Client can't be pleased |
+| 8 | Estimator didn't contact the client |
+| 9 | Estimate doesn't provide the service client wanted |
+| 10 | Customer service |
+| 11 | Company reputation |
+| 12 | No follow-up |
+| 13 | Municipal tree |
+| 14 | Declined Permit |
+| 15 | Expired |
+
+Rows embed `reason_name` directly, so consumers should match on the name rather than trust
+this table's ordering. There is no work-order equivalent — ArboStar has no cancelled-work-order
+concept (only line-item-level declined status, which line_items.js already carries).
 
 **Client secondary addresses** — a client may have a secondary address
 (`client_address2`/`client_city2`/`client_state2`/`client_zip2`) that only appears on the

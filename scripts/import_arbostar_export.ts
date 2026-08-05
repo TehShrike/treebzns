@@ -12,6 +12,7 @@ import estimates from '#arbostar_export/estimates.js'
 import invoices from '#arbostar_export/invoices.js'
 import workorders from '#arbostar_export/workorders.js'
 import line_items from '#arbostar_export/line_items.js'
+import declines from '#arbostar_export/declines.js'
 import payments from '#arbostar_export/payments.js'
 import users from '#arbostar_export/users.js'
 import taxes from '#arbostar_export/taxes.js'
@@ -48,6 +49,7 @@ try {
 		invoices,
 		workorders,
 		line_items,
+		declines,
 		payments,
 		users,
 		taxes,
