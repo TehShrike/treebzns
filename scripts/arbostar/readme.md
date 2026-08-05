@@ -32,6 +32,7 @@ node scripts/arbostar/export_line_items.ts   # -> line_items.js  (reads estimate
 node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
 node scripts/arbostar/export_taxes.ts        # -> taxes.js       (official tax list, scraped from /settings)
 node scripts/arbostar/export_declines.ts     # -> declines.js    (decline reasons; see the Decline reasons section)
+node scripts/arbostar/export_work_types.ts   # -> crew_roles.js + work_types.js  (reads estimates.js; see the labor catalogs section)
 ```
 
 Each dataset is written to `arbostar_export/<name>.js` as an ESM `export default [...]` (gitignored;
@@ -119,6 +120,35 @@ record via `fetch_record.ts`.
   separate line-item JSON endpoint** (the invoice editor renders them into HTML) — filter
   `line_items.js` by `invoice_id` instead.
 - Line totals won't sum to the estimate total: `optional` lines and discounts are applied on top.
+
+## Labor catalogs: crews + work types (from the estimate editor)
+
+The two labor catalogs have no endpoint of their own. The estimate editor payload
+(`GET /estimates/edit/{lead_id}`) re-sends both on every call, so `export_work_types.ts`
+makes one editor fetch (for the first lead id in `estimates.js`) and writes both files:
+
+- **`crews`** → `crew_roles.js` — what the UI calls **Crew Roles** (managed at `/employees/crews`,
+  columns: Crew Name = the code, Crew Role = the full name, Cost Per Hour = `crew_rate`).
+  August 2026: CL0–CL3 (Arborist Climber, $70–$200/hr), BM1/BM2 (Bucket Truck Operator, $80),
+  GM (Groundsman, $130), STU (Stump Grinder Operator, $170), TEC (Technician, $300), ISA
+  (ISA Arborist, $120), AC1/AC2 (Consulting Arborist, $100/$120), REP (Repair, $65).
+- **`work_types`** → `work_types.js` — the pruning work types (`ip_*` fields): Clean canopy,
+  Crown reduction, Deadwood, Remove, and 13 more.
+
+How they map to jobs:
+
+- **Line item → crew roles** is already exported: each row in `line_items.js` carries a
+  comma-joined `crews` string (e.g. `'CL3, GM'`) whose codes match `crew_roles.js` `crew_name`.
+  In the raw editor payload the same link is the per-line `crew[]` array, whose `pivot`
+  rows (`crew_service_id` = line item id, `crew_user_id` = crew_id) are the join table.
+  Since line items carry `estimate_id` and `invoice_id`, this one string covers the
+  estimate → skills and work-order → skills mapping.
+- **Work types attach to tree inventory entries** (`/treeInventory/indexData/{lead_id}`),
+  not to line items. No lead checked so far has inventory entries, so nothing references
+  `work_types.js` yet.
+- The estimate entity also has per-role requirement flags (`climber`, `groundsmen`,
+  `bucket_truck_operator`, ...), each `'yes'`/`'no'` — a coarser signal than the line-item
+  `crews` string.
 
 ## Decline reasons (`/estimates/declines`)
 

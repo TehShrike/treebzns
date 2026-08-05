@@ -19,6 +19,9 @@ export type ExistingCorrelations = {
 	// (company_id, name).
 	item_type_id_by_name: Map<string, bigint>
 	payment_method_id_by_name: Map<string, bigint>
+	// Also keyed by normalize_name(name) — work_skill has no unique key on name, but the
+	// import treats the (derived) name as the natural key.
+	work_skill_id_by_name: Map<string, bigint>
 	// The rate is kept as its DECIMAL(6,4) string ("0.0550") so importers can check that a
 	// name-matched row still carries the expected rate.
 	tax_rate_by_name: Map<string, { tax_rate_id: bigint; tax_rate: string }>
@@ -85,8 +88,13 @@ export const load_existing_correlations = async (
 		.where(b => b.comparison('tax_rate.company_id', '=', { value: company_id }))
 		.select(() => ['tax_rate.tax_rate_id', 'tax_rate.name', 'tax_rate.tax_rate'])
 		.build()
+	const work_skill_query = query_builder<Schema>()
+		.from('work_skill')
+		.where(b => b.comparison('work_skill.company_id', '=', { value: company_id }))
+		.select(() => ['work_skill.work_skill_id', 'work_skill.name'])
+		.build()
 
-	const [employees, clients, projects, payments, contacts, line_items, item_types, payment_methods, tax_rates] = await Promise.all([
+	const [employees, clients, projects, payments, contacts, line_items, item_types, payment_methods, tax_rates, work_skills] = await Promise.all([
 		run_select(connection, employee_query),
 		run_select(connection, client_query),
 		run_select(connection, project_query),
@@ -96,6 +104,7 @@ export const load_existing_correlations = async (
 		run_select(connection, item_type_query),
 		run_select(connection, payment_method_query),
 		run_select(connection, tax_rate_query),
+		run_select(connection, work_skill_query),
 	])
 
 	return {
@@ -148,6 +157,10 @@ export const load_existing_correlations = async (
 				normalize_name(row.tax_rate.name),
 				{ tax_rate_id: BigInt(row.tax_rate.tax_rate_id), tax_rate: String(row.tax_rate.tax_rate) },
 			] as const,
+		)),
+		work_skill_id_by_name: new Map(map(
+			work_skills,
+			row => [normalize_name(row.work_skill.name), BigInt(row.work_skill.work_skill_id)] as const,
 		)),
 	}
 }

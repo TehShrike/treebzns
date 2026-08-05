@@ -28,7 +28,7 @@ export type ArbostarLineItem = {
 	is_additional_work: boolean
 	non_taxable: boolean
 	status: 'New' | 'Completed' | 'Declined' | null
-	/** Comma-joined crew role codes (e.g. 'CL3, GM'); null when unscheduled. */
+	/** Comma-joined crew role codes (e.g. 'CL3, GM') matching crew_roles.js crew_name; null when unscheduled. */
 	crews: string | null
 	sort_order: number
 }

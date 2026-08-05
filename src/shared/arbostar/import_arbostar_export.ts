@@ -13,6 +13,7 @@ import type { ArbostarDecline } from '#arbostar_export/declines.d.ts'
 import type { ArbostarPayment } from '#arbostar_export/payments.d.ts'
 import type { ArbostarUser } from '#arbostar_export/users.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
+import type { ArbostarCrewRole } from '#arbostar_export/crew_roles.d.ts'
 import { pool_transaction } from '#worker/lib/mysql/helpers.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { resolve_context } from './resolve_context.ts'
@@ -21,6 +22,7 @@ import { import_clients } from './import_clients.ts'
 import { import_projects } from './import_projects.ts'
 import { import_line_items } from './import_line_items.ts'
 import { import_payments } from './import_payments.ts'
+import { import_work_skills } from './import_work_skills.ts'
 
 export type ArbostarExportData = {
 	clients: ArbostarClient[]
@@ -33,6 +35,7 @@ export type ArbostarExportData = {
 	payments: ArbostarPayment[]
 	users: ArbostarUser[]
 	taxes: ArbostarTax[]
+	crew_roles: ArbostarCrewRole[]
 }
 
 const import_arbostar_export = async (
@@ -51,11 +54,12 @@ const import_arbostar_export = async (
 	// project ids.
 
 	// The enriched employee name map lets project estimator names resolve to the imported
-	// users, not just pre-existing employees. Clients don't consume it, so they load
-	// alongside.
-	const [imported_employees, imported_clients] = await Promise.all([
+	// users, not just pre-existing employees. Clients and work skills don't consume it, so
+	// they load alongside.
+	const [imported_employees, imported_clients, imported_work_skills] = await Promise.all([
 		pool_transaction(pool, connection => import_employees(connection, context, data.users)),
 		pool_transaction(pool, connection => import_clients(connection, context, data.clients)),
+		pool_transaction(pool, connection => import_work_skills(connection, context, data.crew_roles)),
 	])
 	const context_with_employees: ArbostarImportContext = {
 		...context,
@@ -85,6 +89,7 @@ const import_arbostar_export = async (
 	return {
 		...imported_employees.counts,
 		...imported_clients.counts,
+		...imported_work_skills.counts,
 		...imported_projects.counts,
 		...imported_line_items.counts,
 		...imported_payments.counts,

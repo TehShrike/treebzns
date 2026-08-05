@@ -25,6 +25,7 @@ related records pick its document stage, and anything without a home is summariz
 | Payments | each ArboStar payment record (payments.js — real amounts and methods, not invoice-derived) becomes one `payment`, and ArboStar's own allocations (payment → estimate applications with real split amounts) become its `payment_project` rows — resolved to projects via each estimate's lead, collapsed to one row per (payment, project), reconciled (update/insert/delete) on re-import. Payment methods are natural-keyed by name per company like item types: the server-resolved labels (`pay_method_string` — Cash / Credit Card / Cheque…) are created on first use and reused after; no method recorded → `Unknown`. Payments that vanish from the export are counted, not deleted — usually an ArboStar-side deletion/refund worth a manual look |
 | Project totals | `subtotal` / `tax_total` / `total`: from the lead's invoices when any exist (Σ `total_for_services` / Σ `tax` / Σ `total_including_tax` — the real discounts and tax); otherwise subtotal = the **non-declined line sum** (ArboStar's own current-state math — its work order `total_price` equals exactly that, while estimate `total_price` is a stale snapshot that usually still counts declined lines), tax_total = 0 (only invoices carry tax), total = subtotal. A lead with no line items has no quote yet — all three null |
 | Item types | one `item_type` per distinct line-item `service_name`; `taxable` from the first line item seen with that name |
+| Work skills | one `work_skill` per crew role (crew_roles.js); `hourly_rate` from `crew_rate` (the UI's "Cost Per Hour"). The name is `crew_full_name`, with the trailing digits of the code appended when present — CL0-CL3 all share the full name "Arborist Climber", so the digits keep them distinct ("Arborist Climber 0" … "Arborist Climber 3"). No ArboStar correlation column: the derived name is the natural key, and re-imports overwrite `hourly_rate`. Skills absent from the export are never deleted |
 | Client type | ArboStar's numeric `client_type` code becomes a label in `client.notes` (1 → Residential, 2 → Commercial; unknown codes kept raw). Notes-only for now — worth an explicit schema column eventually |
 
 ## ArboStar values that were NOT imported
@@ -135,7 +136,7 @@ nowhere to go.
 | `optional` | → `client_optional` (forced true on Declined lines — this schema only allows declining optional lines, and a declined line was never billed regardless of how it was offered) |
 | `status` | `Declined` → `client_declined`; otherwise dropped (`New` = still-undecided proposal, `Completed` = accepted/invoiced work — both import as not-declined) |
 | `is_fee` / `is_additional_work` | dropped |
-| `crews` | dropped (no crews are imported) |
+| `crews` | dropped (the roles themselves import as `work_skill` rows, but no line-item → skill mapping is imported yet) |
 | `sort_order` | dropped (table has no sort column) |
 | `estimate_id` / `invoice_id` | dropped — every line attaches to the lead's single project, so which estimate/invoice a line belonged to is lost |
 
@@ -154,9 +155,10 @@ nowhere to go.
 | `project.notes_for_crew` | work orders only carry office notes |
 | `project.closed_at` / `project.closed_date` | `closed` is set, but no reliable close date exists (see `latest_status_update` above) |
 
-Whole tables that get nothing: `crew` / `crew_member`, `work_skill` /
-`project_work_skill`, `time_entry`, `estimate_availability`,
-`project_client_approval`, `project_document` (global codebook), `project_line_item_image`.
+Whole tables that get nothing: `crew` / `crew_member`, `project_work_skill` (line items carry
+role codes in their `crews` strings, but no line-item → skill mapping is imported yet),
+`time_entry`, `estimate_availability`, `project_client_approval`, `project_document` (global
+codebook), `project_line_item_image`.
 
 ## Re-runnable: ArboStar ids are stored as correlations
 

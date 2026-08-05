@@ -33,6 +33,8 @@ import type { ArbostarClient } from '#arbostar_export/clients.d.ts' // the recor
 | `payments.js` | 1090 | `ArbostarPayment` | Real payment records (amount, date, fee/tips, server-resolved method label) with ArboStar's payment → estimate allocations (real split amounts). One `getClientPayments` call per client. |
 | `users.js` | 6 | `ArbostarUser` | User accounts (estimators, office staff, field workers), all statuses. Merged from the user list + each user's detail page; deliberately excludes SIN/MFA/credential fields. |
 | `declines.js` | 365 | `ArbostarDecline` | One row per declined estimate with its decline reason (id + name), from the Decline Reasons report. `estimate_id` → estimates (which has the `lead_id`). |
+| `crew_roles.js` | 13 | `ArbostarCrewRole` | Crew Roles: codes CL0–CL3, GM, ... with cost per hour. `line_items.js` references these by code in its `crews` string. |
+| `work_types.js` | 17 | `ArbostarWorkType` | Pruning work types (Clean canopy, Crown reduction, ...). They attach to tree inventory entries, which nothing exports yet. |
 
 \* counts as of the last run (June 2026); they grow as the account is used.
 
@@ -51,6 +53,7 @@ node ../scripts/arbostar/export_line_items.ts   # line_items.js  (reads estimate
 node ../scripts/arbostar/export_payments.ts     # payments.js  (reads clients.js)
 node ../scripts/arbostar/export_users.ts        # users.js
 node ../scripts/arbostar/export_declines.ts     # declines.js  (run alongside export_estimates.ts so the two agree)
+node ../scripts/arbostar/export_work_types.ts   # crew_roles.js + work_types.js  (reads estimates.js)
 ```
 
 If you add/remove fields in an export script's mapper, update the matching `.d.ts` here so it
