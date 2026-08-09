@@ -19,9 +19,7 @@ Sub-question: can one job span multiple days or multiple crews?  The answer deci
 
 #### Answer
 
-project should have a nullable start_day that is a date.  Projects should also have a nullable work_order
-
--
+This will take some discussion.  Let's ignore any UI that touches this for now (project screen)
 
 ### 2. How do we model day-specific crew composition?
 
@@ -63,7 +61,7 @@ Options:
 
 #### Answer
 
-I'm not modelling equipment explicitly yet.  Some equipment use is implicit in work skills, and that's fine for now.
+I'm not modeling equipment explicitly yet.  Some equipment use is implicit in work skills, and that's fine for now.
 
 ### 5. How do project photos work before line items exist?
 
@@ -79,7 +77,7 @@ Proposed shape, needs confirmation:
 
 New `project_image` table at the project level: original_image, description, display_image (potentially marked up).
 
-New project_line_item_image table that links images to line items, with a visible_to_client boolean.
+New project_line_item_image table that represent a M:N relationship between `project_image`s and line items, with a visible_to_client boolean.
 
 ### 6. Where do image bytes live?
 
@@ -111,9 +109,19 @@ Questions:
 - Snapshot prices at approval time, or trust that line items do not change after approval (the CAN_CHANGE_WORK_ORDERS_WITHOUT_CUSTOMER_APPROVAL permission implies they can)?
 - Down payments come later, but the approval shape should leave room.
 
+#### Answer
+
+Declining line items is very different from approving a project.  Declined line items are only relevant on a project that has been approved.  Once a project has been approved, its status will change and it will become workable.  This is modeled correctly already as far as I am aware.
+
+Yes, limiting edit access to work items is the way prices get locked down.
+
 ### 9. Are "optional" and "add-on" the same flag?
 
 Line items have `client_optional` today.  The proposal CTA describes "just the basics" (excludes optional) and "extra mile" (includes add-ons) as different tiers.  If those are distinct, line items need two flags.  If not, the CTA is two tiers, not three.
+
+#### Answer
+
+I'll need to have more discussions about those CTAs, let's not make any changes for now, we'll continue with just optional line items today, we'll show a single price on the customer-facing proposal screen, and clients will have the option to decline work line items.
 
 ### 10. Do we bake client contact info onto the project?
 
