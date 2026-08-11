@@ -19,7 +19,23 @@ Sub-question: can one job span multiple days or multiple crews?  The answer deci
 
 #### Answer
 
-This will take some discussion.  Let's ignore any UI that touches this for now (project screen)
+This is tied together with the answer to question 2.
+
+Crews are long-lived across many days.  Crews should not have a "leader" right now, we will gate the ability to check everyone in at a job using a permission instead.  Each crew will represent one timeline that jobs can be scheduled on during a day.
+
+The crew_member table can be renamed to crew_regular.  It will serve as a default set of employees, not a hard rule.
+
+We should have a record of when crew members are added to and removed to a crew in crew_regular.  This will probably come up again, we should establish a future-proof predictable pattern for "history" tables.
+
+##### Scheduling
+
+A project_crew table that contains: a project id, a crew id, a day/date, an order (unique tinyint per day), and a time.  Must be unique on project+crew+day.  order and time are both nullable, at least one of them must be null and the other must be non-null (can be at least somewhat enforced with the type system in TS).
+
+A project_crew_employee table that links a project_crew_id to any number of employee_ids (unique key covering both).
+
+A project_crew_project_line_item table that links a project_crew_id to any number of project_line_item_ids (with the assumption that they will have the same project_id as the corresponding project_crew).
+
+The company table will need a default_crew_start_time column.
 
 ### 2. How do we model day-specific crew composition?
 
