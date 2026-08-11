@@ -2,10 +2,6 @@
 
 Clocking employees in and out of jobs.  Tie their clock-in/clock-out records directly to the project_crew records.
 
----
-
-Line items need to be able to be marked off as "done" individually.  Need done datetimes too.  Also employees should have a nullable default_crew_id, for when they clock in to a project that isn't on a timeline yet.
-
 # Must-haves
 
 Add screens descriptions for these, to motivate modeling and implementation.
