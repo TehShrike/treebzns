@@ -4,11 +4,7 @@ Clocking employees in and out of jobs.  Tie their clock-in/clock-out records dir
 
 ---
 
-Line items need to be able to be marked off as "done" individually.  Don't think I modeled that yet.  Need done datetimes too.
-
----
-
-Employees should have a nullable default_crew_id, for when they clock in to a project that isn't on a timeline yet.
+Line items need to be able to be marked off as "done" individually.  Need done datetimes too.  Also employees should have a nullable default_crew_id, for when they clock in to a project that isn't on a timeline yet.
 
 # Must-haves
 

@@ -12,6 +12,7 @@ const employee_columns = [
 	`employee.${employee.login_name}`,
 	`employee.${employee.phone}`,
 	`employee.${employee.is_owner}`,
+	`employee.${employee.default_crew_id}`,
 ] as const
 const company_columns = [
 	`company.${company.company_id}`,

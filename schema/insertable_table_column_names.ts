@@ -80,6 +80,7 @@ export const employee = {
 	is_owner: 'is_owner',
 	number_of_password_hash_iterations: 'number_of_password_hash_iterations',
 	arbostar_user_id: 'arbostar_user_id',
+	default_crew_id: 'default_crew_id',
 } as const
 
 export const employee_session = {
@@ -280,6 +281,8 @@ export const project_line_item = {
 	client_declined: 'client_declined',
 	quantity: 'quantity',
 	price: 'price',
+	done_at: 'done_at',
+	done_by_employee_id: 'done_by_employee_id',
 	arbostar_line_item_id: 'arbostar_line_item_id',
 } as const
 
