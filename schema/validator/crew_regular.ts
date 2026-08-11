@@ -10,6 +10,6 @@ export const validator_object = {
 	updated_at: is_temporal_instant,
 }
 
-export const crew_member_validator: jv.Validator<DbCrewMember> = jv.object(validator_object)
+export const crew_regular_validator: jv.Validator<DbCrewRegular> = jv.object(validator_object)
 
-export const insertable_crew_member_validator: jv.Validator<DbInsertableCrewMember> = jv.object(omit(validator_object, ['created_at', 'updated_at']))
+export const insertable_crew_regular_validator: jv.Validator<DbInsertableCrewRegular> = jv.object(omit(validator_object, ['created_at', 'updated_at']))

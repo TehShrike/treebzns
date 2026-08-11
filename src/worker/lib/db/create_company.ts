@@ -4,6 +4,7 @@ import { map } from '#shared/array.ts'
 import { transaction } from '#worker/lib/mysql/helpers.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
+import write_helper from '#worker/lib/mysql/write_helper.ts'
 import type { Schema } from '#schema/types.ts'
 
 const default_payment_method_names = ['Cash', 'Credit Card', 'Check']
@@ -47,10 +48,7 @@ export const create_company = async (
 	mysql: MysqlHelpersObject,
 ): Promise<bigint> => {
 	return transaction(mysql.connection, async () => {
-		const company_id = await mysql.query({
-			sql: 'INSERT INTO company SET ?',
-			values: company,
-		}).get_insert_id()
+		const { insert_id: company_id } = await write_helper.insert(mysql.connection, 'company', company)
 
 		await mysql.query({
 			sql: 'INSERT INTO project_number SET ?',

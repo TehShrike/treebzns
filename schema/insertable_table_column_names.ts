@@ -26,6 +26,8 @@ export const client_address = {
 	contact: 'contact',
 	phone: 'phone',
 	email: 'email',
+	latitude: 'latitude',
+	longitude: 'longitude',
 } as const
 
 export const client_contact = {
@@ -45,18 +47,27 @@ export const company = {
 	name: 'name',
 	logo: 'logo',
 	brand_color: 'brand_color',
+	default_crew_start_time: 'default_crew_start_time',
 } as const
 
 export const crew = {
 	company_id: 'company_id',
-	crew_leader_id: 'crew_leader_id',
+	name: 'name',
 	color: 'color',
 } as const
 
-export const crew_member = {
+export const crew_regular = {
 	company_id: 'company_id',
 	crew_id: 'crew_id',
 	employee_id: 'employee_id',
+} as const
+
+export const crew_regular_history = {
+	company_id: 'company_id',
+	crew_id: 'crew_id',
+	employee_id: 'employee_id',
+	action: 'action',
+	changed_by_employee_id: 'changed_by_employee_id',
 } as const
 
 export const employee = {
@@ -87,6 +98,12 @@ export const employee_software_role = {
 	software_role_id: 'software_role_id',
 } as const
 
+export const employee_work_skill = {
+	company_id: 'company_id',
+	employee_id: 'employee_id',
+	work_skill_id: 'work_skill_id',
+} as const
+
 export const estimate_availability = {
 	company_id: 'company_id',
 	project_id: 'project_id',
@@ -99,6 +116,18 @@ export const item_type = {
 	company_id: 'company_id',
 	name: 'name',
 	taxable: 'taxable',
+} as const
+
+export const line_item_template = {
+	company_id: 'company_id',
+	title: 'title',
+	arbostar_work_type_id: 'arbostar_work_type_id',
+} as const
+
+export const line_item_template_work_skill = {
+	company_id: 'company_id',
+	line_item_template_id: 'line_item_template_id',
+	work_skill_id: 'work_skill_id',
 } as const
 
 export const migration = {
@@ -163,13 +192,40 @@ export const project = {
 	closed_date: 'closed_date',
 	project_decline_reason_id: 'project_decline_reason_id',
 	lead_source: 'lead_source',
+	contact_name: 'contact_name',
+	contact_phone: 'contact_phone',
+	contact_email: 'contact_email',
+	latitude: 'latitude',
+	longitude: 'longitude',
 } as const
 
 export const project_client_approval = {
 	company_id: 'company_id',
+	project_id: 'project_id',
 	customer_signature: 'customer_signature',
 	verbal_approval: 'verbal_approval',
 	added_by_employee_id: 'added_by_employee_id',
+} as const
+
+export const project_crew = {
+	company_id: 'company_id',
+	project_id: 'project_id',
+	crew_id: 'crew_id',
+	work_date: 'work_date',
+	day_order: 'day_order',
+	start_time: 'start_time',
+} as const
+
+export const project_crew_employee = {
+	company_id: 'company_id',
+	project_crew_id: 'project_crew_id',
+	employee_id: 'employee_id',
+} as const
+
+export const project_crew_project_line_item = {
+	company_id: 'company_id',
+	project_crew_id: 'project_crew_id',
+	project_line_item_id: 'project_line_item_id',
 } as const
 
 export const project_decline_reason = {
@@ -193,11 +249,29 @@ export const project_document = {
 	sort: 'sort',
 } as const
 
+export const project_document_history = {
+	company_id: 'company_id',
+	project_id: 'project_id',
+	project_document_id: 'project_document_id',
+	changed_by_employee_id: 'changed_by_employee_id',
+} as const
+
+export const project_image = {
+	company_id: 'company_id',
+	project_id: 'project_id',
+	original_image: 'original_image',
+	display_image: 'display_image',
+	description: 'description',
+	visible_to_client: 'visible_to_client',
+} as const
+
 export const project_line_item = {
 	company_id: 'company_id',
 	project_id: 'project_id',
-	description: 'description',
+	title: 'title',
+	work_details: 'work_details',
 	item_type_id: 'item_type_id',
+	line_item_template_id: 'line_item_template_id',
 	estimated_hours: 'estimated_hours',
 	taxable: 'taxable',
 	client_optional: 'client_optional',
@@ -209,20 +283,19 @@ export const project_line_item = {
 
 export const project_line_item_image = {
 	company_id: 'company_id',
+	project_image_id: 'project_image_id',
 	project_line_item_id: 'project_line_item_id',
-	image: 'image',
-	description: 'description',
+} as const
+
+export const project_line_item_work_skill = {
+	company_id: 'company_id',
+	project_line_item_id: 'project_line_item_id',
+	work_skill_id: 'work_skill_id',
 } as const
 
 export const project_number = {
 	company_id: 'company_id',
 	next_number: 'next_number',
-} as const
-
-export const project_work_skill = {
-	company_id: 'company_id',
-	project_id: 'project_id',
-	work_skill_id: 'work_skill_id',
 } as const
 
 export const software_role = {

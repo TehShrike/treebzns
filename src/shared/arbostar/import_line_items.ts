@@ -68,7 +68,7 @@ export const import_line_items = async (
 	}
 
 	const line_item_fields = (item: ArbostarLineItem) => {
-		const description = join_lines([
+		const work_details = join_lines([
 			item.description,
 			item.size === null ? null : `Size: ${item.size}`,
 			item.species === null ? null : `Species: ${item.species}`,
@@ -76,7 +76,8 @@ export const import_line_items = async (
 		])
 		return {
 			project_id: project_id_by_arbostar_lead_id.get(item.lead_id)!,
-			description: description === '' ? null : description,
+			title: item.service_name?.trim() ?? '',
+			work_details: work_details === '' ? null : work_details,
 			item_type_id: item.service_name === null ? null : item_type_id_by_name.get(normalize_name(item.service_name))!,
 			estimated_hours: BigInt(Math.round(item.man_hours ?? 0)),
 			taxable: !item.non_taxable,

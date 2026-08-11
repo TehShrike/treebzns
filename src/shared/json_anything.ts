@@ -22,6 +22,11 @@ const { serialize, deserialize } = json_anything({
 			serialize: (value: Temporal.PlainDate) => value.toString(),
 			deserialize: (value: string) => Temporal.PlainDate.from(value),
 		},
+		temporal_plain_time: {
+			can_serialize: (value): value is Temporal.PlainTime => value instanceof Temporal.PlainTime,
+			serialize: (value: Temporal.PlainTime) => value.toString(),
+			deserialize: (value: string) => Temporal.PlainTime.from(value),
+		},
 		financial_number: {
 			can_serialize: is_financial_number,
 			serialize: (number: FinancialNumber) => number.toString(),

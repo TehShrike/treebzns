@@ -12,6 +12,9 @@ type ImportedPrimaryAddress = {
 	city: string
 	state: string
 	zip: string
+	contact_name: string
+	contact_phone: string
+	contact_email: string
 }
 
 export type ImportedClients = {
@@ -71,16 +74,22 @@ export const import_clients = async (
 ): Promise<ImportedClients> => {
 	const correlated = context.existing.client_id_by_arbostar_client_id
 
-	const client_fields = (client: ArbostarClient) => {
+	const baked_contact_fields = (client: ArbostarClient) => {
 		const client_contacts = client.contacts ?? []
-		const first_phone = map(client_contacts, contact_phone).find(phone => phone !== null) ?? null
-		const first_email = map(client_contacts, contact => contact.cc_email).find(email => email !== null) ?? null
+		return {
+			contact_name: client.client_name ?? `ArboStar client ${client.client_id}`,
+			contact_phone: map(client_contacts, contact_phone).find(phone => phone !== null) ?? '',
+			contact_email: map(client_contacts, contact => contact.cc_email).find(email => email !== null) ?? '',
+		}
+	}
+	const client_fields = (client: ArbostarClient) => {
+		const contact = baked_contact_fields(client)
 
 		return {
-			name: client.client_name ?? `ArboStar client ${client.client_id}`,
+			name: contact.contact_name,
 			is_commercial: is_commercial(client.client_type),
-			primary_phone: first_phone ?? '',
-			primary_email: first_email ?? '',
+			primary_phone: contact.contact_phone,
+			primary_email: contact.contact_email,
 			notes: join_lines([
 				is_known_client_type(client.client_type) ? null : `ArboStar client type: ${client.client_type}`,
 				// client_date_created is already YYYY-MM-DD; the slice guards against a future
@@ -127,6 +136,7 @@ export const import_clients = async (
 		{
 			client_address_id: context.existing.primary_client_address_id_by_arbostar_client_id.get(client.client_id)!,
 			...address_fields(client),
+			...baked_contact_fields(client),
 		},
 	] as const))
 
@@ -181,6 +191,7 @@ export const import_clients = async (
 		new_clients.forEach((client, index) => primary_address_by_arbostar_client_id.set(client.client_id, {
 			client_address_id: address_ids[index]!,
 			...address_fields(client),
+			...baked_contact_fields(client),
 		}))
 	}
 

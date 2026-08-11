@@ -6,12 +6,16 @@ export type Schema = {
 	client_contact: DbClientContact
 	company: DbCompany
 	crew: DbCrew
-	crew_member: DbCrewMember
+	crew_regular: DbCrewRegular
+	crew_regular_history: DbCrewRegularHistory
 	employee: DbEmployee
 	employee_session: DbEmployeeSession
 	employee_software_role: DbEmployeeSoftwareRole
+	employee_work_skill: DbEmployeeWorkSkill
 	estimate_availability: DbEstimateAvailability
 	item_type: DbItemType
+	line_item_template: DbLineItemTemplate
+	line_item_template_work_skill: DbLineItemTemplateWorkSkill
 	migration: DbMigration
 	payment: DbPayment
 	payment_method: DbPaymentMethod
@@ -19,12 +23,17 @@ export type Schema = {
 	permission: DbPermission
 	project: DbProject
 	project_client_approval: DbProjectClientApproval
+	project_crew: DbProjectCrew
+	project_crew_employee: DbProjectCrewEmployee
+	project_crew_project_line_item: DbProjectCrewProjectLineItem
 	project_decline_reason: DbProjectDeclineReason
 	project_document: DbProjectDocument
+	project_document_history: DbProjectDocumentHistory
+	project_image: DbProjectImage
 	project_line_item: DbProjectLineItem
 	project_line_item_image: DbProjectLineItemImage
+	project_line_item_work_skill: DbProjectLineItemWorkSkill
 	project_number: DbProjectNumber
-	project_work_skill: DbProjectWorkSkill
 	software_role: DbSoftwareRole
 	software_role_permission: DbSoftwareRolePermission
 	tax_rate: DbTaxRate
@@ -38,12 +47,16 @@ export type InsertableSchema = {
 	client_contact: DbInsertableClientContact
 	company: DbInsertableCompany
 	crew: DbInsertableCrew
-	crew_member: DbInsertableCrewMember
+	crew_regular: DbInsertableCrewRegular
+	crew_regular_history: DbInsertableCrewRegularHistory
 	employee: DbInsertableEmployee
 	employee_session: DbInsertableEmployeeSession
 	employee_software_role: DbInsertableEmployeeSoftwareRole
+	employee_work_skill: DbInsertableEmployeeWorkSkill
 	estimate_availability: DbInsertableEstimateAvailability
 	item_type: DbInsertableItemType
+	line_item_template: DbInsertableLineItemTemplate
+	line_item_template_work_skill: DbInsertableLineItemTemplateWorkSkill
 	migration: DbInsertableMigration
 	payment: DbInsertablePayment
 	payment_method: DbInsertablePaymentMethod
@@ -51,12 +64,17 @@ export type InsertableSchema = {
 	permission: DbInsertablePermission
 	project: DbInsertableProject
 	project_client_approval: DbInsertableProjectClientApproval
+	project_crew: DbInsertableProjectCrew
+	project_crew_employee: DbInsertableProjectCrewEmployee
+	project_crew_project_line_item: DbInsertableProjectCrewProjectLineItem
 	project_decline_reason: DbInsertableProjectDeclineReason
 	project_document: DbInsertableProjectDocument
+	project_document_history: DbInsertableProjectDocumentHistory
+	project_image: DbInsertableProjectImage
 	project_line_item: DbInsertableProjectLineItem
 	project_line_item_image: DbInsertableProjectLineItemImage
+	project_line_item_work_skill: DbInsertableProjectLineItemWorkSkill
 	project_number: DbInsertableProjectNumber
-	project_work_skill: DbInsertableProjectWorkSkill
 	software_role: DbInsertableSoftwareRole
 	software_role_permission: DbInsertableSoftwareRolePermission
 	tax_rate: DbInsertableTaxRate

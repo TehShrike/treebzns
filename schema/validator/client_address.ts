@@ -15,6 +15,8 @@ export const validator_object = {
 	contact: jv.is_string,
 	phone: jv.is_string,
 	email: jv.is_string,
+	latitude: jv.nullable(jv.is_number),
+	longitude: jv.nullable(jv.is_number),
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 }

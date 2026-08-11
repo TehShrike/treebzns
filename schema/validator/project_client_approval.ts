@@ -5,6 +5,7 @@ import { is_buffer, is_temporal_instant } from './_helpers.ts'
 export const validator_object = {
 	project_client_approval_id: jv.is_bigint,
 	company_id: jv.is_bigint,
+	project_id: jv.is_bigint,
 	customer_signature: jv.nullable(is_buffer),
 	verbal_approval: jv.is_boolean,
 	added_by_employee_id: jv.is_bigint,

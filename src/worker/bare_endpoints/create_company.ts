@@ -3,6 +3,7 @@ import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.
 import { create_company as db_create_company } from '#worker/lib/db/create_company.ts'
 import { log_in_with_password } from './log_in.ts'
 import * as jv from '#shared/json_validator.ts'
+import { Temporal } from '@js-temporal/polyfill'
 
 const create_company_validator = jv.object({
 	company: jv.object({
@@ -26,6 +27,7 @@ export default async (request: Request, mysql: MysqlHelpersObject): Promise<Resp
 
 	const company_id = await db_create_company({
 		logo: null,
+		default_crew_start_time: Temporal.PlainTime.from('08:00'),
 		...body.company,
 	}, {
 		...body.owner_employee,

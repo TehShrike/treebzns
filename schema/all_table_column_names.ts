@@ -32,6 +32,8 @@ export const client_address = {
 	email: 'email',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
+	latitude: 'latitude',
+	longitude: 'longitude',
 } as const
 
 export const client_contact = {
@@ -57,23 +59,34 @@ export const company = {
 	brand_color: 'brand_color',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
+	default_crew_start_time: 'default_crew_start_time',
 } as const
 
 export const crew = {
 	crew_id: 'crew_id',
 	company_id: 'company_id',
-	crew_leader_id: 'crew_leader_id',
+	name: 'name',
 	color: 'color',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const
 
-export const crew_member = {
+export const crew_regular = {
 	company_id: 'company_id',
 	crew_id: 'crew_id',
 	employee_id: 'employee_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
+} as const
+
+export const crew_regular_history = {
+	crew_regular_history_id: 'crew_regular_history_id',
+	company_id: 'company_id',
+	crew_id: 'crew_id',
+	employee_id: 'employee_id',
+	action: 'action',
+	changed_by_employee_id: 'changed_by_employee_id',
+	created_at: 'created_at',
 } as const
 
 export const employee = {
@@ -113,6 +126,15 @@ export const employee_software_role = {
 	updated_at: 'updated_at',
 } as const
 
+export const employee_work_skill = {
+	employee_work_skill_id: 'employee_work_skill_id',
+	company_id: 'company_id',
+	employee_id: 'employee_id',
+	work_skill_id: 'work_skill_id',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
 export const estimate_availability = {
 	estimate_availability_id: 'estimate_availability_id',
 	company_id: 'company_id',
@@ -129,6 +151,24 @@ export const item_type = {
 	company_id: 'company_id',
 	name: 'name',
 	taxable: 'taxable',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
+export const line_item_template = {
+	line_item_template_id: 'line_item_template_id',
+	company_id: 'company_id',
+	title: 'title',
+	arbostar_work_type_id: 'arbostar_work_type_id',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
+export const line_item_template_work_skill = {
+	line_item_template_work_skill_id: 'line_item_template_work_skill_id',
+	company_id: 'company_id',
+	line_item_template_id: 'line_item_template_id',
+	work_skill_id: 'work_skill_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const
@@ -211,14 +251,50 @@ export const project = {
 	closed_date: 'closed_date',
 	project_decline_reason_id: 'project_decline_reason_id',
 	lead_source: 'lead_source',
+	contact_name: 'contact_name',
+	contact_phone: 'contact_phone',
+	contact_email: 'contact_email',
+	latitude: 'latitude',
+	longitude: 'longitude',
 } as const
 
 export const project_client_approval = {
 	project_client_approval_id: 'project_client_approval_id',
 	company_id: 'company_id',
+	project_id: 'project_id',
 	customer_signature: 'customer_signature',
 	verbal_approval: 'verbal_approval',
 	added_by_employee_id: 'added_by_employee_id',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
+export const project_crew = {
+	project_crew_id: 'project_crew_id',
+	company_id: 'company_id',
+	project_id: 'project_id',
+	crew_id: 'crew_id',
+	work_date: 'work_date',
+	day_order: 'day_order',
+	start_time: 'start_time',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
+export const project_crew_employee = {
+	project_crew_employee_id: 'project_crew_employee_id',
+	company_id: 'company_id',
+	project_crew_id: 'project_crew_id',
+	employee_id: 'employee_id',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
+export const project_crew_project_line_item = {
+	project_crew_project_line_item_id: 'project_crew_project_line_item_id',
+	company_id: 'company_id',
+	project_crew_id: 'project_crew_id',
+	project_line_item_id: 'project_line_item_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const
@@ -250,12 +326,35 @@ export const project_document = {
 	sort: 'sort',
 } as const
 
+export const project_document_history = {
+	project_document_history_id: 'project_document_history_id',
+	company_id: 'company_id',
+	project_id: 'project_id',
+	project_document_id: 'project_document_id',
+	changed_by_employee_id: 'changed_by_employee_id',
+	created_at: 'created_at',
+} as const
+
+export const project_image = {
+	project_image_id: 'project_image_id',
+	company_id: 'company_id',
+	project_id: 'project_id',
+	original_image: 'original_image',
+	display_image: 'display_image',
+	description: 'description',
+	visible_to_client: 'visible_to_client',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
 export const project_line_item = {
 	project_line_item_id: 'project_line_item_id',
 	company_id: 'company_id',
 	project_id: 'project_id',
-	description: 'description',
+	title: 'title',
+	work_details: 'work_details',
 	item_type_id: 'item_type_id',
+	line_item_template_id: 'line_item_template_id',
 	estimated_hours: 'estimated_hours',
 	taxable: 'taxable',
 	client_optional: 'client_optional',
@@ -270,9 +369,17 @@ export const project_line_item = {
 export const project_line_item_image = {
 	project_line_item_image_id: 'project_line_item_image_id',
 	company_id: 'company_id',
+	project_image_id: 'project_image_id',
 	project_line_item_id: 'project_line_item_id',
-	image: 'image',
-	description: 'description',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
+export const project_line_item_work_skill = {
+	project_line_item_work_skill_id: 'project_line_item_work_skill_id',
+	company_id: 'company_id',
+	project_line_item_id: 'project_line_item_id',
+	work_skill_id: 'work_skill_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const
@@ -281,15 +388,6 @@ export const project_number = {
 	project_number_id: 'project_number_id',
 	company_id: 'company_id',
 	next_number: 'next_number',
-	created_at: 'created_at',
-	updated_at: 'updated_at',
-} as const
-
-export const project_work_skill = {
-	project_work_skill_id: 'project_work_skill_id',
-	company_id: 'company_id',
-	project_id: 'project_id',
-	work_skill_id: 'work_skill_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const
