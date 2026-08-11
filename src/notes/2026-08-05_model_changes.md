@@ -155,3 +155,120 @@ Add a contact_name, contact_phone, contact_email varchar to the project table.  
 - **`employee_work_skill`**: employee_id + work_skill_id.  "Crews have workers with different skills" has no data behind it today.  Scheduling and the crew UI both need it.
 - **Geocoding for the map view**: latitude/longitude columns (floating point) on project (and maybe client_address).  Also decide which geocoding service fills them, but the columns are needed regardless.
 - **`project_image.visible_to_client`**: the "visible to customer" checkbox from todo.md, wherever the photo model lands (see question 5).
+
+## Plan
+
+Schema changes only.  Conventions follow the existing schema: INT UNSIGNED auto-increment ids, BIT(1) booleans, created_at/updated_at DATETIME with UTC_TIMESTAMP defaults, indexes instead of FK constraints, company_id on every company-owned table.
+
+History table pattern, used here and in the future: a sibling `<name>_history` table.  It mirrors the tracked key columns, adds an `action` column when the change is not a plain "set", plus changed_by_employee_id and created_at.  History tables are append-only, so they get created_at but no updated_at.  The live table stays authoritative.
+
+### Crews
+
+- `crew`: drop `crew_leader_id`.  Add `name` VARCHAR(100) NOT NULL.
+- Rename `crew_member` to `crew_regular`.  Columns unchanged.
+- New `crew_regular_history`:
+	- crew_regular_history_id
+	- company_id
+	- crew_id
+	- employee_id
+	- action VARCHAR(20) NOT NULL — 'added' | 'removed'
+	- changed_by_employee_id
+	- created_at
+
+### Scheduling
+
+- New `project_crew`:
+	- project_crew_id
+	- company_id
+	- project_id
+	- crew_id
+	- work_date DATE NOT NULL
+	- day_order TINYINT UNSIGNED NULL — position in the crew's timeline for that day
+	- start_time TIME NULL — fixed-time jobs instead of ordered jobs
+	- UNIQUE (project_id, crew_id, work_date)
+	- UNIQUE (crew_id, work_date, day_order)
+	- Exactly one of day_order/start_time is non-null.  Enforced in TS, not in the database.
+- New `project_crew_employee`:
+	- project_crew_employee_id
+	- company_id
+	- project_crew_id
+	- employee_id
+	- UNIQUE (project_crew_id, employee_id)
+- New `project_crew_project_line_item`:
+	- project_crew_project_line_item_id
+	- company_id
+	- project_crew_id
+	- project_line_item_id — assumed to share the project_crew's project_id
+	- UNIQUE (project_crew_id, project_line_item_id)
+- `company`: add `default_crew_start_time` TIME NOT NULL DEFAULT '08:00:00'.
+
+### Skills and line items
+
+- New `employee_work_skill`:
+	- employee_work_skill_id
+	- company_id
+	- employee_id
+	- work_skill_id
+	- UNIQUE (employee_id, work_skill_id)
+- New `project_line_item_work_skill`:
+	- project_line_item_work_skill_id
+	- company_id
+	- project_line_item_id
+	- work_skill_id
+	- UNIQUE (project_line_item_id, work_skill_id)
+- Drop `project_work_skill`.
+- New `line_item_template`:
+	- line_item_template_id
+	- company_id
+	- title VARCHAR(200) NOT NULL
+	- arbostar_work_type_id INT UNSIGNED NULL — import bookkeeping, same pattern as the other arbostar_* columns
+	- UNIQUE (company_id, title)
+- New `line_item_template_work_skill`:
+	- line_item_template_work_skill_id
+	- company_id
+	- line_item_template_id
+	- work_skill_id
+	- UNIQUE (line_item_template_id, work_skill_id)
+- `project_line_item`:
+	- add `title` VARCHAR(200) NOT NULL DEFAULT ''
+	- rename `description` to `work_details`
+	- add `line_item_template_id` INT UNSIGNED NULL
+
+### Photos
+
+- New `project_image`:
+	- project_image_id
+	- company_id
+	- project_id
+	- original_image MEDIUMBLOB NOT NULL — the existing image column is BLOB, which caps at 64KB.  Real photos need MEDIUMBLOB (16MB).
+	- display_image MEDIUMBLOB NULL — the marked-up render.  NULL means not marked up, show the original.
+	- description TEXT NOT NULL
+	- visible_to_client BIT(1) NOT NULL DEFAULT 0
+- Restructure `project_line_item_image` into a pure join table:
+	- project_line_item_image_id
+	- company_id
+	- project_image_id
+	- project_line_item_id
+	- UNIQUE (project_image_id, project_line_item_id)
+	- Migration moves each existing row's image and description into a new project_image row (project_id taken from the line item), then keeps only the link.
+
+### Project
+
+- `project_client_approval`: add `project_id` INT UNSIGNED NOT NULL plus an index.  Existing rows have no project to point at, so the migration must delete them or the table must be empty.
+- New `project_document_history` (follows the history pattern, action implicit "set"):
+	- project_document_history_id
+	- company_id
+	- project_id
+	- project_document_id
+	- changed_by_employee_id INT UNSIGNED NULL — NULL for system transitions
+	- created_at
+	- Migration seeds one row per existing project from its current project_document_id and created_at.
+- `project`:
+	- add `contact_name` VARCHAR(500) NOT NULL DEFAULT ''
+	- add `contact_phone` VARCHAR(30) NOT NULL DEFAULT ''
+	- add `contact_email` VARCHAR(500) NOT NULL DEFAULT ''
+	- add `latitude` DOUBLE NULL
+	- add `longitude` DOUBLE NULL
+- `client_address`:
+	- add `latitude` DOUBLE NULL
+	- add `longitude` DOUBLE NULL
