@@ -221,6 +221,8 @@ History table pattern, used here and in the future: a sibling `<name>_history` t
 	- line_item_template_id
 	- company_id
 	- title VARCHAR(200) NOT NULL
+	- estimated_hours INT UNSIGNED NULL — added in 0033
+	- price DECIMAL(10,2) NULL — added in 0033
 	- arbostar_work_type_id INT UNSIGNED NULL — import bookkeeping, same pattern as the other arbostar_* columns
 	- UNIQUE (company_id, title)
 - New `line_item_template_work_skill`:

@@ -121,6 +121,8 @@ export const item_type = {
 export const line_item_template = {
 	company_id: 'company_id',
 	title: 'title',
+	estimated_hours: 'estimated_hours',
+	price: 'price',
 	arbostar_work_type_id: 'arbostar_work_type_id',
 } as const
 

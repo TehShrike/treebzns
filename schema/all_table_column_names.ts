@@ -159,6 +159,8 @@ export const line_item_template = {
 	line_item_template_id: 'line_item_template_id',
 	company_id: 'company_id',
 	title: 'title',
+	estimated_hours: 'estimated_hours',
+	price: 'price',
 	arbostar_work_type_id: 'arbostar_work_type_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
