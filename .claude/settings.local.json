@@ -2,5 +2,10 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "svelte"
-  ]
+  ],
+  "permissions": {
+    "allow": [
+      "mcp__svelte"
+    ]
+  }
 }
