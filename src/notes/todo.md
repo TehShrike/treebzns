@@ -1,7 +1,31 @@
-Review the import_arbostar_export scripts.
+# Model this!
+
+Clocking employees in and out of jobs.  Tie their clock-in/clock-out records directly to the project_crew records.
+
+---
+
+Line items need to be able to be marked off as "done" individually.  Don't think I modeled that yet.  Need done datetimes too.
+
+---
+
+Employees should have a nullable default_crew_id, for when they clock in to a project that isn't on a timeline yet.
+
+# Must-haves
+
+Add screens descriptions for these, to motivate modeling and implementation.
+
+- client billing
+	- client card processing!
+- ways for people to sign online – close rates CAN NOT get worse
+- photos – probably markup
+- sms, email notification
+	- sms needs built-in chat UI somewhere.  Could it be the same UI as email?
+	- probably need scheduling from day one
+	- top priority: followups on estimates
+
+# Little/vague stuff
 
 - Input focus border needs to look the same everywhere (embrace the rounding I guess)
-- Projects/line item have photos – photos need a "visible to client" checkbox
 - Client page needs some kind of default filter so that it doesn't list everything – maybe "has open project" or something
 
 # Customer-facing page for proposals/projects
