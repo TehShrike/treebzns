@@ -2,6 +2,20 @@
 
 Clocking employees in and out of jobs.  Tie their clock-in/clock-out records directly to the project_crew records.
 
+# Sending sms/emails: queue
+
+Work queue table with the work, `attempts` count, some way to mark it as claimed.
+
+```sql
+UPDATE ... SET claimed_at = NOW(), attempts = attempts + 1, next_attempt_at = NOW() + backoff WHERE id = ?
+```
+
+Use `waitUntil` in CFW to launch the worker to try to work that record after returning the response?
+
+Cloudflare Cron Triggers run every minute, launch worker that attempts to work everything in the queue.
+
+https://claude.ai/chat/f5f9361d-f698-43b1-9184-a0ab885d01ed
+
 # Must-haves
 
 Add screens descriptions for these, to motivate modeling and implementation.
