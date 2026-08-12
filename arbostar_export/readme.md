@@ -27,16 +27,16 @@ import type { ArbostarClient } from '#arbostar_export/clients.d.ts' // the recor
 | `clients.js` | 1435 | `ArbostarClient` | Customers — the raw `/clients` datatable rows, unmodified. Contacts (`contacts[]`, phone/email per contact) and geocoding (`address_related`) come nested on each row. |
 | `leads.js` | 1850 | `ArbostarLead` | Every lead across all statuses (most convert to "Estimated"). `client_id` → clients. |
 | `estimates.js` | 1684 | `ArbostarEstimate` | Quotes, all statuses. `lead_id` → leads, `client_id` → clients. |
-| `invoices.js` | 826 | `ArbostarInvoice` | Invoices incl. Paid. `client_id` → clients, `lead_id` → leads. |
+| `invoices.js` | 906 | `ArbostarInvoice` | Invoices incl. Paid. `client_id` → clients, `lead_id` → leads. |
 | `workorders.js` | 836 | `ArbostarWorkOrder` | "Projects" / scheduled jobs. `client_id` → clients, `lead_id` → leads. |
 | `line_items.js` | 3592 | `ArbostarLineItem` | Service lines. `estimate_id` → estimates; rows with an `invoice_id` are the invoice's lines; work orders schedule the same rows. |
-| `payments.js` | 1090 | `ArbostarPayment` | Real payment records (amount, date, fee/tips, server-resolved method label) with ArboStar's payment → estimate allocations (real split amounts). One `getClientPayments` call per client. |
+| `payments.js` | 1204 | `ArbostarPayment` | Real payment records (amount, date, fee/tips, method label) with ArboStar's payment → estimate/invoice allocations (real split amounts + a per-allocation money breakdown). Leads/work orders are reached by joining estimates.js / invoices.js. One paged pass over the BI Client Payments report. |
 | `users.js` | 6 | `ArbostarUser` | User accounts (estimators, office staff, field workers), all statuses. Merged from the user list + each user's detail page; deliberately excludes SIN/MFA/credential fields. |
 | `declines.js` | 365 | `ArbostarDecline` | One row per declined estimate with its decline reason (id + name), from the Decline Reasons report. `estimate_id` → estimates (which has the `lead_id`). |
 | `crew_roles.js` | 13 | `ArbostarCrewRole` | Crew Roles: codes CL0–CL3, GM, ... with cost per hour. `line_items.js` references these by code in its `crews` string. |
 | `work_types.js` | 17 | `ArbostarWorkType` | Pruning work types (Clean canopy, Crown reduction, ...). They attach to tree inventory entries, which nothing exports yet. |
 
-\* counts as of the last run (June 2026); they grow as the account is used.
+\* counts as of each dataset's last run (June–August 2026); they grow as the account is used.
 
 ## Regenerating
 
@@ -50,7 +50,7 @@ node ../scripts/arbostar/export_estimates.ts    # estimates.js
 node ../scripts/arbostar/export_invoices.ts     # invoices.js
 node ../scripts/arbostar/export_workorders.ts   # workorders.js
 node ../scripts/arbostar/export_line_items.ts   # line_items.js  (reads estimates.js; slowest — ~355 KB/estimate)
-node ../scripts/arbostar/export_payments.ts     # payments.js  (reads clients.js)
+node ../scripts/arbostar/export_payments.ts     # payments.js
 node ../scripts/arbostar/export_users.ts        # users.js
 node ../scripts/arbostar/export_declines.ts     # declines.js  (run alongside export_estimates.ts so the two agree)
 node ../scripts/arbostar/export_work_types.ts   # crew_roles.js + work_types.js  (reads estimates.js)

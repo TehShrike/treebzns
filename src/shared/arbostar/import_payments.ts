@@ -3,6 +3,7 @@ import { Temporal } from '@js-temporal/polyfill'
 import type { ArbostarPayment } from '#arbostar_export/payments.d.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
+import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten } from '#shared/array.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
@@ -69,10 +70,11 @@ const earliest_date = (dates: Array<string | null>): string | null => {
 export const import_payments = async (
 	connection: Connection,
 	context: ArbostarImportContext,
-	{ payments, invoices, leads }: {
+	{ payments, invoices, leads, estimates }: {
 		payments: ArbostarPayment[]
 		invoices: ArbostarInvoice[]
 		leads: ArbostarLead[]
+		estimates: ArbostarEstimate[]
 	},
 	imported_clients: ImportedClients,
 	project_id_by_arbostar_lead_id: Map<number, bigint>,
@@ -80,6 +82,12 @@ export const import_payments = async (
 	const { client_id_by_arbostar_client_id } = imported_clients
 	const correlated = context.existing.payment_id_by_arbostar_payment_id
 	const with_client = filter(payments, payment => client_id_by_arbostar_client_id.has(payment.client_id))
+
+	// Allocations link to estimates/invoices only — the lead (and through it the project) is
+	// reached by joining the allocation's estimate.
+	const lead_id_by_estimate_id = new Map(map(estimates, estimate => [estimate.estimate_id, estimate.lead_id] as const))
+	const allocation_lead_id = (allocation: ArbostarPayment['allocations'][number]): number | null =>
+		lead_id_by_estimate_id.get(allocation.estimate_id) ?? null
 
 	// A payment with no payment_date (never observed, but the field is nullable at the API)
 	// falls back to the date of its allocations' earliest invoice, then earliest lead — the
@@ -96,7 +104,10 @@ export const import_payments = async (
 		if (invoice_date !== null) return Temporal.PlainDate.from(invoice_date)
 		const lead_date = earliest_date(map(
 			payment.allocations,
-			allocation => (allocation.lead_id === null ? null : string_or_null(lead_date_by_lead_id.get(allocation.lead_id) ?? null)),
+			allocation => {
+				const lead_id = allocation_lead_id(allocation)
+				return lead_id === null ? null : string_or_null(lead_date_by_lead_id.get(lead_id) ?? null)
+			},
 		))
 		if (lead_date !== null) return instant_date(lead_date)
 		return null
@@ -161,10 +172,13 @@ export const import_payments = async (
 	let skipped_allocations = 0
 	const desired = flatten(map(importable, payment => {
 		const local_payment_id = payment_id_by_arbostar_payment_id.get(payment.payment_id)!
-		const resolved = map(payment.allocations, allocation => ({
-			project_id: allocation.lead_id === null ? undefined : project_id_by_arbostar_lead_id.get(allocation.lead_id),
-			amount: allocation.amount ?? 0,
-		}))
+		const resolved = map(payment.allocations, allocation => {
+			const lead_id = allocation_lead_id(allocation)
+			return {
+				project_id: lead_id === null ? undefined : project_id_by_arbostar_lead_id.get(lead_id),
+				amount: allocation.amount ?? 0,
+			}
+		})
 		const usable = filter(resolved, allocation => allocation.project_id !== undefined)
 		skipped_allocations += resolved.length - usable.length
 		return map(

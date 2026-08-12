@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert'
 import { Temporal } from '@js-temporal/polyfill'
-import fnum from '#shared/number.ts'
+import fnum from '#shared/fnum.ts'
 import escape_value from './escape_value.ts'
 
 test('escape_value: converts Temporal.PlainDate to a quoted date string', () => {

@@ -6,8 +6,8 @@ import * as schema from '#schema/all_table_column_names.ts'
 import * as insertable_schema from '#schema/insertable_table_column_names.ts'
 import typed_write_helper from '#shared/sql_request/typed_write_helper.ts'
 import { make_safe_query_builder } from '#shared/sql_request/safe_sql_query.ts'
-import fnum from '#shared/number.ts'
 import { map, filter } from '#shared/array.ts'
+import arbostar_number_to_fnum from './arbostar_number_to_fnum.ts'
 import type { ExistingCorrelations } from './load_existing_correlations.ts'
 
 export const write_helper = typed_write_helper<InsertableSchema, Schema>(schema, insertable_schema)
@@ -83,9 +83,11 @@ export const group_by = <T, K>(items: readonly T[], key: (item: T) => K): Map<K,
 export const join_lines = (parts: Array<string | null | undefined>): string =>
 	filter(map(parts, part => part ?? ''), part => part !== '').join('\n')
 
-export const money = (value: number) => fnum(value.toFixed(2))
+// Currency columns are 2 decimal places: strip ArboStar's float noise first, then round to
+// the column's scale.
+export const money = (value: number) => arbostar_number_to_fnum(value).changeDecimalPlaces(2)
 
 export const money_display = (value: number | null): string | null =>
-	(value === null ? null : `$${value.toFixed(2)}`)
+	(value === null ? null : `$${arbostar_number_to_fnum(value).changeDecimalPlaces(2).toString()}`)
 
 export const string_or_null = (value: string | null | []): string | null => (typeof value === 'string' ? value : null)

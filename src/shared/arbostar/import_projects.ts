@@ -9,7 +9,7 @@ import type { ArbostarDecline } from '#arbostar_export/declines.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
 import { map, filter, every, some } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
-import fnum from '#shared/number.ts'
+import arbostar_number_to_fnum from './arbostar_number_to_fnum.ts'
 import { write_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
@@ -82,13 +82,13 @@ const SEED_DECLINE_REASON_BY_ARBOSTAR_REASON = new Map([
 // official tax list (taxes.js). ArboStar reuses bare tax names across rates ("Tax" at both 0%
 // and 5.5%), so the created tax_rate rows embed the rate in the name ("Tax (5.5%)") to satisfy
 // the unique (company_id, name) key. tax_rate.tax_rate stores the ratio (0.0550), not the
-// percentage.
-type OfficialTax = { name: string; ratio: number }
+// percentage — at the tax_rate column's 4 decimal places.
+type OfficialTax = { name: string; ratio: FinancialNumber }
 
 const official_tax_list = (taxes: ArbostarTax[]): OfficialTax[] =>
 	map(taxes, tax => ({
 		name: `${tax.name} (${tax.value}%)`.trim(),
-		ratio: tax.value / 100,
+		ratio: arbostar_number_to_fnum(tax.value).times('0.01').changeDecimalPlaces(4),
 	}))
 
 // The taxable, non-declined line sum is what ArboStar applied the rate to, so it recovers the
@@ -107,10 +107,12 @@ const implied_tax_ratio = (invoices: ArbostarInvoice[], lines: ArbostarLineItem[
 	return base > 0 ? tax / base : 0
 }
 
+// Selection only — no rounding happens here, so comparing as floats is fine (implied is
+// already a float heuristic).
 const nearest_official_tax = (official_taxes: OfficialTax[], implied: number): OfficialTax => {
 	assert(official_taxes.length > 0, 'the official tax list has at least one entry')
-	return official_taxes.reduce((best, entry) =>
-		(Math.abs(entry.ratio - implied) < Math.abs(best.ratio - implied) ? entry : best))
+	const distance = (entry: OfficialTax) => Math.abs(Number(entry.ratio.toString()) - implied)
+	return official_taxes.reduce((best, entry) => (distance(entry) < distance(best) ? entry : best))
 }
 
 type ProjectTax =
@@ -172,7 +174,7 @@ export const import_projects = async (
 	// on a 0% rate, so it snaps among the nonzero official rates — the invoice-total
 	// fallback in implied_tax_ratio can blend the rate down (even to exactly halfway
 	// between 0% and the real rate), and 0% must not win.
-	const nonzero_official_taxes = filter(official_tax_list(taxes), entry => entry.ratio > 0)
+	const nonzero_official_taxes = filter(official_tax_list(taxes), entry => entry.ratio.gt('0'))
 	const official_tax_by_lead_id = new Map<number, OfficialTax | null>(map(importable, lead => {
 		const implied = implied_tax_ratio(
 			invoices_by_lead_id.get(lead.lead_id) ?? [],
@@ -189,15 +191,14 @@ export const import_projects = async (
 	const tax_rate_row_by_name = new Map<string, { tax_rate_id: bigint; tax_rate: FinancialNumber }>()
 	const new_tax_rates: OfficialTax[] = []
 	for (const entry of needed_taxes.values()) {
-		const ratio_string = entry.ratio.toFixed(4)
 		const existing = context.existing.tax_rate_by_name.get(normalize_name(entry.name))
 		if (existing === undefined) new_tax_rates.push(entry)
 		else {
 			assert(
-				existing.tax_rate === ratio_string,
-				`existing tax rate "${entry.name}" (${existing.tax_rate}) carries the ArboStar rate ${ratio_string}`,
+				entry.ratio.equal(existing.tax_rate),
+				`existing tax rate "${entry.name}" (${existing.tax_rate}) carries the ArboStar rate ${entry.ratio.toString()}`,
 			)
-			tax_rate_row_by_name.set(entry.name, { tax_rate_id: existing.tax_rate_id, tax_rate: fnum(ratio_string) })
+			tax_rate_row_by_name.set(entry.name, { tax_rate_id: existing.tax_rate_id, tax_rate: entry.ratio })
 		}
 	}
 	if (new_tax_rates.length > 0) {
@@ -207,12 +208,12 @@ export const import_projects = async (
 			map(new_tax_rates, entry => ({
 				company_id: context.company_id,
 				name: entry.name,
-				tax_rate: fnum(entry.ratio.toFixed(4)),
+				tax_rate: entry.ratio,
 			})),
 			ROWS_PER_BATCH,
 		)
 		new_tax_rates.forEach((entry, index) =>
-			tax_rate_row_by_name.set(entry.name, { tax_rate_id: insert_ids[index]!, tax_rate: fnum(entry.ratio.toFixed(4)) }))
+			tax_rate_row_by_name.set(entry.name, { tax_rate_id: insert_ids[index]!, tax_rate: entry.ratio }))
 	}
 
 	const project_tax = (lead: ArbostarLead): ProjectTax => {

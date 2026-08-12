@@ -99,8 +99,8 @@ const cast_to_array = <T>(cast: StringCastingFunction<T>) => ensure_is_defined((
 })
 
 
-import fnum from '#shared/number.ts'
-import type { FinancialNumber } from '#shared/number.ts'
+import fnum from '#shared/fnum.ts'
+import type { FinancialNumber } from '#shared/fnum.ts'
 const financial_number_string_regex  = (precision: number) => {
 	assert(precision >= 0)
 

@@ -22,7 +22,7 @@ export type ExistingCorrelations = {
 	// Also keyed by normalize_name(name) — work_skill has no unique key on name, but the
 	// import treats the (derived) name as the natural key.
 	work_skill_id_by_name: Map<string, bigint>
-	// The rate is kept as its DECIMAL(6,4) string ("0.0550") so importers can check that a
+	// The rate is kept as its DECIMAL(4,4) string ("0.0550") so importers can check that a
 	// name-matched row still carries the expected rate.
 	tax_rate_by_name: Map<string, { tax_rate_id: bigint; tax_rate: string }>
 }

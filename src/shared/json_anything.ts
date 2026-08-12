@@ -1,7 +1,7 @@
 import json_anything from '@tehshrike/json_anything'
 import { Temporal } from '@js-temporal/polyfill' // Replaced with native Temporal in the client build
 import type { FinancialNumber } from 'financial-number'
-import fnum from '#shared/number.ts'
+import fnum from '#shared/fnum.ts'
 import is_financial_number from '#shared/is_financial_number.ts'
 
 const { serialize, deserialize } = json_anything({

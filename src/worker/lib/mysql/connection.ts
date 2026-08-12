@@ -1,7 +1,7 @@
 import { createPool, createConnection } from 'mysql2/promise'
 import type { Pool, Connection, ConnectionOptions } from 'mysql2/promise'
 import { Temporal } from '@js-temporal/polyfill'
-import fnum from '#shared/number.ts'
+import fnum from '#shared/fnum.ts'
 
 const time_types = new Set([ `TIMESTAMP`, `DATETIME` ])
 const database_utc_offset = `Z`

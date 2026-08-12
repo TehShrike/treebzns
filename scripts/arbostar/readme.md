@@ -29,6 +29,7 @@ node scripts/arbostar/export_leads.ts        # -> leads.js
 node scripts/arbostar/export_estimates.ts    # -> estimates.js   (two passes)
 node scripts/arbostar/export_invoices.ts     # -> invoices.js
 node scripts/arbostar/export_line_items.ts   # -> line_items.js  (reads estimates.js; ~1684 × 355 KB — slowest)
+node scripts/arbostar/export_payments.ts     # -> payments.js    (BI Client Payments report; see the payments section)
 node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
 node scripts/arbostar/export_taxes.ts        # -> taxes.js       (official tax list, scraped from /settings)
 node scripts/arbostar/export_declines.ts     # -> declines.js    (decline reasons; see the Decline reasons section)
@@ -40,9 +41,9 @@ the committed `arbostar_export/<name>.d.ts` types it). `export_line_items.ts` re
 `estimates.js`, so run that first. See
 [`arbostar_export/readme.md`](../../arbostar_export/readme.md) for the output side.
 
-Approximate volumes (June 2026): clients 1435, leads 1850, workorders 836,
-estimates 1684, invoices 826, line items 3592, users 6. "Projects" in ArboStar
-are **Work Orders** (`/workorders`).
+Approximate volumes (June–August 2026): clients 1435, leads 1850, workorders 836,
+estimates 1684, invoices 906, line items 3592, payments 1204, users 6. "Projects" in
+ArboStar are **Work Orders** (`/workorders`).
 
 ## Auth / refreshing the session
 
@@ -149,6 +150,61 @@ How they map to jobs:
 - The estimate entity also has per-role requirement flags (`climber`, `groundsmen`,
   `bucket_truck_operator`, ...), each `'yes'`/`'no'` — a coarser signal than the line-item
   `crews` string.
+
+## Payments (`/business_intelligence/clientPaymentsDatatable`)
+
+Every payment in the account comes from one paged datatable: the Business Intelligence →
+Client Payments report (`POST /business_intelligence/clientPaymentsDatatable`). This replaced
+the old approach of one `POST /clients/profile/getClientPayments` per client (~1435 requests).
+Rows are the **full raw payment records**, richer than the per-client endpoint: the same
+`payment_projects` allocation rows (per-allocation amounts, each embedding its estimate's
+`lead_id`), plus the full `payment_method` record, `payment_transaction` (gateway details),
+`users` (the recording user), and QB sync fields.
+
+The endpoint speaks its own datatable dialect — the generic `fetch_datatable.ts` does not fit:
+
+- **POST** with a form body, not GET query params.
+- Rows come back under `items`, not `data.original`.
+- **Sorting is by column name**: `order[0][column]=payment_date` + `order[0][direction]=ASC`.
+  The standard numeric DataTables order/columns params **500** (`Undefined index: direction`).
+  Valid sort names are the report's column names (`payment_date`, `payment_amount`,
+  `payment_method`, `payment_type`, `estimator`, `invoice_date`) — `payment_id` is not one.
+  Omitting `order` entirely also works.
+- **The report defaults to the current month.** Pass a wide range via
+  `filters[payment_date_from]` / `filters[payment_date_to]` (`MM/DD/YYYY`) to get everything.
+  Other filter keys (`filters[methods]`, `filters[estimator]`, `filters[sync_status]`) are
+  optional.
+
+Money-field semantics (why the export derives `unapplied_amount` the way it does):
+`payment_amount` includes tips but allocations don't, and fees exist in two modes — when
+`payment_fee_percent` > 0 the fee was charged on top (excluded from `payment_amount`), and
+when it is 0 a nonzero `payment_fee` was deducted from `payment_amount` while allocations
+stay gross. The row has no payment-level `unapplied_amount`, so the export computes
+`payment_amount - tips + deducted_fee - allocations` (0 for every payment so far, matching
+the per-client endpoint). There is also `/business_intelligence/clientPaymentsReportCSV`
+(same filters, returns the report as CSV rows) — unused, the datatable rows carry more.
+
+### How ArboStar relates payments to projects
+
+The whole relation is the `payment_projects` table (`allocations` in payments.js) — one row
+per (payment, estimate) application with a real split amount. A "project" there is the
+**estimate** (1:1 with its lead), optionally pinned to the invoice that billed it. So
+payments relate **directly** to estimates and invoices only; the export keeps it that way.
+Every other relation is a join: allocation `estimate_id` → estimates.js for the `lead_id`,
+`invoice_id` → invoices.js, and on to the work order from there. **There is no payment →
+line-item relation anywhere** — the raw rows contain no service/line-item ids (verified
+across all 1204 payments). Line items attach to the estimate/invoice separately, so money
+can only be related to line items by joining through `estimate_id`/`invoice_id`. The
+payment row also has its own `estimate_id`/`invoice_id` columns, but they are 0/null on
+every payment in this account — the allocations carry the real links. The report's
+`proj_values` blob (exported as each allocation's `report_values`) is its per-allocation
+money breakdown: fee/tax attribution and the estimate's/invoice's pre-tax services totals.
+Its money fields (and the row-level `amount`, `tax_amount`, `total_amount`) are computed
+with floats server-side and served dirty (`1614.1499999999999`). The export passes them
+through verbatim — nothing in payments.js is computed by our code. Consumers normalize the
+noise with `#shared/arbostar/arbostar_number_to_fnum.ts` (the import's `money()` helper
+already does). payments.d.ts tags every field as Original (raw table column) or Calculated
+(by the report).
 
 ## Decline reasons (`/estimates/declines`)
 

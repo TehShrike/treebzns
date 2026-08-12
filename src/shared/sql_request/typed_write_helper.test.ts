@@ -3,7 +3,7 @@ import * as assert from 'node:assert'
 import type { Connection } from 'mysql2/promise'
 import { Temporal } from '@js-temporal/polyfill'
 import type { FinancialNumber } from 'financial-number'
-import fnum from '#shared/number.ts'
+import fnum from '#shared/fnum.ts'
 import typed_write_helper from './typed_write_helper.ts'
 
 type TestSchema = {

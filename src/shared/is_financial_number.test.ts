@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert'
-import fnum from '#shared/number.ts'
+import fnum from '#shared/fnum.ts'
 import is_financial_number from './is_financial_number.ts'
 
 test('is_financial_number: true for a FinancialNumber', () => {
