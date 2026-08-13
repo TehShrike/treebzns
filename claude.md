@@ -8,6 +8,8 @@ Assertion messages should say the thing that they are asserting, they should not
 
 Never round or change the precision of a number with toFixed or float arithmetic.  Coerce the number to a string, wrap it with financial-number (#shared/fnum.ts), and use changeDecimalPlaces/toString.  For numbers that come from ArboStar, use #shared/arbostar/arbostar_number_to_fnum.ts — it also strips ArboStar's float noise.
 
+To learn the current database schema, read schema/current_schema.sql.  Do not scan the migration files.  The export scripts regenerate that file from the live database.
+
 Never apply schema changes to the database by hand with the mysql cli.  To run new migrations in local dev, use `pnpm run local:db_up` — it validates migration numbering (e.g. duplicate numbers), applies pending migrations, records them in the `migration` table, and regenerates the exported schema, so problems surface before committing.  The mysql cli (credentials in the .env file) is fine for inspecting data, but not for DDL.
 
 To check the type of a specific type or variable in a file, use tsserver directly, e.g.
