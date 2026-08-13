@@ -4,19 +4,14 @@ Design discussion: https://claude.ai/share/f760a718-831a-413f-b700-733345c0ef90
 
 ## Status (as of 2026-08-13)
 
-The schema is settled — every open question is resolved. Work remaining, in order:
+The schema is settled and every question is resolved. The import plan and the
+implementation notes at the bottom are written from codebase research and checks against
+the real export data. The plan is ready to hand to an implementing agent: migrations,
+types and validators, calculation code, import changes.
 
-1. Write the "ArboStar import changes" section at the bottom. Useful inputs for it: the
-	current import lives in `src/shared/arbostar/import_payments.ts` (payments → `payment` +
-	the old `payment_project`, allocations resolved estimate → lead → project), and the
-	investigation scripts in `scripts/investigate_arbostar/` show the data's shape —
-	906 invoices, 1,204 payments, 63 payments not tied to any invoice (deposits on
-	uninvoiced or declined estimates), header-level discounts totaling $16,764.56 that must
-	map to our discount model, plus tips and merchant fees that now have columns.
-2. Hand the finished plan to an implementing agent.
-
-Not in scope here: statement/report screens, refund payouts, voiding (pulled until a
-real-world case shows up).
+UI comes later, after the schema is settled and the imports work. Also not in scope:
+statement/report screens, refund payouts, voiding (pulled until a real-world case shows
+up).
 
 ## Decisions carried in from the discussion
 
@@ -104,6 +99,27 @@ Decided 2026-08-12:
 	invoices — no project-side fee. Today it is a hand-entered number, most obviously for
 	card surcharges passed to the customer. Later, fee calculation algorithms may attach to
 	payment methods, and fee line items may exist. Either way fees stay post-tax.
+
+Decided 2026-08-13 (import behavior):
+
+- The one non-negotiable: imported `invoice.total` must equal ArboStar's
+	`total_including_tax` — the number that affected the customer's balance in ArboStar.
+	Other derived columns may be approximate.
+- Imported invoices get `due_date` = `invoice_date + company.invoice_due_after_days`.
+- The import trusts ArboStar's header totals. Line items import as they were exported, and
+	totals are never recalculated from them.
+- `invoice_number` is constructed from ArboStar's `invoice_no`: lead number × 10 plus the
+	suffix, 0 when there is no suffix (`02019-I-1` → 20191, `01434-I` → 14340). After
+	import, `invoice_number.next_number` moves to the next power of 10 above the largest
+	constructed number.
+- The importer overwrites invoices it originally imported (rows with an
+	`arbostar_invoice_id`). App-created invoices are never touched.
+- `created_by_employee_id` stays null on imported invoices. The `estimator` name is not
+	mapped.
+- `taxable_subtotal` uses the tiered derivation in the import section.
+- The import will run for many ArboStar tenants. The counts and examples in this document
+	come from one tenant's export and only validate the rules. Do not hardcode them (the
+	5.5% rate, the number ranges, specific invoices).
 
 ## New table: invoice
 
@@ -437,21 +453,235 @@ must either distribute that discount onto an earlier invoice or split the true-u
 
 ## Open questions
 
-None. Every question so far is resolved into the decided list and the schema sections
-above. Client credit landed differently than the early sketch here once suggested: it is a
-pre-tax reduction applied at invoice creation (see the `client_credit` section and
-`invoice_calculation.md`), not a balance-affecting document with allocations.
+Design questions: none. Every design question is resolved into the decided list and the
+schema sections above. Client credit landed differently than the early sketch here once
+suggested: it is a pre-tax reduction applied at invoice creation (see the `client_credit`
+section and `invoice_calculation.md`), not a balance-affecting document with allocations.
+Implementation questions from the 2026-08-13 research are collected in the last section.
 
 ## ArboStar import changes
 
-To be written once the open questions are settled. Known shape of the work:
+Verified 2026-08-13 against the current export with `scripts/investigate_arbostar/` plus
+one-off checks. The export holds 906 invoices, 1,204 payments, and 1,351 allocations.
 
-- Import ArboStar invoices into `invoice` + `invoice_line_item` (line items come from
-	`line_items.js` rows carrying an `invoice_id`). ArboStar's header `discount` maps to our
-	header `discount` mode.
-- Payment allocations with an `invoice_id` become `payment_invoice` rows. Estimate-only
-	allocations (deposits) become `payment.project_id` via estimate → lead → project.
-- `payment_tips` → `tip`, `payment_fee` → `merchant_fee`, `payment_notes` → `notes`,
-	`payment_author` → `recorded_by_employee_id`.
-- Delete `import_payments.ts`'s payment_project reconciliation.
-- Normalize all ArboStar numbers with `#shared/arbostar/arbostar_number_to_fnum.ts`.
+Data facts the import can rely on:
+
+- `total_for_services` is net of the header discount. `total_including_tax =
+	total_for_services + tax` holds on 905 of 906 invoices. On discounted invoices with
+	complete line rows, `sum(line gross) − discount = total_for_services` (51 of the 59
+	discounted invoices — the rest have missing or partial line rows). So our pre-discount
+	`subtotal` = `total_for_services + discount`.
+- The one exception is invoice 00115-I. Its `total_including_tax` exceeds
+	`total_for_services + tax` by 93.14 (a passed-through surcharge). That difference maps
+	to our post-tax `fee`.
+- The export's calculated `amount` field equals `payment_amount − payment_tips` on all
+	1,204 payments.
+- Line rows do not reliably reconstruct invoices. 63 invoices have no line rows, and about
+	70 more have zero-amount or partial rows that do not sum to the header totals. Header
+	totals are authoritative.
+- 278 invoices have tax. 271 imply exactly the 5.5% rate on `total_for_services`. The
+	other 7 deviate, consistent with their `non_taxable` lines and discounts changing the
+	base. Rate inference works: match the implied rate to the imported `tax_rate` rows.
+- 1,288 of the 1,351 allocations carry an `invoice_id`. 2 point at invoices missing from
+	the export (skip and count). 15 reference estimates missing from the export.
+- 62 payments have estimate-only allocations, plus 1 mixed. No estimate-only payment spans
+	more than one lead, so the single `payment.project_id` column suffices for deposits.
+- `payment_author` is 0 on 670 payments and null on 19 — both mean the system. The rest
+	map to three real users, all active and importable.
+- 26 leads have two invoices (partial billing exists), 4 of them with discounts.
+
+### New importer: import_invoices.ts
+
+Runs after `import_line_items` and before `import_payments`. New phase order: employees /
+clients / work skills in parallel, then projects, then line items, then invoices, then
+payments. (Line items and payments currently run in parallel. Invoice lines need the
+line-item correlations, and payment allocations need the invoice ids.)
+
+Correlate on `arbostar_invoice_id`, like every other importer. Add the map to
+`load_existing_correlations.ts`. Existing rows update, new rows insert, vanished rows are
+counted and kept.
+
+| invoice column | source |
+| --- | --- |
+| `arbostar_invoice_id` | `invoice_id` |
+| `invoice_number` | constructed from `invoice_no` — see below |
+| `client_id` | `client_id` through the imported-clients map |
+| `project_id` | `lead_id` → project map |
+| `invoice_date` | `date_created` |
+| `due_date` | `invoice_date + company.invoice_due_after_days` |
+| `billing_*` | snapshot of the imported client's name and billing/primary address |
+| `subtotal` | `money(total_for_services) + money(discount)` |
+| `taxable_subtotal` | derived — see below |
+| `discount` | `money(discount)`, null when zero |
+| `line_item_discount_subtotal` | always null (ArboStar has no line discounts) |
+| `client_credit_applied` | 0 |
+| `taxable` / `tax_rate_id` / `tax_rate` | `tax != 0`, rate matched to imported `tax_rate` rows |
+| `tax_total` | `money(tax)` |
+| `fee` | `money(total_including_tax) − money(total_for_services) − money(tax)` |
+| `total` | `money(total_including_tax)` |
+| `created_by_employee_id` | null |
+
+`fee` is the remainder that makes `total` equal ArboStar's `total_including_tax` exactly —
+total fidelity is the one non-negotiable. In this tenant's export the fee is 0 everywhere
+except invoice 00115-I (93.14). A negative remainder is kept, not rejected, and counted in
+the import report.
+
+`taxable_subtotal` is NOT NULL and the export does not carry it. The derivation is tiered,
+with the company's imported `tax_rate` rows as the candidate rates:
+
+1. Untaxed invoices store 0.
+2. When a candidate rate satisfies `round(rate × total_for_services) = tax`, the whole
+	invoice is taxable and `taxable_subtotal` = `subtotal`. That rate is also the
+	invoice's `tax_rate`. In this tenant's export: 272 of the 278 taxed invoices.
+3. When the lines reconcile and a candidate rate reproduces `tax` from the taxable lines
+	minus the discount, sum the taxable lines' totals. Here: 5 invoices.
+4. Otherwise derive `round(tax / rate) + discount` with the best-matching candidate rate,
+	and count the invoice in the import report. The derived base can be off by a few cents
+	because the stored tax was rounded. `tax_total` and `total` still come from the
+	header, so drift here is cosmetic. Here: 1 invoice (00529-I, no line rows), where the
+	division happens to be exact.
+
+`invoice_number` = lead number × 10 + the suffix, where a suffix-less `NNNNN-I` takes 0
+(`02019-I-1` → 20191, `01434-I` → 14340). The 0 default matters: six leads carry both
+`NNNNN-I` and `NNNNN-I-1`, so defaulting to 1 would collide. All 906 numbers parse under
+this rule and none collide. The largest is 21581. After inserting, set
+`invoice_number.next_number` to the next power of 10 above the largest constructed number
+(100,000 for this tenant), through the same `GREATEST(next_number, ?)` guard
+`import_projects.ts` uses for project numbers. Other tenants' `invoice_no` formats are
+unverified — assert that every number parses and that no constructed numbers collide.
+
+### invoice_line_item rows
+
+From `line_items.js` rows that carry an `invoice_id` (1,446 rows across 843 invoices).
+
+| column | source |
+| --- | --- |
+| `project_line_item_id` | the `arbostar_line_item_id` correlation from `import_line_items` |
+| `description` | `service_name` |
+| `quantity` / `price` | `money(quantity)` / `money(price)` |
+| `discount_rate` / `discount` | null |
+| `taxable` | `!non_taxable` |
+| `sort` | `sort_order` |
+
+These lines do not sum to `subtotal` on roughly 130 invoices (no rows, zero-amount rows,
+or partial rows). Per the decided list: import them as they are and never recalculate the
+header totals from them. The stored-total invariants only hold for app-created invoices.
+
+### import_line_items.ts changes
+
+`project_line_item.sort` is new and NOT NULL — write `sort_order` into it.
+
+### import_payments.ts changes
+
+- `amount` becomes `money(payment_amount) − money(payment_tips)`. Today the import writes
+	the tip-inclusive `payment_amount`. Re-import corrects existing rows through the normal
+	bulk_update path. The company-wide payment total drops from 943,192.53 to 937,258.12.
+- New columns: `payment_tips` → `tip`, `payment_fee` → `merchant_fee`, `payment_notes` →
+	`notes`.
+- `payment_author` → `recorded_by_employee_id` through `employee_id_by_arbostar_user_id`.
+	0 and null map to null. Plumbing prerequisite: `import_arbostar_export.ts` passes only
+	`employee_id_by_name` into the post-employee context — also pass the current run's
+	`employee_id_by_arbostar_user_id`.
+- Allocations with an `invoice_id` become `payment_invoice` rows, one per
+	(payment, invoice) pair. Sum amounts with fnum — the current code sums allocation
+	floats with a raw reduce, and that pattern must not carry over. Skip the 2 allocations
+	whose invoice is missing from the export, with a count.
+- Estimate-only allocations resolve estimate → lead → project into `payment.project_id`,
+	replacing the payment_project rows. The one mixed payment gets both `payment_invoice`
+	rows and a `project_id`.
+- `payment_invoice` reconciliation mirrors the old payment_project logic: only touch rows
+	whose payment is import-correlated, diff by pair, update amounts, delete removed pairs.
+- Delete the payment_project reconciliation code. The migration drops the table.
+- Existing multi-tenant gap, same spirit as the no-hardcoding rule:
+	`ARBOSTAR_TENANT_TIME_ZONE` is a hardcoded `'America/Chicago'` constant in
+	`import_payments.ts`. It must become per-tenant input before other tenants import.
+
+### import_projects.ts changes
+
+`project.subtotal` currently maps from `total_for_services`, which is net of discount.
+Under the new model `subtotal` is pre-discount. Change the mapping: `subtotal` = the sum
+of `money(total_for_services) + money(discount)` per invoice, `discount` = the summed
+`money(discount)` (null when zero), `total` unchanged. Set `taxable_subtotal` by the same
+derivation the invoice importer uses — the project column is nullable, so null is fine
+when it cannot be derived.
+
+## Implementation details and concerns
+
+Researched 2026-08-13. File references point at current code.
+
+### Migrations
+
+- The next migration number is 0038 (`src/migration/`, plain SQL, multi-statement files,
+	no rollbacks). Suggested split: 0038 the new invoice tables plus
+	`company.invoice_due_after_days` plus seeding `invoice_number` rows for existing
+	companies, 0039 the project/project_line_item discount and sort columns, 0040 the
+	payment columns plus dropping `payment_project`.
+- The `sort` backfill follows the established pattern (0016, 0022): add the column
+	nullable, backfill with `ROW_NUMBER() OVER (PARTITION BY project_id ORDER BY
+	project_line_item_id)`, then `MODIFY … NOT NULL`.
+- `pnpm run local:db_up` applies the migrations and regenerates the schema exports.
+- `create_company.ts` gets an `invoice_number` seed next to its `project_number` seed.
+
+### Types and validators
+
+- `scripts/export_schema.ts` writes `schema/type/<table>.d.ts` boilerplate only when the
+	file is absent, then never touches it again. Write the new override files
+	(`invoice.d.ts`, `invoice_line_item.d.ts`) with the discriminated unions from the
+	schema sections. The `project.d.ts` and `project_line_item.d.ts` overrides already
+	exist — hand-edit them to add the discount unions next to the existing tax and done
+	unions.
+- Every new table needs a hand-written validator in `schema/validator/` plus registration
+	in `schema/validators.ts`. A type check enforces that the registry is complete. Mirror
+	the unions there (`jv.one_of`, like `with_tax_consistency` in
+	`schema/validator/project.ts`). Caution from existing code: `schema/validator/project.ts`
+	passes an explicit generic to `with_tax_consistency`, which hides missing-column errors
+	from the `satisfies` check (it is missing five newer columns today). Let the generics
+	infer in new validators.
+- Dropping `payment_project` makes export_schema delete its type files. Delete its
+	validator and registry entry by hand.
+
+### Calculation code
+
+- Implement `invoice_calculation.md` as pure functions over FinancialNumber in
+	`src/shared/invoice/`. Only the `src/shared/**` and `scripts/**` test globs run under
+	`node --test`, so shared placement is what makes the math testable. There is no test
+	database — endpoints only get type checks.
+- `fnum.ts` has `greatest_of` but no `least_of`. Add it — the formulas use `least()`.
+- FinancialNumber has no division. The proportional project-discount spread (share =
+	project discount × invoice subtotal ÷ project subtotal) needs bigint cent math:
+	multiply the cent values, integer-divide, and let the final resolving invoice take the
+	remainder. The model already assigns the final invoice the remainder, so truncation is
+	safe.
+
+### Query and write concerns
+
+- typed_query_builder supports only COUNT, COUNT DISTINCT, IS [NOT] NULL, and UUID_TO_BIN
+	as functions — no SUM. The credit pool, billed balances, and amount-paid queries need
+	one of: SUM added to the builder, raw `mysql.query({ sql, values })`, or a JS fold over
+	selected rows. Recommendation: add SUM to the builder once, since at least three flows
+	need it.
+- `write_helper.update` writes `WHERE <key> = ?` with no company guard. That matches
+	existing usage. Multi-column guards need raw SQL (see `client.fns.ts:65`).
+- Invoice immutability is app-code discipline only. Nothing at the DB layer prevents
+	updates. Per the decided list, the importer overwrites the rows it imported, and
+	app-created invoices are never touched.
+- `payment.amount` is DECIMAL(12,2) (pre-existing), and `payment_invoice.amount` matches
+	it. The new `tip` / `merchant_fee` columns are DECIMAL(10,2), plenty for their ranges.
+	The width mismatch is deliberate.
+
+### Deferred to the app/UI phase (not planned here)
+
+- The invoice-creation server function. It follows the `create_lead` pattern: one
+	transaction, `LAST_INSERT_ID` number allocation (`lead.fns.ts:68`), snapshot query,
+	typed insert.
+- The project close flow. No close endpoint exists today — `closed` is written only by
+	lead creation (as false) and by the import.
+- Request-time permission checks. `CAN_EDIT_PAYMENTS` is seeded but nothing reads
+	permissions at request time.
+- Client-side money formatting. `project.total` renders raw today, and no currency helper
+	exists.
+
+## Questions to resolve before implementation
+
+None. All six questions from the 2026-08-13 research are resolved into the decided list
+and the import section.

@@ -39,6 +39,8 @@ const payment_method_name = (payment: ArbostarPayment): string => {
 
 // payment_date is a UTC timestamp; the calendar date the business saw is the tenant's local
 // one (the export has no server-formatted local date to lean on instead).
+// Hardcoded for the one tenant imported so far. When the export code becomes a bookmarklet
+// that any ArboStar customer can run, replace this with a per-tenant solution.
 const ARBOSTAR_TENANT_TIME_ZONE = 'America/Chicago'
 const epoch_date = (seconds: number): Temporal.PlainDate =>
 	Temporal.Instant.fromEpochMilliseconds(seconds * 1000)
