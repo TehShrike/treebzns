@@ -19,6 +19,7 @@ const company_columns = [
 	`company.${company.name}`,
 	`company.${company.brand_color}`,
 	`company.${company.default_crew_start_time}`,
+	`company.${company.invoice_due_after_days}`,
 ] as const
 
 const parse_session_cookie = (request: Request): string | null => {

@@ -12,6 +12,7 @@ export type ExistingCorrelations = {
 	client_id_by_arbostar_client_id: Map<number, bigint>
 	primary_client_address_id_by_arbostar_client_id: Map<number, bigint>
 	project_id_by_number: Map<number, bigint>
+	invoice_id_by_arbostar_invoice_id: Map<number, bigint>
 	payment_id_by_arbostar_payment_id: Map<number, bigint>
 	client_contact_id_by_arbostar_contact_id: Map<number, bigint>
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
@@ -58,6 +59,11 @@ export const load_existing_correlations = async (
 		.where(b => b.comparison('project.company_id', '=', { value: company_id }))
 		.select(() => ['project.project_id', 'project.number'])
 		.build()
+	const invoice_query = query_builder<Schema>()
+		.from('invoice')
+		.where(b => b.comparison('invoice.company_id', '=', { value: company_id }))
+		.select(() => ['invoice.invoice_id', 'invoice.arbostar_invoice_id'])
+		.build()
 	const payment_query = query_builder<Schema>()
 		.from('payment')
 		.where(b => b.comparison('payment.company_id', '=', { value: company_id }))
@@ -94,10 +100,11 @@ export const load_existing_correlations = async (
 		.select(() => ['work_skill.work_skill_id', 'work_skill.name'])
 		.build()
 
-	const [employees, clients, projects, payments, contacts, line_items, item_types, payment_methods, tax_rates, work_skills] = await Promise.all([
+	const [employees, clients, projects, invoices, payments, contacts, line_items, item_types, payment_methods, tax_rates, work_skills] = await Promise.all([
 		run_select(connection, employee_query),
 		run_select(connection, client_query),
 		run_select(connection, project_query),
+		run_select(connection, invoice_query),
 		run_select(connection, payment_query),
 		run_select(connection, contact_query),
 		run_select(connection, line_item_query),
@@ -127,6 +134,11 @@ export const load_existing_correlations = async (
 			projects,
 			row => row.project.number,
 			row => row.project.project_id,
+		),
+		invoice_id_by_arbostar_invoice_id: correlation_map(
+			invoices,
+			row => row.invoice.arbostar_invoice_id,
+			row => row.invoice.invoice_id,
 		),
 		payment_id_by_arbostar_payment_id: correlation_map(
 			payments,

@@ -52,6 +52,17 @@ export const client_contact = {
 	arbostar_contact_id: 'arbostar_contact_id',
 } as const
 
+export const client_credit = {
+	client_credit_id: 'client_credit_id',
+	company_id: 'company_id',
+	client_id: 'client_id',
+	amount: 'amount',
+	notes: 'notes',
+	created_by_employee_id: 'created_by_employee_id',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
 export const company = {
 	company_id: 'company_id',
 	name: 'name',
@@ -60,6 +71,7 @@ export const company = {
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 	default_crew_start_time: 'default_crew_start_time',
+	invoice_due_after_days: 'invoice_due_after_days',
 } as const
 
 export const crew = {
@@ -147,6 +159,61 @@ export const estimate_availability = {
 	updated_at: 'updated_at',
 } as const
 
+export const invoice = {
+	invoice_id: 'invoice_id',
+	company_id: 'company_id',
+	invoice_number: 'invoice_number',
+	client_id: 'client_id',
+	project_id: 'project_id',
+	billing_name: 'billing_name',
+	billing_address_line_1: 'billing_address_line_1',
+	billing_address_line_2: 'billing_address_line_2',
+	billing_city: 'billing_city',
+	billing_state: 'billing_state',
+	billing_zip: 'billing_zip',
+	invoice_date: 'invoice_date',
+	due_date: 'due_date',
+	taxable: 'taxable',
+	tax_rate_id: 'tax_rate_id',
+	tax_rate: 'tax_rate',
+	subtotal: 'subtotal',
+	taxable_subtotal: 'taxable_subtotal',
+	discount: 'discount',
+	line_item_discount_subtotal: 'line_item_discount_subtotal',
+	client_credit_applied: 'client_credit_applied',
+	tax_total: 'tax_total',
+	fee: 'fee',
+	total: 'total',
+	created_by_employee_id: 'created_by_employee_id',
+	arbostar_invoice_id: 'arbostar_invoice_id',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
+export const invoice_line_item = {
+	invoice_line_item_id: 'invoice_line_item_id',
+	company_id: 'company_id',
+	invoice_id: 'invoice_id',
+	project_line_item_id: 'project_line_item_id',
+	description: 'description',
+	quantity: 'quantity',
+	price: 'price',
+	discount_rate: 'discount_rate',
+	discount: 'discount',
+	taxable: 'taxable',
+	sort: 'sort',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
+export const invoice_number = {
+	invoice_number_id: 'invoice_number_id',
+	company_id: 'company_id',
+	next_number: 'next_number',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
 export const item_type = {
 	item_type_id: 'item_type_id',
 	company_id: 'company_id',
@@ -186,28 +253,33 @@ export const payment = {
 	payment_id: 'payment_id',
 	company_id: 'company_id',
 	client_id: 'client_id',
+	project_id: 'project_id',
 	amount: 'amount',
+	tip: 'tip',
+	merchant_fee: 'merchant_fee',
 	pay_date: 'pay_date',
 	payment_method_id: 'payment_method_id',
+	notes: 'notes',
+	recorded_by_employee_id: 'recorded_by_employee_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 	arbostar_payment_id: 'arbostar_payment_id',
+} as const
+
+export const payment_invoice = {
+	payment_invoice_id: 'payment_invoice_id',
+	company_id: 'company_id',
+	payment_id: 'payment_id',
+	invoice_id: 'invoice_id',
+	amount: 'amount',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
 } as const
 
 export const payment_method = {
 	payment_method_id: 'payment_method_id',
 	company_id: 'company_id',
 	name: 'name',
-	created_at: 'created_at',
-	updated_at: 'updated_at',
-} as const
-
-export const payment_project = {
-	payment_project_id: 'payment_project_id',
-	company_id: 'company_id',
-	payment_id: 'payment_id',
-	project_id: 'project_id',
-	amount: 'amount',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const
@@ -245,6 +317,9 @@ export const project = {
 	tax_rate_id: 'tax_rate_id',
 	tax_rate: 'tax_rate',
 	subtotal: 'subtotal',
+	taxable_subtotal: 'taxable_subtotal',
+	discount: 'discount',
+	line_item_discount_subtotal: 'line_item_discount_subtotal',
 	tax_total: 'tax_total',
 	total: 'total',
 	notes_for_crew: 'notes_for_crew',
@@ -364,6 +439,9 @@ export const project_line_item = {
 	client_declined: 'client_declined',
 	quantity: 'quantity',
 	price: 'price',
+	discount_rate: 'discount_rate',
+	discount: 'discount',
+	sort: 'sort',
 	done_at: 'done_at',
 	done_by_employee_id: 'done_by_employee_id',
 	created_at: 'created_at',

@@ -13,6 +13,7 @@ import arbostar_number_to_fnum from './arbostar_number_to_fnum.ts'
 import { write_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
+import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
 
 export type ImportedProjects = {
 	project_id_by_arbostar_lead_id: Map<number, bigint>
@@ -149,6 +150,10 @@ export const import_projects = async (
 	const workorders_by_lead_id = group_by(filter(workorders, workorder => workorder.lead_id !== null), workorder => workorder.lead_id!)
 	const invoices_by_lead_id = group_by(filter(invoices, invoice => invoice.lead_id !== null), invoice => invoice.lead_id!)
 	const line_items_by_lead_id = group_by(line_items, item => item.lead_id)
+	const invoice_lines_by_invoice_id = group_by(
+		filter(line_items, item => item.invoice_id !== null && item.invoice_id !== undefined),
+		item => item.invoice_id!,
+	)
 	const decline_by_estimate_id = new Map(map(declines, decline => [decline.estimate_id, decline] as const))
 
 	const importable = filter(leads, lead => lead.client_id !== null && client_id_by_arbostar_client_id.has(lead.client_id))
@@ -175,6 +180,7 @@ export const import_projects = async (
 	// fallback in implied_tax_ratio can blend the rate down (even to exactly halfway
 	// between 0% and the real rate), and 0% must not win.
 	const nonzero_official_taxes = filter(official_tax_list(taxes), entry => entry.ratio.gt('0'))
+	const official_tax_ratios = map(nonzero_official_taxes, entry => entry.ratio)
 	const official_tax_by_lead_id = new Map<number, OfficialTax | null>(map(importable, lead => {
 		const implied = implied_tax_ratio(
 			invoices_by_lead_id.get(lead.lead_id) ?? [],
@@ -281,26 +287,47 @@ export const import_projects = async (
 			: null
 
 		// Invoice totals are authoritative when they exist (they carry the real discounts and
-		// tax, which line items can't reproduce). Otherwise the subtotal is the non-declined
-		// line sum — ArboStar's own current-state math (its work order total_price equals
-		// exactly that; its estimate total_price is a stale snapshot that usually still counts
-		// declined lines) — with no tax, since only invoices carry a tax amount to imply a
-		// rate from. A lead with no lines has no quote yet: all three stay null.
+		// tax, which line items can't reproduce). subtotal is pre-discount (ArboStar's
+		// total_for_services is net of the header discount, so the discount adds back), and
+		// taxable_subtotal comes from the same tiered derivation the invoice importer uses,
+		// summed per invoice. Otherwise the subtotal is the non-declined line sum — ArboStar's
+		// own current-state math (its work order total_price equals exactly that; its estimate
+		// total_price is a stale snapshot that usually still counts declined lines) — with no
+		// tax, since only invoices carry a tax amount to imply a rate from. A lead with no
+		// lines has no quote yet: the totals all stay null.
 		const lead_lines = line_items_by_lead_id.get(lead.lead_id) ?? []
 		const totals = lead_invoices.length > 0
-			? {
-				subtotal: money(lead_invoices.reduce((sum, invoice) => sum + (invoice.total_for_services ?? 0), 0)),
-				tax_total: money(lead_invoices.reduce((sum, invoice) => sum + (invoice.tax ?? 0), 0)),
-				total: money(lead_invoices.reduce((sum, invoice) => sum + (invoice.total_including_tax ?? 0), 0)),
-			}
+			? (() => {
+				const zero = money(0)
+				const discount = lead_invoices.reduce((sum, invoice) => sum.plus(money(invoice.discount ?? 0)), zero)
+				const subtotal = lead_invoices.reduce(
+					(sum, invoice) => sum.plus(money(invoice.total_for_services ?? 0)).plus(money(invoice.discount ?? 0)),
+					zero,
+				)
+				const taxable_subtotal = lead_invoices.reduce((sum, invoice) => sum.plus(derive_taxable_subtotal({
+					total_for_services: invoice.total_for_services ?? 0,
+					discount: invoice.discount ?? 0,
+					tax: invoice.tax ?? 0,
+					lines: invoice_lines_by_invoice_id.get(invoice.invoice_id) ?? [],
+					candidate_ratios: official_tax_ratios,
+				}).taxable_subtotal), zero)
+				return {
+					subtotal,
+					taxable_subtotal,
+					discount: discount.equal('0') ? null : discount,
+					line_item_discount_subtotal: null,
+					tax_total: lead_invoices.reduce((sum, invoice) => sum.plus(money(invoice.tax ?? 0)), zero),
+					total: lead_invoices.reduce((sum, invoice) => sum.plus(money(invoice.total_including_tax ?? 0)), zero),
+				}
+			})()
 			: lead_lines.length === 0
-				? { subtotal: null, tax_total: null, total: null }
+				? { subtotal: null, taxable_subtotal: null, discount: null, line_item_discount_subtotal: null, tax_total: null, total: null }
 				: (() => {
 					const subtotal = money(
 						filter(lead_lines, line => line.status !== 'Declined')
 							.reduce((sum, line) => sum + (line.price ?? 0) * (line.quantity ?? 1), 0),
 					)
-					return { subtotal, tax_total: money(0), total: subtotal }
+					return { subtotal, taxable_subtotal: null, discount: null, line_item_discount_subtotal: null, tax_total: money(0), total: subtotal }
 				})()
 
 		const estimator_name = string_or_null(lead.estimator)

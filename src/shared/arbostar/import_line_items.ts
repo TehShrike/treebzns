@@ -6,6 +6,7 @@ import { write_helper, ROWS_PER_BATCH, join_lines, money, normalize_name } from 
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedLineItems = {
+	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
 	counts: {
 		item_types_inserted: number
 		project_line_items_inserted: number
@@ -85,6 +86,7 @@ export const import_line_items = async (
 			client_declined: item.status === 'Declined',
 			quantity: money(item.quantity ?? 1),
 			price: money(item.price ?? 0),
+			sort: BigInt(item.sort_order),
 		}
 	}
 
@@ -99,8 +101,9 @@ export const import_line_items = async (
 		map(existing_items, item => ({ key: correlated.get(item.line_item_id)!, set: line_item_fields(item) })),
 		ROWS_PER_BATCH,
 	)
+	const project_line_item_id_by_arbostar_line_item_id = new Map(correlated)
 	if (new_items.length > 0) {
-		await write_helper.bulk_insert(
+		const { insert_ids } = await write_helper.bulk_insert(
 			connection,
 			'project_line_item',
 			map(new_items, item => ({
@@ -110,6 +113,7 @@ export const import_line_items = async (
 			})),
 			ROWS_PER_BATCH,
 		)
+		new_items.forEach((item, index) => project_line_item_id_by_arbostar_line_item_id.set(item.line_item_id, insert_ids[index]!))
 	}
 
 	const incoming_id_list = map(importable, item => escape_value(item.line_item_id)).join(', ')
@@ -126,6 +130,7 @@ export const import_line_items = async (
 	})()
 
 	return {
+		project_line_item_id_by_arbostar_line_item_id,
 		counts: {
 			item_types_inserted: new_item_types.length,
 			project_line_items_inserted: new_items.length,

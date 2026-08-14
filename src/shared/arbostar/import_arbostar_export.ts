@@ -21,6 +21,7 @@ import { import_employees } from './import_employees.ts'
 import { import_clients } from './import_clients.ts'
 import { import_projects } from './import_projects.ts'
 import { import_line_items } from './import_line_items.ts'
+import { import_invoices } from './import_invoices.ts'
 import { import_payments } from './import_payments.ts'
 import { import_work_skills } from './import_work_skills.ts'
 
@@ -50,8 +51,8 @@ const import_arbostar_export = async (
 	// (employee inserts hold locks on the globally unique email/login_name indexes), and a
 	// crash between phases is recovered by re-running the import — every row carries its
 	// correlation from the moment it exists. Phases run as parallel as their data
-	// dependencies allow: projects need the client ids, and line items and payments need the
-	// project ids.
+	// dependencies allow: projects need the client ids, line items need the project ids,
+	// invoices need the line-item correlations, and payment allocations need the invoice ids.
 
 	// The enriched employee name map lets project estimator names resolve to the imported
 	// users, not just pre-existing employees. Clients and work skills don't consume it, so
@@ -70,21 +71,31 @@ const import_arbostar_export = async (
 		pool,
 		connection => import_projects(connection, context_with_employees, data, imported_clients),
 	)
-	const [imported_line_items, imported_payments] = await Promise.all([
-		pool_transaction(pool, connection => import_line_items(
-			connection,
-			context_with_employees,
-			data.line_items,
-			imported_projects.project_id_by_arbostar_lead_id,
-		)),
-		pool_transaction(pool, connection => import_payments(
-			connection,
-			context_with_employees,
-			data,
-			imported_clients,
-			imported_projects.project_id_by_arbostar_lead_id,
-		)),
-	])
+	// Line items, invoices, and payments run in sequence: invoice lines need the line-item
+	// correlations, and payment allocations need the invoice ids.
+	const imported_line_items = await pool_transaction(pool, connection => import_line_items(
+		connection,
+		context_with_employees,
+		data.line_items,
+		imported_projects.project_id_by_arbostar_lead_id,
+	))
+	const imported_invoices = await pool_transaction(pool, connection => import_invoices(
+		connection,
+		context_with_employees,
+		data,
+		imported_clients,
+		imported_projects.project_id_by_arbostar_lead_id,
+		imported_line_items.project_line_item_id_by_arbostar_line_item_id,
+	))
+	const imported_payments = await pool_transaction(pool, connection => import_payments(
+		connection,
+		context_with_employees,
+		data,
+		imported_clients,
+		imported_projects.project_id_by_arbostar_lead_id,
+		imported_invoices.invoice_id_by_arbostar_invoice_id,
+		imported_employees.employee_id_by_arbostar_user_id,
+	))
 
 	return {
 		...imported_employees.counts,
@@ -92,6 +103,7 @@ const import_arbostar_export = async (
 		...imported_work_skills.counts,
 		...imported_projects.counts,
 		...imported_line_items.counts,
+		...imported_invoices.counts,
 		...imported_payments.counts,
 	}
 }

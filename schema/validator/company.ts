@@ -8,6 +8,7 @@ export const validator_object = {
 	logo: jv.nullable(is_buffer),
 	brand_color: jv.is_string,
 	default_crew_start_time: is_temporal_plain_time,
+	invoice_due_after_days: jv.is_bigint,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 }

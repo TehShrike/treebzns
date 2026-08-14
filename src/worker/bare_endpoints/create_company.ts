@@ -28,6 +28,7 @@ export default async (request: Request, mysql: MysqlHelpersObject): Promise<Resp
 	const company_id = await db_create_company({
 		logo: null,
 		default_crew_start_time: Temporal.PlainTime.from('08:00'),
+		invoice_due_after_days: 30n,
 		...body.company,
 	}, {
 		...body.owner_employee,

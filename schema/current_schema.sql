@@ -60,6 +60,19 @@ CREATE TABLE `client_contact` (
   KEY `idx_client_contact_client` (`client_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE `client_credit` (
+  `client_credit_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `client_id` int unsigned NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `notes` varchar(500) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `created_by_employee_id` int unsigned NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`client_credit_id`),
+  KEY `idx_client_credit_client` (`client_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE `company` (
   `company_id` int unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(500) COLLATE utf8mb4_general_ci NOT NULL,
@@ -68,6 +81,7 @@ CREATE TABLE `company` (
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `default_crew_start_time` time NOT NULL DEFAULT '08:00:00',
+  `invoice_due_after_days` int unsigned NOT NULL DEFAULT '30',
   PRIMARY KEY (`company_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -178,6 +192,71 @@ CREATE TABLE `estimate_availability` (
   KEY `idx_estimate_availability_project` (`project_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE `invoice` (
+  `invoice_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `invoice_number` int unsigned NOT NULL,
+  `client_id` int unsigned NOT NULL,
+  `project_id` int unsigned DEFAULT NULL,
+  `billing_name` varchar(500) COLLATE utf8mb4_general_ci NOT NULL,
+  `billing_address_line_1` varchar(500) COLLATE utf8mb4_general_ci NOT NULL,
+  `billing_address_line_2` varchar(500) COLLATE utf8mb4_general_ci NOT NULL,
+  `billing_city` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `billing_state` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `billing_zip` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
+  `invoice_date` date NOT NULL,
+  `due_date` date NOT NULL,
+  `taxable` bit(1) NOT NULL,
+  `tax_rate_id` int unsigned DEFAULT NULL,
+  `tax_rate` decimal(4,4) DEFAULT NULL,
+  `subtotal` decimal(10,2) NOT NULL,
+  `taxable_subtotal` decimal(10,2) NOT NULL,
+  `discount` decimal(10,2) DEFAULT NULL,
+  `line_item_discount_subtotal` decimal(10,2) DEFAULT NULL,
+  `client_credit_applied` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `tax_total` decimal(10,2) NOT NULL,
+  `fee` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `total` decimal(10,2) NOT NULL,
+  `created_by_employee_id` int unsigned DEFAULT NULL,
+  `arbostar_invoice_id` int unsigned DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`invoice_id`),
+  UNIQUE KEY `uq_invoice_company_number` (`company_id`,`invoice_number`),
+  UNIQUE KEY `uq_invoice_company_arbostar_invoice_id` (`company_id`,`arbostar_invoice_id`),
+  KEY `idx_invoice_client` (`client_id`),
+  KEY `idx_invoice_project` (`project_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `invoice_line_item` (
+  `invoice_line_item_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `invoice_id` int unsigned NOT NULL,
+  `project_line_item_id` int unsigned DEFAULT NULL,
+  `description` varchar(200) COLLATE utf8mb4_general_ci NOT NULL,
+  `quantity` decimal(10,2) NOT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `discount_rate` decimal(5,4) DEFAULT NULL,
+  `discount` decimal(10,2) DEFAULT NULL,
+  `taxable` bit(1) NOT NULL,
+  `sort` int unsigned NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`invoice_line_item_id`),
+  KEY `idx_ili_invoice` (`invoice_id`),
+  KEY `idx_ili_project_line_item` (`project_line_item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `invoice_number` (
+  `invoice_number_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `next_number` int unsigned NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`invoice_number_id`),
+  UNIQUE KEY `uq_invoice_number_company` (`company_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE `item_type` (
   `item_type_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
@@ -227,15 +306,34 @@ CREATE TABLE `payment` (
   `payment_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
   `client_id` int unsigned NOT NULL,
+  `project_id` int unsigned DEFAULT NULL,
   `amount` decimal(12,2) NOT NULL,
+  `tip` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `merchant_fee` decimal(10,2) NOT NULL DEFAULT '0.00',
   `pay_date` date NOT NULL,
   `payment_method_id` int unsigned NOT NULL,
+  `notes` varchar(500) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `recorded_by_employee_id` int unsigned DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `arbostar_payment_id` int unsigned DEFAULT NULL,
   PRIMARY KEY (`payment_id`),
   UNIQUE KEY `uq_payment_company_arbostar_payment_id` (`company_id`,`arbostar_payment_id`),
-  KEY `idx_payment_client` (`client_id`)
+  KEY `idx_payment_client` (`client_id`),
+  KEY `idx_payment_project` (`project_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `payment_invoice` (
+  `payment_invoice_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `payment_id` int unsigned NOT NULL,
+  `invoice_id` int unsigned NOT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`payment_invoice_id`),
+  UNIQUE KEY `uq_payment_invoice` (`payment_id`,`invoice_id`),
+  KEY `idx_payment_invoice_invoice` (`invoice_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `payment_method` (
@@ -246,19 +344,6 @@ CREATE TABLE `payment_method` (
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   PRIMARY KEY (`payment_method_id`),
   UNIQUE KEY `uq_payment_method_company_name` (`company_id`,`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `payment_project` (
-  `payment_project_id` int unsigned NOT NULL AUTO_INCREMENT,
-  `company_id` int unsigned NOT NULL,
-  `payment_id` int unsigned NOT NULL,
-  `project_id` int unsigned NOT NULL,
-  `amount` decimal(12,2) NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`payment_project_id`),
-  KEY `idx_payment_project_payment` (`payment_id`),
-  KEY `idx_payment_project_project` (`project_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `permission` (
@@ -296,6 +381,9 @@ CREATE TABLE `project` (
   `tax_rate_id` int unsigned DEFAULT NULL,
   `tax_rate` decimal(4,4) DEFAULT NULL,
   `subtotal` decimal(10,2) DEFAULT NULL,
+  `taxable_subtotal` decimal(10,2) DEFAULT NULL,
+  `discount` decimal(10,2) DEFAULT NULL,
+  `line_item_discount_subtotal` decimal(10,2) DEFAULT NULL,
   `tax_total` decimal(10,2) DEFAULT NULL,
   `total` decimal(10,2) DEFAULT NULL,
   `notes_for_crew` text COLLATE utf8mb4_general_ci NOT NULL DEFAULT (_utf8mb4''),
@@ -441,6 +529,9 @@ CREATE TABLE `project_line_item` (
   `client_declined` bit(1) NOT NULL DEFAULT b'0',
   `quantity` decimal(10,2) NOT NULL,
   `price` decimal(10,2) NOT NULL,
+  `discount_rate` decimal(5,4) DEFAULT NULL,
+  `discount` decimal(10,2) DEFAULT NULL,
+  `sort` int unsigned NOT NULL,
   `done_at` datetime DEFAULT NULL,
   `done_by_employee_id` int unsigned DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),

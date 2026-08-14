@@ -4,12 +4,17 @@ Design discussion: https://claude.ai/share/f760a718-831a-413f-b700-733345c0ef90
 
 ## Status (as of 2026-08-13)
 
-The schema is settled and every question is resolved. The import plan and the
-implementation notes at the bottom are written from codebase research and checks against
-the real export data. The plan is ready to hand to an implementing agent: migrations,
-types and validators, calculation code, import changes.
+Implemented and verified: migrations 0038–0040 (applied locally), the type overrides and
+validators, `import_invoices.ts`, and the changes to the line-item, payment, and project
+importers. The full import ran against the live export for company 9. Every invoice
+`total` matches ArboStar's `total_including_tax` (936,090.07 in both). The one fee
+invoice, the allocator bump to 100,000, and the tier counts all check out. The current
+export resolves invoice 00529-I at tier 3 — it gained reconciling line rows since the
+snapshot below.
 
-UI comes later, after the schema is settled and the imports work. Also not in scope:
+Not built yet: the calculation code in `src/shared/invoice/` (`invoice_calculation.md` as
+pure functions, plus `least_of` in fnum), SUM in the query builder, the invoice-creation
+server function, and the project close flow. UI comes later. Also not in scope:
 statement/report screens, refund payouts, voiding (pulled until a real-world case shows
 up).
 

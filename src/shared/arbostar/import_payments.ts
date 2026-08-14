@@ -6,6 +6,7 @@ import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
 import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten } from '#shared/array.ts'
+import assert from '#shared/assert.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
 import { write_helper, ROWS_PER_BATCH, group_by, money, normalize_name, run_select, string_or_null } from './import_common.ts'
@@ -20,9 +21,10 @@ export type ImportedPayments = {
 		payments_no_longer_in_export: number
 		skipped_payments_without_client: number
 		skipped_payments_without_date: number
-		payment_projects_inserted: number
-		payment_projects_updated: number
-		payment_projects_deleted: number
+		payment_invoices_inserted: number
+		payment_invoices_updated: number
+		payment_invoices_deleted: number
+		skipped_allocations_without_invoice: number
 		skipped_allocations_without_project: number
 	}
 }
@@ -62,10 +64,10 @@ const earliest_date = (dates: Array<string | null>): string | null => {
 // payments.js → payment (+ payment_method), update-or-insert. These are ArboStar's real
 // payment records — correlation is arbostar_payment_id. Payment methods are naturally keyed
 // by name per company, like item_type: existing ones are reused, unseen names are inserted.
-// Each payment's ArboStar allocations (payment → estimate applications with real split
-// amounts) become the import-managed payment_project rows: allocations resolve to projects
-// through their estimate's lead, collapse to one row per (payment, project), and are
-// reconciled in place — updated, inserted, or deleted as ArboStar's allocations change.
+// payment.amount is the balance-affecting money: payment_amount minus tips. Each payment's
+// invoice allocations become the import-managed payment_invoice rows, reconciled in place —
+// updated, inserted, or deleted as ArboStar's allocations change. Estimate-only allocations
+// resolve estimate → lead → project into payment.project_id (the down-payment link).
 // In-app rows attached to non-imported payments are never touched. Payments that disappeared
 // from the export are counted, not deleted — a vanished payment usually means an
 // ArboStar-side deletion or refund worth investigating by hand.
@@ -80,6 +82,8 @@ export const import_payments = async (
 	},
 	imported_clients: ImportedClients,
 	project_id_by_arbostar_lead_id: Map<number, bigint>,
+	invoice_id_by_arbostar_invoice_id: Map<number, bigint>,
+	employee_id_by_arbostar_user_id: Map<number, bigint>,
 ): Promise<ImportedPayments> => {
 	const { client_id_by_arbostar_client_id } = imported_clients
 	const correlated = context.existing.payment_id_by_arbostar_payment_id
@@ -136,11 +140,43 @@ export const import_payments = async (
 		new_payment_methods.forEach(([normalized_name], index) => payment_method_id_by_name.set(normalized_name, insert_ids[index]!))
 	}
 
+	// The down-payment link: each payment's estimate-only allocations (no invoice yet) resolve
+	// to one project at most — verified against the export, where no estimate-only payment
+	// spans more than one lead. Allocations whose estimate/lead/project didn't resolve are
+	// dropped with a count; the payment itself still exists, just unattached.
+	let skipped_allocations_without_project = 0
+	const project_id_by_payment_id = new Map<number, bigint | null>(map(importable, payment => {
+		const estimate_only = filter(payment.allocations, allocation => allocation.invoice_id === null)
+		const resolved = map(estimate_only, allocation => {
+			const lead_id = allocation_lead_id(allocation)
+			return lead_id === null ? undefined : project_id_by_arbostar_lead_id.get(lead_id)
+		})
+		const usable = filter(resolved, project_id => project_id !== undefined)
+		skipped_allocations_without_project += resolved.length - usable.length
+		const project_ids = [...new Set(usable)]
+		assert(
+			project_ids.length <= 1,
+			`Payment ${payment.payment_id}'s estimate-only allocations must all resolve to one project – found ${project_ids.length}`,
+		)
+		return [payment.payment_id, project_ids[0] ?? null] as const
+	}))
+
+	// 0 and null payment_author both mean the system recorded it.
+	const recorded_by_employee_id = (payment: ArbostarPayment): bigint | null =>
+		(payment.payment_author === null || payment.payment_author === 0
+			? null
+			: employee_id_by_arbostar_user_id.get(payment.payment_author) ?? null)
+
 	const payment_fields = (payment: ArbostarPayment) => ({
 		client_id: client_id_by_arbostar_client_id.get(payment.client_id)!,
-		amount: money(payment.payment_amount),
+		project_id: project_id_by_payment_id.get(payment.payment_id) ?? null,
+		amount: money(payment.payment_amount).minus(money(payment.payment_tips)),
+		tip: money(payment.payment_tips),
+		merchant_fee: money(payment.payment_fee),
 		pay_date: pay_date(payment)!,
 		payment_method_id: payment_method_id_by_name.get(normalize_name(payment_method_name(payment)))!,
+		notes: string_or_null(payment.payment_notes) ?? '',
+		recorded_by_employee_id: recorded_by_employee_id(payment),
 	})
 
 	const existing_payments = filter(importable, payment => correlated.has(payment.payment_id))
@@ -168,65 +204,63 @@ export const import_payments = async (
 		new_payments.forEach((payment, index) => payment_id_by_arbostar_payment_id.set(payment.payment_id, insert_ids[index]!))
 	}
 
-	// ArboStar's allocations, resolved to projects and collapsed to one desired row per
-	// (payment, project). Allocations whose lead didn't resolve (no lead, or the lead has no
-	// project) are dropped — the payment itself still exists, just unattached.
-	let skipped_allocations = 0
+	// ArboStar's invoice allocations, resolved to imported invoices and collapsed to one
+	// desired row per (payment, invoice). Allocations whose invoice isn't imported (missing
+	// from the export) are dropped with a count.
+	let skipped_allocations_without_invoice = 0
 	const desired = flatten(map(importable, payment => {
 		const local_payment_id = payment_id_by_arbostar_payment_id.get(payment.payment_id)!
-		const resolved = map(payment.allocations, allocation => {
-			const lead_id = allocation_lead_id(allocation)
-			return {
-				project_id: lead_id === null ? undefined : project_id_by_arbostar_lead_id.get(lead_id),
-				amount: allocation.amount ?? 0,
-			}
-		})
-		const usable = filter(resolved, allocation => allocation.project_id !== undefined)
-		skipped_allocations += resolved.length - usable.length
+		const with_invoice = filter(payment.allocations, allocation => allocation.invoice_id !== null)
+		const resolved = map(with_invoice, allocation => ({
+			invoice_id: invoice_id_by_arbostar_invoice_id.get(allocation.invoice_id!),
+			amount: allocation.amount ?? 0,
+		}))
+		const usable = filter(resolved, allocation => allocation.invoice_id !== undefined)
+		skipped_allocations_without_invoice += resolved.length - usable.length
 		return map(
-			[...group_by(usable, allocation => allocation.project_id!).entries()],
-			([project_id, allocations]) => ({
-				payment_project_key: `${local_payment_id}:${project_id}`,
+			[...group_by(usable, allocation => allocation.invoice_id!).entries()],
+			([invoice_id, allocations]) => ({
+				payment_invoice_key: `${local_payment_id}:${invoice_id}`,
 				payment_id: local_payment_id,
-				project_id,
-				amount: money(allocations.reduce((sum, allocation) => sum + allocation.amount, 0)),
+				invoice_id,
+				amount: allocations.reduce((sum, allocation) => sum.plus(money(allocation.amount)), money(0)),
 			}),
 		)
 	}))
 
-	// Reconcile against the import-managed payment_project rows (those belonging to
+	// Reconcile against the import-managed payment_invoice rows (those belonging to
 	// already-correlated payments — new payments can't have any yet).
 	const existing_payment_ids = new Set(correlated.values())
-	const payment_project_query = query_builder<Schema>()
-		.from('payment_project')
-		.where(b => b.comparison('payment_project.company_id', '=', { value: context.company_id }))
-		.select(() => ['payment_project.payment_project_id', 'payment_project.payment_id', 'payment_project.project_id'])
+	const payment_invoice_query = query_builder<Schema>()
+		.from('payment_invoice')
+		.where(b => b.comparison('payment_invoice.company_id', '=', { value: context.company_id }))
+		.select(() => ['payment_invoice.payment_invoice_id', 'payment_invoice.payment_id', 'payment_invoice.invoice_id'])
 		.build()
-	const payment_project_rows = existing_payment_ids.size === 0 ? [] : await run_select(connection, payment_project_query)
-	const existing_pp = new Map<string, bigint>(map(
-		filter(payment_project_rows, row => existing_payment_ids.has(BigInt(row.payment_project.payment_id))),
+	const payment_invoice_rows = existing_payment_ids.size === 0 ? [] : await run_select(connection, payment_invoice_query)
+	const existing_pi = new Map<string, bigint>(map(
+		filter(payment_invoice_rows, row => existing_payment_ids.has(BigInt(row.payment_invoice.payment_id))),
 		row => [
-			`${BigInt(row.payment_project.payment_id)}:${BigInt(row.payment_project.project_id)}`,
-			BigInt(row.payment_project.payment_project_id),
+			`${BigInt(row.payment_invoice.payment_id)}:${BigInt(row.payment_invoice.invoice_id)}`,
+			BigInt(row.payment_invoice.payment_invoice_id),
 		] as const,
 	))
 
-	const desired_payment_project_keys = new Set(map(desired, ({ payment_project_key }) => payment_project_key))
-	const pp_inserts = filter(desired, ({ payment_project_key }) => !existing_pp.has(payment_project_key))
-	const pp_updates = filter(desired, ({ payment_project_key }) => existing_pp.has(payment_project_key))
-	const pp_delete_ids = map(
-		filter([...existing_pp.entries()], ([payment_project_key]) => !desired_payment_project_keys.has(payment_project_key)),
-		([, payment_project_id]) => payment_project_id,
+	const desired_payment_invoice_keys = new Set(map(desired, ({ payment_invoice_key }) => payment_invoice_key))
+	const pi_inserts = filter(desired, ({ payment_invoice_key }) => !existing_pi.has(payment_invoice_key))
+	const pi_updates = filter(desired, ({ payment_invoice_key }) => existing_pi.has(payment_invoice_key))
+	const pi_delete_ids = map(
+		filter([...existing_pi.entries()], ([payment_invoice_key]) => !desired_payment_invoice_keys.has(payment_invoice_key)),
+		([, payment_invoice_id]) => payment_invoice_id,
 	)
 
-	if (pp_inserts.length > 0) {
+	if (pi_inserts.length > 0) {
 		await write_helper.bulk_insert(
 			connection,
-			'payment_project',
-			map(pp_inserts, ({ payment_id, project_id, amount }) => ({
+			'payment_invoice',
+			map(pi_inserts, ({ payment_id, invoice_id, amount }) => ({
 				company_id: context.company_id,
 				payment_id,
-				project_id,
+				invoice_id,
 				amount,
 			})),
 			ROWS_PER_BATCH,
@@ -234,18 +268,18 @@ export const import_payments = async (
 	}
 	await write_helper.bulk_update(
 		connection,
-		'payment_project',
-		'payment_project_id',
-		map(pp_updates, ({ payment_project_key, amount }) => ({
-			key: existing_pp.get(payment_project_key)!,
+		'payment_invoice',
+		'payment_invoice_id',
+		map(pi_updates, ({ payment_invoice_key, amount }) => ({
+			key: existing_pi.get(payment_invoice_key)!,
 			set: { amount },
 		})),
 		ROWS_PER_BATCH,
 	)
-	if (pp_delete_ids.length > 0) {
-		const id_list = map(pp_delete_ids, escape_value).join(', ')
+	if (pi_delete_ids.length > 0) {
+		const id_list = map(pi_delete_ids, escape_value).join(', ')
 		await connection.query<ResultSetHeader>(
-			`DELETE FROM payment_project WHERE payment_project_id IN (${id_list})`,
+			`DELETE FROM payment_invoice WHERE payment_invoice_id IN (${id_list})`,
 		)
 	}
 
@@ -260,10 +294,11 @@ export const import_payments = async (
 			payments_no_longer_in_export: no_longer_in_export,
 			skipped_payments_without_client: payments.length - with_client.length,
 			skipped_payments_without_date: with_client.length - importable.length,
-			payment_projects_inserted: pp_inserts.length,
-			payment_projects_updated: pp_updates.length,
-			payment_projects_deleted: pp_delete_ids.length,
-			skipped_allocations_without_project: skipped_allocations,
+			payment_invoices_inserted: pi_inserts.length,
+			payment_invoices_updated: pi_updates.length,
+			payment_invoices_deleted: pi_delete_ids.length,
+			skipped_allocations_without_invoice,
+			skipped_allocations_without_project,
 		},
 	}
 }

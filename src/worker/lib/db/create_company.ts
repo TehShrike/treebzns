@@ -56,6 +56,11 @@ export const create_company = async (
 		})
 
 		await mysql.query({
+			sql: 'INSERT INTO invoice_number SET ?',
+			values: { company_id },
+		})
+
+		await mysql.query({
 			sql: 'INSERT INTO payment_method (company_id, name) VALUES ?',
 			values: [map(default_payment_method_names, name => [company_id, name])],
 		})

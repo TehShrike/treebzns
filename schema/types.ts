@@ -4,6 +4,7 @@ export type Schema = {
 	client: DbClient
 	client_address: DbClientAddress
 	client_contact: DbClientContact
+	client_credit: DbClientCredit
 	company: DbCompany
 	crew: DbCrew
 	crew_regular: DbCrewRegular
@@ -13,13 +14,16 @@ export type Schema = {
 	employee_software_role: DbEmployeeSoftwareRole
 	employee_work_skill: DbEmployeeWorkSkill
 	estimate_availability: DbEstimateAvailability
+	invoice: DbInvoice
+	invoice_line_item: DbInvoiceLineItem
+	invoice_number: DbInvoiceNumber
 	item_type: DbItemType
 	line_item_template: DbLineItemTemplate
 	line_item_template_work_skill: DbLineItemTemplateWorkSkill
 	migration: DbMigration
 	payment: DbPayment
+	payment_invoice: DbPaymentInvoice
 	payment_method: DbPaymentMethod
-	payment_project: DbPaymentProject
 	permission: DbPermission
 	project: DbProject
 	project_client_approval: DbProjectClientApproval
@@ -45,6 +49,7 @@ export type InsertableSchema = {
 	client: DbInsertableClient
 	client_address: DbInsertableClientAddress
 	client_contact: DbInsertableClientContact
+	client_credit: DbInsertableClientCredit
 	company: DbInsertableCompany
 	crew: DbInsertableCrew
 	crew_regular: DbInsertableCrewRegular
@@ -54,13 +59,16 @@ export type InsertableSchema = {
 	employee_software_role: DbInsertableEmployeeSoftwareRole
 	employee_work_skill: DbInsertableEmployeeWorkSkill
 	estimate_availability: DbInsertableEstimateAvailability
+	invoice: DbInsertableInvoice
+	invoice_line_item: DbInsertableInvoiceLineItem
+	invoice_number: DbInsertableInvoiceNumber
 	item_type: DbInsertableItemType
 	line_item_template: DbInsertableLineItemTemplate
 	line_item_template_work_skill: DbInsertableLineItemTemplateWorkSkill
 	migration: DbInsertableMigration
 	payment: DbInsertablePayment
+	payment_invoice: DbInsertablePaymentInvoice
 	payment_method: DbInsertablePaymentMethod
-	payment_project: DbInsertablePaymentProject
 	permission: DbInsertablePermission
 	project: DbInsertableProject
 	project_client_approval: DbInsertableProjectClientApproval

@@ -2,6 +2,11 @@ import * as jv from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
 import { is_financial_number, is_temporal_instant, is_temporal_plain_date } from './_helpers.ts'
 
+const taxed = { taxable: jv.exact<true>(true), tax_rate_id: jv.is_bigint, tax_rate: is_financial_number } as const
+const untaxed = { taxable: jv.exact<false>(false), tax_rate_id: jv.is_null, tax_rate: jv.is_null } as const
+const header_discount = { discount: is_financial_number, line_item_discount_subtotal: jv.is_null } as const
+const line_discounts = { discount: jv.is_null, line_item_discount_subtotal: jv.nullable(is_financial_number) } as const
+
 export const validator_object = {
 	project_id: jv.is_bigint,
 	company_id: jv.is_bigint,
@@ -23,10 +28,8 @@ export const validator_object = {
 	updated_at: is_temporal_instant,
 	needs_client_approval: jv.is_boolean,
 	sent_for_client_approval: jv.is_boolean,
-	taxable: jv.is_boolean,
-	tax_rate_id: jv.nullable(jv.is_bigint),
-	tax_rate: jv.nullable(is_financial_number),
 	subtotal: jv.nullable(is_financial_number),
+	taxable_subtotal: jv.nullable(is_financial_number),
 	tax_total: jv.nullable(is_financial_number),
 	total: jv.nullable(is_financial_number),
 	notes_for_crew: jv.is_string,
@@ -36,30 +39,25 @@ export const validator_object = {
 	closed_date: jv.nullable(is_temporal_plain_date),
 	project_decline_reason_id: jv.nullable(jv.is_bigint),
 	lead_source: jv.is_string,
+	contact_name: jv.is_string,
+	contact_phone: jv.is_string,
+	contact_email: jv.is_string,
+	latitude: jv.nullable(jv.is_number),
+	longitude: jv.nullable(jv.is_number),
 }
 
-type FlatTaxFields = { taxable: boolean; tax_rate_id: bigint | null; tax_rate: unknown }
+export const project_validator: jv.Validator<DbProject> = jv.one_of(
+	jv.object({ ...validator_object, ...taxed, ...header_discount }),
+	jv.object({ ...validator_object, ...taxed, ...line_discounts }),
+	jv.object({ ...validator_object, ...untaxed, ...header_discount }),
+	jv.object({ ...validator_object, ...untaxed, ...line_discounts }),
+)
 
-const tax_fields_consistent = (input: FlatTaxFields): boolean =>
-	input.taxable
-		? input.tax_rate_id !== null && input.tax_rate !== null
-		: input.tax_rate_id === null && input.tax_rate === null
+const insertable_validator_object = omit(validator_object, ['project_id', 'created_at', 'updated_at'])
 
-const with_tax_consistency = <NARROWED extends FlatTaxFields>(
-	flat_validator: jv.Validator<FlatTaxFields>,
-): jv.Validator<NARROWED> => jv.custom({
-	is_valid: (input): input is NARROWED => flat_validator.is_valid(input) && tax_fields_consistent(input),
-	get_messages: (input, name) => {
-		const messages = flat_validator.get_messages(input, name)
-		if (messages.length === 0 && !tax_fields_consistent(input as FlatTaxFields)) {
-			return [`"${name}.tax_rate_id" and "${name}.tax_rate" are non-null exactly when "${name}.taxable" is true`]
-		}
-		return messages
-	},
-})
-
-export const project_validator: jv.Validator<DbProject> = with_tax_consistency<DbProject>(jv.object(validator_object))
-
-export const insertable_project_validator: jv.Validator<DbInsertableProject> = with_tax_consistency<DbInsertableProject>(
-	jv.object(omit(validator_object, ['project_id', 'created_at', 'updated_at'])),
+export const insertable_project_validator: jv.Validator<DbInsertableProject> = jv.one_of(
+	jv.object({ ...insertable_validator_object, ...taxed, ...header_discount }),
+	jv.object({ ...insertable_validator_object, ...taxed, ...line_discounts }),
+	jv.object({ ...insertable_validator_object, ...untaxed, ...header_discount }),
+	jv.object({ ...insertable_validator_object, ...untaxed, ...line_discounts }),
 )
