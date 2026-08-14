@@ -63,6 +63,15 @@ export const map = <T, U>(arr: readonly T[], mapper: MapperWithIndex<T, U>): U[]
 	return res
 }
 
+export const reduce = <T, U>(arr: readonly T[], initial: U, fn: (acc: U, item: T, index: number) => U): U => {
+	let acc = initial
+	const length = arr.length
+	for (let i = 0; i < length; i++) {
+		acc = fn(acc, arr[i] as T, i)
+	}
+	return acc
+}
+
 export const chunk = <T>(arr: readonly T[], size: number): T[][] => {
 	const res: T[][] = []
 	for (let i = 0; i < arr.length; i += size) {
