@@ -1,7 +1,9 @@
+import { Temporal } from '@js-temporal/polyfill'
 import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
 import { password_hash } from '#worker/lib/password_hash.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_query_builder from '#shared/treebzns_db/safe_query_builder.ts'
+import write_helper from '#worker/lib/mysql/write_helper.ts'
 import type { Schema } from '#schema/types.ts'
 
 type LogInArg = {
@@ -51,11 +53,16 @@ export const log_in = async ({ email_or_login_name, password, user_agent }: LogI
 	}
 
 	const session_identifier = crypto.randomUUID()
-	await mysql.query({
-		sql: `INSERT INTO employee_session
-			(employee_id, identifier, sign_in_user_agent, last_seen_user_agent, last_seen_at, invalidated)
-			VALUES (?, UUID_TO_BIN(?), ?, ?, UTC_TIMESTAMP(), 0)`,
-		values: [employee.employee_id, session_identifier, user_agent, user_agent],
+	const now = Temporal.Now.instant()
+	await write_helper.insert(mysql.connection, 'employee_session', {
+		employee_id: employee.employee_id,
+		// The same bytes UUID_TO_BIN produces, so session lookups that use UUID_TO_BIN match.
+		identifier: Buffer.from(session_identifier.replaceAll('-', ''), 'hex'),
+		invalidated: false,
+		sign_in_user_agent: user_agent,
+		signed_in_at: now,
+		last_seen_user_agent: user_agent,
+		last_seen_at: now,
 	})
 
 	return { logged_in: true, session_identifier }
