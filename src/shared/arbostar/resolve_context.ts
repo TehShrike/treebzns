@@ -6,53 +6,41 @@
 import type { Pool } from 'mysql2/promise'
 import assert from '#shared/assert.ts'
 import { map, filter, flatten, every } from '#shared/array.ts'
-import query_builder from '#shared/sql_request/typed_query_builder.ts'
-import type { Schema } from '#schema/types.ts'
-import { normalize_name, identity_key, run_select } from './import_common.ts'
+import { normalize_name, identity_key, make_tenanted_select } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { load_existing_correlations } from './load_existing_correlations.ts'
 
 export const resolve_context = async (pool: Pool, company_id: bigint): Promise<ArbostarImportContext> => {
-	const company_query = query_builder<Schema>()
-		.from('company')
-		.where(b => b.comparison('company.company_id', '=', { value: company_id }))
-		.select(() => ['company.company_id'])
-		.build()
-	const employee_query = query_builder<Schema>()
-		.from('employee')
-		.where(b => b.comparison('employee.company_id', '=', { value: company_id }))
-		.order_by('employee.is_owner', 'DESC')
-		.select(() => ['employee.employee_id', 'employee.name', 'employee.email', 'employee.login_name'])
-		.build()
-	const document_query = query_builder<Schema>()
-		.from('project_document')
-		.select(() => [
-			'project_document.project_document_id',
-			'project_document.needs_to_be_contacted_by_lead_qualifier',
-			'project_document.needs_estimate_to_move_on',
-			'project_document.needs_client_approval_to_move_on',
-			'project_document.should_be_worked',
-			'project_document.represents_billable_sale_when_closed',
-			'project_document.declined',
-			'project_document.closed_by_default',
-			'project_document.declined_project_document_id',
-		])
-		.build()
-	const decline_reason_query = query_builder<Schema>()
-		.from('project_decline_reason')
-		.where(b => b.comparison('project_decline_reason.company_id', '=', { value: company_id }))
-		.select(() => [
-			'project_decline_reason.project_decline_reason_id',
-			'project_decline_reason.reason',
-		])
-		.build()
+	const tenanted_select = make_tenanted_select(company_id)
 
 	const [company_rows, employee_rows, document_rows, decline_reason_rows, existing] = await Promise.all([
-		run_select(pool, company_query),
-		run_select(pool, employee_query),
-		run_select(pool, document_query),
-		run_select(pool, decline_reason_query),
-		load_existing_correlations(pool, company_id),
+		tenanted_select(pool, q => q
+			.from('company')
+			.select(() => ['company.company_id'])),
+		tenanted_select(pool, q => q
+			.from('employee')
+			.order_by('employee.is_owner', 'DESC')
+			.select(() => ['employee.employee_id', 'employee.name', 'employee.email', 'employee.login_name'])),
+		tenanted_select(pool, q => q
+			.from('project_document')
+			.select(() => [
+				'project_document.project_document_id',
+				'project_document.needs_to_be_contacted_by_lead_qualifier',
+				'project_document.needs_estimate_to_move_on',
+				'project_document.needs_client_approval_to_move_on',
+				'project_document.should_be_worked',
+				'project_document.represents_billable_sale_when_closed',
+				'project_document.declined',
+				'project_document.closed_by_default',
+				'project_document.declined_project_document_id',
+			])),
+		tenanted_select(pool, q => q
+			.from('project_decline_reason')
+			.select(() => [
+				'project_decline_reason.project_decline_reason_id',
+				'project_decline_reason.reason',
+			])),
+		load_existing_correlations(pool, tenanted_select),
 	])
 
 	assert(company_rows.length === 1, `Company ${company_id} does not exist`)
@@ -91,6 +79,7 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 
 	return {
 		company_id,
+		tenanted_select,
 		created_by_employee_id: BigInt(employee_rows[0]!.employee.employee_id),
 		project_document_ids: {
 			lead_unqualified: document_id({ needs_to_be_contacted_by_lead_qualifier: true }),

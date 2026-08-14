@@ -232,7 +232,7 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoi
 	build: () => BuiltQuery<FlattenRow<Row>>
 }
 
-type QueryBuilder<Schema extends SchemaColumnTypes> = {
+export type QueryBuilder<Schema extends SchemaColumnTypes> = {
 	from: <S extends TableAliasArg<Schema>>(
 		table_alias: S,
 	) => Stage<Schema, ParseTableAlias<S, Schema>>

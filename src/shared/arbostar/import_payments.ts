@@ -7,9 +7,7 @@ import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
-import query_builder from '#shared/sql_request/typed_query_builder.ts'
-import type { Schema } from '#schema/types.ts'
-import { write_helper, ROWS_PER_BATCH, group_by, money, normalize_name, run_select, string_or_null } from './import_common.ts'
+import { write_helper, ROWS_PER_BATCH, group_by, money, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 
@@ -231,12 +229,9 @@ export const import_payments = async (
 	// Reconcile against the import-managed payment_invoice rows (those belonging to
 	// already-correlated payments — new payments can't have any yet).
 	const existing_payment_ids = new Set(correlated.values())
-	const payment_invoice_query = query_builder<Schema>()
+	const payment_invoice_rows = existing_payment_ids.size === 0 ? [] : await context.tenanted_select(connection, q => q
 		.from('payment_invoice')
-		.where(b => b.comparison('payment_invoice.company_id', '=', { value: context.company_id }))
-		.select(() => ['payment_invoice.payment_invoice_id', 'payment_invoice.payment_id', 'payment_invoice.invoice_id'])
-		.build()
-	const payment_invoice_rows = existing_payment_ids.size === 0 ? [] : await run_select(connection, payment_invoice_query)
+		.select(() => ['payment_invoice.payment_invoice_id', 'payment_invoice.payment_id', 'payment_invoice.invoice_id']))
 	const existing_pi = new Map<string, bigint>(map(
 		filter(payment_invoice_rows, row => existing_payment_ids.has(BigInt(row.payment_invoice.payment_id))),
 		row => [

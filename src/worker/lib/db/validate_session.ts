@@ -2,7 +2,7 @@ import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.
 import { employee, company } from '#schema/all_table_column_names.ts'
 import type { Schema } from '#schema/types.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
-import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
+import safe_query_builder from '#shared/treebzns_db/safe_query_builder.ts'
 
 const employee_columns = [
 	`employee.${employee.employee_id}`,

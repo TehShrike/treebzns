@@ -6,9 +6,7 @@ import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import number from '#shared/fnum.ts'
-import query_builder from '#shared/sql_request/typed_query_builder.ts'
-import type { Schema } from '#schema/types.ts'
-import { write_helper, ROWS_PER_BATCH, group_by, money, run_select } from './import_common.ts'
+import { write_helper, ROWS_PER_BATCH, group_by, money } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
@@ -85,21 +83,15 @@ export const import_invoices = async (
 		)
 	}
 
-	const company_query = query_builder<Schema>()
+	const [company_row] = await context.tenanted_select(connection, q => q
 		.from('company')
-		.where(b => b.comparison('company.company_id', '=', { value: context.company_id }))
-		.select(() => ['company.invoice_due_after_days'])
-		.build()
-	const [company_row] = await run_select(connection, company_query)
+		.select(() => ['company.invoice_due_after_days']))
 	assert(company_row, `Company ${context.company_id} must have a company row`)
 	const due_after_days = Number(company_row.company.invoice_due_after_days)
 
-	const tax_rate_query = query_builder<Schema>()
+	const tax_rate_rows = await context.tenanted_select(connection, q => q
 		.from('tax_rate')
-		.where(b => b.comparison('tax_rate.company_id', '=', { value: context.company_id }))
-		.select(() => ['tax_rate.tax_rate_id', 'tax_rate.tax_rate'])
-		.build()
-	const tax_rate_rows = await run_select(connection, tax_rate_query)
+		.select(() => ['tax_rate.tax_rate_id', 'tax_rate.tax_rate']))
 	const candidates = filter(
 		map(tax_rate_rows, row => ({
 			tax_rate_id: BigInt(row.tax_rate.tax_rate_id),
@@ -111,10 +103,9 @@ export const import_invoices = async (
 
 	// The client's in-app billing address, when one is named — imported invoices snapshot it,
 	// falling back to the primary address the import manages.
-	const billing_address_query = query_builder<Schema>()
+	const billing_address_rows = await context.tenanted_select(connection, q => q
 		.from('client')
 		.join('client_address', b => b.comparison('client.billing_client_address_id', '=', 'client_address.client_address_id'))
-		.where(b => b.comparison('client.company_id', '=', { value: context.company_id }))
 		.select(() => [
 			'client.client_id',
 			'client_address.address_line_1',
@@ -122,9 +113,7 @@ export const import_invoices = async (
 			'client_address.city',
 			'client_address.state',
 			'client_address.zip',
-		])
-		.build()
-	const billing_address_rows = await run_select(connection, billing_address_query)
+		]))
 	const billing_address_by_client_id = new Map(map(
 		billing_address_rows,
 		row => [BigInt(row.client.client_id), row.client_address] as const,

@@ -2,7 +2,10 @@
 // own module (import_employees / import_clients / import_projects / import_line_items /
 // import_payments); shared plumbing is in import_common.ts, and arbostar_import_notes.md
 // documents what does and doesn't survive the mapping.
-import type { Pool } from 'mysql2/promise'
+import type { Connection, Pool } from 'mysql2/promise'
+import { map, filter } from '#shared/array.ts'
+import query_builder from '#shared/sql_request/typed_query_builder.ts'
+import type { Schema } from '#schema/types.ts'
 import type { ArbostarClient } from '#arbostar_export/clients.d.ts'
 import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
 import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
@@ -15,6 +18,7 @@ import type { ArbostarUser } from '#arbostar_export/users.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
 import type { ArbostarCrewRole } from '#arbostar_export/crew_roles.d.ts'
 import { pool_transaction } from '#worker/lib/mysql/helpers.ts'
+import { identity_key, run_select } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { resolve_context } from './resolve_context.ts'
 import { import_employees } from './import_employees.ts'
@@ -39,6 +43,25 @@ export type ArbostarExportData = {
 	crew_roles: ArbostarCrewRole[]
 }
 
+// Identity columns (email / login_name) are globally unique across companies, so the
+// insert-collision check must see every company's identities. This is the one deliberately
+// non-tenanted query in the import — it lives up here so the per-entity importers only ever
+// build tenanted queries.
+const load_taken_identity_keys = async (connection: Connection): Promise<Set<string>> => {
+	const identity_query = query_builder<Schema>()
+		.from('employee')
+		.select(() => ['employee.email', 'employee.login_name'])
+		.build()
+	const identity_rows = await run_select(connection, identity_query)
+	return new Set(map(
+		filter(
+			[...map(identity_rows, row => row.employee.email), ...map(identity_rows, row => row.employee.login_name)],
+			value => value !== null,
+		),
+		value => identity_key(value!),
+	))
+}
+
 const import_arbostar_export = async (
 	pool: Pool,
 	company_id: bigint,
@@ -58,7 +81,7 @@ const import_arbostar_export = async (
 	// users, not just pre-existing employees. Clients and work skills don't consume it, so
 	// they load alongside.
 	const [imported_employees, imported_clients, imported_work_skills] = await Promise.all([
-		pool_transaction(pool, connection => import_employees(connection, context, data.users)),
+		pool_transaction(pool, connection => import_employees(connection, context, data.users, () => load_taken_identity_keys(connection))),
 		pool_transaction(pool, connection => import_clients(connection, context, data.clients)),
 		pool_transaction(pool, connection => import_work_skills(connection, context, data.crew_roles)),
 	])

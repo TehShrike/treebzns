@@ -6,6 +6,8 @@ import * as schema from '#schema/all_table_column_names.ts'
 import * as insertable_schema from '#schema/insertable_table_column_names.ts'
 import typed_write_helper from '#shared/sql_request/typed_write_helper.ts'
 import { make_safe_query_builder } from '#shared/sql_request/safe_sql_query.ts'
+import query_builder, { type BuiltQuery, type QueryBuilder } from '#shared/sql_request/typed_query_builder.ts'
+import { make_tenanted_query } from '#shared/treebzns_db/tenanted_query_builder.ts'
 import { map, filter } from '#shared/array.ts'
 import arbostar_number_to_fnum from './arbostar_number_to_fnum.ts'
 import type { ExistingCorrelations } from './load_existing_correlations.ts'
@@ -18,6 +20,7 @@ const { to_sql } = make_safe_query_builder(schema)
 
 // Accepts a pool as well as a connection: pool-run selects each use their own connection, so
 // independent queries genuinely run in parallel instead of pipelining on one connection.
+// Adds no tenant filter — use tenanted_select unless the query is deliberately global.
 export const run_select = async <Row>(
 	connection: Connection | Pool,
 	built: { query: Parameters<typeof to_sql>[0]; positional_row_to_named: (row: unknown[]) => Row },
@@ -27,6 +30,20 @@ export const run_select = async <Row>(
 	return map(rows as unknown as unknown[][], row => built.positional_row_to_named(row))
 }
 
+export type TenantedSelect = <Row>(
+	connection: Connection | Pool,
+	build: (q: QueryBuilder<Schema>) => { build: () => BuiltQuery<Row> },
+) => Promise<Row[]>
+
+export const make_tenanted_select = (company_id: bigint): TenantedSelect =>
+	async (connection, build) => {
+		const built = build(query_builder<Schema>()).build()
+		return run_select(connection, {
+			query: make_tenanted_query(built.query, company_id),
+			positional_row_to_named: built.positional_row_to_named,
+		})
+	}
+
 // Employees need at least one identity column; users without one (or whose identity collides
 // with the globally unique email/login_name keys) get a synthesized address. Scoped by company
 // because two ArboStar tenants can both have a user 5.
@@ -35,6 +52,8 @@ export const placeholder_email = (company_id: bigint, arbostar_user_id: number):
 
 export type ArbostarImportContext = {
 	company_id: bigint
+	// Runs a typed query with the tenant filter added automatically (see make_tenanted_select).
+	tenanted_select: TenantedSelect
 	// Imported projects are attributed to this employee (project.created_by_employee_id).
 	created_by_employee_id: bigint
 	// Resolved from the global project_document codebook by behavior flags (see resolve_context).

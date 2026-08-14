@@ -3,9 +3,7 @@
 // memory. On a company's first import every map is empty.
 import type { Connection, Pool } from 'mysql2/promise'
 import { map, filter } from '#shared/array.ts'
-import query_builder from '#shared/sql_request/typed_query_builder.ts'
-import { run_select, normalize_name } from './import_common.ts'
-import type { Schema } from '#schema/types.ts'
+import { normalize_name, type TenantedSelect } from './import_common.ts'
 
 export type ExistingCorrelations = {
 	employee_id_by_arbostar_user_id: Map<number, bigint>
@@ -42,76 +40,42 @@ const correlation_map = <Row>(
 
 export const load_existing_correlations = async (
 	connection: Connection | Pool,
-	company_id: bigint,
+	tenanted_select: TenantedSelect,
 ): Promise<ExistingCorrelations> => {
-	const employee_query = query_builder<Schema>()
-		.from('employee')
-		.where(b => b.comparison('employee.company_id', '=', { value: company_id }))
-		.select(() => ['employee.employee_id', 'employee.arbostar_user_id'])
-		.build()
-	const client_query = query_builder<Schema>()
-		.from('client')
-		.where(b => b.comparison('client.company_id', '=', { value: company_id }))
-		.select(() => ['client.client_id', 'client.arbostar_client_id', 'client.primary_client_address_id'])
-		.build()
-	const project_query = query_builder<Schema>()
-		.from('project')
-		.where(b => b.comparison('project.company_id', '=', { value: company_id }))
-		.select(() => ['project.project_id', 'project.number'])
-		.build()
-	const invoice_query = query_builder<Schema>()
-		.from('invoice')
-		.where(b => b.comparison('invoice.company_id', '=', { value: company_id }))
-		.select(() => ['invoice.invoice_id', 'invoice.arbostar_invoice_id'])
-		.build()
-	const payment_query = query_builder<Schema>()
-		.from('payment')
-		.where(b => b.comparison('payment.company_id', '=', { value: company_id }))
-		.select(() => ['payment.payment_id', 'payment.arbostar_payment_id'])
-		.build()
-	const contact_query = query_builder<Schema>()
-		.from('client_contact')
-		.where(b => b.comparison('client_contact.company_id', '=', { value: company_id }))
-		.select(() => ['client_contact.client_contact_id', 'client_contact.arbostar_contact_id'])
-		.build()
-	const line_item_query = query_builder<Schema>()
-		.from('project_line_item')
-		.where(b => b.comparison('project_line_item.company_id', '=', { value: company_id }))
-		.select(() => ['project_line_item.project_line_item_id', 'project_line_item.arbostar_line_item_id'])
-		.build()
-	const item_type_query = query_builder<Schema>()
-		.from('item_type')
-		.where(b => b.comparison('item_type.company_id', '=', { value: company_id }))
-		.select(() => ['item_type.item_type_id', 'item_type.name'])
-		.build()
-	const payment_method_query = query_builder<Schema>()
-		.from('payment_method')
-		.where(b => b.comparison('payment_method.company_id', '=', { value: company_id }))
-		.select(() => ['payment_method.payment_method_id', 'payment_method.name'])
-		.build()
-	const tax_rate_query = query_builder<Schema>()
-		.from('tax_rate')
-		.where(b => b.comparison('tax_rate.company_id', '=', { value: company_id }))
-		.select(() => ['tax_rate.tax_rate_id', 'tax_rate.name', 'tax_rate.tax_rate'])
-		.build()
-	const work_skill_query = query_builder<Schema>()
-		.from('work_skill')
-		.where(b => b.comparison('work_skill.company_id', '=', { value: company_id }))
-		.select(() => ['work_skill.work_skill_id', 'work_skill.name'])
-		.build()
-
 	const [employees, clients, projects, invoices, payments, contacts, line_items, item_types, payment_methods, tax_rates, work_skills] = await Promise.all([
-		run_select(connection, employee_query),
-		run_select(connection, client_query),
-		run_select(connection, project_query),
-		run_select(connection, invoice_query),
-		run_select(connection, payment_query),
-		run_select(connection, contact_query),
-		run_select(connection, line_item_query),
-		run_select(connection, item_type_query),
-		run_select(connection, payment_method_query),
-		run_select(connection, tax_rate_query),
-		run_select(connection, work_skill_query),
+		tenanted_select(connection, q => q
+			.from('employee')
+			.select(() => ['employee.employee_id', 'employee.arbostar_user_id'])),
+		tenanted_select(connection, q => q
+			.from('client')
+			.select(() => ['client.client_id', 'client.arbostar_client_id', 'client.primary_client_address_id'])),
+		tenanted_select(connection, q => q
+			.from('project')
+			.select(() => ['project.project_id', 'project.number'])),
+		tenanted_select(connection, q => q
+			.from('invoice')
+			.select(() => ['invoice.invoice_id', 'invoice.arbostar_invoice_id'])),
+		tenanted_select(connection, q => q
+			.from('payment')
+			.select(() => ['payment.payment_id', 'payment.arbostar_payment_id'])),
+		tenanted_select(connection, q => q
+			.from('client_contact')
+			.select(() => ['client_contact.client_contact_id', 'client_contact.arbostar_contact_id'])),
+		tenanted_select(connection, q => q
+			.from('project_line_item')
+			.select(() => ['project_line_item.project_line_item_id', 'project_line_item.arbostar_line_item_id'])),
+		tenanted_select(connection, q => q
+			.from('item_type')
+			.select(() => ['item_type.item_type_id', 'item_type.name'])),
+		tenanted_select(connection, q => q
+			.from('payment_method')
+			.select(() => ['payment_method.payment_method_id', 'payment_method.name'])),
+		tenanted_select(connection, q => q
+			.from('tax_rate')
+			.select(() => ['tax_rate.tax_rate_id', 'tax_rate.name', 'tax_rate.tax_rate'])),
+		tenanted_select(connection, q => q
+			.from('work_skill')
+			.select(() => ['work_skill.work_skill_id', 'work_skill.name'])),
 	])
 
 	return {

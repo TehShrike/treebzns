@@ -2,9 +2,7 @@ import type { Connection } from 'mysql2/promise'
 import type { ArbostarUser } from '#arbostar_export/users.d.ts'
 import { DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS } from '#worker/lib/employee.ts'
 import { map, filter } from '#shared/array.ts'
-import query_builder from '#shared/sql_request/typed_query_builder.ts'
-import type { Schema } from '#schema/types.ts'
-import { write_helper, ROWS_PER_BATCH, normalize_name, identity_key, placeholder_email, run_select } from './import_common.ts'
+import { write_helper, ROWS_PER_BATCH, normalize_name, identity_key, placeholder_email } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedEmployees = {
@@ -39,6 +37,9 @@ export const import_employees = async (
 	connection: Connection,
 	context: ArbostarImportContext,
 	users: ArbostarUser[],
+	// The deliberately non-tenanted identity lookup, injected by the orchestrator (see
+	// load_taken_identity_keys in import_arbostar_export.ts).
+	load_taken_identity_keys: () => Promise<Set<string>>,
 ): Promise<ImportedEmployees> => {
 	const employee_id_by_name = new Map(context.employee_id_by_name)
 	const adoptable_by_identity = new Map(context.employee_id_by_identity)
@@ -97,18 +98,7 @@ export const import_employees = async (
 
 	let identities_downgraded = 0
 	const employee_rows = new_users.length === 0 ? [] : await (async () => {
-		const identity_query = query_builder<Schema>()
-			.from('employee')
-			.select(() => ['employee.email', 'employee.login_name'])
-			.build()
-		const identity_rows = await run_select(connection, identity_query)
-		const taken = new Set(map(
-			filter(
-				[...map(identity_rows, row => row.employee.email), ...map(identity_rows, row => row.employee.login_name)],
-				value => value !== null,
-			),
-			value => identity_key(value!),
-		))
+		const taken = await load_taken_identity_keys()
 		const claim = (value: string): boolean => {
 			const key = identity_key(value)
 			if (taken.has(key)) return false

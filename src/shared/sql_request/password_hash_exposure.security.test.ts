@@ -13,7 +13,7 @@
  *   - non-sensitive employee columns still work
  *   - tables without a whitelist entry remain fully readable
  *
- * It exercises the real, wired-up builder (worker/lib/db/safe_query_builder.ts), so it fails if the
+ * It exercises the real, wired-up builder (shared/treebzns_db/safe_query_builder.ts), so it fails if the
  * whitelist is ever removed or the sensitive columns are added back.
  */
 
@@ -22,7 +22,7 @@ import * as assert from 'node:assert'
 
 import { safe_sql_query_validator, type SafeSqlQuery } from './safe_sql_query_validator.ts'
 import table_blacklist_validator from './table_blacklist_validator.ts'
-import safe_query_builder from '#worker/lib/db/safe_query_builder.ts'
+import safe_query_builder from '#shared/treebzns_db/safe_query_builder.ts'
 
 const blacklist_validator = table_blacklist_validator(['employee_session', 'migration'])
 
