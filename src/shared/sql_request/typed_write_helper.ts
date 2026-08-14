@@ -3,12 +3,17 @@ import { map, chunk, filter, for_each } from '#shared/array.ts'
 import object_keys from '#shared/object_keys.ts'
 import assert from '#shared/assert.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
+import { type MySQLFunction, is_mysql_function } from '#shared/sql_request/mysql_function.ts'
 
 type SchemaShape = {
 	[table_name: string]: {
 		[column_name: string]: unknown
 	}
 }
+
+// Every written value may be either the column's TS value or a MySQLFunction claiming to
+// produce that type.
+type ColumnValue<T> = T | MySQLFunction<T>
 
 type SchemaConstantsCovering<S extends SchemaShape> = {
 	[Table in keyof S]: {
@@ -19,12 +24,15 @@ type SchemaConstantsCovering<S extends SchemaShape> = {
 // The row accepted for an insert: columns whose type includes null may be omitted (the database
 // supplies its default); every other column is required.
 type InsertRow<Row> =
-	& { [Column in keyof Row as null extends Row[Column] ? never : Column]: Row[Column] }
-	& { [Column in keyof Row as null extends Row[Column] ? Column : never]?: Row[Column] }
+	& { [Column in keyof Row as null extends Row[Column] ? never : Column]: ColumnValue<Row[Column]> }
+	& { [Column in keyof Row as null extends Row[Column] ? Column : never]?: ColumnValue<Row[Column]> }
 
 // Explicitly-undefined columns are allowed (unlike Partial under exactOptionalPropertyTypes)
-// and are skipped, so callers can build a set conditionally.
-type UpdateSet<TableRow> = { [Column in keyof TableRow]?: TableRow[Column] | undefined }
+// and are skipped, so callers can build a set conditionally. Mapping over Extract<keyof ...>
+// rather than keyof keeps the mapped type non-homomorphic, so TS does not distribute it over
+// a table row that is a union of variants (e.g. DbInvoice's tax/discount modes) — each column
+// stays the union of its types across all variants.
+type UpdateSet<TableRow> = { [Column in Extract<keyof TableRow, string>]?: ColumnValue<TableRow[Column]> | undefined }
 
 // Excess-property checks only apply to object literals, so a set built elsewhere could smuggle
 // in a column the table doesn't have; intersecting with this marks such columns as never.
@@ -34,6 +42,9 @@ const escape_identifier = (column_name: string): string => {
 	assert(!column_name.includes('`'), `Column name "${column_name}" must not contain backticks`)
 	return `\`${column_name}\``
 }
+
+const serialize_value = (value: unknown): string =>
+	is_mysql_function(value) ? value.sql : escape_value(value)
 
 const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaShape>(
 	schema_constants: SchemaConstantsCovering<Insertable> & SchemaConstantsCovering<Row>,
@@ -46,7 +57,7 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 	>(
 		table_name: Table,
 		key_column: Key,
-		key: Row[Table][Key],
+		key: ColumnValue<Row[Table][Key]>,
 		set: Set & NoUnknownColumns<Row[Table], Set>,
 	): string => {
 		assert(table_name in schema_constants, `Table "${table_name}" must exist in schema constants`)
@@ -57,10 +68,10 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 		assert(entries.length > 0, `An update of table "${table_name}" must set at least one column`)
 		const set_sql = map(entries, ([column, value]) => {
 			assert(column in table_columns, `Column "${column}" must exist in schema constants for table "${table_name}"`)
-			return `${escape_identifier(column)} = ${escape_value(value)}`
+			return `${escape_identifier(column)} = ${serialize_value(value)}`
 		}).join(', ')
 
-		return `UPDATE ${escape_identifier(table_name)} SET ${set_sql} WHERE ${escape_identifier(key_column)} = ${escape_value(key)}`
+		return `UPDATE ${escape_identifier(table_name)} SET ${set_sql} WHERE ${escape_identifier(key_column)} = ${serialize_value(key)}`
 	}
 
 	return {
@@ -75,7 +86,7 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 				assert(column in schema_constants[table_name], `Column "${column}" must exist in schema constants for table "${table_name}"`)
 				return escape_identifier(column)
 			}).join(', ')
-			const value_list = map(entries, ([, value]) => escape_value(value)).join(', ')
+			const value_list = map(entries, ([, value]) => serialize_value(value)).join(', ')
 
 			const sql = `INSERT INTO ${escape_identifier(table_name)} (${column_list}) VALUES (${value_list})`
 			const [{ insertId }] = await connection.query<ResultSetHeader>(sql)
@@ -106,7 +117,7 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 						map(columns, column => {
 							const value = (row as Record<string, unknown>)[column]
 
-							return escape_value(value === undefined ? null : value)
+							return serialize_value(value === undefined ? null : value)
 						}).join(', ')
 					})`
 				).join(', ')
@@ -131,7 +142,7 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 			connection: Connection,
 			table_name: Table,
 			key_column: Key,
-			key: Row[Table][Key],
+			key: ColumnValue<Row[Table][Key]>,
 			set: Set & NoUnknownColumns<Row[Table], Set>,
 		): Promise<{ affected_rows: bigint }> => {
 			const [{ affectedRows }] = await connection.query<ResultSetHeader>(
@@ -150,7 +161,7 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 			connection: Connection,
 			table_name: Table,
 			key_column: Key,
-			rows: Array<{ key: Row[Table][Key]; set: Set & NoUnknownColumns<Row[Table], Set> }>,
+			rows: Array<{ key: ColumnValue<Row[Table][Key]>; set: Set & NoUnknownColumns<Row[Table], Set> }>,
 			rows_per_batch: number,
 		): Promise<{ affected_rows: bigint }> => {
 			assert(
