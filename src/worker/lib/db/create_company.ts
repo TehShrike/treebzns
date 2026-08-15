@@ -53,9 +53,9 @@ export const create_company = async (
 	return transaction(mysql.connection, async () => {
 		const { insert_id: company_id } = await write_helper.insert(mysql.connection, 'company', company)
 
-		await write_helper.insert(mysql.connection, 'project_number', { company_id, next_number: 1n })
+		await write_helper.insert(mysql.connection, 'project_number', { company_id, next_number: 1100n })
 
-		await write_helper.insert(mysql.connection, 'invoice_number', { company_id, next_number: 1n })
+		await write_helper.insert(mysql.connection, 'invoice_number', { company_id, next_number: 1100n })
 
 		await write_helper.bulk_insert(
 			mysql.connection,
