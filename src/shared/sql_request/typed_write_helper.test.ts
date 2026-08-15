@@ -5,6 +5,7 @@ import { Temporal } from '@js-temporal/polyfill'
 import type { FinancialNumber } from 'financial-number'
 import fnum from '#shared/fnum.ts'
 import typed_write_helper from './typed_write_helper.ts'
+import { fns } from './mysql_function.ts'
 
 type TestSchema = {
 	widget: {
@@ -535,4 +536,74 @@ test('typed_write_helper: bulk_update rejects a non-positive or fractional rows_
 	await assert.rejects(async () => helper.bulk_update(connection, 'widget', 'widget_id', rows, 0))
 	await assert.rejects(async () => helper.bulk_update(connection, 'widget', 'widget_id', rows, -5))
 	await assert.rejects(async () => helper.bulk_update(connection, 'widget', 'widget_id', rows, 1.5))
+})
+
+test('typed_write_helper: MySQLFunction values render as SQL function calls in writes', async () => {
+	type SessionSchema = {
+		session: {
+			employee_id: bigint
+			identifier: Buffer
+			last_seen_at: Temporal.Instant
+		}
+	}
+	type SessionRowSchema = {
+		session: {
+			session_id: bigint
+			employee_id: bigint
+			identifier: Buffer
+			last_seen_at: Temporal.Instant
+		}
+	}
+	const session_schema = {
+		session: {
+			session_id: 'session_id',
+			employee_id: 'employee_id',
+			identifier: 'identifier',
+			last_seen_at: 'last_seen_at',
+		},
+	} as const
+	const session_insertable_schema = {
+		session: {
+			employee_id: 'employee_id',
+			identifier: 'identifier',
+			last_seen_at: 'last_seen_at',
+		},
+	} as const
+
+	const { connection, calls } = make_mock_connection()
+	const helper = typed_write_helper<SessionSchema, SessionRowSchema>(session_schema, session_insertable_schema)
+
+	await helper.insert(connection, 'session', {
+		employee_id: 1n,
+		identifier: fns.uuid_to_bin('123e4567-e89b-12d3-a456-426614174000'),
+		last_seen_at: fns.utc_timestamp(),
+	})
+	assert.strictEqual(
+		calls[0]!.sql,
+		"INSERT INTO `session` (`employee_id`, `identifier`, `last_seen_at`) VALUES (1, UUID_TO_BIN('123e4567-e89b-12d3-a456-426614174000'), UTC_TIMESTAMP())",
+	)
+
+	await helper.bulk_insert(connection, 'session', [{
+		employee_id: 2n,
+		identifier: fns.uuid_to_bin('223e4567-e89b-12d3-a456-426614174000'),
+		last_seen_at: fns.utc_timestamp(),
+	}], 10)
+	assert.strictEqual(
+		calls[1]!.sql,
+		"INSERT INTO `session` (`employee_id`, `identifier`, `last_seen_at`) VALUES (2, UUID_TO_BIN('223e4567-e89b-12d3-a456-426614174000'), UTC_TIMESTAMP())",
+	)
+
+	assert.strictEqual(
+		helper.build_update_sql('session', 'identifier', fns.uuid_to_bin('323e4567-e89b-12d3-a456-426614174000'), {
+			last_seen_at: fns.utc_timestamp(),
+		}),
+		"UPDATE `session` SET `last_seen_at` = UTC_TIMESTAMP() WHERE `identifier` = UUID_TO_BIN('323e4567-e89b-12d3-a456-426614174000')",
+	)
+
+	helper.insert(connection, 'session', {
+		// @ts-expect-error: utc_timestamp claims Temporal.Instant, which is not assignable to a bigint column
+		employee_id: fns.utc_timestamp(),
+		identifier: fns.uuid_to_bin('123e4567-e89b-12d3-a456-426614174000'),
+		last_seen_at: fns.utc_timestamp(),
+	})
 })

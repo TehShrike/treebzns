@@ -5,7 +5,10 @@ import { transaction } from '#worker/lib/mysql/helpers.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_query_builder from '#shared/treebzns_db/safe_query_builder.ts'
 import write_helper from '#worker/lib/mysql/write_helper.ts'
+import assert from '#shared/assert.ts'
 import type { Schema } from '#schema/types.ts'
+
+const ROWS_PER_BATCH = 100
 
 const default_payment_method_names = ['Cash', 'Credit Card', 'Check']
 
@@ -50,25 +53,23 @@ export const create_company = async (
 	return transaction(mysql.connection, async () => {
 		const { insert_id: company_id } = await write_helper.insert(mysql.connection, 'company', company)
 
-		await mysql.query({
-			sql: 'INSERT INTO project_number SET ?',
-			values: { company_id },
-		})
+		await write_helper.insert(mysql.connection, 'project_number', { company_id, next_number: 1100n })
 
-		await mysql.query({
-			sql: 'INSERT INTO invoice_number SET ?',
-			values: { company_id },
-		})
+		await write_helper.insert(mysql.connection, 'invoice_number', { company_id, next_number: 1100n })
 
-		await mysql.query({
-			sql: 'INSERT INTO payment_method (company_id, name) VALUES ?',
-			values: [map(default_payment_method_names, name => [company_id, name])],
-		})
+		await write_helper.bulk_insert(
+			mysql.connection,
+			'payment_method',
+			map(default_payment_method_names, name => ({ company_id, name })),
+			ROWS_PER_BATCH,
+		)
 
-		await mysql.query({
-			sql: 'INSERT INTO project_decline_reason (company_id, reason) VALUES ?',
-			values: [map(default_decline_reasons, reason => [company_id, reason])],
-		})
+		await write_helper.bulk_insert(
+			mysql.connection,
+			'project_decline_reason',
+			map(default_decline_reasons, reason => ({ company_id, reason })),
+			ROWS_PER_BATCH,
+		)
 
 		const permission_query = query_builder<Schema>()
 			.from('permission')
@@ -83,20 +84,21 @@ export const create_company = async (
 
 		let owner_software_role_id: bigint | null = null
 		await Promise.all(map(default_software_roles, async role => {
-			const software_role_id = await mysql.query({
-				sql: 'INSERT INTO software_role SET ?',
-				values: { company_id, name: role.name },
-			}).get_insert_id()
+			const { insert_id: software_role_id } = await write_helper.insert(mysql.connection, 'software_role', {
+				company_id,
+				name: role.name,
+			})
 
 			if (role.owner) {
 				owner_software_role_id = software_role_id
 			}
 
-			const software_role_permission_rows = role.permission_codes.map(code => [company_id, software_role_id, permission_id_by_code.get(code)!])
-			await mysql.query({
-				sql: 'INSERT INTO software_role_permission (company_id, software_role_id, permission_id) VALUES ?',
-				values: [software_role_permission_rows],
-			})
+			await write_helper.bulk_insert(
+				mysql.connection,
+				'software_role_permission',
+				map(role.permission_codes, code => ({ company_id, software_role_id, permission_id: permission_id_by_code.get(code)! })),
+				ROWS_PER_BATCH,
+			)
 		}))
 
 		const employee_id = await create_employee({
@@ -107,9 +109,11 @@ export const create_company = async (
 			phone: owner_employee.phone ?? '',
 		}, mysql)
 
-		await mysql.query({
-			sql: 'INSERT INTO employee_software_role SET ?',
-			values: { company_id, employee_id, software_role_id: owner_software_role_id },
+		assert(owner_software_role_id !== null, 'One of the default software roles is the owner role')
+		await write_helper.insert(mysql.connection, 'employee_software_role', {
+			company_id,
+			employee_id,
+			software_role_id: owner_software_role_id,
 		})
 
 		return company_id

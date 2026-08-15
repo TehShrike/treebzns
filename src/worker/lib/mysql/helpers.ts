@@ -37,55 +37,6 @@ export const table_prefix = (table_name: string, column_names: string[]) => colu
 	.map(column_name => `${ table_name }.${ column_name }`)
 	.join(`, `)
 
-type Pojo = {
-	[key: string]: unknown
-}
-
-type MysqlConnectionTableRows<T extends Pojo> = {
-	mysql: Mysql
-	table: string
-	rows: Required<T>[]
-}
-
-type ValueOf<T> = T[keyof T]
-type RowsAsArrays<T> = ValueOf<T>[][]
-
-export const bulk_insert_arrays = <T extends Pojo>({
-	mysql,
-	table,
-	column_property_names,
-	rows,
-	on_duplicate_key_update = [],
-	insert_ignore,
-}: Omit<MysqlConnectionTableRows<T>, 'rows'> & {
-	column_property_names: string[]
-	on_duplicate_key_update?: string|string[]
-	insert_ignore?: boolean | undefined
-	rows: RowsAsArrays<T>
-}) => {
-	if (rows.length === 0) {
-		return
-	}
-
-	const ignore = insert_ignore ? `IGNORE` : ``
-
-	const on_duplicate_update = on_duplicate_key_update.length === 0
-		? ``
-		: ` ON DUPLICATE KEY UPDATE ` + (Array.isArray(on_duplicate_key_update)
-			? on_duplicate_key_update.map(column_name => `${ column_name } = VALUES(${ column_name })`).join(`, `)
-			: on_duplicate_key_update
-		)
-
-	return mysql.query(
-		`INSERT ${ ignore } INTO ${ table } (${
-			column_property_names.map(column_name => `"${ column_name }"`).join(`, `)
-		}) VALUES ?` + on_duplicate_update,
-		[
-			rows,
-		]
-	)
-}
-
 export const bulk_delete = async({ mysql, table, refs }: { mysql: Mysql, table: string, refs: number[] }) => {
 	if (refs.length > 0) {
 		await mysql.query(`DELETE FROM ${ table } WHERE ${ table }_ref` + sql` IN(${ refs })`)

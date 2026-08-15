@@ -8,6 +8,12 @@ test('escape_value: converts Temporal.PlainDate to a quoted date string', () => 
 	assert.strictEqual(escape_value(Temporal.PlainDate.from('2026-06-15')), "'2026-06-15'")
 })
 
+test('escape_value: converts Temporal.Instant to a quoted UTC datetime string', () => {
+	assert.strictEqual(escape_value(Temporal.Instant.from('2026-06-15T08:30:45Z')), "'2026-06-15 08:30:45'")
+	assert.strictEqual(escape_value(Temporal.Instant.from('2026-06-15T08:30:45.999Z')), "'2026-06-15 08:30:45'")
+	assert.strictEqual(escape_value(Temporal.Instant.from('2026-06-15T03:30:45-05:00')), "'2026-06-15 08:30:45'")
+})
+
 test('escape_value: converts FinancialNumber to a quoted decimal string', () => {
 	assert.strictEqual(escape_value(fnum('12.34')), "'12.34'")
 })
