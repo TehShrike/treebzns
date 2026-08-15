@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Project list — treebzns screen designs</title>
+	<link rel="stylesheet" href="../src/public/global_reset.css">
+	<link rel="stylesheet" href="../src/public/global_variables.css">
+	<link rel="stylesheet" href="../src/public/global_styles.css">
+	<link rel="stylesheet" href="../src/public/98.css">
+	<link rel="stylesheet" href="mockup.css">
+	<style>
+		.search_options {
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: flex-start;
+			gap: var(--gap_unit);
+		}
+
+		.search_options fieldset {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-start;
+			gap: var(--gap_half);
+		}
+
+		.summary_row {
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			gap: var(--gap_double);
+			padding: var(--gap_half) var(--gap_unit);
+			background: var(--accent_background);
+			border-radius: var(--default_border_radius);
+		}
+
+		.summary_item {
+			display: flex;
+			flex-direction: column;
+			gap: 0;
+		}
+
+		.summary_item .value {
+			font-size: 1.3rem;
+			font-weight: 600;
+			font-variant-numeric: tabular-nums;
+		}
+
+		.age_bad {
+			color: var(--attention_red);
+			font-weight: 600;
+		}
+	</style>
+</head>
+<body>
+	<header class="mockup_header">
+		<div class="top_row">
+			<h1>Project list</h1>
+			<a href="index.html">All screens</a>
+		</div>
+		<p>
+			A report, not a work screen.  It answers "what is out there, how old is it, and what is it
+			worth".  The same filters and columns scope down to one client on the client screen.
+		</p>
+		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
+	</header>
+
+	<div class="app_frame">
+		<nav class="app_menu">
+			<div class="logo">🌳</div>
+			<ul>
+				<li><a href="index.html">Home</a></li>
+				<li><a href="lead_create.html">Create a lead</a></li>
+				<li><a href="client.html">Clients</a></li>
+				<li><a href="project_list.html" data-active="true">Projects</a></li>
+				<li><a href="scheduling.html">Schedule</a></li>
+				<li><a href="crews.html">Crews</a></li>
+				<li><a href="foreman.html">My jobs</a></li>
+				<li><a href="settings.html">Settings</a></li>
+			</ul>
+		</nav>
+
+		<div class="screen_body">
+			<div class="row spread">
+				<h1>Projects</h1>
+				<div class="row">
+					<button type="button">Save this view</button>
+					<button type="button">Export</button>
+				</div>
+			</div>
+
+			<div class="row">
+				<input type="search" placeholder="Client name, phone, address, or project number" size="45">
+				<span class="schema">client.name, client.primary_phone, project.address_line_1, project.number</span>
+			</div>
+
+			<div class="search_options">
+				<fieldset>
+					<legend>Document</legend>
+					<label><input type="checkbox"> Lead (Unqualified)</label>
+					<label><input type="checkbox"> Lead (Qualified)</label>
+					<label><input type="checkbox" checked> Proposal</label>
+					<label><input type="checkbox" checked> Work Order</label>
+					<label><input type="checkbox"> Work Order (Errand)</label>
+					<label><input type="checkbox"> Declined Proposal</label>
+					<label><input type="checkbox"> Void</label>
+					<span class="schema">project.project_document_id</span>
+				</fieldset>
+
+				<fieldset>
+					<legend>Status</legend>
+					<label><input type="radio" name="open" checked> Open</label>
+					<label><input type="radio" name="open"> Closed</label>
+					<label><input type="checkbox"> Needs client approval</label>
+					<label><input type="checkbox"> Emergency only</label>
+					<span class="schema">project.closed, needs_client_approval, emergency</span>
+				</fieldset>
+
+				<fieldset>
+					<legend>Dates</legend>
+					<label>Created after<input type="date" value="2026-06-01"></label>
+					<label>Created before<input type="date"></label>
+					<label><input type="checkbox"> Past its due date</label>
+					<span class="schema">project.created_at, project.due_date</span>
+				</fieldset>
+
+				<fieldset>
+					<legend>People</legend>
+					<label>Estimator
+						<select><option selected>Anybody</option><option>Rachel Ames</option><option>Andrew Duff</option><option>Not assigned</option></select>
+					</label>
+					<label>Crew
+						<select><option selected>Any crew</option><option>Crew 1</option><option>Crew 2</option><option>Not scheduled</option></select>
+					</label>
+					<span class="schema">project.assigned_estimator_employee_id; project_crew.crew_id</span>
+				</fieldset>
+			</div>
+
+			<div class="summary_row">
+				<div class="summary_item">
+					<span class="muted">Projects</span>
+					<span class="value">37</span>
+				</div>
+				<div class="summary_item">
+					<span class="muted">Open value</span>
+					<span class="value">$148,320</span>
+				</div>
+				<div class="summary_item">
+					<span class="muted">Proposals out</span>
+					<span class="value">$61,450</span>
+				</div>
+				<div class="summary_item">
+					<span class="muted">Work sold, not worked</span>
+					<span class="value">$86,870</span>
+				</div>
+				<div class="summary_item">
+					<span class="muted">Median age</span>
+					<span class="value">11 days</span>
+				</div>
+				<span class="schema">sum(project.total) grouped by project_document</span>
+			</div>
+
+			<div class="sunken-panel">
+				<table class="interactive">
+					<thead>
+						<tr>
+							<th>#</th>
+							<th>Client</th>
+							<th>Address</th>
+							<th>Document</th>
+							<th>Age</th>
+							<th>In this status</th>
+							<th>Next visit</th>
+							<th>Estimator</th>
+							<th>Total</th>
+							<th>Balance</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>1151</td>
+							<td>Okonkwo, Ada</td>
+							<td>3300 Tamarack Trail</td>
+							<td>Proposal</td>
+							<td>4 d</td>
+							<td>1 d</td>
+							<td>—</td>
+							<td>Rachel Ames</td>
+							<td>$4,150.00</td>
+							<td>—</td>
+						</tr>
+						<tr>
+							<td>1149</td>
+							<td>Barrett, Glen</td>
+							<td>812 Delaware St</td>
+							<td>Work Order</td>
+							<td>2 d</td>
+							<td>1 d</td>
+							<td>Aug 18</td>
+							<td>Andrew Duff</td>
+							<td>$1,900.00</td>
+							<td>$1,900.00</td>
+						</tr>
+						<tr>
+							<td>1142</td>
+							<td>Whitfield, Marla</td>
+							<td>4418 Kestrel Ridge Rd</td>
+							<td>Work Order</td>
+							<td>22 d</td>
+							<td>9 d</td>
+							<td>Aug 19</td>
+							<td>Rachel Ames</td>
+							<td>$3,823.80</td>
+							<td>$3,323.80</td>
+						</tr>
+						<tr>
+							<td>1140</td>
+							<td>Pruitt, Dan</td>
+							<td>55 Ridgeway Ct</td>
+							<td>Work Order</td>
+							<td>26 d</td>
+							<td>12 d</td>
+							<td class="age_bad">not scheduled</td>
+							<td>Andrew Duff</td>
+							<td>$6,400.00</td>
+							<td>$6,400.00</td>
+						</tr>
+						<tr>
+							<td>1136</td>
+							<td>Alvarez, Nina</td>
+							<td>2210 Sycamore Ln</td>
+							<td>Work Order</td>
+							<td>31 d</td>
+							<td>9 d</td>
+							<td>Aug 18</td>
+							<td>Rachel Ames</td>
+							<td>$1,350.00</td>
+							<td>$1,350.00</td>
+						</tr>
+						<tr>
+							<td>1131</td>
+							<td>Northbrook HOA</td>
+							<td>Northbrook Dr</td>
+							<td>Work Order</td>
+							<td>38 d</td>
+							<td>12 d</td>
+							<td class="age_bad">not scheduled</td>
+							<td>Andrew Duff</td>
+							<td>$12,800.00</td>
+							<td>$12,800.00</td>
+						</tr>
+						<tr>
+							<td>1127</td>
+							<td>Sandoval, Ruth</td>
+							<td>904 Ellsworth St</td>
+							<td>Proposal</td>
+							<td>44 d</td>
+							<td class="age_bad">39 d</td>
+							<td>—</td>
+							<td>Rachel Ames</td>
+							<td>$2,700.00</td>
+							<td>—</td>
+						</tr>
+						<tr>
+							<td>1119</td>
+							<td>Feldman, Pete</td>
+							<td>1904 Woodhaven Dr</td>
+							<td>Proposal</td>
+							<td>52 d</td>
+							<td class="age_bad">47 d</td>
+							<td>—</td>
+							<td>Andrew Duff</td>
+							<td>$980.00</td>
+							<td>—</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<span class="schema">age from project.created_at; time in status from the newest project_document_history row; balance from invoice and payment</span>
+
+			<div class="row spread">
+				<span class="muted">Click a row to open the project.  Click a column heading to sort.</span>
+				<div class="row">
+					<button type="button">◀ Previous</button>
+					<span class="muted">1 to 8 of 37</span>
+					<button type="button">Next ▶</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<section class="design_notes">
+		<h2>Design notes</h2>
+		<ul>
+			<li>
+				Two ages, not one.  "Age" is how old the project is.  "In this status" is how long it has
+				sat in the current document.  A proposal that has sat 39 days is the one to call about, and
+				the second column is the only one that shows it.
+			</li>
+			<li>
+				Red marks the two things that need action: a work order with no visit, and a proposal that
+				has sat too long.
+			</li>
+			<li>
+				The summary bar sits above the table and follows the filters.  It is the answer to "how much
+				work is on the books", which the doc calls a report question.
+			</li>
+			<li>
+				The same table, filtered to one client, is the Projects tab on the client screen.
+			</li>
+			<li>
+				The search box takes a name, a phone number, an address, or a project number.  It is the
+				same behavior as the client search on the create-a-lead screen.
+			</li>
+			<li class="open_question">
+				Open: "not scheduled" and "next visit" need a join to <code>project_crew</code>.  For a
+				closed project the useful date is the last visit, not the next one.
+			</li>
+			<li class="open_question">
+				Open: balance needs invoices and payments per project.  A project with no invoice shows a
+				dash.  Is total or balance the number people want in this table?
+			</li>
+			<li class="open_question">
+				Open: how long should a saved view live?  "Save this view" implies storage.  A URL with the
+				filters in it may be enough, and the current screen already puts filters in the route.
+			</li>
+			<li class="open_question">
+				Open: expired proposals.  If expiration means "hide from reports after this many days", this
+				table needs a switch to show them again.
+			</li>
+		</ul>
+	</section>
+</body>
+</html>

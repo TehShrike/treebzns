@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Customer proposal — treebzns screen designs</title>
+	<link rel="stylesheet" href="../src/public/global_reset.css">
+	<link rel="stylesheet" href="../src/public/global_variables.css">
+	<link rel="stylesheet" href="../src/public/global_styles.css">
+	<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+	<header class="mockup_header">
+		<div class="top_row">
+			<h1>Customer page — Proposal</h1>
+			<a href="index.html">All screens</a>
+		</div>
+		<p>
+			What the client sees at the project link while the document is a Proposal.  They read the work,
+			drop the optional items they do not want, and approve.  Approving moves the project to Work
+			Order.
+		</p>
+		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
+	</header>
+
+	<div class="customer_frame">
+		<div class="customer_page">
+			<div class="brand_bar">
+				<div class="column">
+					<strong>Duff Tree Service</strong>
+					<span>(812) 555-0100 · duff@example.com</span>
+				</div>
+				<div class="column">
+					<span>Proposal 1151</span>
+					<span>August 15, 2026</span>
+				</div>
+			</div>
+			<span class="schema">company.name, company.logo, company.brand_color; project.number</span>
+
+			<section>
+				<h2>Work at 3300 Tamarack Trail</h2>
+				<div>Prepared for Ada Okonkwo</div>
+				<div class="muted">Bloomington, IN 47401</div>
+				<span class="schema">project.address_line_1, city, state, zip, contact_name</span>
+				<div class="pill warn">This price holds until September 14</div>
+				<span class="schema">project_document.expire_days from the row that moved it into Proposal</span>
+			</section>
+
+			<section>
+				<h2>What we will do</h2>
+
+				<div class="customer_item">
+					<div class="row spread">
+						<strong>Remove dead silver maple, back yard</strong>
+					</div>
+					<div>
+						Take the tree down in sections over the shed.  Rope out the two limbs above the fence
+						line.  Haul all wood.  Rake and blow the yard.
+					</div>
+					<div class="photo_strip">
+						<div class="photo large">Maple, south side</div>
+						<div class="photo large">Shed clearance</div>
+					</div>
+					<span class="schema">project_line_item.title, work_details; photos where project_image.visible_to_client = 1</span>
+				</div>
+
+				<div class="customer_item">
+					<div class="row spread">
+						<strong>Grind stump and two surface roots</strong>
+					</div>
+					<div>Grind 8 inches below grade.  Leave the chips on site as fill.</div>
+					<div class="photo_strip">
+						<div class="photo large">Stump, marked</div>
+					</div>
+				</div>
+
+				<div class="customer_item" data-optional="true">
+					<div class="row spread">
+						<strong>Prune the two front yard oaks for clearance</strong>
+						<span class="pill">Your choice</span>
+					</div>
+					<div>Deadwood and lift the canopy over the driveway to 14 feet.</div>
+					<label><input type="checkbox" checked> Yes, include this work</label>
+					<span class="schema">project_line_item.client_optional = 1; unchecking writes client_declined = 1</span>
+				</div>
+
+				<div class="customer_item" data-optional="true" data-declined="true">
+					<div class="row spread">
+						<strong>Plant one 2-inch caliper red maple</strong>
+						<span class="pill">Your choice</span>
+					</div>
+					<div>Nursery stock, staked, mulched, with a watering bag.</div>
+					<label><input type="checkbox"> Yes, include this work</label>
+				</div>
+			</section>
+
+			<section>
+				<div class="price_block">
+					<span>Your price</span>
+					<span class="big_price">$4,150.00</span>
+					<span class="muted">Includes tax where it applies.</span>
+					<span class="schema">project.total, recalculated when an optional item is dropped</span>
+					<button type="button" class="primary">Approve this work</button>
+					<span class="muted">You will get a copy by email.</span>
+				</div>
+			</section>
+
+			<section>
+				<h2>Questions</h2>
+				<div>Call or text (812) 555-0100.  Ask for Andrew.</div>
+				<button type="button">Ask a question about this proposal</button>
+			</section>
+		</div>
+	</div>
+
+	<section class="design_notes">
+		<h2>Design notes</h2>
+		<ul>
+			<li>
+				This page does not load 98.css.  The office app can look like Windows 98.  A page a customer
+				reads before they spend four thousand dollars should not.  It uses the same variables from
+				<code>global_variables.css</code>, so the company brand color still drives it.
+			</li>
+			<li>
+				One price, one button.  The design doc rules out tiered calls to action for now, so the
+				total sits in one block with the approve button under it.
+			</li>
+			<li>
+				Optional line items are checked by default, and the total drops when the customer unchecks
+				one.  A checkbox reads as "keep this", which is a smaller decision than "add this".
+			</li>
+			<li>
+				Only photos with <code>visible_to_client</code> show here.  The estimator sets that flag
+				when the photos come in.
+			</li>
+			<li>
+				Approving writes a <code>project_client_approval</code> row and moves the project to the
+				next document.  Both the office screen and this page use the same move.
+			</li>
+			<li class="open_question">
+				Open: does approval need a typed name or a drawn signature?
+				<code>project_client_approval.customer_signature</code> is a blob and
+				<code>verbal_approval</code> is a flag, so the schema holds either.
+				<code>src/notes/todo.md</code> says close rates can not get worse, so the fewest taps wins.
+			</li>
+			<li class="open_question">
+				Open: down payment.  <code>src/notes/big_todos.md</code> wants 10% at approval.  That adds a
+				payment step between the button and the confirmation.
+			</li>
+			<li class="open_question">
+				Open: what does the page show right after approval?  It could switch straight to the work
+				order view, which is the next page.
+			</li>
+			<li class="open_question">
+				Open: expiration text.  It says "this price holds until", but the schema note calls
+				expiration "hide from reports after this many days".  These are different promises.
+			</li>
+		</ul>
+	</section>
+</body>
+</html>
