@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>treebzns screen designs</title>
+	<link rel="stylesheet" href="../src/public/global_reset.css">
+	<link rel="stylesheet" href="../src/public/global_variables.css">
+	<link rel="stylesheet" href="../src/public/global_styles.css">
+	<link rel="stylesheet" href="../src/public/98.css">
+	<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+	<header class="mockup_header">
+		<div class="top_row">
+			<h1>treebzns screen designs</h1>
+			<span class="muted">Static mockups. No JavaScript, no data.</span>
+		</div>
+		<p>
+			Each page draws one screen from <code>src/notes/screens_needed.md</code>, with the columns
+			from <code>schema/current_schema.sql</code> that feed it.  The pages load the real app CSS,
+			so the controls look like the app.  Every page ends with design notes and open questions.
+		</p>
+		<p>
+			Turn on "Show column names" on any page to see the table and column behind each control.
+		</p>
+	</header>
+
+	<section class="design_notes">
+		<h2>Office screens</h2>
+		<ul>
+			<li><a href="lead_create.html">Create a lead</a> — one search box for the client, then the fields the first phone call collects.</li>
+			<li><a href="project_list.html">Project list</a> — report view with money, dates, and age.</li>
+			<li><a href="client.html">Client</a> — details, addresses, projects, billing.</li>
+			<li><a href="project.html">Project</a> — the internal project screen with the document path.</li>
+			<li><a href="scheduling.html">Job scheduling</a> — crew day timelines, a queue, and a map.</li>
+			<li><a href="crews.html">Crews</a> — crew rosters and work skills.</li>
+			<li><a href="settings.html">Settings</a> — users, roles, work skills, line item templates.</li>
+		</ul>
+
+		<h2>Field screens</h2>
+		<ul>
+			<li><a href="foreman.html">My jobs (crew and foreman)</a> — today's work, phone numbers, clock in and out.</li>
+			<li><a href="estimating.html">Estimating</a> — photo and note dump, then line items.</li>
+		</ul>
+
+		<h2>Customer screens</h2>
+		<ul>
+			<li><a href="customer_proposal.html">Proposal</a> — the customer declines optional work and approves.</li>
+			<li><a href="customer_work_order.html">Work order</a> — approved work and a guess at the visit date.</li>
+			<li><a href="customer_invoice.html">Closed work order (invoice)</a> — locked amount, with a switch back to the full detail view.</li>
+		</ul>
+	</section>
+
+	<section class="design_notes">
+		<h2>Read this first</h2>
+		<ul>
+			<li>
+				Three of these screens already exist in some form: create a lead, project list, and client.
+				The mockups show what the design doc asks for, which is more than the code does today.
+			</li>
+			<li>
+				98.css sets <code>h1</code> to 5rem and <code>h2</code> to 2.5rem.  The app screens use
+				<code>h1</code> today, so they render at 5rem.  These mockups override the heading sizes.
+				The app needs the same decision.
+			</li>
+			<li class="open_question">
+				Photos are drawn as gray boxes.  Image markup is a separate project (see
+				<code>src/notes/big_todos.md</code>).
+			</li>
+		</ul>
+	</section>
+</body>
+</html>

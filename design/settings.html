@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Settings — treebzns screen designs</title>
+	<link rel="stylesheet" href="../src/public/global_reset.css">
+	<link rel="stylesheet" href="../src/public/global_variables.css">
+	<link rel="stylesheet" href="../src/public/global_styles.css">
+	<link rel="stylesheet" href="../src/public/98.css">
+	<link rel="stylesheet" href="mockup.css">
+	<style>
+		.tab_label {
+			display: flex;
+			flex-direction: row;
+			justify-content: flex-start;
+			color: var(--very_dark_gray);
+			font-size: 0.85rem;
+		}
+
+		.permission_matrix td, .permission_matrix th {
+			text-align: center;
+		}
+
+		.permission_matrix td:first-child, .permission_matrix th:first-child {
+			text-align: left;
+		}
+
+		.permission_matrix label {
+			padding-block: 4px;
+			padding-left: var(--checkbox-width);
+			padding-right: 0;
+		}
+
+		.settings_columns {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+			align-items: start;
+			gap: var(--gap_unit);
+		}
+	</style>
+</head>
+<body>
+	<header class="mockup_header">
+		<div class="top_row">
+			<h1>Settings</h1>
+			<a href="index.html">All screens</a>
+		</div>
+		<p>
+			Users, roles, work skills, and line item templates.  In the app these are tabs.  This mockup
+			stacks every tab on one page so you can read them together.
+		</p>
+		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
+	</header>
+
+	<div class="app_frame">
+		<nav class="app_menu">
+			<div class="logo">🌳</div>
+			<ul>
+				<li><a href="index.html">Home</a></li>
+				<li><a href="lead_create.html">Create a lead</a></li>
+				<li><a href="client.html">Clients</a></li>
+				<li><a href="project_list.html">Projects</a></li>
+				<li><a href="scheduling.html">Schedule</a></li>
+				<li><a href="crews.html">Crews</a></li>
+				<li><a href="foreman.html">My jobs</a></li>
+				<li><a href="settings.html" data-active="true">Settings</a></li>
+			</ul>
+		</nav>
+
+		<div class="screen_body">
+			<h1>Settings</h1>
+
+			<menu role="tablist">
+				<li role="tab" aria-selected="true"><a href="settings.html">Users</a></li>
+				<li role="tab"><a href="settings.html">Roles</a></li>
+				<li role="tab"><a href="settings.html">Work skills</a></li>
+				<li role="tab"><a href="settings.html">Line item templates</a></li>
+				<li role="tab"><a href="settings.html">Company</a></li>
+			</menu>
+
+			<fieldset>
+				<legend>Users</legend>
+				<div class="column">
+					<span class="tab_label">Tab: Users</span>
+					<div class="row spread">
+						<input type="search" placeholder="Name or login">
+						<button type="button" class="default">Add a user</button>
+					</div>
+					<table class="data_table">
+						<thead>
+							<tr>
+								<th>Name</th>
+								<th>Login</th>
+								<th>Phone</th>
+								<th>Roles</th>
+								<th>Default crew</th>
+								<th>Work skills</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Andrew Duff <span class="pill">Owner</span></td>
+								<td>andrew</td>
+								<td>(812) 555-0100</td>
+								<td>Office, Foreman</td>
+								<td>Crew 1</td>
+								<td>Climbing, Rigging, Bucket, Estimating</td>
+								<td><button type="button">Edit</button></td>
+							</tr>
+							<tr>
+								<td>Rachel Ames</td>
+								<td>rachel</td>
+								<td>(812) 555-0111</td>
+								<td>Estimator</td>
+								<td>Estimating</td>
+								<td>Estimating, Climbing</td>
+								<td><button type="button">Edit</button></td>
+							</tr>
+							<tr>
+								<td>Dale Hutchins</td>
+								<td>dale</td>
+								<td>(812) 555-0122</td>
+								<td>Foreman</td>
+								<td>Crew 1</td>
+								<td>Climbing, Chipper</td>
+								<td><button type="button">Edit</button></td>
+							</tr>
+							<tr>
+								<td>Trevor Nash</td>
+								<td>trevor</td>
+								<td>(812) 555-0133</td>
+								<td>Crew</td>
+								<td>Crew 1</td>
+								<td>Ground work, Chipper</td>
+								<td><button type="button">Edit</button></td>
+							</tr>
+						</tbody>
+					</table>
+					<span class="schema">employee.name, login_name, phone, is_owner, default_crew_id; employee_software_role; employee_work_skill</span>
+					<div class="muted">
+						An owner keeps every permission.  Login name or email can sign in.  A user with no
+						email can still work in the field.
+					</div>
+				</div>
+			</fieldset>
+
+			<fieldset>
+				<legend>Roles</legend>
+				<div class="column">
+					<span class="tab_label">Tab: Roles</span>
+					<div class="sunken-panel">
+						<table class="permission_matrix">
+							<thead>
+								<tr>
+									<th>Permission</th>
+									<th>Office</th>
+									<th>Estimator</th>
+									<th>Foreman</th>
+									<th>Crew</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>Create orders</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+								<tr>
+									<td>Create clients</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+								<tr>
+									<td>Edit clients</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+								<tr>
+									<td>Qualify leads</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+								<tr>
+									<td>Create and edit estimates</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+								<tr>
+									<td>Work on projects</td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+								</tr>
+								<tr>
+									<td>Change work orders without customer approval</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+								<tr>
+									<td>Set any document status</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+								<tr>
+									<td>Manage users</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+								<tr>
+									<td>Edit payments</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<span class="schema">software_role_permission joins software_role to permission; permission.name is the row label</span>
+					<div class="row">
+						<button type="button">Add a role</button>
+						<span class="muted">Roles belong to the company.  The permission list is the same for everybody.</span>
+					</div>
+					<div class="muted">
+						Missing from the list: who can clock a crew in and out.  The foreman screen needs it.
+					</div>
+				</div>
+			</fieldset>
+
+			<div class="settings_columns">
+				<fieldset>
+					<legend>Work skills</legend>
+					<div class="column">
+						<span class="tab_label">Tab: Work skills</span>
+						<table class="data_table">
+							<thead>
+								<tr><th>Skill</th><th class="money">Hourly rate</th><th>People</th><th></th></tr>
+							</thead>
+							<tbody>
+								<tr><td>Climbing</td><td class="money">$145.00</td><td>3</td><td><button type="button">Edit</button></td></tr>
+								<tr><td>Rigging</td><td class="money">$130.00</td><td>1</td><td><button type="button">Edit</button></td></tr>
+								<tr><td>Ground work</td><td class="money">$70.00</td><td>3</td><td><button type="button">Edit</button></td></tr>
+								<tr><td>Chipper</td><td class="money">$85.00</td><td>2</td><td><button type="button">Edit</button></td></tr>
+								<tr><td>Stump grinding</td><td class="money">$120.00</td><td>1</td><td><button type="button">Edit</button></td></tr>
+								<tr><td>Bucket</td><td class="money">$135.00</td><td>2</td><td><button type="button">Edit</button></td></tr>
+								<tr><td>Crane</td><td class="money">$210.00</td><td>1</td><td><button type="button">Edit</button></td></tr>
+								<tr><td>Estimating</td><td class="money">$95.00</td><td>2</td><td><button type="button">Edit</button></td></tr>
+							</tbody>
+						</table>
+						<span class="schema">work_skill.name, hourly_rate; the count comes from employee_work_skill</span>
+						<button type="button">Add a work skill</button>
+						<div class="muted">
+							Equipment is not its own list.  A skill like Crane or Chipper stands for the machine
+							and the person who runs it.
+						</div>
+					</div>
+				</fieldset>
+
+				<fieldset>
+					<legend>Line item templates</legend>
+					<div class="column">
+						<span class="tab_label">Tab: Line item templates</span>
+						<table class="data_table">
+							<thead>
+								<tr><th>Title</th><th class="money">Hours</th><th class="money">Price</th><th>Default skills</th><th></th></tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>Tree removal</td>
+									<td class="money">8</td>
+									<td class="money">—</td>
+									<td>Climbing, Rigging, Chipper</td>
+									<td><button type="button">Edit</button></td>
+								</tr>
+								<tr>
+									<td>Stump grinding</td>
+									<td class="money">3</td>
+									<td class="money">$450.00</td>
+									<td>Stump grinding</td>
+									<td><button type="button">Edit</button></td>
+								</tr>
+								<tr>
+									<td>Crown cleaning</td>
+									<td class="money">4</td>
+									<td class="money">—</td>
+									<td>Climbing, Bucket</td>
+									<td><button type="button">Edit</button></td>
+								</tr>
+								<tr>
+									<td>Brush clearing</td>
+									<td class="money">4</td>
+									<td class="money">—</td>
+									<td>Ground work, Chipper</td>
+									<td><button type="button">Edit</button></td>
+								</tr>
+								<tr>
+									<td>Tree planting</td>
+									<td class="money">2</td>
+									<td class="money">$340.00</td>
+									<td>Ground work</td>
+									<td><button type="button">Edit</button></td>
+								</tr>
+							</tbody>
+						</table>
+						<span class="schema">line_item_template.title, estimated_hours, price; line_item_template_work_skill</span>
+						<button type="button">Add a template</button>
+						<div class="muted">Price is optional.  A removal is priced per tree, so the template leaves it blank.</div>
+					</div>
+				</fieldset>
+			</div>
+
+			<fieldset>
+				<legend>Company</legend>
+				<div class="column">
+					<span class="tab_label">Tab: Company</span>
+					<div class="settings_columns">
+						<div class="column">
+							<label>Company name<input type="text" value="Duff Tree Service"></label>
+							<label>Brand color<input type="color" value="#006622"></label>
+							<label>Logo<input type="file"></label>
+							<label>Crews start at<input type="time" value="08:00"></label>
+							<label>Invoices are due after<input type="number" value="30"> days</label>
+							<span class="schema">company.name, brand_color, logo, default_crew_start_time, invoice_due_after_days</span>
+						</div>
+
+						<div class="column">
+							<strong>Tax rates</strong>
+							<table class="data_table">
+								<tbody>
+									<tr><td>State sales tax</td><td class="money">7.0000%</td></tr>
+									<tr><td>No tax</td><td class="money">0.0000%</td></tr>
+								</tbody>
+							</table>
+							<span class="schema">tax_rate.name, tax_rate</span>
+
+							<strong>Payment methods</strong>
+							<div class="row">
+								<span class="pill">Cash</span>
+								<span class="pill">Check</span>
+								<span class="pill">Credit card</span>
+							</div>
+							<span class="schema">payment_method.name</span>
+						</div>
+
+						<div class="column">
+							<strong>Item types</strong>
+							<table class="data_table">
+								<thead><tr><th>Name</th><th>Taxable</th></tr></thead>
+								<tbody>
+									<tr><td>Tree removal</td><td>No</td></tr>
+									<tr><td>Pruning</td><td>No</td></tr>
+									<tr><td>Stump grinding</td><td>No</td></tr>
+									<tr><td>Planting</td><td>Yes</td></tr>
+								</tbody>
+							</table>
+							<span class="schema">item_type.name, taxable</span>
+
+							<strong>Decline reasons</strong>
+							<div class="row">
+								<span class="pill">Price too high</span>
+								<span class="pill">Went with a lower bid</span>
+								<span class="pill">Scheduling troubles</span>
+							</div>
+							<span class="schema">project_decline_reason.reason</span>
+						</div>
+					</div>
+				</div>
+			</fieldset>
+		</div>
+	</div>
+
+	<section class="design_notes">
+		<h2>Design notes</h2>
+		<ul>
+			<li>
+				The design doc asks for four things: users, permissions, work skills, and line item
+				templates.  The Company tab holds the other codebooks that already exist in the schema, so
+				they have a home.
+			</li>
+			<li>
+				Permissions are set per role, not per person.  A person gets roles.  This matches
+				<code>software_role_permission</code> and keeps the person row small.
+			</li>
+			<li>
+				The user table shows crew and work skills, because that is what the office needs when
+				somebody new starts.  The crews screen is where the roster gets shuffled.
+			</li>
+			<li>
+				Work skills carry the hourly rate that the estimator's blended rate uses.  Equipment is not
+				a separate list.
+			</li>
+			<li class="open_question">
+				Open: the permission list has no "clock a crew in and out" code.  The foreman screen needs
+				it.  Add <code>CAN_CLOCK_CREW</code>?
+			</li>
+			<li class="open_question">
+				Open: deleting a work skill or a template.  Old projects point at them.  Hide them instead
+				of deleting, or refuse to delete when they are used?
+			</li>
+			<li class="open_question">
+				Open: <code>employee.email</code> and <code>login_name</code> are unique across every
+				company, not per company.  Two companies can not both have a "dale".  Is that the plan?
+			</li>
+		</ul>
+	</section>
+</body>
+</html>

@@ -1,0 +1,388 @@
+/* Styling for the static screen mockups only.  Nothing here ships in the app. */
+
+body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_unit);
+	padding: var(--gap_unit);
+	background: var(--background);
+}
+
+h1, h2, h3, h4 {
+	font-size: 1rem;
+	font-weight: 600;
+}
+
+h1 {
+	font-size: 1.5rem;
+}
+
+h2 {
+	font-size: 1.2rem;
+}
+
+.mockup_header {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_half);
+	padding: var(--gap_unit);
+	background: var(--white);
+	border: 1px solid var(--generic_border_color);
+	border-radius: var(--default_border_radius);
+}
+
+.mockup_header .top_row {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--gap_unit);
+}
+
+.mockup_header p {
+	max-width: 70ch;
+	color: var(--very_dark_gray);
+}
+
+.mockup_header nav {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--gap_half);
+}
+
+.app_frame {
+	display: flex;
+	flex-direction: row;
+	gap: 0;
+	background: var(--white);
+	border: 1px solid var(--generic_border_color);
+	border-radius: var(--default_border_radius);
+	overflow: hidden;
+}
+
+.app_menu {
+	display: flex;
+	flex-direction: column;
+	width: 200px;
+	flex-shrink: 0;
+	background: #f4f4f4;
+	border-right: 1px solid #ddd;
+}
+
+.app_menu .logo {
+	text-align: center;
+	font-size: 2rem;
+	padding: var(--gap_half) 0;
+}
+
+.app_menu ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.app_menu a {
+	display: block;
+	padding: 0.5rem 1rem;
+	color: inherit;
+	text-decoration: none;
+}
+
+.app_menu a:hover {
+	background: #e4e4e4;
+}
+
+.app_menu a[data-active=true] {
+	background: var(--friendly_color);
+	color: var(--white);
+}
+
+.screen_body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_unit);
+	padding: var(--gap_unit);
+	flex-grow: 1;
+	min-width: 0;
+}
+
+.customer_frame {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	background: var(--white);
+	border: 1px solid var(--generic_border_color);
+	border-radius: var(--default_border_radius);
+	padding: var(--gap_double) var(--gap_unit);
+}
+
+.customer_page {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_unit);
+	width: 100%;
+	max-width: 44rem;
+}
+
+.row {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--gap_half);
+}
+
+.row.wide_gap {
+	gap: var(--gap_unit);
+}
+
+.row.top {
+	align-items: flex-start;
+}
+
+.row.spread {
+	justify-content: space-between;
+}
+
+.column {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_half);
+	min-width: 0;
+}
+
+.column.wide_gap {
+	gap: var(--gap_unit);
+}
+
+.grow {
+	flex-grow: 1;
+}
+
+.muted {
+	color: var(--very_dark_gray);
+	font-size: 0.85rem;
+}
+
+.money {
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+.pill {
+	display: inline-block;
+	width: fit-content;
+	padding: 0 0.4rem;
+	border: 1px solid var(--generic_border_color);
+	border-radius: 999px;
+	background: var(--accent_background);
+	font-size: 0.75rem;
+	white-space: nowrap;
+}
+
+.pill.warn {
+	border-color: var(--attention_red);
+	color: var(--attention_red);
+	background: var(--white);
+}
+
+.pill.good {
+	border-color: var(--success_green);
+	color: var(--success_green);
+	background: var(--white);
+}
+
+.schema {
+	font-family: ui-monospace, Menlo, Consolas, monospace;
+	font-size: 0.7rem;
+	color: var(--link_color);
+	white-space: nowrap;
+}
+
+body:has(.schema_toggle input:not(:checked)) .schema {
+	display: none;
+}
+
+.schema_toggle {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--gap_half);
+	width: fit-content;
+	font-size: 0.85rem;
+}
+
+.design_notes {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_half);
+	padding: var(--gap_unit);
+	background: var(--white);
+	border: 1px solid var(--generic_border_color);
+	border-radius: var(--default_border_radius);
+}
+
+.design_notes ul {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_half);
+	margin: 0;
+	padding-left: 1.2rem;
+	max-width: 90ch;
+}
+
+.design_notes .open_question {
+	color: var(--attention_red);
+}
+
+.card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_half);
+	padding: var(--gap_half);
+	background: var(--white);
+	border: 1px solid var(--generic_border_color);
+	border-radius: var(--default_border_radius);
+}
+
+.card.emergency {
+	border-left: 4px solid var(--attention_red);
+}
+
+.card.pinned {
+	border-left: 4px solid var(--link_color);
+}
+
+.data_table {
+	width: 100%;
+	border-collapse: collapse;
+	white-space: normal;
+	background: var(--white);
+}
+
+.data_table th, .data_table td {
+	height: auto;
+	padding: 0.25rem 0.5rem;
+	text-align: left;
+	vertical-align: top;
+	border-bottom: 1px solid var(--accent_background);
+}
+
+.data_table th {
+	background: var(--accent_background);
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.data_table td.money, .data_table th.money {
+	text-align: right;
+}
+
+.photo {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 8rem;
+	height: 6rem;
+	background: repeating-linear-gradient(45deg, #cfd8cf, #cfd8cf 8px, #dde5dd 8px, #dde5dd 16px);
+	border: 1px solid var(--generic_border_color);
+	color: var(--very_dark_gray);
+	font-size: 0.75rem;
+	text-align: center;
+}
+
+.photo.large {
+	width: 12rem;
+	height: 9rem;
+}
+
+.photo_strip {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: var(--gap_half);
+}
+
+/* The customer pages do not load 98.css.  These are the plain controls they use. */
+
+.customer_page button {
+	padding: 0.5rem 1rem;
+	border: 1px solid var(--generic_border_color);
+	border-radius: var(--default_border_radius);
+	background: var(--white);
+	cursor: pointer;
+}
+
+.customer_page button.primary {
+	border-color: var(--friendly_color);
+	background: var(--friendly_color);
+	color: var(--white);
+	font-size: 1.1rem;
+	padding: 0.75rem 1.5rem;
+}
+
+.customer_page button.primary:hover {
+	background: var(--friendly_color_hover);
+}
+
+.customer_page .brand_bar {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--gap_unit);
+	padding: var(--gap_unit);
+	background: var(--friendly_color);
+	color: var(--white);
+	border-radius: var(--default_border_radius);
+}
+
+.customer_page .brand_bar a {
+	color: var(--white);
+}
+
+.customer_page section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_half);
+	padding: var(--gap_unit);
+	background: var(--white);
+	border: 1px solid var(--generic_border_color);
+	border-radius: var(--default_border_radius);
+}
+
+.customer_item {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_half);
+	padding: var(--gap_unit) 0;
+	border-bottom: 1px solid var(--accent_background);
+}
+
+.customer_item[data-optional=true] {
+	background: hsl(var(--hue), 15%, 97%);
+}
+
+.customer_item[data-declined=true] {
+	color: var(--text_color_light);
+}
+
+.price_block {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--gap_half);
+	padding: var(--gap_unit);
+	background: var(--accent_background);
+	border-radius: var(--default_border_radius);
+}
+
+.price_block .big_price {
+	font-size: 2.5rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
