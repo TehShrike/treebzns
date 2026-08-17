@@ -55,7 +55,11 @@ function columnTsType(col: ColumnMeta): string {
 }
 
 function isInsertable(col: ColumnMeta): boolean {
-	return !NON_INSERTABLE_COLUMNS.has(col.COLUMN_NAME) && !col.EXTRA.includes('auto_increment')
+	return !NON_INSERTABLE_COLUMNS.has(col.COLUMN_NAME)
+		&& !col.EXTRA.includes('auto_increment')
+		// "VIRTUAL GENERATED"/"STORED GENERATED" columns are not writable.  Must not match
+		// "DEFAULT_GENERATED", which marks ordinary expression defaults like utc_timestamp().
+		&& !/(?:VIRTUAL|STORED) GENERATED/.test(col.EXTRA)
 }
 
 function typeFields(cols: ColumnMeta[], predicate?: (col: ColumnMeta) => boolean, indent = '\t'): string {
