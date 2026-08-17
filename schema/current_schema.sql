@@ -73,6 +73,68 @@ CREATE TABLE `client_credit` (
   KEY `idx_client_credit_client` (`client_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE `clock_session` (
+  `clock_session_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `project_id` int unsigned NOT NULL,
+  `crew_id` int unsigned DEFAULT NULL,
+  `work_date` date NOT NULL,
+  `supersedes_clock_session_id` int unsigned DEFAULT NULL,
+  `notes` varchar(500) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `opened_by_employee_id` int unsigned NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`clock_session_id`),
+  UNIQUE KEY `uq_clock_session_supersedes` (`supersedes_clock_session_id`),
+  KEY `idx_clock_session_company_work_date` (`company_id`,`work_date`),
+  KEY `idx_clock_session_project` (`project_id`),
+  KEY `idx_clock_session_crew` (`crew_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `clock_session_employee` (
+  `clock_session_employee_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `clock_session_id` int unsigned NOT NULL,
+  `employee_id` int unsigned NOT NULL,
+  `clock_in` datetime NOT NULL,
+  `clock_in_day` date NOT NULL,
+  `clock_out` datetime DEFAULT NULL,
+  `clocked_in_by_employee_id` int unsigned NOT NULL,
+  `clocked_out_by_employee_id` int unsigned DEFAULT NULL,
+  `open_employee_id` int unsigned GENERATED ALWAYS AS (if((`clock_out` is null),`employee_id`,NULL)) VIRTUAL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`clock_session_employee_id`),
+  UNIQUE KEY `uq_cse_open_employee` (`open_employee_id`),
+  KEY `idx_cse_session` (`clock_session_id`),
+  KEY `idx_cse_employee_clock_in_day` (`employee_id`,`clock_in_day`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `clock_session_employee_history` (
+  `clock_session_employee_history_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `clock_session_employee_id` int unsigned NOT NULL,
+  `previous_clock_in` datetime DEFAULT NULL,
+  `previous_clock_out` datetime DEFAULT NULL,
+  `new_clock_in` datetime DEFAULT NULL,
+  `new_clock_out` datetime DEFAULT NULL,
+  `changed_by_employee_id` int unsigned DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`clock_session_employee_history_id`),
+  KEY `idx_cseh_clock_session_employee` (`clock_session_employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `clock_session_line_item` (
+  `clock_session_line_item_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `clock_session_id` int unsigned NOT NULL,
+  `project_line_item_id` int unsigned NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`clock_session_line_item_id`),
+  UNIQUE KEY `uq_csli_session_line_item` (`clock_session_id`,`project_line_item_id`),
+  KEY `idx_csli_project_line_item` (`project_line_item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE `company` (
   `company_id` int unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(500) COLLATE utf8mb4_general_ci NOT NULL,
@@ -82,6 +144,7 @@ CREATE TABLE `company` (
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `default_crew_start_time` time NOT NULL DEFAULT '08:00:00',
   `invoice_due_after_days` int unsigned NOT NULL DEFAULT '30',
+  `timezone` varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
   PRIMARY KEY (`company_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -607,23 +670,6 @@ CREATE TABLE `tax_rate` (
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   PRIMARY KEY (`tax_rate_id`),
   UNIQUE KEY `uq_tax_rate_company_name` (`company_id`,`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `time_entry` (
-  `time_entry_id` int unsigned NOT NULL AUTO_INCREMENT,
-  `company_id` int unsigned NOT NULL,
-  `employee_id` int unsigned NOT NULL,
-  `project_id` int unsigned NOT NULL,
-  `work_date` date NOT NULL,
-  `clock_in` datetime NOT NULL,
-  `clock_out` datetime DEFAULT NULL,
-  `regular_hours` decimal(5,2) NOT NULL DEFAULT '0.00',
-  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`time_entry_id`),
-  KEY `idx_time_entry_company_work_date` (`company_id`,`work_date`),
-  KEY `idx_time_entry_employee_work_date` (`employee_id`,`work_date`),
-  KEY `idx_time_entry_project` (`project_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `work_skill` (

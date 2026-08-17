@@ -18,6 +18,7 @@ const company_columns = [
 	`company.${company.company_id}`,
 	`company.${company.name}`,
 	`company.${company.brand_color}`,
+	`company.${company.timezone}`,
 	`company.${company.default_crew_start_time}`,
 	`company.${company.invoice_due_after_days}`,
 ] as const

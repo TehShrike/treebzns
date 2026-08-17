@@ -5,6 +5,10 @@ export type Schema = {
 	client_address: DbClientAddress
 	client_contact: DbClientContact
 	client_credit: DbClientCredit
+	clock_session: DbClockSession
+	clock_session_employee: DbClockSessionEmployee
+	clock_session_employee_history: DbClockSessionEmployeeHistory
+	clock_session_line_item: DbClockSessionLineItem
 	company: DbCompany
 	crew: DbCrew
 	crew_regular: DbCrewRegular
@@ -41,7 +45,6 @@ export type Schema = {
 	software_role: DbSoftwareRole
 	software_role_permission: DbSoftwareRolePermission
 	tax_rate: DbTaxRate
-	time_entry: DbTimeEntry
 	work_skill: DbWorkSkill
 }
 
@@ -50,6 +53,10 @@ export type InsertableSchema = {
 	client_address: DbInsertableClientAddress
 	client_contact: DbInsertableClientContact
 	client_credit: DbInsertableClientCredit
+	clock_session: DbInsertableClockSession
+	clock_session_employee: DbInsertableClockSessionEmployee
+	clock_session_employee_history: DbInsertableClockSessionEmployeeHistory
+	clock_session_line_item: DbInsertableClockSessionLineItem
 	company: DbInsertableCompany
 	crew: DbInsertableCrew
 	crew_regular: DbInsertableCrewRegular
@@ -86,6 +93,5 @@ export type InsertableSchema = {
 	software_role: DbInsertableSoftwareRole
 	software_role_permission: DbInsertableSoftwareRolePermission
 	tax_rate: DbInsertableTaxRate
-	time_entry: DbInsertableTimeEntry
 	work_skill: DbInsertableWorkSkill
 }

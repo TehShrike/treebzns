@@ -51,12 +51,50 @@ export const client_credit = {
 	created_by_employee_id: 'created_by_employee_id',
 } as const
 
+export const clock_session = {
+	company_id: 'company_id',
+	project_id: 'project_id',
+	crew_id: 'crew_id',
+	work_date: 'work_date',
+	supersedes_clock_session_id: 'supersedes_clock_session_id',
+	notes: 'notes',
+	opened_by_employee_id: 'opened_by_employee_id',
+} as const
+
+export const clock_session_employee = {
+	company_id: 'company_id',
+	clock_session_id: 'clock_session_id',
+	employee_id: 'employee_id',
+	clock_in: 'clock_in',
+	clock_in_day: 'clock_in_day',
+	clock_out: 'clock_out',
+	clocked_in_by_employee_id: 'clocked_in_by_employee_id',
+	clocked_out_by_employee_id: 'clocked_out_by_employee_id',
+} as const
+
+export const clock_session_employee_history = {
+	company_id: 'company_id',
+	clock_session_employee_id: 'clock_session_employee_id',
+	previous_clock_in: 'previous_clock_in',
+	previous_clock_out: 'previous_clock_out',
+	new_clock_in: 'new_clock_in',
+	new_clock_out: 'new_clock_out',
+	changed_by_employee_id: 'changed_by_employee_id',
+} as const
+
+export const clock_session_line_item = {
+	company_id: 'company_id',
+	clock_session_id: 'clock_session_id',
+	project_line_item_id: 'project_line_item_id',
+} as const
+
 export const company = {
 	name: 'name',
 	logo: 'logo',
 	brand_color: 'brand_color',
 	default_crew_start_time: 'default_crew_start_time',
 	invoice_due_after_days: 'invoice_due_after_days',
+	timezone: 'timezone',
 } as const
 
 export const crew = {
@@ -384,16 +422,6 @@ export const tax_rate = {
 	company_id: 'company_id',
 	name: 'name',
 	tax_rate: 'tax_rate',
-} as const
-
-export const time_entry = {
-	company_id: 'company_id',
-	employee_id: 'employee_id',
-	project_id: 'project_id',
-	work_date: 'work_date',
-	clock_in: 'clock_in',
-	clock_out: 'clock_out',
-	regular_hours: 'regular_hours',
 } as const
 
 export const work_skill = {

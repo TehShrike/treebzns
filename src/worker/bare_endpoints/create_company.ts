@@ -9,6 +9,7 @@ const create_company_validator = jv.object({
 	company: jv.object({
 		name: jv.is_string,
 		brand_color: jv.is_string,
+		timezone: jv.is_string,
 	}),
 	owner_employee: jv.object({
 		name: jv.is_string,

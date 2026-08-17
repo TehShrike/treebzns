@@ -6,6 +6,7 @@ import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_query_builder from '#shared/treebzns_db/safe_query_builder.ts'
 import write_helper from '#worker/lib/mysql/write_helper.ts'
 import assert from '#shared/assert.ts'
+import is_valid_timezone from '#shared/is_valid_timezone.ts'
 import type { Schema } from '#schema/types.ts'
 
 const ROWS_PER_BATCH = 100
@@ -50,6 +51,8 @@ export const create_company = async (
 	owner_employee: OwnerEmployeeArg,
 	mysql: MysqlHelpersObject,
 ): Promise<bigint> => {
+	assert(is_valid_timezone(company.timezone), `The company timezone "${company.timezone}" is a supported IANA timezone name`)
+
 	return transaction(mysql.connection, async () => {
 		const { insert_id: company_id } = await write_helper.insert(mysql.connection, 'company', company)
 

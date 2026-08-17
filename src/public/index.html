@@ -10,7 +10,7 @@
 		body { font-family: sans-serif; max-width: 480px; margin: 4rem auto; padding: 0 1rem; }
 		h2 { margin-top: 1.5rem; }
 		label { display: block; margin-top: 0.75rem; font-size: 0.9rem; }
-		input { display: block; width: 100%; box-sizing: border-box; margin-top: 0.25rem; padding: 0.4rem 0.5rem; font-size: 1rem; }
+		input, select { display: block; width: 100%; box-sizing: border-box; margin-top: 0.25rem; padding: 0.4rem 0.5rem; font-size: 1rem; }
 		input[type=color] { padding: 0.1rem; height: 2.2rem; cursor: pointer; }
 		button { margin-top: 1.5rem; padding: 0.6rem 1.4rem; font-size: 1rem; cursor: pointer; }
 		.result { margin-top: 1rem; padding: 0.75rem; border-radius: 4px; display: none; }
@@ -30,6 +30,9 @@
 		</label>
 		<label>Brand color
 			<input type="color" name="brand_color" value="#2e7d32">
+		</label>
+		<label>Timezone
+			<select name="timezone" required></select>
 		</label>
 
 		<h2>Owner account</h2>
@@ -51,6 +54,16 @@
 	<div id="create-result" class="result"></div>
 
 	<script>
+		const timezone_select = document.querySelector('select[name=timezone]')
+		const local_timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+		for (const timezone of Intl.supportedValuesOf('timeZone')) {
+			const option = document.createElement('option')
+			option.value = timezone
+			option.textContent = timezone
+			option.selected = timezone === local_timezone
+			timezone_select.appendChild(option)
+		}
+
 		async function post_json(url, body) {
 			const res = await fetch(url, {
 				method: 'POST',
@@ -78,6 +91,7 @@
 				company: {
 					name: data.get('company_name'),
 					brand_color: data.get('brand_color'),
+					timezone: data.get('timezone'),
 				},
 				owner_employee: {
 					name: data.get('owner_name'),

@@ -63,6 +63,54 @@ export const client_credit = {
 	updated_at: 'updated_at',
 } as const
 
+export const clock_session = {
+	clock_session_id: 'clock_session_id',
+	company_id: 'company_id',
+	project_id: 'project_id',
+	crew_id: 'crew_id',
+	work_date: 'work_date',
+	supersedes_clock_session_id: 'supersedes_clock_session_id',
+	notes: 'notes',
+	opened_by_employee_id: 'opened_by_employee_id',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
+export const clock_session_employee = {
+	clock_session_employee_id: 'clock_session_employee_id',
+	company_id: 'company_id',
+	clock_session_id: 'clock_session_id',
+	employee_id: 'employee_id',
+	clock_in: 'clock_in',
+	clock_in_day: 'clock_in_day',
+	clock_out: 'clock_out',
+	clocked_in_by_employee_id: 'clocked_in_by_employee_id',
+	clocked_out_by_employee_id: 'clocked_out_by_employee_id',
+	open_employee_id: 'open_employee_id',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
+export const clock_session_employee_history = {
+	clock_session_employee_history_id: 'clock_session_employee_history_id',
+	company_id: 'company_id',
+	clock_session_employee_id: 'clock_session_employee_id',
+	previous_clock_in: 'previous_clock_in',
+	previous_clock_out: 'previous_clock_out',
+	new_clock_in: 'new_clock_in',
+	new_clock_out: 'new_clock_out',
+	changed_by_employee_id: 'changed_by_employee_id',
+	created_at: 'created_at',
+} as const
+
+export const clock_session_line_item = {
+	clock_session_line_item_id: 'clock_session_line_item_id',
+	company_id: 'company_id',
+	clock_session_id: 'clock_session_id',
+	project_line_item_id: 'project_line_item_id',
+	created_at: 'created_at',
+} as const
+
 export const company = {
 	company_id: 'company_id',
 	name: 'name',
@@ -72,6 +120,7 @@ export const company = {
 	updated_at: 'updated_at',
 	default_crew_start_time: 'default_crew_start_time',
 	invoice_due_after_days: 'invoice_due_after_days',
+	timezone: 'timezone',
 } as const
 
 export const crew = {
@@ -496,19 +545,6 @@ export const tax_rate = {
 	company_id: 'company_id',
 	name: 'name',
 	tax_rate: 'tax_rate',
-	created_at: 'created_at',
-	updated_at: 'updated_at',
-} as const
-
-export const time_entry = {
-	time_entry_id: 'time_entry_id',
-	company_id: 'company_id',
-	employee_id: 'employee_id',
-	project_id: 'project_id',
-	work_date: 'work_date',
-	clock_in: 'clock_in',
-	clock_out: 'clock_out',
-	regular_hours: 'regular_hours',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const
