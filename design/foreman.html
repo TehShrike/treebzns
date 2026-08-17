@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>My jobs — treebzns screen designs</title>
+	<link rel="stylesheet" href="../src/public/global_reset.css">
+	<link rel="stylesheet" href="../src/public/global_variables.css">
+	<link rel="stylesheet" href="../src/public/global_styles.css">
+	<link rel="stylesheet" href="../src/public/98.css">
+	<link rel="stylesheet" href="mockup.css">
+	<style>
+		.phones {
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: flex-start;
+			justify-content: center;
+			gap: var(--gap_double);
+			padding: var(--gap_unit);
+			background: var(--white);
+			border: 1px solid var(--generic_border_color);
+			border-radius: var(--default_border_radius);
+		}
+
+		.phone {
+			display: flex;
+			flex-direction: column;
+			gap: var(--gap_half);
+			width: 23rem;
+			max-width: 100%;
+			padding: var(--gap_half);
+			background: var(--background);
+			border: 2px solid var(--very_dark_gray);
+			border-radius: 12px;
+		}
+
+		.phone_label {
+			display: flex;
+			flex-direction: row;
+			justify-content: center;
+			color: var(--very_dark_gray);
+			font-size: 0.85rem;
+		}
+
+		.big_button {
+			font-size: 1.1rem;
+			padding: 0.75rem 1rem;
+			width: 100%;
+		}
+
+		.job_row {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			padding: var(--gap_half);
+			background: var(--white);
+			border: 1px solid var(--generic_border_color);
+			border-radius: var(--default_border_radius);
+		}
+
+		.job_row[data-current=true] {
+			border-color: var(--friendly_color);
+			border-width: 2px;
+		}
+
+		.contact_buttons {
+			display: flex;
+			flex-direction: row;
+			gap: var(--gap_half);
+		}
+
+		.contact_buttons > * {
+			flex-grow: 1;
+		}
+
+		.crew_clock {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			padding: var(--gap_half);
+			background: var(--white);
+			border: 1px solid var(--generic_border_color);
+			border-radius: var(--default_border_radius);
+		}
+
+		.clock_row {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+			gap: var(--gap_half);
+		}
+	</style>
+</head>
+<body>
+	<header class="mockup_header">
+		<div class="top_row">
+			<h1>My jobs (crew and foreman)</h1>
+			<a href="index.html">All screens</a>
+		</div>
+		<p>
+			A phone screen.  Any crew member sees the jobs their crew works today.  The address and the
+			phone number are one tap away.  A person with the clock permission can clock the whole crew in
+			and out, and can clock one person on or off.
+		</p>
+		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
+	</header>
+
+	<div class="phones">
+		<div class="column">
+			<div class="phone_label">List</div>
+			<div class="phone">
+				<div class="row spread">
+					<strong>Crew 1 · Tue Aug 18</strong>
+					<a href="foreman.html">Sign out</a>
+				</div>
+				<span class="schema">project_crew for crew_id and work_date = today</span>
+
+				<div class="crew_clock">
+					<div class="clock_row">
+						<strong>Crew clock</strong>
+						<span class="pill good">On job 1142 since 7:52 am</span>
+					</div>
+					<button type="button" class="big_button default">Clock the crew out</button>
+					<div class="clock_row"><span>Andrew Duff</span><button type="button">Clock out</button></div>
+					<div class="clock_row"><span>Dale Hutchins</span><button type="button">Clock out</button></div>
+					<div class="clock_row"><span class="muted">Trevor Nash</span><button type="button">Clock in</button></div>
+					<span class="schema">time_entry rows per employee, clock_in and clock_out</span>
+				</div>
+
+				<div class="job_row" data-current="true">
+					<div class="row spread">
+						<strong>8:00 am · Whitfield</strong>
+						<span class="pill good">Working</span>
+					</div>
+					<div>4418 Kestrel Ridge Road</div>
+					<div class="muted">Remove dead silver maple</div>
+					<div class="contact_buttons">
+						<button type="button">Directions</button>
+						<button type="button">Call</button>
+						<button type="button">Text</button>
+					</div>
+					<span class="schema">project.contact_phone, project.latitude / longitude</span>
+				</div>
+
+				<div class="job_row">
+					<div class="row spread">
+						<strong>2nd stop · Barrett</strong>
+						<span class="pill warn">Emergency</span>
+					</div>
+					<div>812 Delaware Street</div>
+					<div class="muted">Storm limb on the roof</div>
+					<div class="contact_buttons">
+						<button type="button">Directions</button>
+						<button type="button">Call</button>
+						<button type="button">Text</button>
+					</div>
+				</div>
+
+				<div class="job_row">
+					<div class="row spread">
+						<strong>3rd stop · Feldman</strong>
+					</div>
+					<div>1904 Woodhaven Drive</div>
+					<div class="muted">Chip the brush pile</div>
+					<div class="contact_buttons">
+						<button type="button">Directions</button>
+						<button type="button">Call</button>
+						<button type="button">Text</button>
+					</div>
+				</div>
+
+				<div class="muted">Tomorrow: 2 jobs</div>
+			</div>
+		</div>
+
+		<div class="column">
+			<div class="phone_label">One job</div>
+			<div class="phone">
+				<div class="row spread">
+					<a href="foreman.html">← Today</a>
+					<span class="muted">Project 1142</span>
+				</div>
+
+				<h2>Whitfield</h2>
+				<div>4418 Kestrel Ridge Road<br>Bloomington, IN 47401</div>
+				<div class="contact_buttons">
+					<button type="button">Directions</button>
+					<button type="button">Call Marla</button>
+					<button type="button">Text Marla</button>
+				</div>
+				<span class="schema">project.address_line_1, contact_name, contact_phone</span>
+
+				<div class="status-field-border">
+					<strong>Notes for the crew</strong>
+					<div>
+						Park on the street.  The driveway culvert will not hold the chip truck.  Dogs in the
+						back yard until 9.
+					</div>
+					<span class="schema">project.notes_for_crew</span>
+				</div>
+
+				<strong>Work for today</strong>
+				<div class="job_row">
+					<label><input type="checkbox" checked> Remove dead silver maple, back yard</label>
+					<div class="muted">
+						Take it down in sections over the shed.  Rope out the two limbs above the fence.
+						Haul all wood.
+					</div>
+					<div class="row">
+						<span class="pill">Climbing</span>
+						<span class="pill">Rigging</span>
+						<span class="muted">8 hours</span>
+					</div>
+				</div>
+				<div class="job_row">
+					<label><input type="checkbox"> Prune the two front oaks</label>
+					<div class="muted">Deadwood and lift over the driveway to 14 feet.</div>
+					<div class="row">
+						<span class="pill">Climbing</span>
+						<span class="muted">3 hours</span>
+					</div>
+				</div>
+				<span class="schema">project_crew_project_line_item picks the visit's work; the checkbox writes project_line_item.done_at and done_by_employee_id</span>
+
+				<strong>Photos</strong>
+				<div class="photo_strip">
+					<div class="photo">Before</div>
+					<div class="photo">Shed</div>
+				</div>
+				<button type="button" class="big_button">Take a photo</button>
+				<span class="schema">project_image, project_id</span>
+
+				<button type="button" class="big_button default">Clock the crew off this job</button>
+			</div>
+		</div>
+	</div>
+
+	<section class="design_notes">
+		<h2>Design notes</h2>
+		<ul>
+			<li>
+				The list shows the crew's day in schedule order.  Pinned jobs show a time, ordered jobs show
+				"2nd stop".  It matches what the office set on the schedule screen.
+			</li>
+			<li>
+				Directions, Call, and Text are the three actions the design doc asks for.  They use the
+				contact fields baked onto the project, so a later change to the client record does not move
+				today's job.
+			</li>
+			<li>
+				The crew clock is one button.  Under it, each person has a row, so a foreman can add
+				somebody who showed up late without clocking the whole crew again.
+			</li>
+			<li>
+				Only a person with the clock permission sees the crew clock panel.  Everybody else sees
+				their own clock row.  Crews have no modeled leader, so the permission is the gate.
+			</li>
+			<li class="open_question">
+				Open: <code>time_entry</code> points at a project, not at a <code>project_crew</code> row.
+				"Clock the crew off this job" needs to know which visit.  <code>src/notes/todo.md</code>
+				already lists this change.
+			</li>
+			<li class="open_question">
+				Open: checking a line item off writes <code>done_at</code>.  If a job takes two visits and
+				only part of a line item is finished, is a checkbox enough?
+			</li>
+			<li class="open_question">
+				Open: does the crew need to see the price?  It is on the project, but showing money in the
+				field may invite arguments at the door.  This mockup hides it.
+			</li>
+			<li class="open_question">
+				Open: this screen must work with no signal.  Photos and clock actions need a queue.  See
+				"Resilliency to Cloudflare downtime" in <code>src/notes/big_todos.md</code>.
+			</li>
+		</ul>
+	</section>
+</body>
+</html>

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Estimating — treebzns screen designs</title>
+	<link rel="stylesheet" href="../src/public/global_reset.css">
+	<link rel="stylesheet" href="../src/public/global_variables.css">
+	<link rel="stylesheet" href="../src/public/global_styles.css">
+	<link rel="stylesheet" href="../src/public/98.css">
+	<link rel="stylesheet" href="mockup.css">
+	<style>
+		.estimate_layout {
+			display: grid;
+			grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+			align-items: start;
+			gap: var(--gap_unit);
+		}
+
+		.scratch {
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		.selected_text {
+			background: #fff4a3;
+		}
+
+		.item_editor {
+			display: flex;
+			flex-direction: column;
+			gap: var(--gap_half);
+			padding: var(--gap_half);
+			background: var(--white);
+			border: 1px solid var(--generic_border_color);
+			border-radius: var(--default_border_radius);
+		}
+
+		.item_editor[data-draft=true] {
+			border-color: var(--friendly_color);
+			border-width: 2px;
+		}
+
+		.item_fields {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+			align-items: end;
+			gap: var(--gap_half);
+		}
+
+		.item_fields label {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+		}
+
+		.item_fields input, .item_fields select {
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		.totals {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+			gap: 2px;
+		}
+	</style>
+</head>
+<body>
+	<header class="mockup_header">
+		<div class="top_row">
+			<h1>Estimating</h1>
+			<a href="index.html">All screens</a>
+		</div>
+		<p>
+			The estimator opens a lead from their job list.  They see what the office already collected,
+			then dump photos and text on site.  After that they pull the dump apart into line items and
+			price them.
+		</p>
+		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
+	</header>
+
+	<div class="app_frame">
+		<nav class="app_menu">
+			<div class="logo">🌳</div>
+			<ul>
+				<li><a href="index.html">Home</a></li>
+				<li><a href="lead_create.html">Create a lead</a></li>
+				<li><a href="client.html">Clients</a></li>
+				<li><a href="project_list.html">Projects</a></li>
+				<li><a href="scheduling.html">Schedule</a></li>
+				<li><a href="crews.html">Crews</a></li>
+				<li><a href="foreman.html" data-active="true">My jobs</a></li>
+				<li><a href="settings.html">Settings</a></li>
+			</ul>
+		</nav>
+
+		<div class="screen_body">
+			<div class="row spread">
+				<div class="column">
+					<h1>1151 Okonkwo <span class="muted">Lead (Qualified)</span></h1>
+					<div class="muted">3300 Tamarack Trail · Bloomington, IN 47401</div>
+				</div>
+				<div class="row">
+					<button type="button">Call Ada</button>
+					<button type="button">Directions</button>
+					<button type="button" class="default">Send the proposal</button>
+				</div>
+			</div>
+
+			<fieldset>
+				<legend>What the office collected</legend>
+				<div class="row wide_gap top">
+					<div class="column grow">
+						<div>
+							"Big oak in the back looks sick, half the leaves are brown.  Also wants the fence
+							line cleaned up.  She is home most afternoons."
+						</div>
+						<span class="schema">project.lead_details</span>
+					</div>
+					<div class="column">
+						<div>Ada Okonkwo · (812) 555-0192</div>
+						<div>ada.okonkwo@example.com</div>
+						<div class="muted">Lead source: repeat customer</div>
+						<span class="schema">project.contact_name, contact_phone, contact_email, lead_source</span>
+					</div>
+					<div class="column">
+						<div><strong>Client is available</strong></div>
+						<div>Aug 18, 1:00 – 5:00 pm</div>
+						<div>Aug 19, 8:00 am – noon</div>
+						<span class="schema">estimate_availability</span>
+					</div>
+					<div class="column">
+						<a href="client.html">Client record</a>
+						<div class="muted">3 past projects, $8,400 lifetime</div>
+					</div>
+				</div>
+			</fieldset>
+
+			<div class="estimate_layout">
+				<div class="column wide_gap">
+					<fieldset>
+						<legend>Dump photos</legend>
+						<div class="column">
+							<button type="button">Take photos</button>
+							<div class="photo_strip">
+								<div class="photo">1</div>
+								<div class="photo">2</div>
+								<div class="photo">3</div>
+								<div class="photo">4</div>
+								<div class="photo">5</div>
+								<div class="photo">6</div>
+							</div>
+							<div class="muted">Drag a photo onto a line item on the right.  Photos with no line item stay on the project.</div>
+							<span class="schema">project_image.project_id; project_line_item_image links them later</span>
+							<label><input type="checkbox" checked> New photos are visible to the customer</label>
+							<span class="schema">project_image.visible_to_client</span>
+							<button type="button">Mark up a photo</button>
+							<span class="schema">markup writes project_image.display_image, original_image never changes</span>
+						</div>
+					</fieldset>
+
+					<fieldset>
+						<legend>Dump text</legend>
+						<div class="column">
+							<textarea class="scratch" rows="12">Dead silver maple back yard, ~60 ft, over the shed. Needs roping. Haul wood.
+
+Stump plus two surface roots, grind 8 in below grade, leave chips.
+
+Two front oaks - deadwood, lift over driveway to 14 ft. She may want to wait on these.
+
+Fence line brush, about 40 ft, mostly honeysuckle.
+
+Gate is 42 in - no machine access to the back.</textarea>
+							<div class="row">
+								<button type="button">Speak</button>
+								<button type="button" class="default">Make a line item from the selection</button>
+							</div>
+							<div class="muted">
+								Select a paragraph and press the button.  The text moves to a new line item on the
+								right.  Anything left here stays as office notes.
+							</div>
+							<span class="schema">leftovers land in project.notes_for_office</span>
+						</div>
+					</fieldset>
+				</div>
+
+				<fieldset>
+					<legend>Line items</legend>
+					<div class="column">
+						<div class="row">
+							<select>
+								<option>Start from a template…</option>
+								<option>Tree removal</option>
+								<option>Stump grinding</option>
+								<option>Crown cleaning</option>
+								<option>Brush clearing</option>
+								<option>Tree planting</option>
+							</select>
+							<button type="button">Add an empty line item</button>
+							<span class="schema">line_item_template gives title, price, estimated_hours, and default work skills</span>
+						</div>
+
+						<div class="item_editor">
+							<div class="row spread">
+								<input type="text" value="Remove dead silver maple, back yard" aria-label="Title" class="grow">
+								<button type="button">Delete</button>
+							</div>
+							<textarea rows="3">Take the tree down in sections over the shed.  Rope out the two limbs above the fence line.  Haul all wood.  Rake and blow the yard.</textarea>
+							<div class="row">
+								<span class="pill">Climbing ✕</span>
+								<span class="pill">Rigging ✕</span>
+								<span class="pill">Chipper ✕</span>
+								<select>
+									<option>Add a skill…</option>
+									<option>Ground work</option>
+									<option>Bucket</option>
+									<option>Crane</option>
+									<option>Stump grinding</option>
+								</select>
+							</div>
+							<div class="photo_strip">
+								<div class="photo">1</div>
+								<div class="photo">2</div>
+								<div class="muted">Drop photos here</div>
+							</div>
+							<div class="item_fields">
+								<label>Hours<input type="number" value="8"></label>
+								<label>Quantity<input type="number" value="1"></label>
+								<label>Price<input type="text" value="2800.00"></label>
+								<label>Type<select><option selected>Tree removal</option><option>Service</option><option>Material</option></select></label>
+								<label>Taxable<select><option selected>No</option><option>Yes</option></select></label>
+								<label>Customer can decline<select><option selected>No</option><option>Yes</option></select></label>
+							</div>
+							<div class="muted">
+								Blended rate for Climbing, Rigging, and Chipper is $115/hour.  8 hours suggests
+								$920 of labor.
+							</div>
+							<span class="schema">average of work_skill.hourly_rate for the item's skills</span>
+						</div>
+
+						<div class="item_editor">
+							<div class="row spread">
+								<input type="text" value="Grind stump and two surface roots" aria-label="Title" class="grow">
+								<button type="button">Delete</button>
+							</div>
+							<textarea rows="2">Grind 8 inches below grade.  Leave the chips on site as fill.</textarea>
+							<div class="row">
+								<span class="pill">Stump grinding ✕</span>
+								<select><option>Add a skill…</option></select>
+							</div>
+							<div class="item_fields">
+								<label>Hours<input type="number" value="3"></label>
+								<label>Quantity<input type="number" value="1"></label>
+								<label>Price<input type="text" value="450.00"></label>
+								<label>Type<select><option selected>Stump grinding</option></select></label>
+								<label>Taxable<select><option selected>No</option><option>Yes</option></select></label>
+								<label>Customer can decline<select><option selected>No</option><option>Yes</option></select></label>
+							</div>
+						</div>
+
+						<div class="item_editor" data-draft="true">
+							<div class="row spread">
+								<input type="text" value="Prune the two front yard oaks for clearance" aria-label="Title" class="grow">
+								<button type="button">Delete</button>
+							</div>
+							<textarea rows="2">Deadwood and lift the canopy over the driveway to 14 feet.</textarea>
+							<div class="row">
+								<span class="pill">Climbing ✕</span>
+								<span class="pill">Bucket ✕</span>
+								<select><option>Add a skill…</option></select>
+							</div>
+							<div class="item_fields">
+								<label>Hours<input type="number" value="3"></label>
+								<label>Quantity<input type="number" value="1"></label>
+								<label>Price<input type="text" value="900.00"></label>
+								<label>Type<select><option selected>Pruning</option></select></label>
+								<label>Taxable<select><option selected>No</option><option>Yes</option></select></label>
+								<label>Customer can decline<select><option>No</option><option selected>Yes</option></select></label>
+							</div>
+							<span class="schema">project_line_item.client_optional = 1</span>
+						</div>
+
+						<div class="row spread">
+							<button type="button">Add line item</button>
+							<div class="totals">
+								<div>4 items · 14 hours</div>
+								<div><strong>Subtotal $4,150.00</strong></div>
+								<div class="muted">$340.00 of that is optional</div>
+								<span class="schema">project.subtotal, taxable_subtotal, total are written when the proposal is made</span>
+							</div>
+						</div>
+					</div>
+				</fieldset>
+			</div>
+		</div>
+	</div>
+
+	<section class="design_notes">
+		<h2>Design notes</h2>
+		<ul>
+			<li>
+				The screen runs in the order the work happens: read what the office collected, dump
+				everything, then cut the dump into line items.  Nothing forces the estimator to make a line
+				item before they walk the yard.
+			</li>
+			<li>
+				"Make a line item from the selection" is the key move.  The estimator types or speaks one
+				long note, then selects a paragraph at a time.  The selected text becomes
+				<code>work_details</code> and the estimator writes a short <code>title</code>.
+			</li>
+			<li>
+				Photos land on the project first.  Dragging a photo onto a line item writes the
+				<code>project_line_item_image</code> row.  A photo that never gets dragged still shows on
+				the project.
+			</li>
+			<li>
+				A template fills the title, hours, price, and the default work skills.  Every field stays
+				editable, and the line item keeps <code>line_item_template_id</code> for reporting.
+			</li>
+			<li>
+				The blended rate line is help text, not a rule.  It multiplies the average
+				<code>work_skill.hourly_rate</code> for the item's skills by the hours.  The estimator still
+				types the price.
+			</li>
+			<li class="open_question">
+				Open: "Send the proposal" moves the document from Lead (Qualified) to Proposal.  Does it
+				also send the email, or is sending a second action?
+			</li>
+			<li class="open_question">
+				Open: photo markup is not built.  This screen only has a button for it.
+			</li>
+			<li class="open_question">
+				Open: <code>project_line_item.estimated_hours</code> is an unsigned int, so half hours do
+				not fit.  Estimators think in half days.  Change the column, or count in quarter hours?
+			</li>
+			<li class="open_question">
+				Open: the design doc says a separate add-on tier is deferred.  This screen has one
+				"customer can decline" flag per line item, which matches
+				<code>client_optional</code> today.
+			</li>
+		</ul>
+	</section>
+</body>
+</html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Create a lead — treebzns screen designs</title>
+	<link rel="stylesheet" href="../src/public/global_reset.css">
+	<link rel="stylesheet" href="../src/public/global_variables.css">
+	<link rel="stylesheet" href="../src/public/global_styles.css">
+	<link rel="stylesheet" href="../src/public/98.css">
+	<link rel="stylesheet" href="mockup.css">
+	<style>
+		.search_results {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+			max-width: 40rem;
+		}
+
+		.search_result {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+			gap: var(--gap_half);
+			padding: 4px 8px;
+			background: var(--white);
+			border: 1px solid var(--generic_border_color);
+			border-radius: var(--default_border_radius);
+			cursor: pointer;
+		}
+
+		.search_result[data-chosen=true] {
+			border-color: var(--friendly_color);
+			border-width: 2px;
+		}
+
+		.form_fields {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(12rem, 20rem));
+			align-items: start;
+			gap: var(--gap_unit);
+		}
+
+		.form_fields label {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+		}
+
+		.form_fields input, .form_fields select, .form_fields textarea {
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		.wide_field {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+			max-width: 42rem;
+		}
+
+		.wide_field textarea {
+			width: 100%;
+			box-sizing: border-box;
+		}
+
+		.availability_row {
+			display: grid;
+			grid-template-columns: 12rem 8rem 8rem 5rem;
+			align-items: end;
+			gap: var(--gap_half);
+		}
+	</style>
+</head>
+<body>
+	<header class="mockup_header">
+		<div class="top_row">
+			<h1>Create a lead</h1>
+			<a href="index.html">All screens</a>
+		</div>
+		<p>
+			The screen the office uses during the first phone call.  One search box finds the client.  The
+			rest of the page collects what a lead needs.  No line items here.
+		</p>
+		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
+	</header>
+
+	<div class="app_frame">
+		<nav class="app_menu">
+			<div class="logo">🌳</div>
+			<ul>
+				<li><a href="index.html">Home</a></li>
+				<li><a href="lead_create.html" data-active="true">Create a lead</a></li>
+				<li><a href="client.html">Clients</a></li>
+				<li><a href="project_list.html">Projects</a></li>
+				<li><a href="scheduling.html">Schedule</a></li>
+				<li><a href="crews.html">Crews</a></li>
+				<li><a href="foreman.html">My jobs</a></li>
+				<li><a href="settings.html">Settings</a></li>
+			</ul>
+		</nav>
+
+		<div class="screen_body">
+			<h1>Create a lead</h1>
+
+			<fieldset>
+				<legend>1 · Who is calling</legend>
+				<div class="column">
+					<div class="wide_field">
+						<label for="client_search">Name, phone, email, or address</label>
+						<input id="client_search" type="search" value="whitfield" autofocus>
+					</div>
+					<span class="schema">searches client.name, primary_phone, primary_email, client_address.address_line_1</span>
+
+					<div class="search_results">
+						<div class="search_result" data-chosen="true">
+							<div class="column">
+								<strong>Whitfield, Marla</strong>
+								<span class="muted">4418 Kestrel Ridge Rd · (812) 555-0147 · 3 projects</span>
+							</div>
+							<span class="pill">Chosen</span>
+						</div>
+						<div class="search_result">
+							<div class="column">
+								<strong>Whitfield, Ronald</strong>
+								<span class="muted">77 Old Farm Rd · (812) 555-0188 · 1 project</span>
+							</div>
+						</div>
+						<div class="search_result">
+							<div class="column">
+								<strong>Start a new client</strong>
+								<span class="muted">Nobody in the list matches</span>
+							</div>
+						</div>
+					</div>
+					<div class="muted">
+						The list shows every match while you type.  Picking one fills the client fields below
+						and offers their saved addresses.
+					</div>
+				</div>
+			</fieldset>
+
+			<fieldset>
+				<legend>2 · Client</legend>
+				<div class="column">
+					<div class="form_fields">
+						<label>Name<input type="text" value="Whitfield, Marla"></label>
+						<label>Phone<input type="tel" value="(812) 555-0147"></label>
+						<label>Email<input type="email" value="marla.w@example.com"></label>
+						<label>Referred by<input type="text" value="Neighbor on Kestrel Ridge"></label>
+						<label>Tax rate<select><option selected>No tax</option><option>State sales tax (7%)</option></select></label>
+						<label>Commercial<select><option selected>No</option><option>Yes</option></select></label>
+					</div>
+					<span class="schema">client.name, primary_phone, primary_email, referred_by, tax_rate_id, is_commercial</span>
+					<div class="wide_field">
+						<label for="client_notes">Notes about the client</label>
+						<textarea id="client_notes" rows="2">Prefers a call over a text.</textarea>
+					</div>
+					<span class="schema">client.notes</span>
+				</div>
+			</fieldset>
+
+			<fieldset>
+				<legend>3 · Where the work is</legend>
+				<div class="column">
+					<div class="row">
+						<label>Saved address
+							<select>
+								<option selected>4418 Kestrel Ridge Rd (primary)</option>
+								<option>219 Sherwood Ct (billing)</option>
+								<option>A new address</option>
+							</select>
+						</label>
+						<span class="schema">client_address rows for this client</span>
+					</div>
+					<div class="form_fields">
+						<label>Address line 1<input type="text" value="4418 Kestrel Ridge Road"></label>
+						<label>Address line 2<input type="text" value=""></label>
+						<label>City<input type="text" value="Bloomington"></label>
+						<label>State<input type="text" value="IN"></label>
+						<label>Zip<input type="text" value="47401"></label>
+					</div>
+					<div class="row">
+						<span class="pill good">Found on the map</span>
+						<span class="muted">39.1305, -86.5250</span>
+						<button type="button">Move the pin</button>
+					</div>
+					<span class="schema">writes project.latitude / longitude and client_address.latitude / longitude</span>
+					<div class="muted">
+						The address is copied onto the project.  Changing the client's address later does not
+						move an open job.
+					</div>
+					<span class="schema">project.address_line_1, city, state, zip, client_address_id</span>
+				</div>
+			</fieldset>
+
+			<fieldset>
+				<legend>4 · Who to talk to about this job</legend>
+				<div class="column">
+					<div class="form_fields">
+						<label>Contact name<input type="text" value="Marla Whitfield"></label>
+						<label>Contact phone<input type="tel" value="(812) 555-0147"></label>
+						<label>Contact email<input type="email" value="marla.w@example.com"></label>
+					</div>
+					<span class="schema">project.contact_name, contact_phone, contact_email, copied from the client and then owned by the project</span>
+					<div class="muted">
+						The crew calls this number, not the client record.  A tenant, a spouse, or a property
+						manager can go here without touching the client.
+					</div>
+				</div>
+			</fieldset>
+
+			<fieldset>
+				<legend>5 · The job</legend>
+				<div class="column">
+					<div class="wide_field">
+						<label for="lead_details">What they said</label>
+						<textarea id="lead_details" rows="5">Big oak in the back looks sick, half the leaves are brown.  Also wants the fence line cleaned up.  She is home most afternoons.</textarea>
+					</div>
+					<span class="schema">project.lead_details</span>
+
+					<div class="form_fields">
+						<label>Status
+							<select>
+								<option selected>Lead (Unqualified)</option>
+								<option>Lead (Qualified)</option>
+							</select>
+						</label>
+						<label>Lead source
+							<select>
+								<option>Web form</option>
+								<option selected>Phone call</option>
+								<option>Repeat customer</option>
+								<option>Referral</option>
+								<option>Yard sign</option>
+							</select>
+						</label>
+						<label>Estimator
+							<select>
+								<option selected>Not assigned</option>
+								<option>Rachel Ames</option>
+								<option>Andrew Duff</option>
+							</select>
+						</label>
+						<label>Due date<input type="date" value="2026-09-05"></label>
+						<label>Emergency<select><option selected>No</option><option>Yes</option></select></label>
+					</div>
+					<span class="schema">project.project_document_id, lead_source, assigned_estimator_employee_id, due_date, emergency</span>
+
+					<strong>When can we come look?</strong>
+					<div class="availability_row">
+						<label>Date<input type="date" value="2026-08-18"></label>
+						<label>From<input type="time" value="13:00"></label>
+						<label>To<input type="time" value="17:00"></label>
+						<button type="button">Remove</button>
+					</div>
+					<div class="availability_row">
+						<label>Date<input type="date" value="2026-08-19"></label>
+						<label>From<input type="time" value="08:00"></label>
+						<label>To<input type="time" value="12:00"></label>
+						<button type="button">Remove</button>
+					</div>
+					<button type="button">Add another window</button>
+					<span class="schema">estimate_availability.availability_date, start_time, end_time</span>
+
+					<div class="wide_field">
+						<label for="office_notes">Notes for the office</label>
+						<textarea id="office_notes" rows="2"></textarea>
+					</div>
+					<span class="schema">project.notes_for_office</span>
+				</div>
+			</fieldset>
+
+			<div class="row spread">
+				<span class="muted">The lead gets the next project number when you save.</span>
+				<div class="row">
+					<button type="button">Cancel</button>
+					<button type="button" class="default">Create the lead</button>
+				</div>
+			</div>
+			<span class="schema">project.number from project_number.next_number</span>
+		</div>
+	</div>
+
+	<section class="design_notes">
+		<h2>Design notes</h2>
+		<ul>
+			<li>
+				One search box, five numbered steps, top to bottom.  The person on the phone reads down the
+				page in the order the conversation goes.
+			</li>
+			<li>
+				Picking a client fills steps 2, 3, and 4.  A new client starts with empty fields and the
+				same steps.  There is no separate "new client" screen.
+			</li>
+			<li>
+				Step 4 exists because the contact is baked onto the project.  It starts as a copy of the
+				client's phone and email, and it can differ.
+			</li>
+			<li>
+				The status dropdown holds only the two lead documents.  Everything else moves through the
+				project screen.
+			</li>
+			<li>
+				Availability windows are collected here, while the client is on the phone.  The estimator
+				sees them on the estimating screen and the scheduler sees them on the board.
+			</li>
+			<li class="open_question">
+				Open: geocoding.  The pin comes from an address lookup service.  Nothing is picked yet, and
+				<code>project.latitude</code> is nullable, so a lead can save without it.
+			</li>
+			<li class="open_question">
+				Open: lead source is a free text column (<code>project.lead_source</code>) but this screen
+				shows a dropdown.  Reporting wants a fixed list.  Add a table, or keep text?
+			</li>
+			<li class="open_question">
+				Open: <code>client.primary_client_address_id</code> is not nullable, so a new client needs
+				an address at save time.  A caller who will not give an address blocks the save.  Is that
+				right?
+			</li>
+		</ul>
+	</section>
+</body>
+</html>

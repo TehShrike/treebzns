@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Job scheduling — treebzns screen designs</title>
+	<link rel="stylesheet" href="../src/public/global_reset.css">
+	<link rel="stylesheet" href="../src/public/global_variables.css">
+	<link rel="stylesheet" href="../src/public/global_styles.css">
+	<link rel="stylesheet" href="../src/public/98.css">
+	<link rel="stylesheet" href="mockup.css">
+	<style>
+		.day_strip {
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: stretch;
+			gap: var(--gap_half);
+		}
+
+		.day_button {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+			padding: 0.25rem 0.6rem;
+			border: 1px solid var(--generic_border_color);
+			border-radius: var(--default_border_radius);
+			background: var(--white);
+			text-align: center;
+			cursor: pointer;
+		}
+
+		.day_button[data-selected=true] {
+			border-color: var(--friendly_color);
+			border-width: 2px;
+			font-weight: 600;
+		}
+
+		.board {
+			display: grid;
+			grid-template-columns: 17rem minmax(0, 1fr) 21rem;
+			align-items: start;
+			gap: var(--gap_unit);
+		}
+
+		.crew_columns {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+			align-items: start;
+			gap: var(--gap_half);
+		}
+
+		.crew_column {
+			display: flex;
+			flex-direction: column;
+			gap: var(--gap_half);
+			padding: var(--gap_half);
+			background: var(--accent_background);
+			border-radius: var(--default_border_radius);
+			border-top: 4px solid var(--crew_color, #000);
+		}
+
+		.crew_header {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+		}
+
+		.job_card {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			padding: var(--gap_half);
+			background: var(--white);
+			border: 1px solid var(--generic_border_color);
+			border-radius: var(--default_border_radius);
+			cursor: grab;
+		}
+
+		.job_card[data-emergency=true] {
+			border-left: 4px solid var(--attention_red);
+		}
+
+		.job_card[data-pinned=true] {
+			border-left: 4px solid var(--link_color);
+		}
+
+		.job_card .slot {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+			gap: var(--gap_half);
+			font-size: 0.75rem;
+			color: var(--very_dark_gray);
+		}
+
+		.drop_target {
+			display: flex;
+			flex-direction: row;
+			justify-content: center;
+			padding: var(--gap_half);
+			border: 1px dashed var(--text_color_light);
+			border-radius: var(--default_border_radius);
+			color: var(--text_color_light);
+			font-size: 0.85rem;
+		}
+
+		.map_frame {
+			display: flex;
+			flex-direction: column;
+			gap: var(--gap_half);
+		}
+
+		.map_frame svg {
+			width: 100%;
+			height: auto;
+			background: #eef3ea;
+			border: 1px solid var(--generic_border_color);
+		}
+	</style>
+</head>
+<body>
+	<header class="mockup_header">
+		<div class="top_row">
+			<h1>Job scheduling</h1>
+			<a href="index.html">All screens</a>
+		</div>
+		<p>
+			One day at a time.  The queue on the left holds work that is ready but has no date.  Each crew
+			owns one column for that day.  The map shows where the day's stops are, so Andrew can group
+			jobs that sit close together.
+		</p>
+		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
+	</header>
+
+	<div class="app_frame">
+		<nav class="app_menu">
+			<div class="logo">🌳</div>
+			<ul>
+				<li><a href="index.html">Home</a></li>
+				<li><a href="lead_create.html">Create a lead</a></li>
+				<li><a href="client.html">Clients</a></li>
+				<li><a href="project_list.html">Projects</a></li>
+				<li><a href="scheduling.html" data-active="true">Schedule</a></li>
+				<li><a href="crews.html">Crews</a></li>
+				<li><a href="foreman.html">My jobs</a></li>
+				<li><a href="settings.html">Settings</a></li>
+			</ul>
+		</nav>
+
+		<div class="screen_body">
+			<div class="row spread">
+				<h1>Schedule</h1>
+				<div class="row">
+					<label><input type="checkbox" checked> Show map</label>
+					<label><input type="checkbox"> Show all crews</label>
+					<button type="button">Print the day</button>
+				</div>
+			</div>
+
+			<div class="day_strip">
+				<button type="button" class="day_button">◀</button>
+				<div class="day_button">Mon<br>Aug 17<br><span class="muted">6 jobs</span></div>
+				<div class="day_button" data-selected="true">Tue<br>Aug 18<br><span class="muted">5 jobs</span></div>
+				<div class="day_button">Wed<br>Aug 19<br><span class="muted">4 jobs</span></div>
+				<div class="day_button">Thu<br>Aug 20<br><span class="muted">2 jobs</span></div>
+				<div class="day_button">Fri<br>Aug 21<br><span class="muted">0 jobs</span></div>
+				<button type="button" class="day_button">▶</button>
+				<span class="schema">count of project_crew rows per work_date</span>
+			</div>
+
+			<div class="board">
+				<fieldset>
+					<legend>Ready to schedule</legend>
+					<div class="column">
+						<div class="row">
+							<input type="search" placeholder="Client or address">
+							<span class="schema">client.name, project.address_line_1</span>
+						</div>
+						<label><input type="checkbox" checked> Emergencies first</label>
+						<label><input type="checkbox" checked> Oldest approval first</label>
+						<span class="schema">project.emergency, then project_document_history.created_at for the work order row</span>
+
+						<div class="job_card" data-emergency="true">
+							<div class="row spread">
+								<strong>1149 Barrett</strong>
+								<span class="pill warn">Emergency</span>
+							</div>
+							<div>Storm limb on the roof</div>
+							<div class="muted">812 Delaware St · 2.1 mi</div>
+							<div class="row">
+								<span class="pill">Climbing</span>
+								<span class="pill">Rigging</span>
+							</div>
+							<div class="slot"><span>6 hours</span><span>Approved 1 day ago</span></div>
+						</div>
+
+						<div class="job_card">
+							<div class="row spread">
+								<strong>1131 Northbrook HOA</strong>
+							</div>
+							<div>Prune 9 street trees</div>
+							<div class="muted">Northbrook Dr · 4.6 mi</div>
+							<div class="row">
+								<span class="pill">Bucket</span>
+								<span class="pill">Chipper</span>
+							</div>
+							<div class="slot"><span>16 hours</span><span>Approved 12 days ago</span></div>
+						</div>
+
+						<div class="job_card">
+							<div class="row spread">
+								<strong>1136 Alvarez</strong>
+							</div>
+							<div>Stump grinding, 3 stumps</div>
+							<div class="muted">2210 Sycamore Ln · 3.4 mi</div>
+							<div class="row">
+								<span class="pill">Stump grinding</span>
+							</div>
+							<div class="slot"><span>4 hours</span><span>Approved 9 days ago</span></div>
+						</div>
+
+						<div class="job_card">
+							<div class="row spread">
+								<strong>1140 Pruitt</strong>
+								<span class="pill">Due Aug 22</span>
+							</div>
+							<div>Remove two ash</div>
+							<div class="muted">55 Ridgeway Ct · 6.8 mi</div>
+							<div class="row">
+								<span class="pill">Climbing</span>
+								<span class="pill">Crane</span>
+							</div>
+							<div class="slot"><span>10 hours</span><span>Approved 4 days ago</span></div>
+						</div>
+
+						<span class="schema">project where project_document.should_be_worked = 1 and closed = 0 and no future project_crew row</span>
+					</div>
+				</fieldset>
+
+				<div class="column wide_gap">
+					<div class="crew_columns">
+						<div class="crew_column" style="--crew_color: #2b6cb0;">
+							<div class="crew_header">
+								<strong>Crew 1 · Blue</strong>
+								<span class="muted">Andrew, Dale, Trevor</span>
+								<div class="row">
+									<span class="pill">Climbing</span>
+									<span class="pill">Rigging</span>
+									<span class="pill">Chipper</span>
+								</div>
+								<span class="muted">11 of 10 hours booked</span>
+								<span class="schema">crew.name, crew.color; project_crew_employee or crew_regular</span>
+							</div>
+
+							<div class="job_card" data-pinned="true">
+								<div class="slot"><span>8:00 am · fixed</span><span>3 hours</span></div>
+								<strong>1142 Whitfield</strong>
+								<div class="muted">4418 Kestrel Ridge Rd</div>
+								<div class="row">
+									<span class="pill">Climbing</span>
+									<span class="pill">Rigging</span>
+								</div>
+								<div class="muted">Line items: remove maple</div>
+								<span class="schema">project_crew.start_time set, day_order null</span>
+							</div>
+
+							<div class="job_card" data-emergency="true">
+								<div class="slot"><span>2nd stop</span><span>6 hours</span></div>
+								<strong>1149 Barrett</strong>
+								<div class="muted">812 Delaware St</div>
+								<div class="row">
+									<span class="pill warn">Emergency</span>
+									<span class="pill">Climbing</span>
+								</div>
+								<span class="schema">project_crew.day_order = 2, start_time null</span>
+							</div>
+
+							<div class="job_card">
+								<div class="slot"><span>3rd stop</span><span>2 hours</span></div>
+								<strong>1128 Feldman</strong>
+								<div class="muted">1904 Woodhaven Dr</div>
+								<div class="row">
+									<span class="pill">Chipper</span>
+								</div>
+							</div>
+
+							<div class="drop_target">Drop a job here</div>
+						</div>
+
+						<div class="crew_column" style="--crew_color: #c05621;">
+							<div class="crew_header">
+								<strong>Crew 2 · Orange</strong>
+								<span class="muted">Cody, Marcus</span>
+								<div class="row">
+									<span class="pill">Stump grinding</span>
+									<span class="pill">Bucket</span>
+								</div>
+								<span class="muted">7 of 10 hours booked</span>
+							</div>
+
+							<div class="job_card">
+								<div class="slot"><span>1st stop</span><span>4 hours</span></div>
+								<strong>1136 Alvarez</strong>
+								<div class="muted">2210 Sycamore Ln</div>
+								<div class="row">
+									<span class="pill">Stump grinding</span>
+								</div>
+							</div>
+
+							<div class="job_card">
+								<div class="slot"><span>2nd stop</span><span>3 hours</span></div>
+								<strong>1121 Delgado</strong>
+								<div class="muted">417 Beechwood Ave</div>
+								<div class="row">
+									<span class="pill">Bucket</span>
+								</div>
+							</div>
+
+							<div class="drop_target">Drop a job here</div>
+						</div>
+
+						<div class="crew_column" style="--crew_color: #6b46c1;">
+							<div class="crew_header">
+								<strong>Estimating · Purple</strong>
+								<span class="muted">Rachel</span>
+								<div class="row">
+									<span class="pill">Estimating</span>
+								</div>
+								<span class="muted">3 visits</span>
+								<span class="schema">projects with assigned_estimator_employee_id, scheduled the same way</span>
+							</div>
+
+							<div class="job_card" data-pinned="true">
+								<div class="slot"><span>9:00 am · fixed</span><span>Estimate</span></div>
+								<strong>1151 Okonkwo</strong>
+								<div class="muted">3300 Tamarack Trail</div>
+								<span class="schema">estimate_availability gives the windows the client offered</span>
+							</div>
+
+							<div class="job_card">
+								<div class="slot"><span>2nd stop</span><span>Estimate</span></div>
+								<strong>1152 Rennick</strong>
+								<div class="muted">88 Longview Dr</div>
+							</div>
+
+							<div class="drop_target">Drop a job here</div>
+						</div>
+					</div>
+
+					<fieldset>
+						<legend>Warnings for Tue Aug 18</legend>
+						<ul>
+							<li>Crew 1 is booked 11 hours against a 10 hour day.</li>
+							<li>Job 1140 Pruitt needs Crane.  No crew working that day has it.</li>
+							<li>Job 1131 Northbrook HOA is 16 hours.  It needs more than one day.</li>
+						</ul>
+						<span class="schema">union of project_line_item_work_skill against employee_work_skill for the assigned employees</span>
+					</fieldset>
+				</div>
+
+				<fieldset class="map_frame">
+					<legend>Map</legend>
+					<svg viewBox="0 0 300 260" role="img" aria-label="Map of the day's stops">
+						<rect x="0" y="0" width="300" height="260" fill="#eef3ea"></rect>
+						<path d="M0 90 H300" stroke="#ffffff" stroke-width="10"></path>
+						<path d="M0 180 H300" stroke="#ffffff" stroke-width="7"></path>
+						<path d="M110 0 V260" stroke="#ffffff" stroke-width="10"></path>
+						<path d="M215 0 V260" stroke="#ffffff" stroke-width="7"></path>
+						<path d="M0 30 C 80 60, 150 20, 300 60" stroke="#cfe0f5" stroke-width="6" fill="none"></path>
+						<g font-size="11" fill="#ffffff" text-anchor="middle">
+							<circle cx="70" cy="60" r="11" fill="#2b6cb0"></circle>
+							<text x="70" y="64">1</text>
+							<circle cx="150" cy="120" r="11" fill="#2b6cb0"></circle>
+							<text x="150" y="124">2</text>
+							<circle cx="185" cy="150" r="11" fill="#2b6cb0"></circle>
+							<text x="185" y="154">3</text>
+							<circle cx="245" cy="205" r="11" fill="#c05621"></circle>
+							<text x="245" y="209">1</text>
+							<circle cx="260" cy="230" r="11" fill="#c05621"></circle>
+							<text x="260" y="234">2</text>
+							<circle cx="60" cy="215" r="11" fill="#6b46c1"></circle>
+							<text x="60" y="219">1</text>
+						</g>
+						<g font-size="10" fill="#5a6b5a">
+							<circle cx="120" cy="45" r="6" fill="#ffffff" stroke="#9aa89a"></circle>
+							<circle cx="95" cy="150" r="6" fill="#ffffff" stroke="#9aa89a"></circle>
+							<circle cx="200" cy="70" r="6" fill="#ffffff" stroke="#9aa89a"></circle>
+							<text x="8" y="252">Shop</text>
+						</g>
+					</svg>
+					<div class="column">
+						<div class="row"><span class="pill" style="border-color:#2b6cb0;color:#2b6cb0">Crew 1</span> route order 1, 2, 3</div>
+						<div class="row"><span class="pill" style="border-color:#c05621;color:#c05621">Crew 2</span> route order 1, 2</div>
+						<div class="row"><span class="pill" style="border-color:#6b46c1;color:#6b46c1">Estimating</span></div>
+						<div class="muted">Hollow pins are jobs in the queue with no date.  Click one to add it to a crew.</div>
+						<span class="schema">project.latitude, project.longitude</span>
+					</div>
+				</fieldset>
+			</div>
+		</div>
+	</div>
+
+	<section class="design_notes">
+		<h2>Design notes</h2>
+		<ul>
+			<li>
+				The board holds one day.  Each crew column is one <code>crew</code> row, and each card is
+				one <code>project_crew</code> row.
+			</li>
+			<li>
+				A card is either ordered or pinned, never both.  An ordered card shows "2nd stop"
+				(<code>day_order</code>).  A pinned card shows a clock time (<code>start_time</code>) and a
+				blue left edge.  Dragging a card between the two changes which column gets a value.
+			</li>
+			<li>
+				The queue holds projects whose document says <code>should_be_worked</code>, that are open,
+				and that have no visit on this day or later.  The default order is emergencies first, then
+				the date the client approved the work.
+			</li>
+			<li>
+				Skills are checked, not enforced.  The warning panel compares the skills the day's line
+				items need against the skills the assigned people hold.  Andrew can still schedule the job.
+			</li>
+			<li>
+				Estimating is a crew column like any other.  An estimator is one person on a crew, and the
+				visit is still a <code>project_crew</code> row.
+			</li>
+			<li class="open_question">
+				Open: crew capacity.  "11 of 10 hours booked" needs a hours-per-day number per crew.
+				Nothing in the schema holds it.  Add <code>crew.hours_per_day</code>, or drop the warning?
+			</li>
+			<li class="open_question">
+				Open: a 16 hour job needs more than one day.  <code>project_crew</code> allows one row per
+				project, crew, and date, so a multi-day job is several rows.  Does the card need to show
+				"day 1 of 2"?
+			</li>
+			<li class="open_question">
+				Open: which line items get worked on a visit
+				(<code>project_crew_project_line_item</code>) is set somewhere.  Right now the card only
+				lists them.  Set it in a panel that opens from the card?
+			</li>
+			<li class="open_question">
+				Open: drive time.  The map orders pins, but nothing computes distance.  A first version can
+				show straight-line miles from the shop.
+			</li>
+		</ul>
+	</section>
+</body>
+</html>

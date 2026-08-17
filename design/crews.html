@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Crews — treebzns screen designs</title>
+	<link rel="stylesheet" href="../src/public/global_reset.css">
+	<link rel="stylesheet" href="../src/public/global_variables.css">
+	<link rel="stylesheet" href="../src/public/global_styles.css">
+	<link rel="stylesheet" href="../src/public/98.css">
+	<link rel="stylesheet" href="mockup.css">
+	<style>
+		.crew_layout {
+			display: grid;
+			grid-template-columns: 16rem minmax(0, 1fr);
+			align-items: start;
+			gap: var(--gap_unit);
+		}
+
+		.crew_cards {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+			align-items: start;
+			gap: var(--gap_unit);
+		}
+
+		.crew_card {
+			display: flex;
+			flex-direction: column;
+			gap: var(--gap_half);
+			padding: var(--gap_half);
+			background: var(--white);
+			border: 1px solid var(--generic_border_color);
+			border-radius: var(--default_border_radius);
+			border-top: 4px solid var(--crew_color, #000);
+		}
+
+		.person {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+			gap: var(--gap_half);
+			padding: 4px 6px;
+			background: var(--white);
+			border: 1px solid var(--generic_border_color);
+			border-radius: var(--default_border_radius);
+			cursor: grab;
+		}
+
+		.person[data-borrowed=true] {
+			border-style: dashed;
+			background: var(--accent_background);
+		}
+
+		.person .who {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
+			min-width: 0;
+		}
+
+		.skill_matrix td, .skill_matrix th {
+			text-align: center;
+		}
+
+		.skill_matrix td:first-child, .skill_matrix th:first-child {
+			text-align: left;
+		}
+
+		.skill_matrix label {
+			padding-block: 4px;
+			padding-left: var(--checkbox-width);
+			padding-right: 0;
+		}
+	</style>
+</head>
+<body>
+	<header class="mockup_header">
+		<div class="top_row">
+			<h1>Crews</h1>
+			<a href="index.html">All screens</a>
+		</div>
+		<p>
+			Crew rosters and skills.  <code>crew_regular</code> is the default roster, not a rule.  Who
+			works a job on a day is per job (<code>project_crew_employee</code>), so pulling a person onto
+			another crew for a day happens on the schedule screen, not here.
+		</p>
+		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
+	</header>
+
+	<div class="app_frame">
+		<nav class="app_menu">
+			<div class="logo">🌳</div>
+			<ul>
+				<li><a href="index.html">Home</a></li>
+				<li><a href="lead_create.html">Create a lead</a></li>
+				<li><a href="client.html">Clients</a></li>
+				<li><a href="project_list.html">Projects</a></li>
+				<li><a href="scheduling.html">Schedule</a></li>
+				<li><a href="crews.html" data-active="true">Crews</a></li>
+				<li><a href="foreman.html">My jobs</a></li>
+				<li><a href="settings.html">Settings</a></li>
+			</ul>
+		</nav>
+
+		<div class="screen_body">
+			<div class="row spread">
+				<h1>Crews</h1>
+				<button type="button">Add a crew</button>
+			</div>
+
+			<menu role="tablist">
+				<li role="tab" aria-selected="true"><a href="crews.html">Rosters</a></li>
+				<li role="tab"><a href="crews.html">Skills</a></li>
+				<li role="tab"><a href="crews.html">Roster history</a></li>
+			</menu>
+			<div class="window" role="tabpanel">
+				<div class="window-body">
+					<div class="crew_layout">
+						<fieldset>
+							<legend>Everybody</legend>
+							<div class="column">
+								<input type="search" placeholder="Name">
+								<label><input type="checkbox"> Only people with no crew</label>
+
+								<div class="person">
+									<div class="who">
+										<strong>Andrew Duff</strong>
+										<span class="muted">Climbing, Rigging, Bucket, Estimating</span>
+									</div>
+									<span class="pill">Crew 1</span>
+								</div>
+								<div class="person">
+									<div class="who">
+										<strong>Dale Hutchins</strong>
+										<span class="muted">Climbing, Chipper</span>
+									</div>
+									<span class="pill">Crew 1</span>
+								</div>
+								<div class="person">
+									<div class="who">
+										<strong>Trevor Nash</strong>
+										<span class="muted">Ground work, Chipper</span>
+									</div>
+									<span class="pill">Crew 1</span>
+								</div>
+								<div class="person">
+									<div class="who">
+										<strong>Cody Barron</strong>
+										<span class="muted">Stump grinding, Bucket</span>
+									</div>
+									<span class="pill">Crew 2</span>
+								</div>
+								<div class="person">
+									<div class="who">
+										<strong>Marcus Reid</strong>
+										<span class="muted">Ground work</span>
+									</div>
+									<span class="pill">Crew 2</span>
+								</div>
+								<div class="person">
+									<div class="who">
+										<strong>Rachel Ames</strong>
+										<span class="muted">Estimating, Climbing</span>
+									</div>
+									<span class="pill">Estimating</span>
+								</div>
+								<div class="person">
+									<div class="who">
+										<strong>Wes Tolliver</strong>
+										<span class="muted">Crane, Climbing</span>
+									</div>
+									<span class="muted">No crew</span>
+								</div>
+								<span class="schema">employee.name; employee_work_skill; employee.default_crew_id</span>
+							</div>
+						</fieldset>
+
+						<div class="crew_cards">
+							<div class="crew_card" style="--crew_color: #2b6cb0;">
+								<div class="row spread">
+									<strong>Crew 1</strong>
+									<div class="row">
+										<input type="color" value="#2b6cb0" aria-label="Crew color">
+										<button type="button">Rename</button>
+									</div>
+								</div>
+								<span class="schema">crew.name, crew.color</span>
+
+								<div class="person">
+									<div class="who"><strong>Andrew Duff</strong><span class="muted">Climbing, Rigging, Bucket</span></div>
+									<button type="button">Remove</button>
+								</div>
+								<div class="person">
+									<div class="who"><strong>Dale Hutchins</strong><span class="muted">Climbing, Chipper</span></div>
+									<button type="button">Remove</button>
+								</div>
+								<div class="person">
+									<div class="who"><strong>Trevor Nash</strong><span class="muted">Ground work, Chipper</span></div>
+									<button type="button">Remove</button>
+								</div>
+
+								<div class="status-field-border">
+									<div class="row">
+										<span class="pill good">Climbing</span>
+										<span class="pill good">Rigging</span>
+										<span class="pill good">Chipper</span>
+										<span class="pill good">Bucket</span>
+										<span class="pill warn">No Stump grinding</span>
+										<span class="pill warn">No Crane</span>
+									</div>
+								</div>
+								<span class="schema">skills this roster covers, from employee_work_skill</span>
+							</div>
+
+							<div class="crew_card" style="--crew_color: #c05621;">
+								<div class="row spread">
+									<strong>Crew 2</strong>
+									<div class="row">
+										<input type="color" value="#c05621" aria-label="Crew color">
+										<button type="button">Rename</button>
+									</div>
+								</div>
+								<div class="person">
+									<div class="who"><strong>Cody Barron</strong><span class="muted">Stump grinding, Bucket</span></div>
+									<button type="button">Remove</button>
+								</div>
+								<div class="person">
+									<div class="who"><strong>Marcus Reid</strong><span class="muted">Ground work</span></div>
+									<button type="button">Remove</button>
+								</div>
+								<div class="person" data-borrowed="true">
+									<div class="who">
+										<strong>Wes Tolliver</strong>
+										<span class="muted">Borrowed for Tue Aug 18 only</span>
+									</div>
+									<button type="button">Send back</button>
+								</div>
+								<div class="status-field-border">
+									<div class="row">
+										<span class="pill good">Stump grinding</span>
+										<span class="pill good">Bucket</span>
+										<span class="pill warn">No Rigging</span>
+									</div>
+								</div>
+								<span class="schema">the dashed person comes from project_crew_employee, not crew_regular</span>
+							</div>
+
+							<div class="crew_card" style="--crew_color: #6b46c1;">
+								<div class="row spread">
+									<strong>Estimating</strong>
+									<div class="row">
+										<input type="color" value="#6b46c1" aria-label="Crew color">
+										<button type="button">Rename</button>
+									</div>
+								</div>
+								<div class="person">
+									<div class="who"><strong>Rachel Ames</strong><span class="muted">Estimating, Climbing</span></div>
+									<button type="button">Remove</button>
+								</div>
+								<div class="status-field-border">
+									<div class="row">
+										<span class="pill good">Estimating</span>
+									</div>
+								</div>
+								<div class="muted">An estimator crew works estimate visits.  It schedules the same way.</div>
+							</div>
+						</div>
+					</div>
+
+					<h2>Skills</h2>
+					<div class="sunken-panel">
+						<table class="skill_matrix">
+							<thead>
+								<tr>
+									<th>Person</th>
+									<th>Climbing</th>
+									<th>Rigging</th>
+									<th>Ground work</th>
+									<th>Chipper</th>
+									<th>Stump grinding</th>
+									<th>Bucket</th>
+									<th>Crane</th>
+									<th>Estimating</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>Andrew Duff</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+								</tr>
+								<tr>
+									<td>Dale Hutchins</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+								<tr>
+									<td>Cody Barron</td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+								<tr>
+									<td>Wes Tolliver</td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox"></label></td>
+									<td><label><input type="checkbox" checked></label></td>
+									<td><label><input type="checkbox"></label></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<span class="schema">employee_work_skill rows; the columns come from work_skill</span>
+					<p class="muted">
+						Work skill rates live in Settings.  A skill carries an hourly rate
+						(<code>work_skill.hourly_rate</code>), which the estimator uses to price hours.
+					</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<section class="design_notes">
+		<h2>Design notes</h2>
+		<ul>
+			<li>
+				Drag a person from "Everybody" onto a crew card to make them a regular.  That writes a
+				<code>crew_regular</code> row and a <code>crew_regular_history</code> row.
+			</li>
+			<li>
+				A person can be a regular on more than one crew.  The schema allows it
+				(<code>crew_regular</code> keys on crew and employee).
+			</li>
+			<li>
+				The dashed person on Crew 2 is borrowed for one day.  It comes from
+				<code>project_crew_employee</code> for that day's jobs.  The card shows it so the roster
+				page tells the truth about who is out with that crew.
+			</li>
+			<li>
+				The colored bar at the top of each card is <code>crew.color</code>.  The same color marks
+				the crew on the schedule board and the map.
+			</li>
+			<li>
+				The skill matrix is the fastest way to fix a gap: the schedule screen warns that no crew
+				has Crane, and this table is where somebody gets that skill.
+			</li>
+			<li class="open_question">
+				Open: crews have no leader in the schema.  A permission decides who can clock a crew in and
+				out.  Should this screen show which crew members hold that permission?
+			</li>
+			<li class="open_question">
+				Open: nothing marks a crew as inactive.  When a crew stops running, do we delete it, or add
+				<code>crew.archived</code>?  Deleting breaks old <code>project_crew</code> rows.
+			</li>
+		</ul>
+	</section>
+</body>
+</html>

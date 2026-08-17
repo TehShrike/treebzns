@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Customer invoice — treebzns screen designs</title>
+	<link rel="stylesheet" href="../src/public/global_reset.css">
+	<link rel="stylesheet" href="../src/public/global_variables.css">
+	<link rel="stylesheet" href="../src/public/global_styles.css">
+	<link rel="stylesheet" href="mockup.css">
+	<style>
+		.view_switch {
+			display: flex;
+			flex-direction: row;
+			gap: var(--gap_unit);
+			padding: var(--gap_half) var(--gap_unit);
+			background: var(--accent_background);
+			border-radius: var(--default_border_radius);
+		}
+
+		.view_switch label {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			gap: 4px;
+		}
+
+		body:has(#view_invoice:checked) .detail_view {
+			display: none;
+		}
+
+		body:has(#view_detail:checked) .invoice_view {
+			display: none;
+		}
+
+		.invoice_table {
+			width: 100%;
+			border-collapse: collapse;
+		}
+
+		.invoice_table th, .invoice_table td {
+			padding: 0.4rem 0.5rem;
+			text-align: left;
+			border-bottom: 1px solid var(--accent_background);
+		}
+
+		.invoice_table th.money, .invoice_table td.money {
+			text-align: right;
+		}
+
+		.invoice_totals {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+			gap: 2px;
+		}
+
+		.invoice_totals .total_row {
+			display: grid;
+			grid-template-columns: 12rem 7rem;
+			gap: var(--gap_half);
+		}
+	</style>
+</head>
+<body>
+	<header class="mockup_header">
+		<div class="top_row">
+			<h1>Customer page — Closed work order (invoice)</h1>
+			<a href="index.html">All screens</a>
+		</div>
+		<p>
+			The same link after the work is finished.  The amount is locked.  It opens as a plain invoice
+			that adds up, and one switch brings back the photos and the full descriptions.
+		</p>
+		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
+	</header>
+
+	<div class="customer_frame">
+		<div class="customer_page">
+			<div class="brand_bar">
+				<div class="column">
+					<strong>Duff Tree Service</strong>
+					<span>(812) 555-0100 · duff@example.com</span>
+				</div>
+				<div class="column">
+					<span>Invoice 1104</span>
+					<span>Due September 14, 2026</span>
+				</div>
+			</div>
+			<span class="schema">invoice.invoice_number, invoice.invoice_date, invoice.due_date</span>
+
+			<div class="view_switch">
+				<label><input type="radio" name="view" id="view_invoice" checked> Invoice</label>
+				<label><input type="radio" name="view" id="view_detail"> Work and photos</label>
+			</div>
+
+			<section>
+				<div class="row spread top">
+					<div class="column">
+						<strong>Bill to</strong>
+						<div>Ada Okonkwo</div>
+						<div>3300 Tamarack Trail</div>
+						<div>Bloomington, IN 47401</div>
+						<span class="schema">invoice.billing_name, billing_address_line_1, billing_city, billing_state, billing_zip</span>
+					</div>
+					<div class="column">
+						<strong>Work at</strong>
+						<div>3300 Tamarack Trail</div>
+						<div>Finished August 27, 2026</div>
+						<span class="schema">project.address_line_1; project.closed_date</span>
+					</div>
+				</div>
+			</section>
+
+			<section class="invoice_view">
+				<table class="invoice_table">
+					<thead>
+						<tr>
+							<th>Work</th>
+							<th class="money">Qty</th>
+							<th class="money">Price</th>
+							<th class="money">Amount</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>Remove dead silver maple, back yard</td>
+							<td class="money">1</td>
+							<td class="money">$2,800.00</td>
+							<td class="money">$2,800.00</td>
+						</tr>
+						<tr>
+							<td>Grind stump and two surface roots</td>
+							<td class="money">1</td>
+							<td class="money">$450.00</td>
+							<td class="money">$450.00</td>
+						</tr>
+						<tr>
+							<td>Prune the two front yard oaks for clearance</td>
+							<td class="money">1</td>
+							<td class="money">$900.00</td>
+							<td class="money">$900.00</td>
+						</tr>
+					</tbody>
+				</table>
+				<span class="schema">invoice_line_item.description, quantity, price, sort</span>
+
+				<div class="invoice_totals">
+					<div class="total_row"><span>Subtotal</span><span class="money">$4,150.00</span></div>
+					<div class="total_row"><span>Discount</span><span class="money">-$200.00</span></div>
+					<div class="total_row"><span>Tax</span><span class="money">$0.00</span></div>
+					<div class="total_row"><strong>Total</strong><strong class="money">$3,950.00</strong></div>
+					<div class="total_row"><span>Paid August 15</span><span class="money">-$500.00</span></div>
+					<div class="total_row"><strong>Balance due</strong><strong class="money">$3,450.00</strong></div>
+					<span class="schema">invoice.subtotal, discount, tax_total, total; payment_invoice.amount</span>
+				</div>
+			</section>
+
+			<section class="detail_view">
+				<h2>What we did</h2>
+
+				<div class="customer_item">
+					<div class="row spread">
+						<strong>Remove dead silver maple, back yard</strong>
+						<span class="money">$2,800.00</span>
+					</div>
+					<div>
+						Took the tree down in sections over the shed.  Roped out the two limbs above the fence
+						line.  Hauled all wood.  Raked and blew the yard.
+					</div>
+					<div class="photo_strip">
+						<div class="photo large">Before</div>
+						<div class="photo large">After</div>
+					</div>
+				</div>
+
+				<div class="customer_item">
+					<div class="row spread">
+						<strong>Grind stump and two surface roots</strong>
+						<span class="money">$450.00</span>
+					</div>
+					<div>Ground 8 inches below grade.  Left the chips on site as fill.</div>
+					<div class="photo_strip">
+						<div class="photo large">Stump gone</div>
+					</div>
+				</div>
+
+				<div class="customer_item">
+					<div class="row spread">
+						<strong>Prune the two front yard oaks for clearance</strong>
+						<span class="money">$900.00</span>
+					</div>
+					<div>Deadwooded and lifted the canopy over the driveway to 14 feet.</div>
+				</div>
+
+				<div class="invoice_totals">
+					<div class="total_row"><strong>Balance due</strong><strong class="money">$3,450.00</strong></div>
+				</div>
+			</section>
+
+			<section>
+				<div class="price_block">
+					<span>Balance due</span>
+					<span class="big_price">$3,450.00</span>
+					<button type="button" class="primary">Pay this invoice</button>
+					<span class="muted">Card or bank.  You can also mail a check.</span>
+				</div>
+			</section>
+
+			<section>
+				<h2>Thank you</h2>
+				<div>Duff Tree Service · (812) 555-0100</div>
+				<div class="muted">
+					Later: a "schedule another job" block goes here.  It uses the estimator and opens a new
+					lead.
+				</div>
+			</section>
+		</div>
+	</div>
+
+	<section class="design_notes">
+		<h2>Design notes</h2>
+		<ul>
+			<li>
+				The page opens on the plain invoice, because a person who follows an invoice link wants to
+				check the math and pay.  The switch at the top brings back the photos and the full
+				descriptions from the proposal.
+			</li>
+			<li>
+				The invoice rows are <code>invoice_line_item</code> rows, not project line items.  They are
+				copied at close time, so a later change to the project does not rewrite an invoice a
+				customer already has.
+			</li>
+			<li>
+				The bill-to block reads from the invoice, for the same reason.  The address is copied onto
+				<code>invoice.billing_*</code> when the invoice is made.
+			</li>
+			<li>
+				The past tense in the detail view comes from the same
+				<code>project_line_item.work_details</code> text.  Nothing rewrites it.  Only the heading
+				changes: "What we will do" becomes "What we did".
+			</li>
+			<li class="open_question">
+				Open: paying online is not built.  <code>src/notes/big_todos.md</code> points at Stripe
+				Connect.  Until then the button should say how to pay instead.
+			</li>
+			<li class="open_question">
+				Open: an invoice can cover part of a work order
+				(<code>invoice.project_id</code> is nullable and line items map one at a time).  Does the
+				customer page show one invoice, or all invoices for the project?
+			</li>
+			<li class="open_question">
+				Open: client credit (<code>client_credit</code>, <code>invoice.client_credit_applied</code>)
+				does not show here.  Should a credit appear as its own line in the totals?
+			</li>
+		</ul>
+	</section>
+</body>
+</html>
