@@ -4,10 +4,10 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Create a lead — treebzns screen designs</title>
-	<link rel="stylesheet" href="../src/public/global_reset.css">
-	<link rel="stylesheet" href="../src/public/global_variables.css">
-	<link rel="stylesheet" href="../src/public/global_styles.css">
-	<link rel="stylesheet" href="../src/public/98.css">
+	<link rel="stylesheet" href="../../public/global_reset.css">
+	<link rel="stylesheet" href="../../public/global_variables.css">
+	<link rel="stylesheet" href="../../public/global_styles.css">
+	<link rel="stylesheet" href="../../public/98.css">
 	<link rel="stylesheet" href="mockup.css">
 	<style>
 		.search_results {
@@ -48,7 +48,7 @@
 			gap: 2px;
 		}
 
-		.form_fields input, .form_fields select, .form_fields textarea {
+		.form_fields input:not([type=checkbox]), .form_fields select, .form_fields textarea {
 			width: 100%;
 			box-sizing: border-box;
 		}
@@ -105,7 +105,7 @@
 			<h1>Create a lead</h1>
 
 			<fieldset>
-				<legend>1 · Who is calling</legend>
+				<legend>Client</legend>
 				<div class="column">
 					<div class="wide_field">
 						<label for="client_search">Name, phone, email, or address</label>
@@ -113,6 +113,11 @@
 					</div>
 					<span class="schema">searches client.name, primary_phone, primary_email, client_address.address_line_1</span>
 
+					<!--
+						The real implementation is BetterDataList
+						(src/client/component/dropdown_input/BetterDataList.svelte), so the results are a
+						dropdown under the input, not this inline list.
+					-->
 					<div class="search_results">
 						<div class="search_result" data-chosen="true">
 							<div class="column">
@@ -138,12 +143,6 @@
 						The list shows every match while you type.  Picking one fills the client fields below
 						and offers their saved addresses.
 					</div>
-				</div>
-			</fieldset>
-
-			<fieldset>
-				<legend>2 · Client</legend>
-				<div class="column">
 					<div class="form_fields">
 						<label>Name<input type="text" value="Whitfield, Marla"></label>
 						<label>Phone<input type="tel" value="(812) 555-0147"></label>
@@ -154,7 +153,7 @@
 					</div>
 					<span class="schema">client.name, primary_phone, primary_email, referred_by, tax_rate_id, is_commercial</span>
 					<div class="wide_field">
-						<label for="client_notes">Notes about the client</label>
+						<label for="client_notes">Notes</label>
 						<textarea id="client_notes" rows="2">Prefers a call over a text.</textarea>
 					</div>
 					<span class="schema">client.notes</span>
@@ -162,14 +161,14 @@
 			</fieldset>
 
 			<fieldset>
-				<legend>3 · Where the work is</legend>
+				<legend>Project Location</legend>
 				<div class="column">
 					<div class="row">
 						<label>Saved address
 							<select>
 								<option selected>4418 Kestrel Ridge Rd (primary)</option>
 								<option>219 Sherwood Ct (billing)</option>
-								<option>A new address</option>
+								<option>Add a new address</option>
 							</select>
 						</label>
 						<span class="schema">client_address rows for this client</span>
@@ -181,12 +180,6 @@
 						<label>State<input type="text" value="IN"></label>
 						<label>Zip<input type="text" value="47401"></label>
 					</div>
-					<div class="row">
-						<span class="pill good">Found on the map</span>
-						<span class="muted">39.1305, -86.5250</span>
-						<button type="button">Move the pin</button>
-					</div>
-					<span class="schema">writes project.latitude / longitude and client_address.latitude / longitude</span>
 					<div class="muted">
 						The address is copied onto the project.  Changing the client's address later does not
 						move an open job.
@@ -196,7 +189,7 @@
 			</fieldset>
 
 			<fieldset>
-				<legend>4 · Who to talk to about this job</legend>
+				<legend>Project Contact</legend>
 				<div class="column">
 					<div class="form_fields">
 						<label>Contact name<input type="text" value="Marla Whitfield"></label>
@@ -212,10 +205,10 @@
 			</fieldset>
 
 			<fieldset>
-				<legend>5 · The job</legend>
+				<legend>The job</legend>
 				<div class="column">
 					<div class="wide_field">
-						<label for="lead_details">What they said</label>
+						<label for="lead_details">Lead details</label>
 						<textarea id="lead_details" rows="5">Big oak in the back looks sick, half the leaves are brown.  Also wants the fence line cleaned up.  She is home most afternoons.</textarea>
 					</div>
 					<span class="schema">project.lead_details</span>
@@ -227,15 +220,12 @@
 								<option>Lead (Qualified)</option>
 							</select>
 						</label>
-						<label>Lead source
-							<select>
-								<option>Web form</option>
-								<option selected>Phone call</option>
-								<option>Repeat customer</option>
-								<option>Referral</option>
-								<option>Yard sign</option>
-							</select>
-						</label>
+						<!--
+							Lead source is a BetterDataList
+							(src/client/component/dropdown_input/BetterDataList.svelte).  Its options are the
+							distinct project.lead_source values already saved, and any new text is accepted.
+						-->
+						<label>Lead source<input type="text" value="Phone call"></label>
 						<label>Estimator
 							<select>
 								<option selected>Not assigned</option>
@@ -244,7 +234,7 @@
 							</select>
 						</label>
 						<label>Due date<input type="date" value="2026-09-05"></label>
-						<label>Emergency<select><option selected>No</option><option>Yes</option></select></label>
+						<label>Emergency<input type="checkbox"></label>
 					</div>
 					<span class="schema">project.project_document_id, lead_source, assigned_estimator_employee_id, due_date, emergency</span>
 
@@ -287,15 +277,15 @@
 		<h2>Design notes</h2>
 		<ul>
 			<li>
-				One search box, five numbered steps, top to bottom.  The person on the phone reads down the
+				One search box, four sections, top to bottom.  The person on the phone reads down the
 				page in the order the conversation goes.
 			</li>
 			<li>
-				Picking a client fills steps 2, 3, and 4.  A new client starts with empty fields and the
-				same steps.  There is no separate "new client" screen.
+				Picking a client fills the client, address, and contact sections.  A new client starts with
+				empty fields and the same sections.  There is no separate "new client" screen.
 			</li>
 			<li>
-				Step 4 exists because the contact is baked onto the project.  It starts as a copy of the
+				The contact section exists because the contact is baked onto the project.  It starts as a copy of the
 				client's phone and email, and it can differ.
 			</li>
 			<li>
@@ -306,18 +296,21 @@
 				Availability windows are collected here, while the client is on the phone.  The estimator
 				sees them on the estimating screen and the scheduler sees them on the board.
 			</li>
-			<li class="open_question">
-				Open: geocoding.  The pin comes from an address lookup service.  Nothing is picked yet, and
-				<code>project.latitude</code> is nullable, so a lead can save without it.
+			<li>
+				No map details in the first version.  The screen collects only the typed address.
+				Geocoding into <code>project.latitude</code> / <code>longitude</code> comes later, and the
+				columns are nullable, so a lead saves without them.
 			</li>
-			<li class="open_question">
-				Open: lead source is a free text column (<code>project.lead_source</code>) but this screen
-				shows a dropdown.  Reporting wants a fixed list.  Add a table, or keep text?
+			<li>
+				Lead source is a BetterDataList over the free text column
+				(<code>project.lead_source</code>).  The options are the distinct values already saved,
+				and any new text is accepted.  That keeps entries consistent for the reporting in
+				<code>src/notes/big_todos.md</code>.  The data can move to its own table later if needed.
 			</li>
-			<li class="open_question">
-				Open: <code>client.primary_client_address_id</code> is not nullable, so a new client needs
-				an address at save time.  A caller who will not give an address blocks the save.  Is that
-				right?
+			<li>
+				<code>client.primary_client_address_id</code> is not nullable, and that is intentional.
+				The saved-address dropdown has an "Add a new address" option, the default for a new
+				client.  Saving requires an address record, though its fields can all be empty.
 			</li>
 		</ul>
 	</section>

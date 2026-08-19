@@ -4,10 +4,25 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Customer proposal — treebzns screen designs</title>
-	<link rel="stylesheet" href="../src/public/global_reset.css">
-	<link rel="stylesheet" href="../src/public/global_variables.css">
-	<link rel="stylesheet" href="../src/public/global_styles.css">
+	<link rel="stylesheet" href="../../public/global_reset.css">
+	<link rel="stylesheet" href="../../public/global_variables.css">
+	<link rel="stylesheet" href="../../public/global_styles.css">
 	<link rel="stylesheet" href="mockup.css">
+	<style>
+		.item_title_row {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) auto 5.5rem;
+			gap: var(--gap_half);
+			align-items: baseline;
+		}
+
+		.decision_row {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			gap: var(--gap_unit);
+		}
+	</style>
 </head>
 <body>
 	<header class="mockup_header">
@@ -50,8 +65,10 @@
 				<h2>What we will do</h2>
 
 				<div class="customer_item">
-					<div class="row spread">
+					<div class="item_title_row">
 						<strong>Remove dead silver maple, back yard</strong>
+						<span></span>
+						<span class="muted money">$2,800.00</span>
 					</div>
 					<div>
 						Take the tree down in sections over the shed.  Rope out the two limbs above the fence
@@ -65,8 +82,10 @@
 				</div>
 
 				<div class="customer_item">
-					<div class="row spread">
+					<div class="item_title_row">
 						<strong>Grind stump and two surface roots</strong>
+						<span></span>
+						<span class="muted money">$450.00</span>
 					</div>
 					<div>Grind 8 inches below grade.  Leave the chips on site as fill.</div>
 					<div class="photo_strip">
@@ -75,9 +94,10 @@
 				</div>
 
 				<div class="customer_item" data-optional="true">
-					<div class="row spread">
+					<div class="item_title_row">
 						<strong>Prune the two front yard oaks for clearance</strong>
-						<span class="pill">Your choice</span>
+						<span class="pill">Optional</span>
+						<span class="muted money">$900.00</span>
 					</div>
 					<div>Deadwood and lift the canopy over the driveway to 14 feet.</div>
 					<label><input type="checkbox" checked> Yes, include this work</label>
@@ -85,9 +105,10 @@
 				</div>
 
 				<div class="customer_item" data-optional="true" data-declined="true">
-					<div class="row spread">
+					<div class="item_title_row">
 						<strong>Plant one 2-inch caliper red maple</strong>
-						<span class="pill">Your choice</span>
+						<span class="pill">Optional</span>
+						<span class="muted money">$340.00</span>
 					</div>
 					<div>Nursery stock, staked, mulched, with a watering bag.</div>
 					<label><input type="checkbox"> Yes, include this work</label>
@@ -100,8 +121,12 @@
 					<span class="big_price">$4,150.00</span>
 					<span class="muted">Includes tax where it applies.</span>
 					<span class="schema">project.total, recalculated when an optional item is dropped</span>
-					<button type="button" class="primary">Approve this work</button>
-					<span class="muted">You will get a copy by email.</span>
+					<div class="decision_row">
+						<button type="button" class="primary">Approve this work</button>
+						<button type="button">Decline</button>
+					</div>
+					<span class="muted">You will get a copy by email.  Declining is fine, no hard feelings.</span>
+					<span class="schema">decline moves the project to declined_project_document_id and asks for a project_decline_reason</span>
 				</div>
 			</section>
 
@@ -123,7 +148,9 @@
 			</li>
 			<li>
 				One price, one button.  The design doc rules out tiered calls to action for now, so the
-				total sits in one block with the approve button under it.
+				total sits in one block with the approve button under it.  Each line item shows its own
+				price in small muted text (<code>project_line_item.price</code>), so the customer can see
+				what each piece costs without the page reading like a bill.
 			</li>
 			<li>
 				Optional line items are checked by default, and the total drops when the customer unchecks
@@ -136,6 +163,12 @@
 			<li>
 				Approving writes a <code>project_client_approval</code> row and moves the project to the
 				next document.  Both the office screen and this page use the same move.
+			</li>
+			<li>
+				Decline is a real button next to Approve, in the plain secondary style, with friendly
+				help text under the pair.  A declined answer beats a closed tab: it moves the project to
+				the declined document and collects a <code>project_decline_reason</code>, instead of
+				leaving the proposal to age out.
 			</li>
 			<li class="open_question">
 				Open: does approval need a typed name or a drawn signature?

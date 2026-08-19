@@ -3,7 +3,7 @@
 Static HTML mockups for the screens in `src/notes/screens_needed.md`.  They exist to look at and argue
 about.  No JavaScript, no data, no build step.
 
-Open `design/index.html` in a browser.  The pages load the app CSS from `src/public/`, so the controls
+Open `src/notes/design/index.html` in a browser.  The pages load the app CSS from `src/public/`, so the controls
 look like the app.
 
 ## What is here
@@ -38,6 +38,9 @@ Every page has a "Show column names" checkbox.  Turn it on to see the table and 
 control, for example `project.contact_phone`.  The column names come from `schema/current_schema.sql`.
 
 ## Decisions that cross every screen
+
+- **A field label matches its column name.**  `project.lead_details` gets the label "Lead details",
+  not "What they said".  Prose belongs in help text, not in labels.
 
 - **The office app keeps the 98.css look.  The customer pages do not.**  The three customer pages load
   `global_variables.css` and `global_styles.css` but not `98.css`.  A person deciding whether to spend
