@@ -8,6 +8,8 @@ Discounts are pre-tax.
 
 Tax rate will be < 1.
 
+Discount rates will be <= 1.
+
 Line item discount will be <= line item gross.
 
 Client credit is not a discount, but it is functionally similar to a discount given in advance, and will be applied pre-tax.  Client credit does not affect the client's balance.
@@ -24,7 +26,9 @@ line_item_total = line_item_gross - actual_line_item_discount
 
 ## Invoice
 
-*Enforced in code: if invoice.discount is set, line items will not have their own discounts*
+*Enforced in code: if invoice.discount or invoice.discount_rate is set, line items will not have their own discounts*
+
+*Enforced in code: an invoice has discount_rate or discount, not both*
 
 *Enforced in code: if invoice.subtotal is negative, invoice-level discounts are not allowed*
 
@@ -36,7 +40,7 @@ taxable_subtotal = sum of all line_item_total where the line item is taxable
 
 line_item_discount_subtotal = sum of all actual_line_item_discount
 
-invoice_level_discount = if discount is set, least(discount, subtotal), else 0
+invoice_level_discount = if discount_rate is set, round(discount_rate * subtotal), else if discount is set, least(discount, subtotal), else 0
 client_credit_applied = if subtotal < 0, 0, else least(subtotal - invoice_level_discount, available_client_credit)
 
 total_price_reduction = invoice_level_discount + client_credit_applied

@@ -176,7 +176,9 @@ export const import_invoices = async (
 			...tax_fields,
 			subtotal: services.plus(discount),
 			taxable_subtotal: derivation.taxable_subtotal,
+			discount_rate: null,
 			discount: discount.equal('0') ? null : discount,
+			discount_description: '',
 			line_item_discount_subtotal: null,
 			client_credit_applied: money(0),
 			tax_total,
@@ -235,6 +237,7 @@ export const import_invoices = async (
 				description: line.service_name?.trim() ?? '',
 				quantity: money(line.quantity ?? 1),
 				price: money(line.price ?? 0),
+				discount_description: '',
 				taxable: !line.non_taxable,
 				sort: BigInt(line.sort_order),
 			}

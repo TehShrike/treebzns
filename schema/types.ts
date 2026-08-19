@@ -3,8 +3,10 @@
 export type Schema = {
 	client: DbClient
 	client_address: DbClientAddress
+	client_client_tag: DbClientClientTag
 	client_contact: DbClientContact
 	client_credit: DbClientCredit
+	client_tag: DbClientTag
 	clock_session: DbClockSession
 	clock_session_employee: DbClockSessionEmployee
 	clock_session_employee_history: DbClockSessionEmployeeHistory
@@ -51,8 +53,10 @@ export type Schema = {
 export type InsertableSchema = {
 	client: DbInsertableClient
 	client_address: DbInsertableClientAddress
+	client_client_tag: DbInsertableClientClientTag
 	client_contact: DbInsertableClientContact
 	client_credit: DbInsertableClientCredit
+	client_tag: DbInsertableClientTag
 	clock_session: DbInsertableClockSession
 	clock_session_employee: DbInsertableClockSessionEmployee
 	clock_session_employee_history: DbInsertableClockSessionEmployeeHistory

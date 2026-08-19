@@ -13,6 +13,7 @@ export const validator_object = {
 	description: jv.is_string,
 	quantity: is_financial_number,
 	price: is_financial_number,
+	discount_description: jv.is_string,
 	taxable: jv.is_boolean,
 	sort: jv.is_bigint,
 	created_at: is_temporal_instant,

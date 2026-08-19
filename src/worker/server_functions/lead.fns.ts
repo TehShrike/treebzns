@@ -94,6 +94,7 @@ export const functions = {
 				emergency: arg.emergency,
 				lead_details: arg.lead_details,
 				lead_source: '',
+				discount_description: '',
 				notes_for_crew: '',
 				notes_for_office: '',
 				created_by_employee_id: user.employee_id,

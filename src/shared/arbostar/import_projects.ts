@@ -383,6 +383,7 @@ export const import_projects = async (
 			closed,
 			project_decline_reason_id,
 			lead_source: lead.utm_source ?? '',
+			discount_description: '',
 			...totals,
 			...project_tax(lead),
 		}

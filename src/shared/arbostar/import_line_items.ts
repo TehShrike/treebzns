@@ -86,6 +86,7 @@ export const import_line_items = async (
 			client_declined: item.status === 'Declined',
 			quantity: money(item.quantity ?? 1),
 			price: money(item.price ?? 0),
+			discount_description: '',
 			sort: BigInt(item.sort_order),
 		}
 	}

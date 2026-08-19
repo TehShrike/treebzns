@@ -41,6 +41,18 @@ CREATE TABLE `client_address` (
   KEY `idx_client_address_client` (`client_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE `client_client_tag` (
+  `client_client_tag_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `client_id` int unsigned NOT NULL,
+  `client_tag_id` int unsigned NOT NULL,
+  `created_by_employee_id` int unsigned NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`client_client_tag_id`),
+  UNIQUE KEY `uq_cct_client_tag` (`client_id`,`client_tag_id`),
+  KEY `idx_cct_tag` (`client_tag_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE `client_contact` (
   `client_contact_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
@@ -71,6 +83,17 @@ CREATE TABLE `client_credit` (
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   PRIMARY KEY (`client_credit_id`),
   KEY `idx_client_credit_client` (`client_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `client_tag` (
+  `client_tag_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `color` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`client_tag_id`),
+  UNIQUE KEY `uq_client_tag_company_name` (`company_id`,`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `clock_session` (
@@ -274,7 +297,9 @@ CREATE TABLE `invoice` (
   `tax_rate` decimal(4,4) DEFAULT NULL,
   `subtotal` decimal(10,2) NOT NULL,
   `taxable_subtotal` decimal(10,2) NOT NULL,
+  `discount_rate` decimal(5,4) DEFAULT NULL,
   `discount` decimal(10,2) DEFAULT NULL,
+  `discount_description` varchar(200) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `line_item_discount_subtotal` decimal(10,2) DEFAULT NULL,
   `client_credit_applied` decimal(10,2) NOT NULL DEFAULT '0.00',
   `tax_total` decimal(10,2) NOT NULL,
@@ -301,6 +326,7 @@ CREATE TABLE `invoice_line_item` (
   `price` decimal(10,2) NOT NULL,
   `discount_rate` decimal(5,4) DEFAULT NULL,
   `discount` decimal(10,2) DEFAULT NULL,
+  `discount_description` varchar(200) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `taxable` bit(1) NOT NULL,
   `sort` int unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
@@ -445,7 +471,9 @@ CREATE TABLE `project` (
   `tax_rate` decimal(4,4) DEFAULT NULL,
   `subtotal` decimal(10,2) DEFAULT NULL,
   `taxable_subtotal` decimal(10,2) DEFAULT NULL,
+  `discount_rate` decimal(5,4) DEFAULT NULL,
   `discount` decimal(10,2) DEFAULT NULL,
+  `discount_description` varchar(200) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `line_item_discount_subtotal` decimal(10,2) DEFAULT NULL,
   `tax_total` decimal(10,2) DEFAULT NULL,
   `total` decimal(10,2) DEFAULT NULL,
@@ -594,6 +622,7 @@ CREATE TABLE `project_line_item` (
   `price` decimal(10,2) NOT NULL,
   `discount_rate` decimal(5,4) DEFAULT NULL,
   `discount` decimal(10,2) DEFAULT NULL,
+  `discount_description` varchar(200) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `sort` int unsigned NOT NULL,
   `done_at` datetime DEFAULT NULL,
   `done_by_employee_id` int unsigned DEFAULT NULL,

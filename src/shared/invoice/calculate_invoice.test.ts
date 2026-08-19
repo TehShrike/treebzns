@@ -27,6 +27,7 @@ const line_item = ({ quantity, price, discount_rate = null, discount = null, tax
 const invoice = (
 	line_items: ReturnType<typeof line_item>[],
 	rest: {
+		discount_rate?: FinancialNumber | null
 		discount?: FinancialNumber | null
 		taxable?: boolean
 		tax_rate?: FinancialNumber | null
@@ -39,8 +40,14 @@ const invoice = (
 		? { taxable: true, tax_rate: rest.tax_rate } as const
 		: { taxable: false, tax_rate: null } as const
 
+	const discount_fields = rest.discount_rate
+		? { discount_rate: rest.discount_rate, discount: null } as const
+		: rest.discount
+			? { discount_rate: null, discount: rest.discount } as const
+			: { discount_rate: null, discount: null } as const
+
 	return calculate_invoice({
-		discount: rest.discount ?? null,
+		...discount_fields,
 		...tax_fields,
 		fee: rest.fee ?? fnum('0'),
 	}, {
@@ -94,6 +101,24 @@ test('calculate_invoice: the invoice-level discount is pre-tax', () => {
 	fnum_equal(result.invoice_level_discount, '20', 'invoice_level_discount')
 	fnum_equal(result.tax_total, '8', 'tax_total')
 	fnum_equal(result.total, '138', 'total')
+})
+
+test('calculate_invoice: a percentage invoice-level discount applies to the subtotal and rounds', () => {
+	const result = invoice([
+		line_item({ quantity: '1', price: '100' }),
+		line_item({ quantity: '1', price: '50', taxable: false }),
+	], { discount_rate: fnum('0.1'), tax_rate: fnum('0.1') })
+
+	fnum_equal(result.invoice_level_discount, '15', 'invoice_level_discount')
+	fnum_equal(result.tax_total, '8.50', 'tax_total', 'the discount reduces the taxable amount before tax')
+	fnum_equal(result.total, '143.50', 'total')
+})
+
+test('calculate_invoice: a percentage invoice-level discount rounds to 2 places', () => {
+	const result = invoice([ line_item({ quantity: '1', price: '99.99' }) ], { discount_rate: fnum('0.333') })
+
+	fnum_equal(result.invoice_level_discount, '33.30', 'invoice_level_discount')
+	fnum_equal(result.total, '66.69', 'total')
 })
 
 test('calculate_invoice: the invoice-level discount is clamped to the subtotal', () => {
@@ -151,12 +176,20 @@ test('calculate_invoice: an invoice-level discount with line item discounts thro
 		[ line_item({ quantity: '1', price: '100', discount_rate: '0.1' }) ],
 		{ discount: fnum('10') },
 	))
+	assert.throws(() => invoice(
+		[ line_item({ quantity: '1', price: '100', discount: '5' }) ],
+		{ discount_rate: fnum('0.1') },
+	))
 })
 
 test('calculate_invoice: an invoice-level discount on a negative subtotal throws', () => {
 	assert.throws(() => invoice(
 		[ line_item({ quantity: '1', price: '-100' }) ],
 		{ discount: fnum('10') },
+	))
+	assert.throws(() => invoice(
+		[ line_item({ quantity: '1', price: '-100' }) ],
+		{ discount_rate: fnum('0.1') },
 	))
 })
 

@@ -30,6 +30,13 @@ export const client_address = {
 	longitude: 'longitude',
 } as const
 
+export const client_client_tag = {
+	company_id: 'company_id',
+	client_id: 'client_id',
+	client_tag_id: 'client_tag_id',
+	created_by_employee_id: 'created_by_employee_id',
+} as const
+
 export const client_contact = {
 	company_id: 'company_id',
 	client_id: 'client_id',
@@ -49,6 +56,12 @@ export const client_credit = {
 	amount: 'amount',
 	notes: 'notes',
 	created_by_employee_id: 'created_by_employee_id',
+} as const
+
+export const client_tag = {
+	company_id: 'company_id',
+	name: 'name',
+	color: 'color',
 } as const
 
 export const clock_session = {
@@ -178,7 +191,9 @@ export const invoice = {
 	tax_rate: 'tax_rate',
 	subtotal: 'subtotal',
 	taxable_subtotal: 'taxable_subtotal',
+	discount_rate: 'discount_rate',
 	discount: 'discount',
+	discount_description: 'discount_description',
 	line_item_discount_subtotal: 'line_item_discount_subtotal',
 	client_credit_applied: 'client_credit_applied',
 	tax_total: 'tax_total',
@@ -197,6 +212,7 @@ export const invoice_line_item = {
 	price: 'price',
 	discount_rate: 'discount_rate',
 	discount: 'discount',
+	discount_description: 'discount_description',
 	taxable: 'taxable',
 	sort: 'sort',
 } as const
@@ -285,7 +301,9 @@ export const project = {
 	tax_rate: 'tax_rate',
 	subtotal: 'subtotal',
 	taxable_subtotal: 'taxable_subtotal',
+	discount_rate: 'discount_rate',
 	discount: 'discount',
+	discount_description: 'discount_description',
 	line_item_discount_subtotal: 'line_item_discount_subtotal',
 	tax_total: 'tax_total',
 	total: 'total',
@@ -384,6 +402,7 @@ export const project_line_item = {
 	price: 'price',
 	discount_rate: 'discount_rate',
 	discount: 'discount',
+	discount_description: 'discount_description',
 	sort: 'sort',
 	done_at: 'done_at',
 	done_by_employee_id: 'done_by_employee_id',

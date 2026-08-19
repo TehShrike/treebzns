@@ -13,7 +13,7 @@ type DistributivePick<T, K extends keyof T> = T extends unknown ? Pick<T, K> : n
 
 export type LineItemInput = DistributivePick<DbInvoiceLineItem, 'quantity' | 'price' | 'discount' | 'discount_rate' | 'taxable'>
 
-export type InvoiceInput = DistributivePick<DbInvoice, 'discount' | 'fee' | 'taxable' | 'tax_rate'>
+export type InvoiceInput = DistributivePick<DbInvoice, 'discount_rate' | 'discount' | 'fee' | 'taxable' | 'tax_rate'>
 
 export type InvoiceCalculationContext = {
 	line_items: LineItemInput[]
@@ -47,7 +47,7 @@ export const calculate_line_item = (line_item: LineItemInput): LineItemCalculati
 }
 
 export const calculate_invoice = (invoice: InvoiceInput, { line_items, available_client_credit }: InvoiceCalculationContext): InvoiceCalculation => {
-	if (invoice.discount) {
+	if (invoice.discount || invoice.discount_rate) {
 		assert(
 			!some(line_items, line_item => line_item.discount_rate !== null || line_item.discount !== null),
 			'Line items do not have their own discounts when the invoice has a discount',
@@ -72,13 +72,15 @@ export const calculate_invoice = (invoice: InvoiceInput, { line_items, available
 		}
 	})
 
-	if (invoice.discount) {
+	if (invoice.discount || invoice.discount_rate) {
 		assert(!subtotal.isNegative(), 'The subtotal is not negative when the invoice has a discount')
 	}
 
-	const invoice_level_discount = invoice.discount
-		? least_of(invoice.discount, subtotal).changeDecimalPlaces(2)
-		: zero
+	const invoice_level_discount = invoice.discount_rate
+		? invoice.discount_rate.times(subtotal).changeDecimalPlaces(2)
+		: invoice.discount
+			? least_of(invoice.discount, subtotal).changeDecimalPlaces(2)
+			: zero
 
 	const client_credit_applied = subtotal.isNegative()
 		? zero

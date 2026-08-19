@@ -4,8 +4,9 @@ import { is_financial_number, is_temporal_instant, is_temporal_plain_date } from
 
 const taxed = { taxable: jv.exact<true>(true), tax_rate_id: jv.is_bigint, tax_rate: is_financial_number } as const
 const untaxed = { taxable: jv.exact<false>(false), tax_rate_id: jv.is_null, tax_rate: jv.is_null } as const
-const header_discount = { discount: is_financial_number, line_item_discount_subtotal: jv.is_null } as const
-const line_discounts = { discount: jv.is_null, line_item_discount_subtotal: jv.nullable(is_financial_number) } as const
+const rate_discount = { discount_rate: is_financial_number, discount: jv.is_null, line_item_discount_subtotal: jv.is_null } as const
+const flat_discount = { discount_rate: jv.is_null, discount: is_financial_number, line_item_discount_subtotal: jv.is_null } as const
+const line_discounts = { discount_rate: jv.is_null, discount: jv.is_null, line_item_discount_subtotal: jv.nullable(is_financial_number) } as const
 
 export const validator_object = {
 	project_id: jv.is_bigint,
@@ -30,6 +31,7 @@ export const validator_object = {
 	sent_for_client_approval: jv.is_boolean,
 	subtotal: jv.nullable(is_financial_number),
 	taxable_subtotal: jv.nullable(is_financial_number),
+	discount_description: jv.is_string,
 	tax_total: jv.nullable(is_financial_number),
 	total: jv.nullable(is_financial_number),
 	notes_for_crew: jv.is_string,
@@ -47,17 +49,21 @@ export const validator_object = {
 }
 
 export const project_validator: jv.Validator<DbProject> = jv.one_of(
-	jv.object({ ...validator_object, ...taxed, ...header_discount }),
+	jv.object({ ...validator_object, ...taxed, ...rate_discount }),
+	jv.object({ ...validator_object, ...taxed, ...flat_discount }),
 	jv.object({ ...validator_object, ...taxed, ...line_discounts }),
-	jv.object({ ...validator_object, ...untaxed, ...header_discount }),
+	jv.object({ ...validator_object, ...untaxed, ...rate_discount }),
+	jv.object({ ...validator_object, ...untaxed, ...flat_discount }),
 	jv.object({ ...validator_object, ...untaxed, ...line_discounts }),
 )
 
 const insertable_validator_object = omit(validator_object, ['project_id', 'created_at', 'updated_at'])
 
 export const insertable_project_validator: jv.Validator<DbInsertableProject> = jv.one_of(
-	jv.object({ ...insertable_validator_object, ...taxed, ...header_discount }),
+	jv.object({ ...insertable_validator_object, ...taxed, ...rate_discount }),
+	jv.object({ ...insertable_validator_object, ...taxed, ...flat_discount }),
 	jv.object({ ...insertable_validator_object, ...taxed, ...line_discounts }),
-	jv.object({ ...insertable_validator_object, ...untaxed, ...header_discount }),
+	jv.object({ ...insertable_validator_object, ...untaxed, ...rate_discount }),
+	jv.object({ ...insertable_validator_object, ...untaxed, ...flat_discount }),
 	jv.object({ ...insertable_validator_object, ...untaxed, ...line_discounts }),
 )

@@ -2,8 +2,10 @@ import type { InsertableSchema, Schema } from './types.ts'
 import type { Validator } from '#shared/json_validator.ts'
 import { client_validator, insertable_client_validator } from './validator/client.ts'
 import { client_address_validator, insertable_client_address_validator } from './validator/client_address.ts'
+import { client_client_tag_validator, insertable_client_client_tag_validator } from './validator/client_client_tag.ts'
 import { client_contact_validator, insertable_client_contact_validator } from './validator/client_contact.ts'
 import { client_credit_validator, insertable_client_credit_validator } from './validator/client_credit.ts'
+import { client_tag_validator, insertable_client_tag_validator } from './validator/client_tag.ts'
 import { clock_session_validator, insertable_clock_session_validator } from './validator/clock_session.ts'
 import { clock_session_employee_validator, insertable_clock_session_employee_validator } from './validator/clock_session_employee.ts'
 import { clock_session_employee_history_validator, insertable_clock_session_employee_history_validator } from './validator/clock_session_employee_history.ts'
@@ -49,8 +51,10 @@ import { work_skill_validator, insertable_work_skill_validator } from './validat
 export const validators = {
 	client: client_validator,
 	client_address: client_address_validator,
+	client_client_tag: client_client_tag_validator,
 	client_contact: client_contact_validator,
 	client_credit: client_credit_validator,
+	client_tag: client_tag_validator,
 	clock_session: clock_session_validator,
 	clock_session_employee: clock_session_employee_validator,
 	clock_session_employee_history: clock_session_employee_history_validator,
@@ -97,8 +101,10 @@ export const validators = {
 export const insertable_validators = {
 	client: insertable_client_validator,
 	client_address: insertable_client_address_validator,
+	client_client_tag: insertable_client_client_tag_validator,
 	client_contact: insertable_client_contact_validator,
 	client_credit: insertable_client_credit_validator,
+	client_tag: insertable_client_tag_validator,
 	clock_session: insertable_clock_session_validator,
 	clock_session_employee: insertable_clock_session_employee_validator,
 	clock_session_employee_history: insertable_clock_session_employee_history_validator,

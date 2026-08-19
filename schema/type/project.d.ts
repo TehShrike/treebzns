@@ -6,10 +6,11 @@ type ProjectTaxFields =
 	| { taxable: true; tax_rate_id: bigint; tax_rate: FinancialNumber }
 	| { taxable: false; tax_rate_id: null; tax_rate: null }
 
-// A header discount and per-line discounts are exclusive modes.
+// A header discount (rate or flat) and per-line discounts are exclusive modes.
 type ProjectDiscountFields =
-	| { discount: FinancialNumber; line_item_discount_subtotal: null }
-	| { discount: null; line_item_discount_subtotal: FinancialNumber | null }
+	| { discount_rate: FinancialNumber; discount: null; line_item_discount_subtotal: null }
+	| { discount_rate: null; discount: FinancialNumber; line_item_discount_subtotal: null }
+	| { discount_rate: null; discount: null; line_item_discount_subtotal: FinancialNumber | null }
 
 type OverriddenKeys = keyof ProjectTaxFields | keyof ProjectDiscountFields
 
