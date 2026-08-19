@@ -13,3 +13,4 @@ build/
 /ds-bundle/
 /.ds-sync/
 /.design-sync/.cache/
+.lavish/
