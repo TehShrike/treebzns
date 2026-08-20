@@ -91,13 +91,13 @@ const make_mock_connection = (insert_ids: number[] = []) => {
 
 // results holds what each successive query resolves to: a single header for a single-statement
 // call, or an array of headers for a multi-statement call.
-const make_update_mock_connection = (results: Array<{ affectedRows: number } | Array<{ affectedRows: number }>> = []) => {
+const make_update_mock_connection = (results: Array<{ affectedRows: number, insertId?: number } | Array<{ affectedRows: number }>> = []) => {
 	const calls: Array<{ sql: string }> = []
 	const connection = {
 		query: (sql: string) => {
-			const result = results[calls.length] ?? { affectedRows: 1 }
+			const result = results[calls.length] ?? { affectedRows: 1, insertId: 0 }
 			calls.push({ sql })
-			return Promise.resolve([result, []])
+			return Promise.resolve([Array.isArray(result) ? result : { insertId: 0, ...result }, []])
 		},
 	} as unknown as Connection
 	return { connection, calls }
@@ -460,15 +460,16 @@ test('typed_write_helper: updates reject a set whose type has a column not on th
 	})
 })
 
-test('typed_write_helper: update runs a single UPDATE and returns its affected rows', async () => {
-	const { connection, calls } = make_update_mock_connection([{ affectedRows: 1 }])
+test('typed_write_helper: update runs a single UPDATE and returns its affected rows and insert id', async () => {
+	const { connection, calls } = make_update_mock_connection([{ affectedRows: 1, insertId: 7 }])
 	const helper = make_helper()
 
-	const { affected_rows } = await helper.update(connection, 'widget', 'widget_id', 5n, { name: 'Sprocket' })
+	const { affected_rows, insert_id } = await helper.update(connection, 'widget', 'widget_id', 5n, { name: 'Sprocket' })
 
 	assert.strictEqual(calls.length, 1)
 	assert.strictEqual(calls[0]!.sql, "UPDATE `widget` SET `name` = 'Sprocket' WHERE `widget_id` = 5")
 	assert.strictEqual(affected_rows, 1n)
+	assert.strictEqual(insert_id, 7n)
 })
 
 test('typed_write_helper: bulk_update sends one UPDATE per row, batched into single query calls', async () => {

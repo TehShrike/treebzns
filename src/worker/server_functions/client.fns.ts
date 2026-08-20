@@ -1,7 +1,5 @@
 import * as jv from '#shared/json_validator.ts'
 import { sfn } from '#worker/lib/server_functions_api.ts'
-import { transaction } from '#worker/lib/mysql/helpers.ts'
-import write_helper from '#worker/lib/mysql/write_helper.ts'
 
 const address_validator = jv.object({
 	name: jv.is_string,
@@ -27,11 +25,11 @@ export const functions = {
 	create_client: sfn({
 		validator: create_client_validator,
 		fn: async (arg, context): Promise<Pick<DbClient, 'client_id' | 'default_project_address_id'>> => {
-			const { mysql, company } = context
+			const { company, write_helper, transaction } = context
 			const company_id = company.company_id
 
-			return transaction(mysql.connection, async () => {
-				const { insert_id: client_id } = await write_helper.insert(mysql.connection, 'client', {
+			return transaction(async () => {
+				const { insert_id: client_id } = await write_helper.insert('client', {
 					company_id,
 					name: arg.name,
 					is_commercial: arg.is_commercial,
@@ -50,7 +48,7 @@ export const functions = {
 				})
 
 				const { primary_address } = arg
-				const { insert_id: client_address_id } = await write_helper.insert(mysql.connection, 'client_address', {
+				const { insert_id: client_address_id } = await write_helper.insert('client_address', {
 					company_id,
 					client_id,
 					client_contact_id: null,
@@ -62,9 +60,8 @@ export const functions = {
 					zip: primary_address.zip,
 				})
 
-				await mysql.query({
-					sql: 'UPDATE client SET default_project_address_id = ? WHERE company_id = ? AND client_id = ?',
-					values: [ client_address_id, company_id, client_id ],
+				await write_helper.update('client', 'client_id', client_id, {
+					default_project_address_id: client_address_id,
 				})
 
 				return {

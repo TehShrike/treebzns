@@ -1,20 +1,11 @@
 # Catch up
 
-- ✓ Commit design updates
-- ✓ Make sort columns consistent: sort, not sort_order, smallint unsigned
-- ✓ resolve addresses
-	- no billing address stored on invoices
-	- one billing address stored directly on clients
-	- default_project_address_id on clients, non-nullable
-	- should probably have a client_contact_id
 - create a lead screen should have a "the billing address is different" button below the project address field
 - regenerate "create a lead" implementation
 - I'm not happy with the string-building happening in filter_clients.  I suspect it would be more efficient to check for every(tokens, token => some(address_fields, field => field.includes(token)))
 	- or we could just make something smarter and more efficient.  CachedClient should contain something easier to search.  Like: a unique array of the all-numeric tokens (only check startsWith, not includes) and a unique array of all other tokens (use includes).
-
-# Model this!
-
-Clocking employees in and out of jobs.  Tie their clock-in/clock-out records directly to the project_crew records.
+- Permissions
+- Which email/sms triggers are necessary
 
 # Sending sms/emails: queue
 

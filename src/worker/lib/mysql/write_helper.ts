@@ -5,4 +5,6 @@ import * as insertable_schema from '#schema/insertable_table_column_names.ts'
 
 const write_helper = typed_write_helper<InsertableSchema, Schema>(schema, insertable_schema)
 
+export type ConnectionBoundWriteHelper = ReturnType<typeof write_helper.for_connection>
+
 export default write_helper

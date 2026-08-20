@@ -1,7 +1,7 @@
-// The export carries no taxable subtotal, so it is recovered from the header totals per the
-// tiered derivation in 2026-08-12-invoices-and-payments-plan.md: whole-invoice taxable, then
-// reconciling line rows, then division by the best-matching rate (approximate — the stored
-// tax was rounded, so the derived base can be off by a few cents).
+// The export carries no taxable subtotal, so it is recovered from the header totals by a
+// tiered derivation: whole-invoice taxable, then reconciling line rows, then division by the
+// best-matching rate (approximate — the stored tax was rounded, so the derived base can be
+// off by a few cents).
 import type { FinancialNumber } from 'financial-number'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import number from '#shared/fnum.ts'

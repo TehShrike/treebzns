@@ -74,114 +74,150 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 		return `UPDATE ${escape_identifier(table_name)} SET ${set_sql} WHERE ${escape_identifier(key_column)} = ${serialize_value(key)}`
 	}
 
+	const insert = async <Table extends keyof Insertable & string>(
+		connection: Connection,
+		table_name: Table,
+		row: InsertRow<Insertable[Table]>,
+	) => {
+		assert(table_name in schema_constants, `Table "${table_name}" must exist in schema constants`)
+		const entries = Object.entries(row)
+		const column_list = map(entries, ([column]) => {
+			assert(column in schema_constants[table_name], `Column "${column}" must exist in schema constants for table "${table_name}"`)
+			return escape_identifier(column)
+		}).join(', ')
+		const value_list = map(entries, ([, value]) => serialize_value(value)).join(', ')
+
+		const sql = `INSERT INTO ${escape_identifier(table_name)} (${column_list}) VALUES (${value_list})`
+		const [{ insertId }] = await connection.query<ResultSetHeader>(sql)
+		return { insert_id: BigInt(insertId) }
+	}
+
+	const bulk_insert = async <Table extends keyof Insertable & string>(
+		connection: Connection,
+		table_name: Table,
+		rows: InsertRow<Insertable[Table]>[],
+		rows_per_batch: number,
+	): Promise<{ insert_ids: bigint[] }> => {
+		assert(table_name in insertable_column_names, `Table "${table_name}" must exist in schema constants`)
+		assert(rows.length > 0, `bulk_insert requires at least one row for table "${table_name}"`)
+		assert(
+			Number.isInteger(rows_per_batch) && rows_per_batch > 0,
+			`rows_per_batch must be a positive integer, got ${rows_per_batch}`,
+		)
+
+		const columns = object_keys(insertable_column_names[table_name])
+		const column_list = map(columns, column => escape_identifier(column)).join(', ')
+		const insert_prefix = `INSERT INTO ${escape_identifier(table_name)} (${column_list}) VALUES `
+
+		const insert_ids: bigint[] = []
+		for (const batch of chunk(rows, rows_per_batch)) {
+			const value_rows = map(batch, row =>
+				`(${
+					map(columns, column => {
+						const value = (row as Record<string, unknown>)[column]
+
+						return serialize_value(value === undefined ? null : value)
+					}).join(', ')
+				})`
+			).join(', ')
+
+			const [{ insertId }] = await connection.query<ResultSetHeader>(insert_prefix + value_rows)
+			// A multi-row INSERT with a known row count is a "simple insert": InnoDB allocates its
+			// auto-increment ids as one consecutive block, so each row's id is insertId plus its offset.
+			const first_insert_id = BigInt(insertId)
+			for_each(batch, (_, index) => insert_ids.push(first_insert_id + BigInt(index)))
+		}
+
+		return { insert_ids }
+	}
+
+	const update = async <
+		Table extends keyof Row & string,
+		Key extends keyof Row[Table] & string,
+		Set extends UpdateSet<Row[Table]>,
+	>(
+		connection: Connection,
+		table_name: Table,
+		key_column: Key,
+		key: ColumnValue<Row[Table][Key]>,
+		set: Set & NoUnknownColumns<Row[Table], Set>,
+	): Promise<{ affected_rows: bigint, insert_id: bigint }> => {
+		const [{ affectedRows, insertId }] = await connection.query<ResultSetHeader>(
+			build_update_sql(table_name, key_column, key, set),
+		)
+		return { affected_rows: BigInt(affectedRows), insert_id: BigInt(insertId) }
+	}
+
+	// One query round-trip per batch, containing one UPDATE statement per row (the connection
+	// must have multipleStatements enabled). Rows may each set a different subset of columns.
+	const bulk_update = async <
+		Table extends keyof Row & string,
+		Key extends keyof Row[Table] & string,
+		Set extends UpdateSet<Row[Table]>,
+	>(
+		connection: Connection,
+		table_name: Table,
+		key_column: Key,
+		rows: Array<{ key: ColumnValue<Row[Table][Key]>; set: Set & NoUnknownColumns<Row[Table], Set> }>,
+		rows_per_batch: number,
+	): Promise<{ affected_rows: bigint }> => {
+		assert(
+			Number.isInteger(rows_per_batch) && rows_per_batch > 0,
+			`rows_per_batch must be a positive integer, got ${rows_per_batch}`,
+		)
+		if (rows.length === 0) return { affected_rows: 0n }
+
+		let affected_rows = 0n
+		for (const batch of chunk(rows, rows_per_batch)) {
+			const sql = map(batch, ({ key, set }) => build_update_sql(table_name, key_column, key, set)).join(';\n')
+			const [result] = await connection.query<ResultSetHeader | ResultSetHeader[]>(sql)
+			const headers = Array.isArray(result) ? result : [result]
+			for_each(headers, ({ affectedRows }) => {
+				affected_rows += BigInt(affectedRows)
+			})
+		}
+
+		return { affected_rows }
+	}
+
 	return {
-		insert: async <Table extends keyof Insertable & string>(
-			connection: Connection,
-			table_name: Table,
-			row: InsertRow<Insertable[Table]>,
-		) => {
-			assert(table_name in schema_constants, `Table "${table_name}" must exist in schema constants`)
-			const entries = Object.entries(row)
-			const column_list = map(entries, ([column]) => {
-				assert(column in schema_constants[table_name], `Column "${column}" must exist in schema constants for table "${table_name}"`)
-				return escape_identifier(column)
-			}).join(', ')
-			const value_list = map(entries, ([, value]) => serialize_value(value)).join(', ')
-
-			const sql = `INSERT INTO ${escape_identifier(table_name)} (${column_list}) VALUES (${value_list})`
-			const [{ insertId }] = await connection.query<ResultSetHeader>(sql)
-			return { insert_id: BigInt(insertId) }
-		},
-
-		bulk_insert: async <Table extends keyof Insertable & string>(
-			connection: Connection,
-			table_name: Table,
-			rows: InsertRow<Insertable[Table]>[],
-			rows_per_batch: number,
-		): Promise<{ insert_ids: bigint[] }> => {
-			assert(table_name in insertable_column_names, `Table "${table_name}" must exist in schema constants`)
-			assert(rows.length > 0, `bulk_insert requires at least one row for table "${table_name}"`)
-			assert(
-				Number.isInteger(rows_per_batch) && rows_per_batch > 0,
-				`rows_per_batch must be a positive integer, got ${rows_per_batch}`,
-			)
-
-			const columns = object_keys(insertable_column_names[table_name])
-			const column_list = map(columns, column => escape_identifier(column)).join(', ')
-			const insert_prefix = `INSERT INTO ${escape_identifier(table_name)} (${column_list}) VALUES `
-
-			const insert_ids: bigint[] = []
-			for (const batch of chunk(rows, rows_per_batch)) {
-				const value_rows = map(batch, row =>
-					`(${
-						map(columns, column => {
-							const value = (row as Record<string, unknown>)[column]
-
-							return serialize_value(value === undefined ? null : value)
-						}).join(', ')
-					})`
-				).join(', ')
-
-				const [{ insertId }] = await connection.query<ResultSetHeader>(insert_prefix + value_rows)
-				// A multi-row INSERT with a known row count is a "simple insert": InnoDB allocates its
-				// auto-increment ids as one consecutive block, so each row's id is insertId plus its offset.
-				const first_insert_id = BigInt(insertId)
-				for_each(batch, (_, index) => insert_ids.push(first_insert_id + BigInt(index)))
-			}
-
-			return { insert_ids }
-		},
-
+		insert,
+		bulk_insert,
 		build_update_sql,
-
-		update: async <
-			Table extends keyof Row & string,
-			Key extends keyof Row[Table] & string,
-			Set extends UpdateSet<Row[Table]>,
-		>(
-			connection: Connection,
-			table_name: Table,
-			key_column: Key,
-			key: ColumnValue<Row[Table][Key]>,
-			set: Set & NoUnknownColumns<Row[Table], Set>,
-		): Promise<{ affected_rows: bigint }> => {
-			const [{ affectedRows }] = await connection.query<ResultSetHeader>(
-				build_update_sql(table_name, key_column, key, set),
-			)
-			return { affected_rows: BigInt(affectedRows) }
-		},
-
-		// One query round-trip per batch, containing one UPDATE statement per row (the connection
-		// must have multipleStatements enabled). Rows may each set a different subset of columns.
-		bulk_update: async <
-			Table extends keyof Row & string,
-			Key extends keyof Row[Table] & string,
-			Set extends UpdateSet<Row[Table]>,
-		>(
-			connection: Connection,
-			table_name: Table,
-			key_column: Key,
-			rows: Array<{ key: ColumnValue<Row[Table][Key]>; set: Set & NoUnknownColumns<Row[Table], Set> }>,
-			rows_per_batch: number,
-		): Promise<{ affected_rows: bigint }> => {
-			assert(
-				Number.isInteger(rows_per_batch) && rows_per_batch > 0,
-				`rows_per_batch must be a positive integer, got ${rows_per_batch}`,
-			)
-			if (rows.length === 0) return { affected_rows: 0n }
-
-			let affected_rows = 0n
-			for (const batch of chunk(rows, rows_per_batch)) {
-				const sql = map(batch, ({ key, set }) => build_update_sql(table_name, key_column, key, set)).join(';\n')
-				const [result] = await connection.query<ResultSetHeader | ResultSetHeader[]>(sql)
-				const headers = Array.isArray(result) ? result : [result]
-				for_each(headers, ({ affectedRows }) => {
-					affected_rows += BigInt(affectedRows)
-				})
-			}
-
-			return { affected_rows }
-		},
+		update,
+		bulk_update,
+		for_connection: (connection: Connection) => ({
+			insert: <Table extends keyof Insertable & string>(
+				table_name: Table,
+				row: InsertRow<Insertable[Table]>,
+			) => insert(connection, table_name, row),
+			bulk_insert: <Table extends keyof Insertable & string>(
+				table_name: Table,
+				rows: InsertRow<Insertable[Table]>[],
+				rows_per_batch: number,
+			) => bulk_insert(connection, table_name, rows, rows_per_batch),
+			build_update_sql,
+			update: <
+				Table extends keyof Row & string,
+				Key extends keyof Row[Table] & string,
+				Set extends UpdateSet<Row[Table]>,
+			>(
+				table_name: Table,
+				key_column: Key,
+				key: ColumnValue<Row[Table][Key]>,
+				set: Set & NoUnknownColumns<Row[Table], Set>,
+			) => update(connection, table_name, key_column, key, set),
+			bulk_update: <
+				Table extends keyof Row & string,
+				Key extends keyof Row[Table] & string,
+				Set extends UpdateSet<Row[Table]>,
+			>(
+				table_name: Table,
+				key_column: Key,
+				rows: Array<{ key: ColumnValue<Row[Table][Key]>; set: Set & NoUnknownColumns<Row[Table], Set> }>,
+				rows_per_batch: number,
+			) => bulk_update(connection, table_name, key_column, rows, rows_per_batch),
+		}),
 	}
 }
 
