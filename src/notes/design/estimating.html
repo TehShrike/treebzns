@@ -133,7 +133,10 @@
 					</div>
 					<div class="column">
 						<a href="client.html">Client record</a>
+						<span class="pill" style="border-color:#2f855a;color:#2f855a">Good client</span>
 						<div class="muted">3 past projects, $8,400 lifetime</div>
+						<div class="muted">2 accepted · 1 declined quotes</div>
+						<span class="schema">client_tag via client_client_tag; counts from project_document_history against approved and declined documents</span>
 					</div>
 				</div>
 			</fieldset>
@@ -232,7 +235,11 @@ Gate is 42 in - no machine access to the back.</textarea>
 								<label>Type<select><option selected>Tree removal</option><option>Service</option><option>Material</option></select></label>
 								<label>Taxable<select><option selected>No</option><option>Yes</option></select></label>
 								<label>Customer can decline<select><option selected>No</option><option>Yes</option></select></label>
+								<label>Discount<select><option selected>None</option><option>Flat amount</option><option>Percent</option></select></label>
+								<label>Discount amount<input type="text" value="" disabled></label>
+								<label>Discount description<input type="text" value="" disabled></label>
 							</div>
+							<span class="schema">project_line_item.discount or discount_rate (one or the other, never both), discount_description</span>
 							<div class="muted">
 								Blended rate for Climbing, Rigging, and Chipper is $115/hour.  8 hours suggests
 								$920 of labor.
@@ -257,6 +264,9 @@ Gate is 42 in - no machine access to the back.</textarea>
 								<label>Type<select><option selected>Stump grinding</option></select></label>
 								<label>Taxable<select><option selected>No</option><option>Yes</option></select></label>
 								<label>Customer can decline<select><option selected>No</option><option>Yes</option></select></label>
+								<label>Discount<select><option>None</option><option selected>Percent</option><option>Flat amount</option></select></label>
+								<label>Discount amount<input type="text" value="10"></label>
+								<label>Discount description<input type="text" value="Fall booking special"></label>
 							</div>
 						</div>
 
@@ -278,6 +288,9 @@ Gate is 42 in - no machine access to the back.</textarea>
 								<label>Type<select><option selected>Pruning</option></select></label>
 								<label>Taxable<select><option selected>No</option><option>Yes</option></select></label>
 								<label>Customer can decline<select><option>No</option><option selected>Yes</option></select></label>
+								<label>Discount<select><option selected>None</option><option>Flat amount</option><option>Percent</option></select></label>
+								<label>Discount amount<input type="text" value="" disabled></label>
+								<label>Discount description<input type="text" value="" disabled></label>
 							</div>
 							<span class="schema">project_line_item.client_optional = 1</span>
 						</div>
@@ -287,8 +300,9 @@ Gate is 42 in - no machine access to the back.</textarea>
 							<div class="totals">
 								<div>4 items · 14 hours</div>
 								<div><strong>Subtotal $4,150.00</strong></div>
+								<div class="muted">Line item discounts -$45.00</div>
 								<div class="muted">$340.00 of that is optional</div>
-								<span class="schema">project.subtotal, taxable_subtotal, total are written when the proposal is made</span>
+								<span class="schema">project.subtotal, line_item_discount_subtotal, taxable_subtotal, total are written when the proposal is made</span>
 							</div>
 						</div>
 					</div>
@@ -318,6 +332,11 @@ Gate is 42 in - no machine access to the back.</textarea>
 			<li>
 				A template fills the title, hours, price, and the default work skills.  Every field stays
 				editable, and the line item keeps <code>line_item_template_id</code> for reporting.
+			</li>
+			<li>
+				A line item discount is one flat amount or one percent, never both, and it needs a
+				description.  The amount and description fields stay off until a discount type is picked.
+				The project-level discount lives on the project screen, not here.
 			</li>
 			<li>
 				The blended rate line is help text, not a rule.  It multiplies the average

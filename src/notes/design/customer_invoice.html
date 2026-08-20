@@ -136,6 +136,10 @@
 							<td class="money">$450.00</td>
 						</tr>
 						<tr>
+							<td class="muted" colspan="3">Discount — Fall booking special (10%)</td>
+							<td class="money muted">-$45.00</td>
+						</tr>
+						<tr>
 							<td>Prune the two front yard oaks for clearance</td>
 							<td class="money">1</td>
 							<td class="money">$900.00</td>
@@ -143,16 +147,17 @@
 						</tr>
 					</tbody>
 				</table>
-				<span class="schema">invoice_line_item.description, quantity, price, sort</span>
+				<span class="schema">invoice_line_item.description, quantity, price, sort; discount or discount_rate, discount_description</span>
 
 				<div class="invoice_totals">
 					<div class="total_row"><span>Subtotal</span><span class="money">$4,150.00</span></div>
-					<div class="total_row"><span>Discount</span><span class="money">-$200.00</span></div>
+					<div class="total_row"><span>Line item discounts</span><span class="money">-$45.00</span></div>
+					<div class="total_row"><span>Discount — Repeat customer (5%)</span><span class="money">-$205.25</span></div>
 					<div class="total_row"><span>Tax</span><span class="money">$0.00</span></div>
-					<div class="total_row"><strong>Total</strong><strong class="money">$3,950.00</strong></div>
+					<div class="total_row"><strong>Total</strong><strong class="money">$3,899.75</strong></div>
 					<div class="total_row"><span>Paid August 15</span><span class="money">-$500.00</span></div>
-					<div class="total_row"><strong>Balance due</strong><strong class="money">$3,450.00</strong></div>
-					<span class="schema">invoice.subtotal, discount, tax_total, total; payment_invoice.amount</span>
+					<div class="total_row"><strong>Balance due</strong><strong class="money">$3,399.75</strong></div>
+					<span class="schema">invoice.subtotal, line_item_discount_subtotal, discount, discount_rate, discount_description, tax_total, fee, total; payment_invoice.amount</span>
 				</div>
 			</section>
 
@@ -177,8 +182,9 @@
 				<div class="customer_item">
 					<div class="row spread">
 						<strong>Grind stump and two surface roots</strong>
-						<span class="money">$450.00</span>
+						<span class="money">$405.00</span>
 					</div>
+					<div class="muted money">$450.00 less a 10% discount — Fall booking special</div>
 					<div>Ground 8 inches below grade.  Left the chips on site as fill.</div>
 					<div class="photo_strip">
 						<div class="photo large">Stump gone</div>
@@ -194,14 +200,14 @@
 				</div>
 
 				<div class="invoice_totals">
-					<div class="total_row"><strong>Balance due</strong><strong class="money">$3,450.00</strong></div>
+					<div class="total_row"><strong>Balance due</strong><strong class="money">$3,399.75</strong></div>
 				</div>
 			</section>
 
 			<section>
 				<div class="price_block">
 					<span>Balance due</span>
-					<span class="big_price">$3,450.00</span>
+					<span class="big_price">$3,399.75</span>
 					<button type="button" class="primary">Pay this invoice</button>
 					<span class="muted">Card or bank.  You can also mail a check.</span>
 				</div>
@@ -234,6 +240,16 @@
 			<li>
 				The bill-to block reads from the invoice, for the same reason.  The address is copied onto
 				<code>invoice.billing_*</code> when the invoice is made.
+			</li>
+			<li>
+				A discount is one flat amount (<code>discount</code>) or one percent
+				(<code>discount_rate</code>), never both, at the invoice level and at the line item level.
+				Every discount shows its <code>discount_description</code>, so the customer reads a reason,
+				not a bare number.  A percent discount also shows the percent.
+			</li>
+			<li>
+				<code>invoice.fee</code> gets its own totals row when it is not zero.  This example has no
+				fee, so no row.
 			</li>
 			<li>
 				The past tense in the detail view comes from the same

@@ -95,6 +95,10 @@
 			<div class="client_header">
 				<div class="column">
 					<h1>Whitfield, Marla</h1>
+					<div class="row">
+						<span class="pill" style="border-color:#2f855a;color:#2f855a">Good client</span>
+						<span class="pill" style="border-color:#2b6cb0;color:#2b6cb0">Pays same day</span>
+					</div>
 					<div class="muted">Client since March 2024 · (812) 555-0147</div>
 				</div>
 				<div class="header_facts">
@@ -102,10 +106,12 @@
 					<div class="fact"><span class="muted">Balance due</span><span class="value">$3,323.80</span></div>
 					<div class="fact"><span class="muted">Lifetime</span><span class="value">$11,940.00</span></div>
 					<div class="fact"><span class="muted">Projects</span><span class="value">4</span></div>
+					<div class="fact"><span class="muted">Accepted quotes</span><span class="value">3</span></div>
+					<div class="fact"><span class="muted">Declined quotes</span><span class="value">1</span></div>
 				</div>
 				<button type="button" class="default">Create a lead for this client</button>
 			</div>
-			<span class="schema">sum over project.total and invoice.total for this client_id</span>
+			<span class="schema">sum over project.total and invoice.total for this client_id; client_tag.name, color via client_client_tag; quote counts from project_document_history against approved and declined documents</span>
 
 			<menu role="tablist">
 				<li role="tab" aria-selected="true"><a href="client.html">Details</a></li>
@@ -127,6 +133,18 @@
 						<label>Notes<textarea rows="3">Prefers a call over a text.  Husband handles payment.</textarea></label>
 					</div>
 					<span class="schema">client.name, primary_phone, primary_email, referred_by, tax_rate_id, is_commercial, notes</span>
+
+					<h2>Tags</h2>
+					<div class="row">
+						<span class="pill" style="border-color:#2f855a;color:#2f855a">Good client ✕</span>
+						<span class="pill" style="border-color:#2b6cb0;color:#2b6cb0">Pays same day ✕</span>
+						<input type="text" placeholder="Add a tag…">
+					</div>
+					<div class="muted">
+						Typing shows the company's existing tags.  New text makes a new tag and asks for a
+						color.  The same list feeds every client.
+					</div>
+					<span class="schema">client_tag.name, color; client_client_tag.client_id, client_tag_id, created_by_employee_id</span>
 
 					<h2>Addresses</h2>
 					<table class="data_table">
@@ -249,6 +267,31 @@
 								</tbody>
 							</table>
 							<span class="schema">invoice.invoice_number, invoice_date, due_date, project_id, total; payment_invoice.amount</span>
+
+							<fieldset>
+								<legend>Invoice 1104 — tax, discount, and fee</legend>
+								<div class="column">
+									<label>Tax rate
+										<select>
+											<option selected>No tax</option>
+											<option>State sales tax (7%)</option>
+										</select>
+									</label>
+									<div class="row">
+										<label><input type="radio" name="invoice_discount_kind" checked> Flat amount</label>
+										<input type="text" value="200.00">
+										<label><input type="radio" name="invoice_discount_kind"> Percent</label>
+										<input type="text" value="" disabled>
+									</div>
+									<label>Discount description
+										<input type="text" value="Repeat customer">
+									</label>
+									<label>Fee
+										<input type="text" value="0.00">
+									</label>
+									<span class="schema">invoice.tax_rate_id; discount or discount_rate (one or the other, never both), discount_description, fee</span>
+								</div>
+							</fieldset>
 						</div>
 						<div class="column">
 							<strong>Credit on file</strong>
@@ -279,8 +322,19 @@
 		<h2>Design notes</h2>
 		<ul>
 			<li>
-				The four numbers in the header answer the questions people ask before they pick up the
-				phone: what is open, what is owed, what have they spent, how many jobs.
+				The header numbers answer the questions people ask before they pick up the phone: what is
+				open, what is owed, what have they spent, how many jobs, and how often they say yes.
+				Accepted quotes are projects that reached an approved document.  Declined quotes are
+				projects that hit a declined document.
+			</li>
+			<li>
+				Tags are made ad hoc while tagging.  There is no tag management screen.  A tag is a name
+				and a color (<code>client_tag</code>), shared across the company, and it shows anywhere the
+				client shows: this header, the lead search, and the estimating screen.
+			</li>
+			<li>
+				Each invoice edits its tax, discount, and fee in one panel.  A discount is one flat amount
+				or one percent, never both, with a required description when it is not zero.
 			</li>
 			<li>
 				The Projects tab reuses the project list table and its columns.  Only the filters change.

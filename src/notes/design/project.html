@@ -43,17 +43,40 @@
 			color: var(--text_color_light);
 		}
 
-		.line_item {
-			display: grid;
-			grid-template-columns: 1fr 8rem;
-			gap: var(--gap_half);
-			padding: var(--gap_half);
-			border-bottom: 1px solid var(--accent_background);
+		.toc {
+			display: flex;
+			flex-direction: column;
+			gap: 2px;
 		}
 
-		.line_item[data-declined=true] {
+		.toc_item {
+			display: grid;
+			grid-template-columns: 1.5rem minmax(0, 1fr);
+			align-items: baseline;
+			gap: var(--gap_half);
+			padding: 4px 8px;
+			background: var(--white);
+			border: 1px solid var(--generic_border_color);
+			border-radius: var(--default_border_radius);
+			cursor: pointer;
+		}
+
+		.toc_item[data-selected=true] {
+			border-color: var(--friendly_color);
+			border-width: 2px;
+			font-weight: 600;
+		}
+
+		.toc_item[data-declined=true] {
 			background: var(--accent_background);
 			text-decoration: line-through;
+		}
+
+		.discount_fields {
+			display: grid;
+			grid-template-columns: auto 7rem;
+			align-items: center;
+			gap: var(--gap_half);
 		}
 
 		.panel_columns {
@@ -156,6 +179,37 @@
 				</div>
 			</fieldset>
 
+			<fieldset>
+				<legend>Line items</legend>
+				<div class="column">
+					<nav class="toc">
+						<div class="toc_item" data-selected="true">
+							<span class="muted">1</span>
+							<span>Remove dead silver maple, back yard</span>
+						</div>
+						<div class="toc_item">
+							<span class="muted">2</span>
+							<span>Grind stump and two surface roots</span>
+						</div>
+						<div class="toc_item">
+							<span class="muted">3</span>
+							<span>Prune the two front yard oaks for clearance</span>
+						</div>
+						<div class="toc_item" data-declined="true">
+							<span class="muted">4</span>
+							<span>Plant one 2-inch caliper red maple</span>
+						</div>
+					</nav>
+					<span class="schema">project_line_item.title, sort; client_declined draws the strikethrough</span>
+					<div class="row">
+						<button type="button">Add line item</button>
+						<button type="button">Add from template</button>
+						<span class="muted">Picking an item jumps to its detail view below.</span>
+						<span class="schema">line_item_template carries default title, price, hours, and work skills</span>
+					</div>
+				</div>
+			</fieldset>
+
 			<div class="panel_columns">
 				<fieldset>
 					<legend>Where the work happens</legend>
@@ -183,14 +237,37 @@
 						<tbody>
 							<tr><td>Subtotal</td><td class="money">$4,150.00</td></tr>
 							<tr><td>Line item discounts</td><td class="money">-$150.00</td></tr>
-							<tr><td>Project discount</td><td class="money">-$200.00</td></tr>
+							<tr><td>Discount — Repeat customer</td><td class="money">-$200.00</td></tr>
 							<tr><td>Tax (7.00% on $340.00)</td><td class="money">$23.80</td></tr>
 							<tr><td><strong>Total</strong></td><td class="money"><strong>$3,823.80</strong></td></tr>
 							<tr><td>Paid</td><td class="money">$500.00</td></tr>
 							<tr><td><strong>Balance</strong></td><td class="money"><strong>$3,323.80</strong></td></tr>
 						</tbody>
 					</table>
-					<span class="schema">project.subtotal, line_item_discount_subtotal, discount, taxable_subtotal, tax_rate, tax_total, total; payment via payment.project_id</span>
+					<span class="schema">project.subtotal, line_item_discount_subtotal, discount, discount_rate, discount_description, taxable_subtotal, tax_rate, tax_total, total; payment via payment.project_id</span>
+				</fieldset>
+
+				<fieldset>
+					<legend>Tax and discount</legend>
+					<div class="column">
+						<label>Tax rate
+							<select>
+								<option>No tax</option>
+								<option selected>State sales tax (7%)</option>
+							</select>
+						</label>
+						<span class="schema">project.tax_rate_id; project.tax_rate is the copied value</span>
+						<div class="discount_fields">
+							<label><input type="radio" name="discount_kind" checked> Flat amount</label>
+							<input type="text" value="200.00">
+							<label><input type="radio" name="discount_kind"> Percent</label>
+							<input type="text" value="" disabled>
+						</div>
+						<label>Discount description
+							<input type="text" value="Repeat customer">
+						</label>
+						<span class="schema">project.discount or discount_rate (one or the other, never both), discount_description</span>
+					</div>
 				</fieldset>
 
 				<fieldset>
@@ -225,87 +302,45 @@
 			</div>
 
 			<fieldset>
-				<legend>Line items</legend>
+				<legend>Line item 1 of 4</legend>
 				<div class="column">
-					<div class="line_item">
+					<div class="row spread top">
 						<div class="column">
 							<div class="row">
 								<strong>Remove dead silver maple, back yard</strong>
+								<span class="pill good">Done Aug 12</span>
+							</div>
+							<div class="row">
 								<span class="pill">Climbing</span>
 								<span class="pill">Rigging</span>
 								<span class="pill">Chipper</span>
-								<span class="pill good">Done Aug 12</span>
 							</div>
-							<div>
-								Take the tree down in sections over the shed.  Rope out the two limbs above the
-								fence line.  Haul all wood.  Rake and blow the yard.
-							</div>
-							<div class="photo_strip">
-								<div class="photo">Photo 1</div>
-								<div class="photo">Photo 2</div>
-								<button type="button">Link photos</button>
-							</div>
-							<span class="schema">project_line_item.title, work_details; project_line_item_work_skill; project_line_item_image; done_at</span>
 						</div>
 						<div class="column">
-							<div class="money">$2,800.00</div>
+							<div class="money"><strong>$2,650.00</strong></div>
 							<div class="muted money">1 × $2,800.00</div>
+							<div class="muted money">-$150.00 — Neighbor referral</div>
 							<div class="muted money">8 hours</div>
 						</div>
 					</div>
+					<span class="schema">project_line_item.title, quantity, price, estimated_hours, done_at; discount or discount_rate, discount_description</span>
 
-					<div class="line_item">
-						<div class="column">
-							<div class="row">
-								<strong>Grind stump and two surface roots</strong>
-								<span class="pill">Stump grinding</span>
-							</div>
-							<div>Grind 8 inches below grade.  Leave the chips on site as fill.</div>
-							<span class="schema">project_line_item.estimated_hours, quantity, price</span>
-						</div>
-						<div class="column">
-							<div class="money">$450.00</div>
-							<div class="muted money">1 × $450.00</div>
-							<div class="muted money">3 hours</div>
-						</div>
+					<div class="photo_strip">
+						<div class="photo large">Maple, south side</div>
+						<div class="photo large">Shed clearance</div>
+						<button type="button">Link photos</button>
 					</div>
+					<span class="schema">project_line_item_image; project_image.display_image</span>
 
-					<div class="line_item">
-						<div class="column">
-							<div class="row">
-								<strong>Prune the two front yard oaks for clearance</strong>
-								<span class="pill">Climbing</span>
-								<span class="pill">Bucket</span>
-								<span class="pill">Optional</span>
-							</div>
-							<div>Deadwood and lift the canopy over the driveway to 14 feet.</div>
-						</div>
-						<div class="column">
-							<div class="money">$900.00</div>
-							<div class="muted money">3 hours</div>
-						</div>
+					<div>
+						Take the tree down in sections over the shed.  Rope out the two limbs above the
+						fence line.  Haul all wood.  Rake and blow the yard.
 					</div>
+					<span class="schema">project_line_item.work_details; project_line_item_work_skill; client_optional, client_declined, taxable</span>
 
-					<div class="line_item" data-declined="true">
-						<div class="column">
-							<div class="row">
-								<strong>Plant one 2-inch caliper red maple</strong>
-								<span class="pill">Planting</span>
-								<span class="pill">Optional</span>
-								<span class="pill warn">Declined by client</span>
-							</div>
-							<div>Nursery stock, staked, mulched, with a watering bag.</div>
-							<span class="schema">project_line_item.client_optional, client_declined, taxable</span>
-						</div>
-						<div class="column">
-							<div class="money">$340.00</div>
-						</div>
-					</div>
-
-					<div class="row">
-						<button type="button">Add line item</button>
-						<button type="button">Add from template</button>
-						<span class="schema">line_item_template carries default title, price, hours, and work skills</span>
+					<div class="row spread">
+						<button type="button">◀ Previous</button>
+						<button type="button">Next: Grind stump and two surface roots ▶</button>
 					</div>
 				</div>
 			</fieldset>
@@ -385,7 +420,7 @@
 					</table>
 					<span class="schema">project_crew.work_date, crew_id, day_order or start_time; project_crew_project_line_item; project_crew_employee</span>
 					<div class="row">
-						<a href="scheduling.html">Schedule another visit</a>
+						<a href="schedule_day.html">Schedule another visit</a>
 					</div>
 				</div>
 			</fieldset>
@@ -422,6 +457,17 @@
 				The dropdown next to it holds the off-path documents: the declined document for the
 				current one (<code>declined_project_document_id</code>), the other work order types, and
 				Void.  It needs the <code>CAN_SET_ANY_DOCUMENT_STATUS</code> permission.
+			</li>
+			<li>
+				The line item list under the Document section is a table of contents.  Picking an item
+				jumps to its photo-centric detail view.  For now the list sits under the Document section.
+				On wide screens it should later move to the left of the page, which needs responsive work.
+			</li>
+			<li>
+				Tax and discount inputs live in their own panel.  A discount is one flat amount
+				(<code>discount</code>) or one percent (<code>discount_rate</code>), never both, and it
+				carries a <code>discount_description</code>.  Line items have the same three columns, edited
+				on the estimating screen.
 			</li>
 			<li>
 				The address and contact block reads from the project, not the client.  The client link is

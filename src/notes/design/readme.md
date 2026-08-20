@@ -14,7 +14,8 @@ look like the app.
 | `project_list.html` | Project list | Project list |
 | `client.html` | Client | Client screen |
 | `crews.html` | Crews | Work crew interface |
-| `scheduling.html` | Job scheduling | Job scheduling |
+| `scheduling.html` | Job scheduling, week overview | Job scheduling |
+| `schedule_day.html` | Crew day scheduling | Job scheduling |
 | `foreman.html` | My jobs | Worker/foreman screen |
 | `estimating.html` | Estimating | Estimating |
 | `project.html` | Project | Project screen |
@@ -56,6 +57,11 @@ control, for example `project.contact_phone`.  The column names come from `schem
   needs.  It does not block the assignment.
 - **Money is written once and then copied.**  The proposal writes `project.total`.  Closing writes the
   `invoice` and `invoice_line_item` rows.  A customer's invoice never changes when a project is edited.
+- **A discount is one flat amount or one percent, never both.**  `discount` and `discount_rate` are
+  mutually exclusive at every level: project, project line item, invoice, invoice line item.  Every
+  discount carries a `discount_description`, and customer pages show the description with the number.
+- **Scheduling is two screens.**  The week overview shows every crew and assigns workers.  The crew day
+  screen shows one crew on one day, with the queue and the map, and assigns jobs.
 
 ## Open questions that need a decision
 

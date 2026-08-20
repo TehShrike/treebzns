@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Crew day scheduling — treebzns screen designs</title>
+	<link rel="stylesheet" href="../../public/global_reset.css">
+	<link rel="stylesheet" href="../../public/global_variables.css">
+	<link rel="stylesheet" href="../../public/global_styles.css">
+	<link rel="stylesheet" href="../../public/98.css">
+	<link rel="stylesheet" href="mockup.css">
+	<style>
+		.board {
+			display: grid;
+			grid-template-columns: 17rem 18rem minmax(0, 1fr);
+			align-items: start;
+			gap: var(--gap_unit);
+		}
+
+		.crew_column {
+			display: flex;
+			flex-direction: column;
+			gap: var(--gap_half);
+			padding: var(--gap_half);
+			background: var(--accent_background);
+			border-radius: var(--default_border_radius);
+			border-top: 4px solid var(--crew_color, #000);
+		}
+
+		.job_card {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			padding: var(--gap_half);
+			background: var(--white);
+			border: 1px solid var(--generic_border_color);
+			border-radius: var(--default_border_radius);
+			cursor: grab;
+		}
+
+		.job_card[data-emergency=true] {
+			border-left: 4px solid var(--attention_red);
+		}
+
+		.job_card[data-pinned=true] {
+			border-left: 4px solid var(--link_color);
+		}
+
+		.job_card .slot {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+			gap: var(--gap_half);
+			font-size: 0.75rem;
+			color: var(--very_dark_gray);
+		}
+
+		.drop_target {
+			display: flex;
+			flex-direction: row;
+			justify-content: center;
+			padding: var(--gap_half);
+			border: 1px dashed var(--text_color_light);
+			border-radius: var(--default_border_radius);
+			color: var(--text_color_light);
+			font-size: 0.85rem;
+		}
+
+		.map_frame {
+			display: flex;
+			flex-direction: column;
+			gap: var(--gap_half);
+		}
+
+		.map_frame svg {
+			width: 100%;
+			height: auto;
+			background: #eef3ea;
+			border: 1px solid var(--generic_border_color);
+		}
+	</style>
+</head>
+<body>
+	<header class="mockup_header">
+		<div class="top_row">
+			<h1>Crew day scheduling</h1>
+			<a href="index.html">All screens</a>
+		</div>
+		<p>
+			One crew, one day.  The queue on the left holds work that is ready but has no date.  The middle
+			column is this crew's day.  The map is zoomed to this crew's stops, with the queue's jobs as
+			hollow pins, so Andrew can grab the jobs that sit close to the route.  The
+			<a href="scheduling.html">week overview</a> shows every crew and assigns workers.
+		</p>
+		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
+	</header>
+
+	<div class="app_frame">
+		<nav class="app_menu">
+			<div class="logo">🌳</div>
+			<ul>
+				<li><a href="index.html">Home</a></li>
+				<li><a href="lead_create.html">Create a lead</a></li>
+				<li><a href="client.html">Clients</a></li>
+				<li><a href="project_list.html">Projects</a></li>
+				<li><a href="scheduling.html" data-active="true">Schedule</a></li>
+				<li><a href="crews.html">Crews</a></li>
+				<li><a href="foreman.html">My jobs</a></li>
+				<li><a href="settings.html">Settings</a></li>
+			</ul>
+		</nav>
+
+		<div class="screen_body">
+			<div class="row spread">
+				<div class="row">
+					<label>Crew
+						<select>
+							<option selected>Crew 1 · Blue</option>
+							<option>Crew 2 · Orange</option>
+							<option>Estimating · Purple</option>
+						</select>
+					</label>
+					<button type="button">◀</button>
+					<h1>Tue Aug 18</h1>
+					<button type="button">▶</button>
+					<a href="scheduling.html">Back to the week</a>
+				</div>
+				<button type="button">Print the day</button>
+			</div>
+			<span class="schema">project_crew where crew_id and work_date match</span>
+
+			<div class="board">
+				<fieldset>
+					<legend>Ready to schedule</legend>
+					<div class="column">
+						<div class="row">
+							<input type="search" placeholder="Client or address">
+							<span class="schema">client.name, project.address_line_1</span>
+						</div>
+						<label><input type="checkbox" checked> Emergencies first</label>
+						<label><input type="checkbox" checked> Closest to the route first</label>
+						<span class="schema">project.emergency; distance from project.latitude / longitude to the crew's stops</span>
+
+						<div class="job_card" data-emergency="true">
+							<div class="row spread">
+								<strong>1149 Barrett</strong>
+								<span class="pill warn">Emergency</span>
+							</div>
+							<div>Storm limb on the roof</div>
+							<div class="muted">812 Delaware St · 0.8 mi off route</div>
+							<div class="row">
+								<span class="pill">Climbing</span>
+								<span class="pill">Rigging</span>
+							</div>
+							<div class="slot"><span>6 hours</span><span>Approved 1 day ago</span></div>
+						</div>
+
+						<div class="job_card">
+							<div class="row spread">
+								<strong>1128 Feldman</strong>
+							</div>
+							<div>Chip the brush pile</div>
+							<div class="muted">1904 Woodhaven Dr · 1.2 mi off route</div>
+							<div class="row">
+								<span class="pill">Chipper</span>
+							</div>
+							<div class="slot"><span>2 hours</span><span>Approved 6 days ago</span></div>
+						</div>
+
+						<div class="job_card">
+							<div class="row spread">
+								<strong>1140 Pruitt</strong>
+								<span class="pill">Due Aug 22</span>
+							</div>
+							<div>Remove two ash</div>
+							<div class="muted">55 Ridgeway Ct · 4.9 mi off route</div>
+							<div class="row">
+								<span class="pill">Climbing</span>
+								<span class="pill">Crane</span>
+							</div>
+							<div class="slot"><span>10 hours</span><span>Approved 4 days ago</span></div>
+						</div>
+
+						<div class="job_card">
+							<div class="row spread">
+								<strong>1131 Northbrook HOA</strong>
+							</div>
+							<div>Prune 9 street trees</div>
+							<div class="muted">Northbrook Dr · 5.6 mi off route</div>
+							<div class="row">
+								<span class="pill">Bucket</span>
+								<span class="pill">Chipper</span>
+							</div>
+							<div class="slot"><span>16 hours</span><span>Approved 12 days ago</span></div>
+						</div>
+
+						<span class="schema">project where project_document.should_be_worked = 1 and closed = 0 and no future project_crew row</span>
+					</div>
+				</fieldset>
+
+				<div class="crew_column" style="--crew_color: #2b6cb0;">
+					<div class="column">
+						<strong>Crew 1 · Blue</strong>
+						<span class="muted">Andrew, Dale, Trevor · set on the week overview</span>
+						<div class="row">
+							<span class="pill">Climbing</span>
+							<span class="pill">Rigging</span>
+							<span class="pill">Chipper</span>
+						</div>
+						<span class="muted">11 of 10 hours booked</span>
+						<span class="schema">crew.name, crew.color; project_crew_employee or crew_regular</span>
+					</div>
+
+					<div class="job_card" data-pinned="true">
+						<div class="slot"><span>8:00 am · fixed</span><span>3 hours</span></div>
+						<strong>1142 Whitfield</strong>
+						<div class="muted">4418 Kestrel Ridge Rd</div>
+						<div class="row">
+							<span class="pill">Climbing</span>
+							<span class="pill">Rigging</span>
+						</div>
+						<div class="muted">Line items: remove maple</div>
+						<span class="schema">project_crew.start_time set, day_order null</span>
+					</div>
+
+					<div class="job_card" data-emergency="true">
+						<div class="slot"><span>2nd stop</span><span>6 hours</span></div>
+						<strong>1149 Barrett</strong>
+						<div class="muted">812 Delaware St</div>
+						<div class="row">
+							<span class="pill warn">Emergency</span>
+							<span class="pill">Climbing</span>
+						</div>
+						<span class="schema">project_crew.day_order = 2, start_time null</span>
+					</div>
+
+					<div class="job_card">
+						<div class="slot"><span>3rd stop</span><span>2 hours</span></div>
+						<strong>1128 Feldman</strong>
+						<div class="muted">1904 Woodhaven Dr</div>
+						<div class="row">
+							<span class="pill">Chipper</span>
+						</div>
+					</div>
+
+					<div class="drop_target">Drop a job here</div>
+
+					<fieldset>
+						<legend>Warnings</legend>
+						<ul>
+							<li>Booked 11 hours against a 10 hour day.</li>
+						</ul>
+						<span class="schema">project_line_item_work_skill against employee_work_skill for the day's workers</span>
+					</fieldset>
+				</div>
+
+				<fieldset class="map_frame">
+					<legend>Map · Crew 1's day</legend>
+					<svg viewBox="0 0 340 300" role="img" aria-label="Map of this crew's stops">
+						<rect x="0" y="0" width="340" height="300" fill="#eef3ea"></rect>
+						<path d="M0 100 H340" stroke="#ffffff" stroke-width="12"></path>
+						<path d="M0 210 H340" stroke="#ffffff" stroke-width="8"></path>
+						<path d="M120 0 V300" stroke="#ffffff" stroke-width="12"></path>
+						<path d="M240 0 V300" stroke="#ffffff" stroke-width="8"></path>
+						<path d="M0 40 C 90 70, 170 25, 340 70" stroke="#cfe0f5" stroke-width="7" fill="none"></path>
+						<path d="M80 70 L 170 135 L 210 170" stroke="#2b6cb0" stroke-width="2" stroke-dasharray="4 3" fill="none"></path>
+						<g font-size="12" fill="#ffffff" text-anchor="middle">
+							<circle cx="80" cy="70" r="13" fill="#2b6cb0"></circle>
+							<text x="80" y="75">1</text>
+							<circle cx="170" cy="135" r="13" fill="#2b6cb0"></circle>
+							<text x="170" y="140">2</text>
+							<circle cx="210" cy="170" r="13" fill="#2b6cb0"></circle>
+							<text x="210" y="175">3</text>
+						</g>
+						<g font-size="11" fill="#5a6b5a">
+							<circle cx="195" cy="115" r="8" fill="#ffffff" stroke="#9aa89a" stroke-width="2"></circle>
+							<text x="195" y="102">1140</text>
+							<circle cx="115" cy="180" r="8" fill="#ffffff" stroke="#9aa89a" stroke-width="2"></circle>
+							<text x="115" y="199">1131</text>
+							<text x="8" y="290">Shop</text>
+						</g>
+					</svg>
+					<div class="column">
+						<div class="row"><span class="pill" style="border-color:#2b6cb0;color:#2b6cb0">Crew 1</span> route order 1, 2, 3</div>
+						<div class="muted">
+							Hollow pins are jobs in the queue with no date.  Click one to add it to this day.
+							The map stays zoomed to this crew's stops.
+						</div>
+						<span class="schema">project.latitude, project.longitude</span>
+					</div>
+				</fieldset>
+			</div>
+		</div>
+	</div>
+
+	<section class="design_notes">
+		<h2>Design notes</h2>
+		<ul>
+			<li>
+				This screen exists because the map is only useful in the context of one crew.  Zoomed out to
+				every crew, the pins are noise.  Zoomed in to one crew's route, a hollow pin near the route
+				is an obvious pickup.
+			</li>
+			<li>
+				Each card is one <code>project_crew</code> row.  A card is either ordered or pinned, never
+				both.  An ordered card shows "2nd stop" (<code>day_order</code>).  A pinned card shows a
+				clock time (<code>start_time</code>) and a blue left edge.
+			</li>
+			<li>
+				The queue holds projects whose document says <code>should_be_worked</code>, that are open,
+				and that have no visit on this day or later.  With a route on the map, "closest to the
+				route first" beats "oldest first" as the default sort.
+			</li>
+			<li>
+				Workers are read-only here.  The <a href="scheduling.html">week overview</a> assigns them.
+				One screen, one job.
+			</li>
+			<li>
+				Estimating works the same way: pick the Estimating crew in the dropdown, and the queue shows
+				leads with <code>estimate_availability</code> windows instead of approved work.
+			</li>
+			<li class="open_question">
+				Open: a 16 hour job needs more than one day.  <code>project_crew</code> allows one row per
+				project, crew, and date, so a multi-day job is several rows.  Does the card need to show
+				"day 1 of 2"?
+			</li>
+			<li class="open_question">
+				Open: which line items get worked on a visit
+				(<code>project_crew_project_line_item</code>) is set somewhere.  Right now the card only
+				lists them.  Set it in a panel that opens from the card?
+			</li>
+			<li class="open_question">
+				Open: drive time.  "Off route" miles need a distance from the pin to the nearest leg of the
+				route.  A first version can use straight-line distance.
+			</li>
+		</ul>
+	</section>
+</body>
+</html>

@@ -121,15 +121,21 @@
 					<div class="search_results">
 						<div class="search_result" data-chosen="true">
 							<div class="column">
-								<strong>Whitfield, Marla</strong>
-								<span class="muted">4418 Kestrel Ridge Rd · (812) 555-0147 · 3 projects</span>
+								<div class="row">
+									<strong>Whitfield, Marla</strong>
+									<span class="pill" style="border-color:#2f855a;color:#2f855a">Good client</span>
+								</div>
+								<span class="muted">4418 Kestrel Ridge Rd · (812) 555-0147 · 3 accepted · 1 declined</span>
 							</div>
 							<span class="pill">Chosen</span>
 						</div>
 						<div class="search_result">
 							<div class="column">
-								<strong>Whitfield, Ronald</strong>
-								<span class="muted">77 Old Farm Rd · (812) 555-0188 · 1 project</span>
+								<div class="row">
+									<strong>Whitfield, Ronald</strong>
+									<span class="pill" style="border-color:#c05621;color:#c05621">Bad lead</span>
+								</div>
+								<span class="muted">77 Old Farm Rd · (812) 555-0188 · 0 accepted · 1 declined</span>
 							</div>
 						</div>
 						<div class="search_result">
@@ -141,8 +147,10 @@
 					</div>
 					<div class="muted">
 						The list shows every match while you type.  Picking one fills the client fields below
-						and offers their saved addresses.
+						and offers their saved addresses.  Each match shows its tags and its accepted and
+						declined quote counts, so the person on the phone knows who they are talking to.
 					</div>
+					<span class="schema">client_tag via client_client_tag; counts from project_document_history against approved and declined documents</span>
 					<div class="form_fields">
 						<label>Name<input type="text" value="Whitfield, Marla"></label>
 						<label>Phone<input type="tel" value="(812) 555-0147"></label>

@@ -10,125 +10,72 @@
 	<link rel="stylesheet" href="../../public/98.css">
 	<link rel="stylesheet" href="mockup.css">
 	<style>
-		.day_strip {
-			display: flex;
-			flex-direction: row;
-			flex-wrap: wrap;
-			align-items: stretch;
-			gap: var(--gap_half);
-		}
-
-		.day_button {
-			display: flex;
-			flex-direction: column;
-			gap: 2px;
-			padding: 0.25rem 0.6rem;
-			border: 1px solid var(--generic_border_color);
-			border-radius: var(--default_border_radius);
+		.week_grid {
+			width: 100%;
+			border-collapse: collapse;
 			background: var(--white);
-			text-align: center;
-			cursor: pointer;
 		}
 
-		.day_button[data-selected=true] {
-			border-color: var(--friendly_color);
-			border-width: 2px;
-			font-weight: 600;
-		}
-
-		.board {
-			display: grid;
-			grid-template-columns: 17rem minmax(0, 1fr) 21rem;
-			align-items: start;
-			gap: var(--gap_unit);
-		}
-
-		.crew_columns {
-			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-			align-items: start;
-			gap: var(--gap_half);
-		}
-
-		.crew_column {
-			display: flex;
-			flex-direction: column;
-			gap: var(--gap_half);
+		.week_grid th, .week_grid td {
 			padding: var(--gap_half);
+			border: 1px solid var(--accent_background);
+			text-align: left;
+			vertical-align: top;
+		}
+
+		.week_grid th {
 			background: var(--accent_background);
-			border-radius: var(--default_border_radius);
-			border-top: 4px solid var(--crew_color, #000);
+			font-weight: 600;
+			white-space: nowrap;
 		}
 
-		.crew_header {
-			display: flex;
-			flex-direction: column;
-			gap: 2px;
+		.week_grid td.crew_cell {
+			border-left: 4px solid var(--crew_color, #000);
+			white-space: nowrap;
 		}
 
-		.job_card {
+		.day_cell {
 			display: flex;
 			flex-direction: column;
 			gap: 4px;
-			padding: var(--gap_half);
-			background: var(--white);
-			border: 1px solid var(--generic_border_color);
-			border-radius: var(--default_border_radius);
-			cursor: grab;
+			min-width: 9rem;
 		}
 
-		.job_card[data-emergency=true] {
-			border-left: 4px solid var(--attention_red);
+		.day_cell .booked {
+			font-weight: 600;
 		}
 
-		.job_card[data-pinned=true] {
-			border-left: 4px solid var(--link_color);
+		.day_cell .booked[data-over=true] {
+			color: var(--attention_red);
 		}
 
-		.job_card .slot {
-			display: flex;
-			flex-direction: row;
-			justify-content: space-between;
-			gap: var(--gap_half);
-			font-size: 0.75rem;
-			color: var(--very_dark_gray);
-		}
-
-		.drop_target {
-			display: flex;
-			flex-direction: row;
-			justify-content: center;
-			padding: var(--gap_half);
-			border: 1px dashed var(--text_color_light);
-			border-radius: var(--default_border_radius);
-			color: var(--text_color_light);
+		.day_cell a {
 			font-size: 0.85rem;
 		}
 
-		.map_frame {
+		.worker_row {
 			display: flex;
-			flex-direction: column;
-			gap: var(--gap_half);
+			flex-direction: row;
+			flex-wrap: wrap;
+			gap: 4px;
 		}
 
-		.map_frame svg {
-			width: 100%;
-			height: auto;
-			background: #eef3ea;
-			border: 1px solid var(--generic_border_color);
+		.empty_day {
+			color: var(--text_color_light);
+			font-size: 0.85rem;
 		}
 	</style>
 </head>
 <body>
 	<header class="mockup_header">
 		<div class="top_row">
-			<h1>Job scheduling</h1>
+			<h1>Job scheduling — week overview</h1>
 			<a href="index.html">All screens</a>
 		</div>
 		<p>
-			One day at a time.  The queue on the left holds work that is ready but has no date.  Each crew
-			owns one column for that day.  The map shows where the day's stops are, so Andrew can group
-			jobs that sit close together.
+			The whole week at a glance.  One row per crew, one column per day.  Each cell shows what the
+			crew has booked and who is on the crew that day.  This screen assigns workers.  Jobs get
+			assigned on the <a href="schedule_day.html">crew day screen</a>, which opens from any cell.
 		</p>
 		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
 	</header>
@@ -150,254 +97,142 @@
 
 		<div class="screen_body">
 			<div class="row spread">
-				<h1>Schedule</h1>
 				<div class="row">
-					<label><input type="checkbox" checked> Show map</label>
-					<label><input type="checkbox"> Show all crews</label>
-					<button type="button">Print the day</button>
+					<button type="button">◀</button>
+					<h1>Week of Aug 17</h1>
+					<button type="button">▶</button>
+				</div>
+				<div class="row">
+					<span class="pill warn">9 jobs ready with no date</span>
+					<a href="schedule_day.html">Schedule jobs</a>
+					<button type="button">Print the week</button>
 				</div>
 			</div>
+			<span class="schema">project_crew rows grouped by crew_id and work_date for the week</span>
 
-			<div class="day_strip">
-				<button type="button" class="day_button">◀</button>
-				<div class="day_button">Mon<br>Aug 17<br><span class="muted">6 jobs</span></div>
-				<div class="day_button" data-selected="true">Tue<br>Aug 18<br><span class="muted">5 jobs</span></div>
-				<div class="day_button">Wed<br>Aug 19<br><span class="muted">4 jobs</span></div>
-				<div class="day_button">Thu<br>Aug 20<br><span class="muted">2 jobs</span></div>
-				<div class="day_button">Fri<br>Aug 21<br><span class="muted">0 jobs</span></div>
-				<button type="button" class="day_button">▶</button>
-				<span class="schema">count of project_crew rows per work_date</span>
-			</div>
-
-			<div class="board">
-				<fieldset>
-					<legend>Ready to schedule</legend>
-					<div class="column">
-						<div class="row">
-							<input type="search" placeholder="Client or address">
-							<span class="schema">client.name, project.address_line_1</span>
-						</div>
-						<label><input type="checkbox" checked> Emergencies first</label>
-						<label><input type="checkbox" checked> Oldest approval first</label>
-						<span class="schema">project.emergency, then project_document_history.created_at for the work order row</span>
-
-						<div class="job_card" data-emergency="true">
-							<div class="row spread">
-								<strong>1149 Barrett</strong>
-								<span class="pill warn">Emergency</span>
-							</div>
-							<div>Storm limb on the roof</div>
-							<div class="muted">812 Delaware St · 2.1 mi</div>
-							<div class="row">
-								<span class="pill">Climbing</span>
-								<span class="pill">Rigging</span>
-							</div>
-							<div class="slot"><span>6 hours</span><span>Approved 1 day ago</span></div>
-						</div>
-
-						<div class="job_card">
-							<div class="row spread">
-								<strong>1131 Northbrook HOA</strong>
-							</div>
-							<div>Prune 9 street trees</div>
-							<div class="muted">Northbrook Dr · 4.6 mi</div>
-							<div class="row">
-								<span class="pill">Bucket</span>
-								<span class="pill">Chipper</span>
-							</div>
-							<div class="slot"><span>16 hours</span><span>Approved 12 days ago</span></div>
-						</div>
-
-						<div class="job_card">
-							<div class="row spread">
-								<strong>1136 Alvarez</strong>
-							</div>
-							<div>Stump grinding, 3 stumps</div>
-							<div class="muted">2210 Sycamore Ln · 3.4 mi</div>
-							<div class="row">
-								<span class="pill">Stump grinding</span>
-							</div>
-							<div class="slot"><span>4 hours</span><span>Approved 9 days ago</span></div>
-						</div>
-
-						<div class="job_card">
-							<div class="row spread">
-								<strong>1140 Pruitt</strong>
-								<span class="pill">Due Aug 22</span>
-							</div>
-							<div>Remove two ash</div>
-							<div class="muted">55 Ridgeway Ct · 6.8 mi</div>
-							<div class="row">
-								<span class="pill">Climbing</span>
-								<span class="pill">Crane</span>
-							</div>
-							<div class="slot"><span>10 hours</span><span>Approved 4 days ago</span></div>
-						</div>
-
-						<span class="schema">project where project_document.should_be_worked = 1 and closed = 0 and no future project_crew row</span>
-					</div>
-				</fieldset>
-
-				<div class="column wide_gap">
-					<div class="crew_columns">
-						<div class="crew_column" style="--crew_color: #2b6cb0;">
-							<div class="crew_header">
-								<strong>Crew 1 · Blue</strong>
-								<span class="muted">Andrew, Dale, Trevor</span>
-								<div class="row">
-									<span class="pill">Climbing</span>
-									<span class="pill">Rigging</span>
-									<span class="pill">Chipper</span>
+			<table class="week_grid">
+				<thead>
+					<tr>
+						<th>Crew</th>
+						<th>Mon Aug 17</th>
+						<th>Tue Aug 18</th>
+						<th>Wed Aug 19</th>
+						<th>Thu Aug 20</th>
+						<th>Fri Aug 21</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td class="crew_cell" style="--crew_color: #2b6cb0;">
+							<strong>Crew 1 · Blue</strong>
+							<div class="muted">Andrew, Dale, Trevor</div>
+							<span class="schema">crew.name, crew.color; crew_regular</span>
+						</td>
+						<td>
+							<div class="day_cell">
+								<span class="booked">2 jobs · 9 h</span>
+								<div class="worker_row">
+									<span class="pill">Andrew</span>
+									<span class="pill">Dale</span>
+									<span class="pill">Trevor</span>
+									<button type="button">Edit</button>
 								</div>
-								<span class="muted">11 of 10 hours booked</span>
-								<span class="schema">crew.name, crew.color; project_crew_employee or crew_regular</span>
+								<a href="schedule_day.html">Open the day</a>
 							</div>
-
-							<div class="job_card" data-pinned="true">
-								<div class="slot"><span>8:00 am · fixed</span><span>3 hours</span></div>
-								<strong>1142 Whitfield</strong>
-								<div class="muted">4418 Kestrel Ridge Rd</div>
-								<div class="row">
-									<span class="pill">Climbing</span>
-									<span class="pill">Rigging</span>
+						</td>
+						<td>
+							<div class="day_cell">
+								<span class="booked" data-over="true">3 jobs · 11 h</span>
+								<div class="worker_row">
+									<span class="pill">Andrew</span>
+									<span class="pill">Dale</span>
+									<span class="pill">Trevor</span>
+									<button type="button">Edit</button>
 								</div>
-								<div class="muted">Line items: remove maple</div>
-								<span class="schema">project_crew.start_time set, day_order null</span>
+								<a href="schedule_day.html">Open the day</a>
 							</div>
-
-							<div class="job_card" data-emergency="true">
-								<div class="slot"><span>2nd stop</span><span>6 hours</span></div>
-								<strong>1149 Barrett</strong>
-								<div class="muted">812 Delaware St</div>
-								<div class="row">
-									<span class="pill warn">Emergency</span>
-									<span class="pill">Climbing</span>
+						</td>
+						<td>
+							<div class="day_cell">
+								<span class="booked">1 job · 3 h</span>
+								<div class="worker_row">
+									<span class="pill">Andrew</span>
+									<span class="pill">Trevor</span>
+									<span class="pill warn">Dale off</span>
+									<button type="button">Edit</button>
 								</div>
-								<span class="schema">project_crew.day_order = 2, start_time null</span>
+								<a href="schedule_day.html">Open the day</a>
 							</div>
-
-							<div class="job_card">
-								<div class="slot"><span>3rd stop</span><span>2 hours</span></div>
-								<strong>1128 Feldman</strong>
-								<div class="muted">1904 Woodhaven Dr</div>
-								<div class="row">
-									<span class="pill">Chipper</span>
+						</td>
+						<td><div class="day_cell"><span class="empty_day">Nothing booked</span><a href="schedule_day.html">Open the day</a></div></td>
+						<td><div class="day_cell"><span class="empty_day">Nothing booked</span><a href="schedule_day.html">Open the day</a></div></td>
+					</tr>
+					<tr>
+						<td class="crew_cell" style="--crew_color: #c05621;">
+							<strong>Crew 2 · Orange</strong>
+							<div class="muted">Cody, Marcus</div>
+						</td>
+						<td>
+							<div class="day_cell">
+								<span class="booked">2 jobs · 7 h</span>
+								<div class="worker_row">
+									<span class="pill">Cody</span>
+									<span class="pill">Marcus</span>
+									<button type="button">Edit</button>
 								</div>
+								<a href="schedule_day.html">Open the day</a>
 							</div>
-
-							<div class="drop_target">Drop a job here</div>
-						</div>
-
-						<div class="crew_column" style="--crew_color: #c05621;">
-							<div class="crew_header">
-								<strong>Crew 2 · Orange</strong>
-								<span class="muted">Cody, Marcus</span>
-								<div class="row">
-									<span class="pill">Stump grinding</span>
-									<span class="pill">Bucket</span>
+						</td>
+						<td>
+							<div class="day_cell">
+								<span class="booked">2 jobs · 7 h</span>
+								<div class="worker_row">
+									<span class="pill">Cody</span>
+									<span class="pill">Marcus</span>
+									<button type="button">Edit</button>
 								</div>
-								<span class="muted">7 of 10 hours booked</span>
+								<a href="schedule_day.html">Open the day</a>
 							</div>
-
-							<div class="job_card">
-								<div class="slot"><span>1st stop</span><span>4 hours</span></div>
-								<strong>1136 Alvarez</strong>
-								<div class="muted">2210 Sycamore Ln</div>
-								<div class="row">
-									<span class="pill">Stump grinding</span>
+						</td>
+						<td>
+							<div class="day_cell">
+								<span class="booked">1 job · 4 h</span>
+								<div class="worker_row">
+									<span class="pill">Cody</span>
+									<span class="pill">Marcus</span>
+									<span class="pill">Trevor</span>
+									<button type="button">Edit</button>
 								</div>
+								<a href="schedule_day.html">Open the day</a>
 							</div>
+						</td>
+						<td><div class="day_cell"><span class="empty_day">Nothing booked</span><a href="schedule_day.html">Open the day</a></div></td>
+						<td><div class="day_cell"><span class="empty_day">Nothing booked</span><a href="schedule_day.html">Open the day</a></div></td>
+					</tr>
+					<tr>
+						<td class="crew_cell" style="--crew_color: #6b46c1;">
+							<strong>Estimating · Purple</strong>
+							<div class="muted">Rachel</div>
+						</td>
+						<td><div class="day_cell"><span class="booked">3 visits</span><a href="schedule_day.html">Open the day</a></div></td>
+						<td><div class="day_cell"><span class="booked">2 visits</span><a href="schedule_day.html">Open the day</a></div></td>
+						<td><div class="day_cell"><span class="booked">2 visits</span><a href="schedule_day.html">Open the day</a></div></td>
+						<td><div class="day_cell"><span class="empty_day">Nothing booked</span><a href="schedule_day.html">Open the day</a></div></td>
+						<td><div class="day_cell"><span class="empty_day">Nothing booked</span><a href="schedule_day.html">Open the day</a></div></td>
+					</tr>
+				</tbody>
+			</table>
+			<span class="schema">hours are sum(project_line_item.estimated_hours) over project_crew_project_line_item for the visit</span>
 
-							<div class="job_card">
-								<div class="slot"><span>2nd stop</span><span>3 hours</span></div>
-								<strong>1121 Delgado</strong>
-								<div class="muted">417 Beechwood Ave</div>
-								<div class="row">
-									<span class="pill">Bucket</span>
-								</div>
-							</div>
-
-							<div class="drop_target">Drop a job here</div>
-						</div>
-
-						<div class="crew_column" style="--crew_color: #6b46c1;">
-							<div class="crew_header">
-								<strong>Estimating · Purple</strong>
-								<span class="muted">Rachel</span>
-								<div class="row">
-									<span class="pill">Estimating</span>
-								</div>
-								<span class="muted">3 visits</span>
-								<span class="schema">projects with assigned_estimator_employee_id, scheduled the same way</span>
-							</div>
-
-							<div class="job_card" data-pinned="true">
-								<div class="slot"><span>9:00 am · fixed</span><span>Estimate</span></div>
-								<strong>1151 Okonkwo</strong>
-								<div class="muted">3300 Tamarack Trail</div>
-								<span class="schema">estimate_availability gives the windows the client offered</span>
-							</div>
-
-							<div class="job_card">
-								<div class="slot"><span>2nd stop</span><span>Estimate</span></div>
-								<strong>1152 Rennick</strong>
-								<div class="muted">88 Longview Dr</div>
-							</div>
-
-							<div class="drop_target">Drop a job here</div>
-						</div>
-					</div>
-
-					<fieldset>
-						<legend>Warnings for Tue Aug 18</legend>
-						<ul>
-							<li>Crew 1 is booked 11 hours against a 10 hour day.</li>
-							<li>Job 1140 Pruitt needs Crane.  No crew working that day has it.</li>
-							<li>Job 1131 Northbrook HOA is 16 hours.  It needs more than one day.</li>
-						</ul>
-						<span class="schema">union of project_line_item_work_skill against employee_work_skill for the assigned employees</span>
-					</fieldset>
-				</div>
-
-				<fieldset class="map_frame">
-					<legend>Map</legend>
-					<svg viewBox="0 0 300 260" role="img" aria-label="Map of the day's stops">
-						<rect x="0" y="0" width="300" height="260" fill="#eef3ea"></rect>
-						<path d="M0 90 H300" stroke="#ffffff" stroke-width="10"></path>
-						<path d="M0 180 H300" stroke="#ffffff" stroke-width="7"></path>
-						<path d="M110 0 V260" stroke="#ffffff" stroke-width="10"></path>
-						<path d="M215 0 V260" stroke="#ffffff" stroke-width="7"></path>
-						<path d="M0 30 C 80 60, 150 20, 300 60" stroke="#cfe0f5" stroke-width="6" fill="none"></path>
-						<g font-size="11" fill="#ffffff" text-anchor="middle">
-							<circle cx="70" cy="60" r="11" fill="#2b6cb0"></circle>
-							<text x="70" y="64">1</text>
-							<circle cx="150" cy="120" r="11" fill="#2b6cb0"></circle>
-							<text x="150" y="124">2</text>
-							<circle cx="185" cy="150" r="11" fill="#2b6cb0"></circle>
-							<text x="185" y="154">3</text>
-							<circle cx="245" cy="205" r="11" fill="#c05621"></circle>
-							<text x="245" y="209">1</text>
-							<circle cx="260" cy="230" r="11" fill="#c05621"></circle>
-							<text x="260" y="234">2</text>
-							<circle cx="60" cy="215" r="11" fill="#6b46c1"></circle>
-							<text x="60" y="219">1</text>
-						</g>
-						<g font-size="10" fill="#5a6b5a">
-							<circle cx="120" cy="45" r="6" fill="#ffffff" stroke="#9aa89a"></circle>
-							<circle cx="95" cy="150" r="6" fill="#ffffff" stroke="#9aa89a"></circle>
-							<circle cx="200" cy="70" r="6" fill="#ffffff" stroke="#9aa89a"></circle>
-							<text x="8" y="252">Shop</text>
-						</g>
-					</svg>
-					<div class="column">
-						<div class="row"><span class="pill" style="border-color:#2b6cb0;color:#2b6cb0">Crew 1</span> route order 1, 2, 3</div>
-						<div class="row"><span class="pill" style="border-color:#c05621;color:#c05621">Crew 2</span> route order 1, 2</div>
-						<div class="row"><span class="pill" style="border-color:#6b46c1;color:#6b46c1">Estimating</span></div>
-						<div class="muted">Hollow pins are jobs in the queue with no date.  Click one to add it to a crew.</div>
-						<span class="schema">project.latitude, project.longitude</span>
-					</div>
-				</fieldset>
-			</div>
+			<fieldset>
+				<legend>Warnings for this week</legend>
+				<ul>
+					<li>Crew 1 is booked 11 hours against a 10 hour day on Tuesday.</li>
+					<li>Job 1140 Pruitt is due Aug 22 and has no date yet.</li>
+					<li>Dale is off Wednesday.  Crew 1's Wednesday job needs Rigging, and nobody left on the crew has it.</li>
+				</ul>
+				<span class="schema">project_line_item_work_skill against employee_work_skill for the workers on each day</span>
+			</fieldset>
 		</div>
 	</div>
 
@@ -405,44 +240,36 @@
 		<h2>Design notes</h2>
 		<ul>
 			<li>
-				The board holds one day.  Each crew column is one <code>crew</code> row, and each card is
-				one <code>project_crew</code> row.
+				Scheduling is two screens.  This one answers "who works where this week" and holds the
+				worker assignments.  The <a href="schedule_day.html">crew day screen</a> answers "what does
+				this crew do on this day" and holds the job assignments and the map.
 			</li>
 			<li>
-				A card is either ordered or pinned, never both.  An ordered card shows "2nd stop"
-				(<code>day_order</code>).  A pinned card shows a clock time (<code>start_time</code>) and a
-				blue left edge.  Dragging a card between the two changes which column gets a value.
+				A cell is one crew on one day.  The worker pills start from <code>crew_regular</code> and
+				the Edit button swaps people for that day only.
 			</li>
 			<li>
-				The queue holds projects whose document says <code>should_be_worked</code>, that are open,
-				and that have no visit on this day or later.  The default order is emergencies first, then
-				the date the client approved the work.
+				"Open the day" goes to the crew day screen with that crew and date already picked.
 			</li>
 			<li>
-				Skills are checked, not enforced.  The warning panel compares the skills the day's line
-				items need against the skills the assigned people hold.  Andrew can still schedule the job.
+				Skills are checked, not enforced.  The warning panel compares what the week's jobs need
+				against what the assigned people hold.  Andrew can ignore every warning.
 			</li>
 			<li>
-				Estimating is a crew column like any other.  An estimator is one person on a crew, and the
-				visit is still a <code>project_crew</code> row.
+				Estimating is a crew row like any other.  An estimate visit is still a
+				<code>project_crew</code> row.
 			</li>
 			<li class="open_question">
-				Open: crew capacity.  "11 of 10 hours booked" needs a hours-per-day number per crew.
-				Nothing in the schema holds it.  Add <code>crew.hours_per_day</code>, or drop the warning?
+				Open: a per-day worker swap has nowhere to write.  <code>project_crew_employee</code> hangs
+				off a visit, so a day with no visits can not record "Trevor covers for Dale".  Does the swap
+				write to every visit that day, or does a crew-day roster table need to exist?
 			</li>
 			<li class="open_question">
-				Open: a 16 hour job needs more than one day.  <code>project_crew</code> allows one row per
-				project, crew, and date, so a multi-day job is several rows.  Does the card need to show
-				"day 1 of 2"?
+				Open: crew capacity.  "11 of 10 hours" needs an hours-per-day number per crew.  Nothing in
+				the schema holds it.  Add <code>crew.hours_per_day</code>, or drop the warning?
 			</li>
 			<li class="open_question">
-				Open: which line items get worked on a visit
-				(<code>project_crew_project_line_item</code>) is set somewhere.  Right now the card only
-				lists them.  Set it in a panel that opens from the card?
-			</li>
-			<li class="open_question">
-				Open: drive time.  The map orders pins, but nothing computes distance.  A first version can
-				show straight-line miles from the shop.
+				Open: time off.  "Dale off Wednesday" has no table behind it.
 			</li>
 		</ul>
 	</section>
