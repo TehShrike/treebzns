@@ -1,3 +1,14 @@
+# Catch up
+
+- Commit design updates
+- Make sort columns consistent: sort, not sort_order, smallint unsigned
+- resolve addresses
+	- no billing address stored on invoices
+	- one billing address stored directly on clients
+	- default_project_address_id on clients, non-nullable
+	- should probably have a client_contact_id
+- create a lead screen should have a "the billing address is different" button below the project address field
+
 # Model this!
 
 Clocking employees in and out of jobs.  Tie their clock-in/clock-out records directly to the project_crew records.
