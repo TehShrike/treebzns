@@ -2,7 +2,7 @@ import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.
 import { password_hash } from '#worker/lib/password_hash.ts'
 import write_helper from '#worker/lib/mysql/write_helper.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
-import safe_query_builder from '#shared/treebzns_db/safe_query_builder.ts'
+import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
 import assert from '#shared/assert.ts'
 
@@ -45,7 +45,7 @@ export const update_password = async (employee_id: bigint, password: string, mys
 		])
 		.build()
 
-	const employee_row = await mysql.query(safe_query_builder.to_sql(employee_query.query)).get_first_row()
+	const employee_row = await mysql.query(safe_select_query_builder.to_sql(employee_query.query)).get_first_row()
 	assert(employee_row, `An employee exists with employee_id ${ employee_id }`)
 
 	const { employee } = employee_query.positional_row_to_named(employee_row)

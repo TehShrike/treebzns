@@ -13,30 +13,30 @@
  *   - non-sensitive employee columns still work
  *   - tables without a whitelist entry remain fully readable
  *
- * It exercises the real, wired-up builder (shared/treebzns_db/safe_query_builder.ts), so it fails if the
+ * It exercises the real, wired-up builder (shared/treebzns_db/safe_select_query_builder.ts), so it fails if the
  * whitelist is ever removed or the sensitive columns are added back.
  */
 
 import { test } from 'node:test'
 import * as assert from 'node:assert'
 
-import { safe_sql_query_validator, type SafeSqlQuery } from './safe_sql_query_validator.ts'
+import { safe_select_query_validator, type SafeSelectQuery } from './safe_select_query_validator.ts'
 import table_blacklist_validator from './table_blacklist_validator.ts'
-import safe_query_builder from '#shared/treebzns_db/safe_query_builder.ts'
+import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
 
 const blacklist_validator = table_blacklist_validator(['employee_session', 'migration'])
 
 // Run the validation gate exactly as the query endpoint does, returning the rejection messages
 // (empty array means the query would be accepted and executed).
-const rejection_messages = (query: SafeSqlQuery): string[] => {
-	assert.ok(safe_sql_query_validator.is_valid(query), 'arg should pass the structural validator')
+const rejection_messages = (query: SafeSelectQuery): string[] => {
+	assert.ok(safe_select_query_validator.is_valid(query), 'arg should pass the structural validator')
 	const blacklisted = blacklist_validator(query)
 	if (blacklisted.length > 0) return blacklisted
-	const result = safe_query_builder.validate_table_and_column_names(query)
+	const result = safe_select_query_builder.validate_table_and_column_names(query)
 	return result.valid ? [] : result.messages
 }
 
-const employee_query = (overrides: Partial<SafeSqlQuery>): SafeSqlQuery => ({
+const employee_query = (overrides: Partial<SafeSelectQuery>): SafeSelectQuery => ({
 	select: [{ type: 'column reference', table_identifier: 'e', column: 'email' }],
 	from: { table_name: 'employee', alias: 'e' },
 	joins: [],

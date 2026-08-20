@@ -3,7 +3,7 @@ import { create_employee } from '#worker/lib/employee.ts'
 import { map } from '#shared/array.ts'
 import { transaction } from '#worker/lib/mysql/helpers.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
-import safe_query_builder from '#shared/treebzns_db/safe_query_builder.ts'
+import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
 import write_helper from '#worker/lib/mysql/write_helper.ts'
 import assert from '#shared/assert.ts'
 import is_valid_timezone from '#shared/is_valid_timezone.ts'
@@ -79,7 +79,7 @@ export const create_company = async (
 			.select(() => ['permission.permission_id', 'permission.code'])
 			.build()
 
-		const permission_rows = await mysql.query(safe_query_builder.to_sql(permission_query.query)).get_rows()
+		const permission_rows = await mysql.query(safe_select_query_builder.to_sql(permission_query.query)).get_rows()
 		const permission_id_by_code = new Map(permission_rows.map(row => {
 			const { permission } = permission_query.positional_row_to_named(row)
 			return [permission.code, permission.permission_id]

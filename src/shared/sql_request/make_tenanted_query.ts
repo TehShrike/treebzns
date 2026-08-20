@@ -1,4 +1,4 @@
-import type { Comparison, Join, SafeSqlQuery, WhereGrouping } from "./safe_sql_query_validator.ts"
+import type { Comparison, Join, SafeSelectQuery, WhereGrouping } from "./safe_select_query_validator.ts"
 import { map } from "../array.ts"
 
 type SchemaColumns = {
@@ -88,7 +88,7 @@ const prep_tenant_function = <
 	column_name: TenantColumn<ThisSchema, NonTenantedTableNames>
 }) => {
 	const non_tenanted_table_names_set = new Set<keyof ThisSchema>(non_tenanted_table_names)
-	return (query: SafeSqlQuery, value: any): SafeSqlQuery => {
+	return (query: SafeSelectQuery, value: any): SafeSelectQuery => {
 		const where = non_tenanted_table_names_set.has(query.from.table_name)
 			? query.where
 			: add_tenant_filter_to_where_clause<ThisSchema, NonTenantedTableNames>({

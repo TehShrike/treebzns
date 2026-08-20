@@ -116,7 +116,7 @@ const type_entries = [...allFunctions.entries()]
 // are actually referenced.
 const type_source_modules = [
 	{ specifier: '#shared/json_validator.ts', path: ['src', 'shared', 'json_validator.ts'] },
-	{ specifier: '#shared/sql_request/safe_sql_query_validator.ts', path: ['src', 'shared', 'sql_request', 'safe_sql_query_validator.ts'] },
+	{ specifier: '#shared/sql_request/safe_select_query_validator.ts', path: ['src', 'shared', 'sql_request', 'safe_select_query_validator.ts'] },
 ]
 
 const validator_import = type_source_modules

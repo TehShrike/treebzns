@@ -166,7 +166,7 @@ export const join_validator = jv.object({
 	left: jv.optional(jv.is_boolean),
 })
 
-export const safe_sql_query_validator = jv.object({
+export const safe_select_query_validator = jv.object({
 	select: jv.array(jv.one_of(select_expression_validator, select_grouping_validator)),
 	from: table_addition_validator,
 	joins: jv.array(join_validator),
@@ -208,7 +208,7 @@ export type SelectGrouping = {
 	alias?: string
 }
 export type WhereGrouping = AndOrGrouping<Comparison>
-export type SafeSqlQuery = {
+export type SafeSelectQuery = {
 	select: Array<SelectExpression | SelectGrouping>
 	from: TableAddition
 	joins: Array<Join>

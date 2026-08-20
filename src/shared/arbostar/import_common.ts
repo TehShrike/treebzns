@@ -5,7 +5,7 @@ import type { InsertableSchema, Schema } from '#schema/types.ts'
 import * as schema from '#schema/all_table_column_names.ts'
 import * as insertable_schema from '#schema/insertable_table_column_names.ts'
 import typed_write_helper from '#shared/sql_request/typed_write_helper.ts'
-import { make_safe_query_builder } from '#shared/sql_request/safe_sql_query.ts'
+import { make_safe_select_query_builder } from '#shared/sql_request/safe_select_query.ts'
 import query_builder, { type BuiltQuery, type QueryBuilder } from '#shared/sql_request/typed_query_builder.ts'
 import { make_tenanted_query } from '#shared/treebzns_db/tenanted_query_builder.ts'
 import { map, filter } from '#shared/array.ts'
@@ -16,7 +16,7 @@ export const write_helper = typed_write_helper<InsertableSchema, Schema>(schema,
 
 export const ROWS_PER_BATCH = 1000
 
-const { to_sql } = make_safe_query_builder(schema)
+const { to_sql } = make_safe_select_query_builder(schema)
 
 // Accepts a pool as well as a connection: pool-run selects each use their own connection, so
 // independent queries genuinely run in parallel instead of pipelining on one connection.

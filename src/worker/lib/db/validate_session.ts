@@ -2,7 +2,7 @@ import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.
 import { employee, company } from '#schema/all_table_column_names.ts'
 import type { Schema } from '#schema/types.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
-import safe_query_builder from '#shared/treebzns_db/safe_query_builder.ts'
+import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
 
 const employee_columns = [
 	`employee.${employee.employee_id}`,
@@ -47,7 +47,7 @@ const validate_session = async (request: Request, mysql: MysqlHelpersObject) => 
 		.select(() => [...employee_columns, ...company_columns])
 		.build()
 
-	const query = safe_query_builder.to_sql(typed_query.query)
+	const query = safe_select_query_builder.to_sql(typed_query.query)
 
 	const row = await mysql.query(query).get_first_row()
 

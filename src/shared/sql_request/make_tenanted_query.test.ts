@@ -4,7 +4,7 @@ import { type Temporal } from '@js-temporal/polyfill'
 import { type FinancialNumber } from 'financial-number'
 import prep_tenant_function from './make_tenanted_query.ts'
 import { every, some } from '#shared/array.ts'
-import { comparison_validator, column_reference_validator, type Comparison, type SafeSqlQuery } from './safe_sql_query_validator.ts'
+import { comparison_validator, column_reference_validator, type Comparison, type SafeSelectQuery } from './safe_select_query_validator.ts'
 
 const test_schema = {
 	project: {
@@ -175,7 +175,7 @@ test(`company_id is injected into the where and joins of tenanted tables`, () =>
 		column_name: `company_id`,
 	})
 
-	const query: SafeSqlQuery = {
+	const query: SafeSelectQuery = {
 		select: [ { type: `column reference`, table_identifier: `project`, column: `project_id` } ],
 		from: { table_name: `project`, alias: `project_alias` },
 		joins: [

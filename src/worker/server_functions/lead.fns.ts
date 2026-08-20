@@ -15,10 +15,10 @@ export const functions = {
 	create_lead: sfn({
 		validator: create_lead_validator,
 		fn: (arg, context): Promise<Pick<DbProject, 'project_id'>> => context.transaction(async () => {
-			const { company, user, query_builder, write_helper } = context
+			const { company, user, select_builder, write_helper } = context
 			const company_id = company.company_id
 
-			const address_query = query_builder
+			const address_query = select_builder
 				.from('client_address')
 				.join('client', b => b.comparison('client_address.client_id', '=', 'client.client_id'))
 				.left_join('client_contact', b => b.comparison('client_address.client_contact_id', '=', 'client_contact.client_contact_id'))
@@ -41,7 +41,7 @@ export const functions = {
 				])
 				.build()
 
-			const address_row = await query_builder.get_first_row(address_query)
+			const address_row = await select_builder.get_first_row(address_query)
 			if (!address_row) {
 				throw new Error(`No client_address found with client_address_id "${ arg.client_address_id }" for client_id "${ arg.client_id }"`)
 			}
@@ -49,13 +49,13 @@ export const functions = {
 
 			// The initial document is the lowest-sort project_document — the same rule
 			// create_company used when this lived on company.default_initial_project_document_id.
-			const initial_document_query = query_builder
+			const initial_document_query = select_builder
 				.from('project_document')
 				.order_by('project_document.sort', 'ASC')
 				.limit(1n)
 				.select(() => ['project_document.project_document_id'])
 				.build()
-			const initial_document_row = await query_builder.get_first_row(initial_document_query)
+			const initial_document_row = await select_builder.get_first_row(initial_document_query)
 			if (!initial_document_row) {
 				throw new Error('No project_document rows exist to use as the initial project document')
 			}

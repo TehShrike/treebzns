@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert'
 import make_blackist_validator from './table_blacklist_validator.ts'
-import type { SafeSqlQuery } from './safe_sql_query_validator.ts'
+import type { SafeSelectQuery } from './safe_select_query_validator.ts'
 import type { Temporal } from '@js-temporal/polyfill'
 import type { FinancialNumber } from 'financial-number'
 
@@ -70,7 +70,7 @@ type TestSchema = {
 	}
 }
 
-const make_query = (from_table: string, join_table: string): SafeSqlQuery => ({
+const make_query = (from_table: string, join_table: string): SafeSelectQuery => ({
 	select: [],
 	from: { table_name: from_table, alias: from_table },
 	joins: [ { table_name: join_table, alias: join_table, on_clause: [] } ],

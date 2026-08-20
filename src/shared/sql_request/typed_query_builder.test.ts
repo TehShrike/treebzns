@@ -5,9 +5,9 @@ import query_builder, { type ExtractQueryResponse, type BuiltQuery, type Selecte
 
 type AssertEqual<A, B> =
 	(<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
-import { make_safe_query_builder } from './safe_sql_query.ts'
+import { make_safe_select_query_builder } from './safe_select_query.ts'
 import * as assert from 'node:assert'
-import {safe_sql_query_validator} from './safe_sql_query_validator.ts'
+import {safe_select_query_validator} from './safe_select_query_validator.ts'
 
 type ExampleProject = {
 	project_id: bigint
@@ -138,15 +138,15 @@ const example_schema = {
 	},
 } as const
 
-const safe_query_builder = make_safe_query_builder(example_schema)
+const safe_select_query_builder = make_safe_select_query_builder(example_schema)
 function assert_valid_query_output(built: BuiltQuery<unknown>) {
-	const query_is_safe = safe_sql_query_validator.is_valid(built.query)
+	const query_is_safe = safe_select_query_validator.is_valid(built.query)
 	if (!query_is_safe) {
-		console.log(safe_sql_query_validator.get_messages(built.query, 'query'))
+		console.log(safe_select_query_validator.get_messages(built.query, 'query'))
 	}
 	assert.strictEqual(query_is_safe, true)
 
-	const validity = safe_query_builder.validate_table_and_column_names(built.query)
+	const validity = safe_select_query_builder.validate_table_and_column_names(built.query)
 	if (!validity.valid) {
 		console.log(validity.messages)
 	}

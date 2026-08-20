@@ -1,7 +1,7 @@
 import { json_anything_response, error_response } from '#worker/lib/response_helpers.ts'
 import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
 import validate_session from '#worker/lib/db/validate_session.ts'
-import make_tenanted_query_builder from '#worker/lib/db/make_tenanted_query_builder.ts'
+import make_tenanted_select_builder from '#worker/lib/db/make_tenanted_select_builder.ts'
 import write_helper from '#worker/lib/mysql/write_helper.ts'
 import { transaction } from '#worker/lib/mysql/helpers.ts'
 import type { Context } from '#worker/lib/context.ts'
@@ -56,7 +56,7 @@ const call_server_function = async ({ function_name, arg, mysql, session }: Argu
 	const context: Context = {
 		user: session.employee,
 		company: session.company,
-		query_builder: make_tenanted_query_builder({ company_id: session.company.company_id, mysql }),
+		select_builder: make_tenanted_select_builder({ company_id: session.company.company_id, mysql }),
 		write_helper: write_helper.for_connection(mysql.connection),
 		transaction: fn => transaction(mysql.connection, fn),
 	}

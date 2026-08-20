@@ -1,7 +1,7 @@
 import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
 import { password_hash } from '#worker/lib/password_hash.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
-import safe_query_builder from '#shared/treebzns_db/safe_query_builder.ts'
+import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
 import { fns } from '#shared/sql_request/mysql_function.ts'
 import write_helper from '#worker/lib/mysql/write_helper.ts'
 import type { Schema } from '#schema/types.ts'
@@ -37,7 +37,7 @@ export const log_in = async ({ email_or_login_name, password, user_agent }: LogI
 		])
 		.build()
 
-	const employee_row = await mysql.query(safe_query_builder.to_sql(employee_query.query)).get_first_row()
+	const employee_row = await mysql.query(safe_select_query_builder.to_sql(employee_query.query)).get_first_row()
 
 	if (!employee_row) {
 		return failed_log_in_result

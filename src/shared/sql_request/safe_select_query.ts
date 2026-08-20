@@ -13,8 +13,8 @@ import type {
 	WhereGrouping,
 	OrderBy,
 	AndOrGrouping,
-	SafeSqlQuery,
-} from './safe_sql_query_validator.ts'
+	SafeSelectQuery,
+} from './safe_select_query_validator.ts'
 
 type ComparisonOperand = ColumnReference | UserProvidedValue | FunctionExpression | AliasReference
 
@@ -23,7 +23,7 @@ type ComparisonOperand = ColumnReference | UserProvidedValue | FunctionExpressio
 type RenderableComparison = { type: 'comparison'; left: ComparisonOperand; comparator: Comparator; right: ComparisonOperand }
 type RenderableGrouping = AndOrGrouping<RenderableComparison>
 
-export type { SafeSqlQuery }
+export type { SafeSelectQuery }
 
 type SqlChunk = {
 	sql: string
@@ -217,7 +217,7 @@ type ColumnWhitelist<ThisSchema extends SchemaColumns> = {
 	readonly [Table in keyof ThisSchema]?: ReadonlyArray<keyof ThisSchema[Table] & string>
 }
 
-export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(
+export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>(
 	schema: ThisSchema,
 	column_whitelist: ColumnWhitelist<ThisSchema> = {},
 ) => {
@@ -228,7 +228,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(
 		),
 	)
 
-	const validate_table_and_column_names = (query: SafeSqlQuery): QueryValidationResult => {
+	const validate_table_and_column_names = (query: SafeSelectQuery): QueryValidationResult => {
 		const messages: string[] = []
 		const alias_to_table_name = new Map<string, string>()
 
@@ -347,7 +347,7 @@ export const make_safe_query_builder = <ThisSchema extends SchemaColumns>(
 		return { valid: true }
 	}
 
-	const to_sql = (query: SafeSqlQuery): { sql: string, values: any[] } => {
+	const to_sql = (query: SafeSelectQuery): { sql: string, values: any[] } => {
 		const select_chunk = merge_chunks(map(query.select, select_item_or_grouping_to_chunk), ', ')
 
 		const join_chunks = map(query.joins, join => {

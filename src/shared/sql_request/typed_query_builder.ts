@@ -3,7 +3,7 @@ import assert from '#shared/assert.ts'
 import { omit } from '#shared/omit.ts'
 import type {
 	Comparator,
-	SafeSqlQuery,
+	SafeSelectQuery,
 	Comparison,
 	ColumnReference,
 	UserProvidedValue,
@@ -19,7 +19,7 @@ import type {
 	SelectExpression,
 	SelectGrouping,
 	WhereGrouping,
-} from "./safe_sql_query_validator.ts"
+} from "./safe_select_query_validator.ts"
 
 type SchemaColumnTypes = {
 	[table_name in string]: {
@@ -156,7 +156,7 @@ export type ResponseColumn = {
 }
 
 export type BuiltQuery<Row> = {
-	query: SafeSqlQuery
+	query: SafeSelectQuery
 	response_columns: ResponseColumn[]
 	positional_row_to_named: (row: unknown[]) => Row
 }
@@ -259,7 +259,7 @@ type State = {
 
 // Identifiers are interpolated straight into the SQL string (inside backticks), not parameterized,
 // so the builder rejects anything outside a safe character set up front. This mirrors the assertion
-// in safe_sql_query_validator.ts — the validator is the security boundary on the server; this is the
+// in safe_select_query_validator.ts — the validator is the security boundary on the server; this is the
 // same rule enforced early for a clear error at construction time.
 const assert_identifier = (s: string, role: string): string => {
 	assert(/^\w+$/.test(s), `${role} must be a valid SQL identifier (letters, numbers, and underscores only): ${JSON.stringify(s)}`)

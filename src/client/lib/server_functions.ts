@@ -2,7 +2,7 @@
 import f3tch from '#shared/f3tch.ts'
 import type { Temporal } from '@js-temporal/polyfill'
 import type { OptionalizeUndefinedKeys } from '#shared/json_validator.ts'
-import type { AndOrGrouping, SelectGrouping } from '#shared/sql_request/safe_sql_query_validator.ts'
+import type { AndOrGrouping, SelectGrouping } from '#shared/sql_request/safe_select_query_validator.ts'
 
 const call_server_function = (function_name: string) => async (arg: unknown) => f3tch(`/api/fn/${function_name}`, {
 	method: 'POST',
