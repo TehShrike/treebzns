@@ -12,7 +12,7 @@ export const validator_object = {
 	email: jv.is_string,
 	arbostar_email_data: jv.nullable(jv.is_string),
 	is_primary: jv.is_boolean,
-	sort_order: jv.is_bigint,
+	sort: jv.is_bigint,
 	arbostar_contact_id: jv.nullable(jv.is_bigint),
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,

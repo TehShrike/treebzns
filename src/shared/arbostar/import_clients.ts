@@ -202,16 +202,16 @@ export const import_clients = async (
 			client_id: client_id_by_arbostar_client_id.get(client.client_id)!,
 			// ArboStar doesn't flag a primary contact; treat each client's first one as primary.
 			is_primary: index === 0,
-			sort_order: BigInt(index),
+			sort: BigInt(index),
 		}))))
-	const contact_fields = ({ contact, is_primary, sort_order }: (typeof incoming_contacts)[number]) => ({
+	const contact_fields = ({ contact, is_primary, sort }: (typeof incoming_contacts)[number]) => ({
 		description: contact_description(contact.cc_title),
 		name: contact.cc_name.trim() || `ArboStar contact ${contact.cc_id}`,
 		phone: contact_phone(contact) ?? '',
 		email: contact.cc_email ?? '',
 		arbostar_email_data: contact_email_data(contact),
 		is_primary,
-		sort_order,
+		sort,
 	})
 
 	const existing_contacts = filter(incoming_contacts, ({ contact }) => correlated_contacts.has(contact.cc_id))

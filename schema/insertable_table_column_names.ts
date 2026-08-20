@@ -46,7 +46,7 @@ export const client_contact = {
 	email: 'email',
 	arbostar_email_data: 'arbostar_email_data',
 	is_primary: 'is_primary',
-	sort_order: 'sort_order',
+	sort: 'sort',
 	arbostar_contact_id: 'arbostar_contact_id',
 } as const
 

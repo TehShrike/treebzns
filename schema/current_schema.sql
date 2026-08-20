@@ -63,7 +63,7 @@ CREATE TABLE `client_contact` (
   `email` varchar(500) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `arbostar_email_data` json DEFAULT NULL,
   `is_primary` bit(1) NOT NULL DEFAULT b'0',
-  `sort_order` smallint NOT NULL DEFAULT '0',
+  `sort` smallint unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `arbostar_contact_id` int unsigned DEFAULT NULL,
@@ -328,7 +328,7 @@ CREATE TABLE `invoice_line_item` (
   `discount` decimal(10,2) DEFAULT NULL,
   `discount_description` varchar(200) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `taxable` bit(1) NOT NULL,
-  `sort` int unsigned NOT NULL,
+  `sort` smallint unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   PRIMARY KEY (`invoice_line_item_id`),
@@ -576,7 +576,7 @@ CREATE TABLE `project_document` (
   `declined_project_document_id` int unsigned DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `sort` tinyint unsigned NOT NULL DEFAULT '0',
+  `sort` smallint unsigned NOT NULL,
   PRIMARY KEY (`project_document_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -623,7 +623,7 @@ CREATE TABLE `project_line_item` (
   `discount_rate` decimal(5,4) DEFAULT NULL,
   `discount` decimal(10,2) DEFAULT NULL,
   `discount_description` varchar(200) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `sort` int unsigned NOT NULL,
+  `sort` smallint unsigned NOT NULL,
   `done_at` datetime DEFAULT NULL,
   `done_by_employee_id` int unsigned DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),

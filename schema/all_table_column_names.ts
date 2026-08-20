@@ -55,7 +55,7 @@ export const client_contact = {
 	email: 'email',
 	arbostar_email_data: 'arbostar_email_data',
 	is_primary: 'is_primary',
-	sort_order: 'sort_order',
+	sort: 'sort',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 	arbostar_contact_id: 'arbostar_contact_id',
