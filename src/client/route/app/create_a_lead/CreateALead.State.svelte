@@ -31,10 +31,10 @@
 
 		return search_numbers
 			? (client: CachedClient) => Boolean(client.client.primary_phone.includes(search_text)
-				|| client.primary_address.address_line_1?.includes(search_text)
-				|| client.primary_address.address_line_2?.includes(search_text)
-				|| client.billing_address.address_line_1?.includes(search_text)
-				|| client.billing_address.address_line_2?.includes(search_text))
+				|| client.default_project_address.address_line_1?.includes(search_text)
+				|| client.default_project_address.address_line_2?.includes(search_text)
+				|| client.client.billing_address_line_1.includes(search_text)
+				|| client.client.billing_address_line_2.includes(search_text))
 			: (client: CachedClient) =>
 				words.length > 0 && every(words, word => client.client.name.toLowerCase().includes(word))
 	}

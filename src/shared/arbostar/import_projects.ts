@@ -145,7 +145,7 @@ export const import_projects = async (
 	},
 	imported_clients: ImportedClients,
 ): Promise<ImportedProjects> => {
-	const { client_id_by_arbostar_client_id, primary_address_by_arbostar_client_id } = imported_clients
+	const { client_id_by_arbostar_client_id, default_project_address_by_arbostar_client_id } = imported_clients
 	const estimates_by_lead_id = group_by(filter(estimates, estimate => estimate.lead_id !== null), estimate => estimate.lead_id!)
 	const workorders_by_lead_id = group_by(filter(workorders, workorder => workorder.lead_id !== null), workorder => workorder.lead_id!)
 	const invoices_by_lead_id = group_by(filter(invoices, invoice => invoice.lead_id !== null), invoice => invoice.lead_id!)
@@ -235,7 +235,7 @@ export const import_projects = async (
 		const lead_estimates = estimates_by_lead_id.get(lead.lead_id) ?? []
 		const lead_workorders = workorders_by_lead_id.get(lead.lead_id) ?? []
 		const lead_invoices = invoices_by_lead_id.get(lead.lead_id) ?? []
-		const address = primary_address_by_arbostar_client_id.get(lead.client_id!)!
+		const address = default_project_address_by_arbostar_client_id.get(lead.client_id!)!
 
 		const documents = context.project_document_ids
 		// Dead at the estimate stage means every estimate is Declined/Expired/Thinking. An

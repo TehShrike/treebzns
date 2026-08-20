@@ -54,7 +54,7 @@ export const import_invoices = async (
 	project_id_by_arbostar_lead_id: Map<number, bigint>,
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>,
 ): Promise<ImportedInvoices> => {
-	const { client_id_by_arbostar_client_id, primary_address_by_arbostar_client_id } = imported_clients
+	const { client_id_by_arbostar_client_id } = imported_clients
 	const correlated = context.existing.invoice_id_by_arbostar_invoice_id
 	const importable = filter(invoices, invoice => client_id_by_arbostar_client_id.has(invoice.client_id))
 
@@ -101,24 +101,6 @@ export const import_invoices = async (
 	)
 	const candidate_ratios = map(candidates, candidate => candidate.ratio)
 
-	// The client's in-app billing address, when one is named — imported invoices snapshot it,
-	// falling back to the primary address the import manages.
-	const billing_address_rows = await context.tenanted_select(connection, q => q
-		.from('client')
-		.join('client_address', b => b.comparison('client.billing_client_address_id', '=', 'client_address.client_address_id'))
-		.select(() => [
-			'client.client_id',
-			'client_address.address_line_1',
-			'client_address.address_line_2',
-			'client_address.city',
-			'client_address.state',
-			'client_address.zip',
-		]))
-	const billing_address_by_client_id = new Map(map(
-		billing_address_rows,
-		row => [BigInt(row.client.client_id), row.client_address] as const,
-	))
-
 	const invoice_lines = filter(line_items, line => line.invoice_id !== null && line.invoice_id !== undefined)
 	const lines_by_invoice_id = group_by(invoice_lines, line => line.invoice_id!)
 
@@ -129,8 +111,6 @@ export const import_invoices = async (
 
 	const invoice_fields = (invoice: ArbostarInvoice) => {
 		const client_id = client_id_by_arbostar_client_id.get(invoice.client_id)!
-		const primary = primary_address_by_arbostar_client_id.get(invoice.client_id)!
-		const billing = billing_address_by_client_id.get(client_id) ?? primary
 
 		const project_id = project_id_by_arbostar_lead_id.get(invoice.lead_id) ?? null
 		if (project_id === null) invoices_without_project += 1
@@ -165,12 +145,6 @@ export const import_invoices = async (
 			invoice_number: constructed_number(invoice),
 			client_id,
 			project_id,
-			billing_name: primary.contact_name,
-			billing_address_line_1: billing.address_line_1,
-			billing_address_line_2: billing.address_line_2,
-			billing_city: billing.city,
-			billing_state: billing.state,
-			billing_zip: billing.zip,
 			invoice_date,
 			due_date: invoice_date.add({ days: due_after_days }),
 			...tax_fields,

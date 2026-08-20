@@ -10,8 +10,11 @@ export type ClientFilterArguments = {
 
 const tokenize = (text: string) => filter(text.toLowerCase().split(/\s+/), Boolean)
 
-const address_text = (address: CachedClient['primary_address']) =>
+const address_text = (address: CachedClient['default_project_address']) =>
 	filter([address.address_line_1, address.address_line_2, address.city, address.state, address.zip], Boolean).join(` `)
+
+const billing_address_text = (client: CachedClient['client']) =>
+	filter([client.billing_address_line_1, client.billing_address_line_2, client.billing_city, client.billing_state, client.billing_zip], Boolean).join(` `)
 
 const contains_all_tokens = (text: string, tokens: readonly string[]) =>
 	every(tokens, token => text.includes(token))
@@ -25,7 +28,7 @@ export const filter_clients = (filter_arguments: ClientFilterArguments, clients:
 		contains_all_tokens(client.client.name.toLowerCase(), name_tokens)
 		&& client.search_helpers.primary_phone_digits.includes(phone_digits)
 		&& contains_all_tokens(
-			`${address_text(client.primary_address)} ${address_text(client.billing_address)}`.toLowerCase(),
+			`${address_text(client.default_project_address)} ${billing_address_text(client.client)}`.toLowerCase(),
 			address_tokens,
 		),
 	)

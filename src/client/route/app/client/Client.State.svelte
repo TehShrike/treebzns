@@ -19,8 +19,7 @@
 					'client.client_id',
 					'client.name',
 					'client.is_commercial',
-					'client.primary_client_address_id',
-					'client.billing_client_address_id',
+					'client.default_project_address_id',
 					'client.primary_phone',
 					'client.primary_email',
 					'client.notes',
@@ -47,9 +46,6 @@
 					'client_address.city',
 					'client_address.state',
 					'client_address.zip',
-					'client_address.contact',
-					'client_address.phone',
-					'client_address.email',
 				] as const)
 				.build()
 		)
@@ -90,22 +86,7 @@
 	const client_form = $state({ ...client })
 	// svelte-ignore state_referenced_locally
 	const addresses = $state(map(loaded_addresses, address => ({ ...address })))
-
-	const address_tags = (address: AddressRow) => {
-		const tags: string[] = []
-		if (address.client_address_id === client.primary_client_address_id) {
-			tags.push(`Primary`)
-		}
-		if (address.client_address_id === client.billing_client_address_id) {
-			tags.push(`Billing`)
-		}
-		return tags.join(`, `)
-	}
 </script>
-
-{#snippet tag_cell(address: AddressRow)}
-	<div>{address_tags(address)}</div>
-{/snippet}
 
 {#snippet address_name_cell(address: AddressRow)}
 	<input type="text" bind:value={address.name}>
@@ -129,10 +110,6 @@
 
 {#snippet zip_cell(address: AddressRow)}
 	<input type="text" bind:value={address.zip}>
-{/snippet}
-
-{#snippet contact_phone_cell(address: AddressRow)}
-	<input type="tel" bind:value={address.phone}>
 {/snippet}
 
 <AppScreen>
@@ -171,14 +148,12 @@
 		rows={addresses}
 		get_key={address => address.client_address_id}
 		columns={[
-			{ header: ``, cell: tag_cell, width: `7rem` },
 			{ header: `Name`, cell: address_name_cell },
 			{ header: `Address line 1`, cell: line_1_cell, width: `2fr` },
 			{ header: `Address line 2`, cell: line_2_cell },
 			{ header: `City`, cell: city_cell },
 			{ header: `State`, cell: state_cell, width: `4.5rem` },
 			{ header: `Zip`, cell: zip_cell, width: `6.5rem` },
-			{ header: `Phone`, cell: contact_phone_cell },
 		]}
 	/>
 </AppScreen>

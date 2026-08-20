@@ -2,7 +2,11 @@
 
 Design discussion: https://claude.ai/share/f760a718-831a-413f-b700-733345c0ef90
 
-## Status (as of 2026-08-13)
+## Status (as of 2026-08-20)
+
+Schema change since this plan was written: invoices no longer carry `billing_` columns.
+They moved to `client` (migrations 0045–0046) — the client is the billable account, and
+invoices follow the account. The invoice DDL below predates that change.
 
 Implemented and verified: migrations 0038–0040 (applied locally), the type overrides and
 validators, `import_invoices.ts`, and the changes to the line-item, payment, and project
@@ -10,13 +14,13 @@ importers. The full import ran against the live export for company 9. Every invo
 `total` matches ArboStar's `total_including_tax` (936,090.07 in both). The one fee
 invoice, the allocator bump to 100,000, and the tier counts all check out. The current
 export resolves invoice 00529-I at tier 3 — it gained reconciling line rows since the
-snapshot below.
+snapshot below. Also built since: the calculation code
+(`src/shared/invoice/calculate_invoice.ts` with tests, `least_of` in fnum).
 
-Not built yet: the calculation code in `src/shared/invoice/` (`invoice_calculation.md` as
-pure functions, plus `least_of` in fnum), SUM in the query builder, the invoice-creation
-server function, and the project close flow. UI comes later. Also not in scope:
-statement/report screens, refund payouts, voiding (pulled until a real-world case shows
-up).
+Not built yet: SUM in the query builder, the invoice-creation server function, and the
+project close flow (see "Project-close validation" and "Deferred to the app/UI phase").
+UI comes later. Also not in scope: statement/report screens, refund payouts, voiding
+(pulled until a real-world case shows up).
 
 ## Decisions carried in from the discussion
 
@@ -67,8 +71,10 @@ Decided 2026-08-12:
 - A payment links to at most one project, via a nullable `payment.project_id`. The
 	`payment_project` table is dropped. Payments still link to any number of invoices through
 	`payment_invoice`.
-- Invoices snapshot the client's billing name and address at creation time, in `billing_`-
-	prefixed columns. The job/project address is not snapshotted — it lives on the project.
+- Invoices carry no billing address (decided 2026-08-20). The client record is a billable
+	account with one unambiguous billing address, in `client.billing_`-prefixed columns.
+	Invoices follow the billing account. Mailed bills will be modeled later, and may
+	serialize the address they were sent to. The job/project address lives on the project.
 - Refunds need no schema: model a refund as an invoice with negative lines when the need
 	arises.
 - Client credit: granted as rows in a new `client_credit` table, applied automatically and
@@ -204,12 +210,12 @@ Notes:
 	`project_id` is redundant with the lines. Keep it anyway — it is the natural filter for
 	"invoices for this project" and it covers invoices whose lines have no project line links.
 - `created_by_employee_id` is nullable because imported invoices have no author.
-- The `billing_` columns snapshot the client's billing details at invoice creation: the
-	client's `name` and the address row named by `client.billing_client_address_id` (falling
-	back to the primary address). Column types mirror `client` / `client_address`. They are
-	NOT NULL with '' for absent parts, per the empty-string convention. Later client edits do
-	not change existing invoices. The snapshot is the billing identity only — the job address
-	stays on the project.
+- The `billing_` columns live on `client`, not on `invoice` (decided 2026-08-20). The
+	client is the billable account, and an account has one unambiguous billing address.
+	Column types mirror `client_address`. They are NOT NULL with '' for absent parts, per
+	the empty-string convention. Invoices read the account's billing details when rendered.
+	Mailed bills will be modeled later, and may serialize the address they were sent to.
+	The job address stays on the project.
 - Negative lines are allowed. A refund is an invoice with negative lines, and so is the
 	cancellation of an incorrect invoice — there is no voiding or editing. The line-discount
 	caps apply only to positive lines.

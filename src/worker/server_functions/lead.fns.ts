@@ -25,6 +25,7 @@ export const functions = {
 			const address_query = query_builder<Schema>()
 				.from('client_address')
 				.join('client', b => b.comparison('client_address.client_id', '=', 'client.client_id'))
+				.left_join('client_contact', b => b.comparison('client_address.client_contact_id', '=', 'client_contact.client_contact_id'))
 				.where(q => q.and(
 					q.comparison('client_address.company_id', '=', { value: company_id }),
 					q.comparison('client_address.client_id', '=', { value: arg.client_id }),
@@ -36,9 +37,9 @@ export const functions = {
 					'client_address.city',
 					'client_address.state',
 					'client_address.zip',
-					'client_address.contact',
-					'client_address.phone',
-					'client_address.email',
+					'client_contact.name',
+					'client_contact.phone',
+					'client_contact.email',
 					'client.name',
 					'client.primary_phone',
 					'client.primary_email',
@@ -49,7 +50,7 @@ export const functions = {
 			if (!address_row) {
 				throw new Error(`No client_address found with client_address_id "${ arg.client_address_id }" for client_id "${ arg.client_id }"`)
 			}
-			const { client_address, client } = address_query.positional_row_to_named(address_row)
+			const { client_address, client, client_contact } = address_query.positional_row_to_named(address_row)
 
 			// The initial document is the lowest-sort project_document — the same rule
 			// create_company used when this lived on company.default_initial_project_document_id.
@@ -87,9 +88,9 @@ export const functions = {
 				city: client_address.city,
 				state: client_address.state,
 				zip: client_address.zip,
-				contact_name: client_address.contact || client.name,
-				contact_phone: client_address.phone || client.primary_phone,
-				contact_email: client_address.email || client.primary_email,
+				contact_name: client_contact.name || client.name,
+				contact_phone: client_contact.phone || client.primary_phone,
+				contact_email: client_contact.email || client.primary_email,
 				due_date: arg.due_date ?? null,
 				emergency: arg.emergency,
 				lead_details: arg.lead_details,
