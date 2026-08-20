@@ -403,7 +403,8 @@ CREATE TABLE `project` (
   KEY `idx_project_company_document` (`company_id`,`project_document_id`),
   KEY `idx_project_company_closed` (`company_id`,`closed`,`closed_date`),
   KEY `idx_project_company_estimator` (`company_id`,`assigned_estimator_employee_id`),
-  KEY `idx_project_client` (`client_id`)
+  KEY `idx_project_client` (`client_id`),
+  KEY `idx_project_company_lead_source` (`company_id`,`lead_source`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `project_client_approval` (
