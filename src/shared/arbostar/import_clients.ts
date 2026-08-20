@@ -5,7 +5,7 @@ import { map, filter, flatten, chunk } from '#shared/array.ts'
 import { write_helper, ROWS_PER_BATCH, join_lines } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
-type ImportedPrimaryAddress = {
+type ImportedDefaultProjectAddress = {
 	client_address_id: bigint
 	address_line_1: string
 	address_line_2: string
@@ -19,7 +19,7 @@ type ImportedPrimaryAddress = {
 
 export type ImportedClients = {
 	client_id_by_arbostar_client_id: Map<number, bigint>
-	primary_address_by_arbostar_client_id: Map<number, ImportedPrimaryAddress>
+	default_project_address_by_arbostar_client_id: Map<number, ImportedDefaultProjectAddress>
 	counts: {
 		clients_inserted: number
 		clients_updated: number
@@ -58,15 +58,14 @@ const is_known_client_type = (client_type: string | null): boolean =>
 	client_type === null || client_type === '1' || client_type === '2'
 
 // clients.js → client, client_address, client_contact, update-or-insert. Client correlation is
-// arbostar_client_id; a correlated client's row and its primary address (reached through
-// client.primary_client_address_id) update in place, and only the ArboStar-derived columns are
+// arbostar_client_id; a correlated client's row and its address (reached through
+// client.default_project_address_id) update in place, and only the ArboStar-derived columns are
 // touched — locally-populated ones (billing address, tax rate, referred_by) are left alone.
 // Contacts correlate by arbostar_contact_id (cc_id); ones that disappeared from the export
 // are only counted, never deleted (and in-app contacts, with a null arbostar id, are never
 // touched at all).
-// New clients are inserted with a placeholder primary_client_address_id (there are no FK
-// constraints) and fixed up once their address rows exist — the same populate-after-insert
-// convention the schema documents.
+// New clients are inserted with a null default_project_address_id and fixed up once their
+// address rows exist.
 export const import_clients = async (
 	connection: Connection,
 	context: ArbostarImportContext,
@@ -121,7 +120,7 @@ export const import_clients = async (
 		'client_address',
 		'client_address_id',
 		map(existing_clients, client => ({
-			key: context.existing.primary_client_address_id_by_arbostar_client_id.get(client.client_id)!,
+			key: context.existing.default_project_address_id_by_arbostar_client_id.get(client.client_id)!,
 			set: address_fields(client),
 		})),
 		ROWS_PER_BATCH,
@@ -131,10 +130,10 @@ export const import_clients = async (
 		existing_clients,
 		client => [client.client_id, correlated.get(client.client_id)!] as const,
 	))
-	const primary_address_by_arbostar_client_id = new Map(map(existing_clients, client => [
+	const default_project_address_by_arbostar_client_id = new Map(map(existing_clients, client => [
 		client.client_id,
 		{
-			client_address_id: context.existing.primary_client_address_id_by_arbostar_client_id.get(client.client_id)!,
+			client_address_id: context.existing.default_project_address_id_by_arbostar_client_id.get(client.client_id)!,
 			...address_fields(client),
 			...baked_contact_fields(client),
 		},
@@ -144,8 +143,8 @@ export const import_clients = async (
 		const client_rows = map(new_clients, client => ({
 			company_id: context.company_id,
 			...client_fields(client),
-			primary_client_address_id: 0n, // fixed up below once the address rows exist
-			billing_client_address_id: null,
+			default_project_address_id: null, // fixed up below once the address rows exist
+			default_billing_address_id: null,
 			tax_rate_id: null,
 			referred_by: '',
 			arbostar_client_id: BigInt(client.client_id),
@@ -153,10 +152,10 @@ export const import_clients = async (
 		const { insert_ids: client_ids } = await write_helper.bulk_insert(connection, 'client', client_rows, ROWS_PER_BATCH)
 		new_clients.forEach((client, index) => client_id_by_arbostar_client_id.set(client.client_id, client_ids[index]!))
 
-		// The client row's own address columns are the primary address. client_address2 has never
-		// been non-empty in an export; ArboStar's optional "second address" (profile-only, dropped
-		// along with addresses.js) has never had data either.
-		const primary_address_rows = map(new_clients, (client, index) => ({
+		// The client row's own address columns are the client's one address. client_address2 has
+		// never been non-empty in an export; ArboStar's optional "second address" (profile-only,
+		// dropped along with addresses.js) has never had data either.
+		const address_rows = map(new_clients, (client, index) => ({
 			company_id: context.company_id,
 			client_id: client_ids[index]!,
 			name: 'Primary',
@@ -164,11 +163,12 @@ export const import_clients = async (
 			contact: '',
 			phone: '',
 			email: '',
+			sort_order: 0n,
 		}))
 		const { insert_ids: address_ids } = await write_helper.bulk_insert(
 			connection,
 			'client_address',
-			primary_address_rows,
+			address_rows,
 			ROWS_PER_BATCH,
 		)
 
@@ -183,12 +183,12 @@ export const import_clients = async (
 			).join(' ')
 			const id_list = map(batch, ({ client_id }) => escape_value(client_id)).join(', ')
 			await connection.query(
-				`UPDATE client SET primary_client_address_id = CASE client_id ${cases} END`
+				`UPDATE client SET default_project_address_id = CASE client_id ${cases} END`
 				+ ` WHERE company_id = ${escape_value(context.company_id)} AND client_id IN (${id_list})`,
 			)
 		}
 
-		new_clients.forEach((client, index) => primary_address_by_arbostar_client_id.set(client.client_id, {
+		new_clients.forEach((client, index) => default_project_address_by_arbostar_client_id.set(client.client_id, {
 			client_address_id: address_ids[index]!,
 			...address_fields(client),
 			...baked_contact_fields(client),
@@ -255,7 +255,7 @@ export const import_clients = async (
 
 	return {
 		client_id_by_arbostar_client_id,
-		primary_address_by_arbostar_client_id,
+		default_project_address_by_arbostar_client_id,
 		counts: {
 			clients_inserted: new_clients.length,
 			clients_updated: existing_clients.length,

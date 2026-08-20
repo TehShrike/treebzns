@@ -23,7 +23,7 @@ company has anywhere near 10k records, so bulk-SELECT each table's existing corr
 for the company up front, hold them in in-memory sets/maps, split incoming records into
 update vs insert lists in code, and write with bulk statements (bulk inserts as today;
 updates batched, e.g. the CASE-per-id pattern import_clients already uses for the
-primary_client_address_id fix-up).
+default_project_address_id fix-up).
 
 ArboStar ids are assumed unique only per ArboStar tenant, so every unique key below includes
 `company_id`. All columns nullable, since rows created in-app have no ArboStar identity.
@@ -39,7 +39,7 @@ ArboStar ids are assumed unique only per ArboStar tenant, so every unique key be
 | `client_contact` | new `arbostar_contact_id` column (ArboStar `cc_id`), unique `(company_id, arbostar_contact_id)` | update-or-insert; contacts absent from the export are only counted, never deleted (decided July 2026 — deletion was too dangerous against partial exports) |
 | `project_line_item` | new `arbostar_line_item_id` column (ArboStar `line_item_id`), unique `(company_id, arbostar_line_item_id)` | update-or-insert; then delete rows whose `arbostar_line_item_id` is set but missing from the export — stale line items would inflate project totals (totals derive from line items) — scoped to projects present in the current run so absent leads keep their lines. In-app rows (null arbostar id) are never touched |
 | `item_type` | none — natural key `(company_id, name)` (the service name) | re-run must SELECT existing item types by name and reuse them. **Latent bug today**: even a first re-run duplicates every item type |
-| `client_address` (primary) | none — reachable via `client.primary_client_address_id` once the client is correlated | update in place. A secondary address (none exist to date) also needs no id: ArboStar allows at most one per client, so "this client's `Secondary` row" is a complete natural key |
+| `client_address` (the import-managed one) | none — reachable via `client.default_project_address_id` once the client is correlated | update in place. A secondary address (none exist to date) also needs no id: ArboStar allows at most one per client, so "this client's `Secondary` row" is a complete natural key |
 | `payment_project` | none — natural key `(payment_id, project_id)` (each synthesized payment has at most one project row) | update the amount in place |
 
 No delete-and-reinsert anywhere (decided July 2026) — every child table either has an
@@ -103,7 +103,7 @@ employees can't log in anyway (empty `password_hash`).
   **per-importer transactions**: re-runnability becomes the recovery mechanism for a crash
   between phases, lock windows shrink (notably the *global* employee email/login_name unique
   indexes, where a long transaction could stall other companies), and the client → address
-  `primary_client_address_id = 0` fix-up window is never observable half-done. A single
+  `default_project_address_id = NULL` fix-up window is never observable half-done. A single
   connection remains fine — phases are sequential and volumes are seconds-long; per-phase
   transactions are also the natural boundary if pooled parallelism is ever wanted.
 
@@ -122,7 +122,7 @@ employees can't log in anyway (empty `password_hash`).
 2. ~~Correlation priming~~ **DONE (July 2026)**:
    `shared/arbostar/load_existing_correlations.ts` bulk-SELECTs the company's correlations
    (five arbostar_* columns, `project.number`, `item_type` by name, and each correlated
-   client's `primary_client_address_id`) into `Map<number, bigint>`s. Exposed to the
+   client's `default_project_address_id`) into `Map<number, bigint>`s. Exposed to the
    importers as `context.existing` on `ArbostarImportContext`, populated by
    `shared/arbostar/resolve_context.ts` — which the orchestrator calls itself (it takes a
    pool + company_id; its four lookups run in parallel on pooled connections). The node

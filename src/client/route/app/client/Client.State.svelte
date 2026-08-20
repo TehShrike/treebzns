@@ -19,8 +19,8 @@
 					'client.client_id',
 					'client.name',
 					'client.is_commercial',
-					'client.primary_client_address_id',
-					'client.billing_client_address_id',
+					'client.default_project_address_id',
+					'client.default_billing_address_id',
 					'client.primary_phone',
 					'client.primary_email',
 					'client.notes',
@@ -38,6 +38,7 @@
 			query_builder<Schema>()
 				.from('client_address')
 				.where(q => q.comparison('client_address.client_id', '=', { value: client_id }))
+				.order_by('client_address.sort_order')
 				.order_by('client_address.client_address_id')
 				.select(() => [
 					'client_address.client_address_id',
@@ -93,11 +94,11 @@
 
 	const address_tags = (address: AddressRow) => {
 		const tags: string[] = []
-		if (address.client_address_id === client.primary_client_address_id) {
-			tags.push(`Primary`)
+		if (address.client_address_id === client.default_project_address_id) {
+			tags.push(`Default project`)
 		}
-		if (address.client_address_id === client.billing_client_address_id) {
-			tags.push(`Billing`)
+		if (address.client_address_id === client.default_billing_address_id) {
+			tags.push(`Default billing`)
 		}
 		return tags.join(`, `)
 	}

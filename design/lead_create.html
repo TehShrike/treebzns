@@ -314,10 +314,10 @@
 				Open: lead source is a free text column (<code>project.lead_source</code>) but this screen
 				shows a dropdown.  Reporting wants a fixed list.  Add a table, or keep text?
 			</li>
-			<li class="open_question">
-				Open: <code>client.primary_client_address_id</code> is not nullable, so a new client needs
-				an address at save time.  A caller who will not give an address blocks the save.  Is that
-				right?
+			<li>
+				Resolved: <code>client.default_project_address_id</code> is nullable, so the schema no
+				longer forces an address at client save time.  The create_client server function still
+				requires one — relaxing that is a separate screen-flow decision.
 			</li>
 		</ul>
 	</section>

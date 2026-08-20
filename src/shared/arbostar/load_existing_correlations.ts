@@ -8,7 +8,7 @@ import { normalize_name, type TenantedSelect } from './import_common.ts'
 export type ExistingCorrelations = {
 	employee_id_by_arbostar_user_id: Map<number, bigint>
 	client_id_by_arbostar_client_id: Map<number, bigint>
-	primary_client_address_id_by_arbostar_client_id: Map<number, bigint>
+	default_project_address_id_by_arbostar_client_id: Map<number, bigint>
 	project_id_by_number: Map<number, bigint>
 	invoice_id_by_arbostar_invoice_id: Map<number, bigint>
 	payment_id_by_arbostar_payment_id: Map<number, bigint>
@@ -48,7 +48,7 @@ export const load_existing_correlations = async (
 			.select(() => ['employee.employee_id', 'employee.arbostar_user_id'])),
 		tenanted_select(connection, q => q
 			.from('client')
-			.select(() => ['client.client_id', 'client.arbostar_client_id', 'client.primary_client_address_id'])),
+			.select(() => ['client.client_id', 'client.arbostar_client_id', 'client.default_project_address_id'])),
 		tenanted_select(connection, q => q
 			.from('project')
 			.select(() => ['project.project_id', 'project.number'])),
@@ -89,10 +89,10 @@ export const load_existing_correlations = async (
 			row => row.client.arbostar_client_id,
 			row => row.client.client_id,
 		),
-		primary_client_address_id_by_arbostar_client_id: correlation_map(
-			clients,
+		default_project_address_id_by_arbostar_client_id: correlation_map(
+			filter(clients, row => row.client.default_project_address_id !== null),
 			row => row.client.arbostar_client_id,
-			row => row.client.primary_client_address_id,
+			row => row.client.default_project_address_id!,
 		),
 		project_id_by_number: correlation_map(
 			projects,

@@ -4,8 +4,8 @@ export const client = {
 	company_id: 'company_id',
 	name: 'name',
 	is_commercial: 'is_commercial',
-	primary_client_address_id: 'primary_client_address_id',
-	billing_client_address_id: 'billing_client_address_id',
+	default_project_address_id: 'default_project_address_id',
+	default_billing_address_id: 'default_billing_address_id',
 	primary_phone: 'primary_phone',
 	primary_email: 'primary_email',
 	tax_rate_id: 'tax_rate_id',
@@ -26,6 +26,7 @@ export const client_address = {
 	contact: 'contact',
 	phone: 'phone',
 	email: 'email',
+	sort_order: 'sort_order',
 	latitude: 'latitude',
 	longitude: 'longitude',
 } as const

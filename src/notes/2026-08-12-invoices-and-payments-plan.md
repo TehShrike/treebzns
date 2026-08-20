@@ -205,8 +205,8 @@ Notes:
 	"invoices for this project" and it covers invoices whose lines have no project line links.
 - `created_by_employee_id` is nullable because imported invoices have no author.
 - The `billing_` columns snapshot the client's billing details at invoice creation: the
-	client's `name` and the address row named by `client.billing_client_address_id` (falling
-	back to the primary address). Column types mirror `client` / `client_address`. They are
+	client's `name` and the address row named by `client.default_billing_address_id` (falling
+	back to the default project address). Column types mirror `client` / `client_address`. They are
 	NOT NULL with '' for absent parts, per the empty-string convention. Later client edits do
 	not change existing invoices. The snapshot is the billing identity only — the job address
 	stays on the project.

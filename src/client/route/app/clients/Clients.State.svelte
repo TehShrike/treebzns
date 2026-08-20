@@ -59,7 +59,7 @@
 
 	const filtered_clients = $derived(filter_clients({ name, phone, address }, client_cache.clients))
 
-	const format_address = (client_address: CachedClient['primary_address']) =>
+	const format_address = (client_address: CachedClient['default_project_address']) =>
 		filter(
 			[client_address.address_line_1, client_address.address_line_2, client_address.city, client_address.state, client_address.zip],
 			Boolean
@@ -71,7 +71,7 @@
 {/snippet}
 
 {#snippet address_cell(client: CachedClient)}
-	<div>{format_address(client.primary_address)}</div>
+	<div>{format_address(client.default_project_address)}</div>
 {/snippet}
 
 {#snippet phone_cell(client: CachedClient)}

@@ -21,7 +21,7 @@ related records pick its document stage, and anything without a home is summariz
 | Employee passwords | imported employees get an empty `password_hash`, which can never match a computed hash — they **cannot log in** until someone sets a real password |
 | Estimator | matched to an employee by normalized name (existing employees plus the imported users); unmatched names (e.g. ArboStar's "system system") are kept as an `Estimator:` line in `lead_details` |
 | Primary contact | ArboStar doesn't flag one, so each client's first contact gets `is_primary`. Verified well-founded: the client-row-level `cc_name`/`cc_phone`/`cc_email` columns exactly equal `contacts[0]`'s in all 1,463 clients of the July 2026 export, even for the 4 clients whose contacts arrays aren't `cc_id`-ordered — so first-is-primary mirrors ArboStar's own display order rather than being a guess |
-| Primary address | taken from the client row's own address columns (the only address source — ArboStar's profile-only "secondary address" has never had data and is not exported); `client.primary_client_address_id` is fixed up after the address rows insert, per the schema's convention |
+| Client address | taken from the client row's own address columns (the only address source — ArboStar's profile-only "secondary address" has never had data and is not exported); `client.default_project_address_id` is fixed up after the address rows insert |
 | Payments | each ArboStar payment record (payments.js — real amounts and methods, not invoice-derived) becomes one `payment`, and ArboStar's own allocations (payment → estimate applications with real split amounts) become its `payment_project` rows — resolved to projects via each estimate's lead, collapsed to one row per (payment, project), reconciled (update/insert/delete) on re-import. Payment methods are natural-keyed by name per company like item types: the server-resolved labels (`pay_method_string` — Cash / Credit Card / Cheque…) are created on first use and reused after; no method recorded → `Unknown`. Payments that vanish from the export are counted, not deleted — usually an ArboStar-side deletion/refund worth a manual look |
 | Project totals | `subtotal` / `tax_total` / `total`: from the lead's invoices when any exist (Σ `total_for_services` / Σ `tax` / Σ `total_including_tax` — the real discounts and tax); otherwise subtotal = the **non-declined line sum** (ArboStar's own current-state math — its work order `total_price` equals exactly that, while estimate `total_price` is a stale snapshot that usually still counts declined lines), tax_total = 0 (only invoices carry tax), total = subtotal. A lead with no line items has no quote yet — all three null |
 | Item types | one `item_type` per distinct line-item `service_name`; `taxable` from the first line item seen with that name |
@@ -146,7 +146,7 @@ nowhere to go.
 | --- | --- |
 | *(all tables)* `created_at` / `updated_at` | set to import time; ArboStar's original timestamps are string-formatted and were left unparsed |
 | `client.tax_rate_id` | ArboStar exports no tax rates |
-| `client.billing_client_address_id` | no billing-address concept in the export |
+| `client.default_billing_address_id` | no billing-address concept in the export |
 | `client.referred_by` | lead-level `utm_*` data doesn't identify a referrer per client |
 | `client_address.contact` / `.phone` / `.email` | no per-address contact info in the export |
 | `employee.password_hash` | intentionally unusable — imported employees can't log in until given a real password |

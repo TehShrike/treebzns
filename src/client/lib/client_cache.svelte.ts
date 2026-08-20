@@ -11,8 +11,8 @@ const client_and_address_columns = [
 	table_identifier('client', client.client_id),
 	table_identifier('client', client.company_id),
 	table_identifier('client', client.name),
-	table_identifier('client', client.primary_client_address_id),
-	table_identifier('client', client.billing_client_address_id),
+	table_identifier('client', client.default_project_address_id),
+	table_identifier('client', client.default_billing_address_id),
 	table_identifier('client', client.primary_phone),
 	table_identifier('client', client.primary_email),
 	table_identifier('client', client.tax_rate_id),
@@ -21,27 +21,27 @@ const client_and_address_columns = [
 	table_identifier('client', client.created_at),
 	table_identifier('client', client.updated_at),
 
-	table_identifier('primary_address', client_address.client_address_id),
-	table_identifier('primary_address', client_address.name),
-	table_identifier('primary_address', client_address.address_line_1),
-	table_identifier('primary_address', client_address.address_line_2),
-	table_identifier('primary_address', client_address.city),
-	table_identifier('primary_address', client_address.state),
-	table_identifier('primary_address', client_address.zip),
+	table_identifier('default_project_address', client_address.client_address_id),
+	table_identifier('default_project_address', client_address.name),
+	table_identifier('default_project_address', client_address.address_line_1),
+	table_identifier('default_project_address', client_address.address_line_2),
+	table_identifier('default_project_address', client_address.city),
+	table_identifier('default_project_address', client_address.state),
+	table_identifier('default_project_address', client_address.zip),
 
-	table_identifier('billing_address', client_address.client_address_id),
-	table_identifier('billing_address', client_address.name),
-	table_identifier('billing_address', client_address.address_line_1),
-	table_identifier('billing_address', client_address.address_line_2),
-	table_identifier('billing_address', client_address.city),
-	table_identifier('billing_address', client_address.state),
-	table_identifier('billing_address', client_address.zip),
+	table_identifier('default_billing_address', client_address.client_address_id),
+	table_identifier('default_billing_address', client_address.name),
+	table_identifier('default_billing_address', client_address.address_line_1),
+	table_identifier('default_billing_address', client_address.address_line_2),
+	table_identifier('default_billing_address', client_address.city),
+	table_identifier('default_billing_address', client_address.state),
+	table_identifier('default_billing_address', client_address.zip),
 ] as const
 
 const client_query = query_builder<Schema>()
 	.from('client')
-	.left_join('client_address AS primary_address', on => on.comparison(`client.${client.primary_client_address_id}`, '=', `primary_address.${client_address.client_address_id}`))
-	.left_join('client_address AS billing_address', on => on.comparison(`client.${client.billing_client_address_id}`, '=', `billing_address.${client_address.client_address_id}`))
+	.left_join('client_address AS default_project_address', on => on.comparison(`client.${client.default_project_address_id}`, '=', `default_project_address.${client_address.client_address_id}`))
+	.left_join('client_address AS default_billing_address', on => on.comparison(`client.${client.default_billing_address_id}`, '=', `default_billing_address.${client_address.client_address_id}`))
 	.select(() => client_and_address_columns)
 
 const get_query_results = async (query: ClientQueryFn, query_instance: typeof client_query) => {
@@ -49,8 +49,8 @@ const get_query_results = async (query: ClientQueryFn, query_instance: typeof cl
 	return map(clients_results, (client_row) => {
 		return {
 			...client_row,
-			primary_address: client_row.primary_address,
-			billing_address: client_row.billing_address,
+			default_project_address: client_row.default_project_address,
+			default_billing_address: client_row.default_billing_address,
 		}
 	})
 }
