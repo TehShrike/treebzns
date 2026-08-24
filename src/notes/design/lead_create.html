@@ -71,6 +71,10 @@
 			align-items: end;
 			gap: var(--gap_half);
 		}
+
+		body:has(.billing_toggle input:not(:checked)) .billing_address_fieldset {
+			display: none;
+		}
 	</style>
 </head>
 <body>
@@ -108,7 +112,7 @@
 				<legend>Client</legend>
 				<div class="column">
 					<div class="wide_field">
-						<label for="client_search">Name, phone, email, or address</label>
+						<label for="client_search">Search for existing client</label>
 						<input id="client_search" type="search" value="whitfield" autofocus>
 					</div>
 					<span class="schema">searches client.name, primary_phone, primary_email, client_address.address_line_1</span>
@@ -152,7 +156,7 @@
 					</div>
 					<span class="schema">client_tag via client_client_tag; counts from project_document_history against approved and declined documents</span>
 					<div class="form_fields">
-						<label>Name<input type="text" value="Whitfield, Marla"></label>
+						<label>Client Name<input type="text" value="Whitfield, Marla"></label>
 						<label>Phone<input type="tel" value="(812) 555-0147"></label>
 						<label>Email<input type="email" value="marla.w@example.com"></label>
 						<label>Referred by<input type="text" value="Neighbor on Kestrel Ridge"></label>
@@ -193,12 +197,42 @@
 						move an open job.
 					</div>
 					<span class="schema">project.address_line_1, city, state, zip, client_address_id</span>
+					<label class="billing_toggle"><input type="checkbox"> The billing address is different</label>
+				</div>
+			</fieldset>
+
+			<fieldset class="billing_address_fieldset">
+				<legend>Client Billing Address</legend>
+				<div class="column">
+					<div class="form_fields">
+						<label>Billing name<input type="text" value=""></label>
+						<label>Address line 1<input type="text" value=""></label>
+						<label>Address line 2<input type="text" value=""></label>
+						<label>City<input type="text" value=""></label>
+						<label>State<input type="text" value=""></label>
+						<label>Zip<input type="text" value=""></label>
+					</div>
+					<div class="muted">
+						Shown for a new client when the billing address is different.  Invoices go to this
+						address instead of the project location.
+					</div>
+					<span class="schema">client.billing_name, billing_address_line_1, billing_address_line_2, billing_city, billing_state, billing_zip</span>
 				</div>
 			</fieldset>
 
 			<fieldset>
 				<legend>Project Contact</legend>
 				<div class="column">
+					<div class="row">
+						<label>Saved contact
+							<select>
+								<option selected>Marla Whitfield (primary)</option>
+								<option>Dale Whitfield (spouse)</option>
+								<option>&lt;New Contact&gt;</option>
+							</select>
+						</label>
+						<span class="schema">client_contact rows for this client</span>
+					</div>
 					<div class="form_fields">
 						<label>Contact name<input type="text" value="Marla Whitfield"></label>
 						<label>Contact phone<input type="tel" value="(812) 555-0147"></label>
@@ -207,7 +241,8 @@
 					<span class="schema">project.contact_name, contact_phone, contact_email, copied from the client and then owned by the project</span>
 					<div class="muted">
 						The crew calls this number, not the client record.  A tenant, a spouse, or a property
-						manager can go here without touching the client.
+						manager can go here without touching the client.  Picking a saved contact fills the
+						fields below.  &lt;New Contact&gt; is the only option for a new client.
 					</div>
 				</div>
 			</fieldset>
