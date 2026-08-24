@@ -33,6 +33,7 @@ export const client_address = {
 	city: 'city',
 	state: 'state',
 	zip: 'zip',
+	sort: 'sort',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 	latitude: 'latitude',

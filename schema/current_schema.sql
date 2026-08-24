@@ -36,6 +36,7 @@ CREATE TABLE `client_address` (
   `city` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `state` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
   `zip` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
+  `sort` smallint unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `latitude` double DEFAULT NULL,

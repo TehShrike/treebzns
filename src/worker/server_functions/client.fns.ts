@@ -58,6 +58,7 @@ export const functions = {
 					city: primary_address.city,
 					state: primary_address.state,
 					zip: primary_address.zip,
+					sort: 0n,
 				})
 
 				await write_helper.update('client', 'client_id', client_id, {

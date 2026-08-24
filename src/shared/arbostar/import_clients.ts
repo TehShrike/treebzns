@@ -172,6 +172,7 @@ export const import_clients = async (
 			client_contact_id: null,
 			name: 'Primary',
 			...address_fields(client),
+			sort: 0n,
 		}))
 		const { insert_ids: address_ids } = await write_helper.bulk_insert(
 			connection,

@@ -29,6 +29,7 @@ export const client_address = {
 	city: 'city',
 	state: 'state',
 	zip: 'zip',
+	sort: 'sort',
 	latitude: 'latitude',
 	longitude: 'longitude',
 } as const

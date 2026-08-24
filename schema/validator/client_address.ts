@@ -13,6 +13,7 @@ export const validator_object = {
 	city: jv.is_string,
 	state: jv.is_string,
 	zip: jv.is_string,
+	sort: jv.is_bigint,
 	latitude: jv.nullable(jv.is_number),
 	longitude: jv.nullable(jv.is_number),
 	created_at: is_temporal_instant,
