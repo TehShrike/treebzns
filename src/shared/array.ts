@@ -90,3 +90,16 @@ export const flatten = <T>(arr: readonly (readonly T[])[]): T[] => {
 	}
 	return res
 }
+
+type PredicateAndMapper<T, K> = (item: T) => K | null
+export const filter_map = <T, K extends NonNullable<unknown>>(arr: readonly T[], predicate: PredicateAndMapper<T, K>): K[] => {
+	const length = arr.length,
+		res: K[] = []
+	for (let i = 0; i < length; i++) {
+		const result = predicate(arr[i] as T)
+		if (result !== null) {
+			res.push(result)
+		}
+	}
+	return res
+}
