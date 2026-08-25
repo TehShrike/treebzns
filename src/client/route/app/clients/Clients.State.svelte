@@ -2,66 +2,27 @@
 	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
 	import type { CachedClient } from '#client/lib/client_cache.svelte.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
-	import FormLayout from '#client/component/FormLayout.svelte'
 	import ListInput from '#client/component/list_input/ListInput.svelte'
-	import { filter_clients } from '#client/lib/filter_clients.ts'
 	import { filter } from '#shared/array.ts'
-	import param_validator from '#shared/param_validator.ts'
-	import { untrack } from 'svelte'
-
-	const validate_params = param_validator({
-		name: param_validator.optional(param_validator.string),
-		phone: param_validator.optional(param_validator.string),
-		address: param_validator.optional(param_validator.string),
-	})
 
 	export const asr_state = state_type({
 		name: `app.clients`,
 		route: `/clients`,
-		param_validator: validate_params,
-		async resolve({ client_cache }, params) {
+		async resolve({ client_cache }) {
 			await client_cache.been_fetched_at_least_once
 			return {
 				client_cache,
-				initial_filter: {
-					name: params.name ?? ``,
-					phone: params.phone ?? ``,
-					address: params.address ?? ``,
-				},
 			}
 		}
 	})
 </script>
 
 <script lang="ts">
-	let { client_cache, initial_filter, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
+	let { client_cache, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
 
-	// svelte-ignore state_referenced_locally
-	let name = $state(initial_filter.name)
-	// svelte-ignore state_referenced_locally
-	let phone = $state(initial_filter.phone)
-	// svelte-ignore state_referenced_locally
-	let address = $state(initial_filter.address)
-
-	$effect(() => {
-		const filter_params: { name?: string, phone?: string, address?: string } = {}
-		if (name) {
-			filter_params.name = name
-		}
-		if (phone) {
-			filter_params.phone = phone
-		}
-		if (address) {
-			filter_params.address = address
-		}
-		untrack(() => asr.go(`app.clients`, filter_params, { replace: true }))
-	})
-
-	const filtered_clients = $derived(filter_clients({ name, phone, address }, client_cache.clients))
-
-	const format_address = (client_address: CachedClient['default_project_address']) =>
+	const format_billing_address = (client: CachedClient['client']) =>
 		filter(
-			[client_address.address_line_1, client_address.address_line_2, client_address.city, client_address.state, client_address.zip],
+			[client.billing_address_line_1, client.billing_address_line_2, client.billing_city, client.billing_state, client.billing_zip],
 			Boolean
 		).join(`, `)
 </script>
@@ -71,7 +32,7 @@
 {/snippet}
 
 {#snippet address_cell(client: CachedClient)}
-	<div>{format_address(client.default_project_address)}</div>
+	<div>{format_billing_address(client.client)}</div>
 {/snippet}
 
 {#snippet phone_cell(client: CachedClient)}
@@ -87,23 +48,8 @@
 <AppScreen>
 	<h1>Clients</h1>
 
-	<FormLayout>
-		<label>
-			Name
-			<input type="text" bind:value={name}>
-		</label>
-		<label>
-			Phone
-			<input type="tel" bind:value={phone}>
-		</label>
-		<label>
-			Address
-			<input type="text" bind:value={address}>
-		</label>
-	</FormLayout>
-
 	<ListInput
-		rows={filtered_clients}
+		rows={client_cache.clients}
 		get_key={client => client.client.client_id}
 		columns={[
 			{ header: `Name`, cell: name_cell },

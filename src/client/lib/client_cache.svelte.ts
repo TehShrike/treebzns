@@ -3,8 +3,9 @@ import query_builder from "#shared/sql_request/typed_query_builder.ts"
 import group_joined_rows from "#shared/sql_request/group_joined_rows.ts"
 import { client, client_address, client_contact } from "#schema/all_table_column_names.ts"
 import type { Schema } from "#schema/types.ts"
-import { map, filter, flat_map } from "#shared/array.ts"
+import { map, filter } from "#shared/array.ts"
 import { get_phone_digits } from "#shared/phone_number.ts"
+import { tokenize_string, tokenize_strings } from "#shared/tokenize.ts"
 
 const table_identifier = <TableIdentifier extends string, Column extends string>(table_name: TableIdentifier, column: Column) => `${table_name}.${column}` as const
 
@@ -73,23 +74,23 @@ const get_query_results = async (query: ClientQueryFn) => {
 	})
 }
 
-const tokenize_string = (str: string) => str.toLowerCase().split(/\s+/g)
-const tokenize_strings = (strs: string[]) => Array.from(new Set(flat_map(strs, tokenize_string)))
-
 const transform_clients_for_searching = (clients: Awaited<ReturnType<typeof get_query_results>>) => map(clients, row => {
 	return {
 		...row,
 		search_helpers: {
-			all_phone_digits: filter([
-				row.client.primary_phone ? get_phone_digits(row.client.primary_phone) : '',
-				...map(row.client_contacts, contact => get_phone_digits(contact.phone))
-			], Boolean),
-			all_name_tokens: tokenize_strings([row.client.name, ...map(row.client_contacts, contact => contact.name)])
+			all_phones: filter([
+				{ digits: get_phone_digits(row.client.primary_phone), display: row.client.primary_phone, client_contact: null },
+				...map(row.client_contacts, contact => ({ digits: get_phone_digits(contact.phone), display: contact.phone, client_contact: contact }))
+			], phone => phone.digits !== ''),
+			all_name_tokens: tokenize_strings([row.client.name, ...map(row.client_contacts, contact => contact.name)]),
+			client_name_tokens: tokenize_string(row.client.name),
+			contact_name_tokens: map(row.client_contacts, contact => ({ client_contact: contact, tokens: tokenize_string(contact.name) })),
 		}
 	}
 })
 
 export type CachedClient = ReturnType<typeof transform_clients_for_searching>[number]
+export type CachedClientContact = CachedClient['client_contacts'][number]
 
 const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refresh_interval_ms: number}) => {
 	let cache = $state<readonly CachedClient[]>([])
@@ -127,5 +128,7 @@ const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refre
 		been_fetched_at_least_once: first_refresh_returned.promise
 	}
 }
+
+export type ClientCache = ReturnType<typeof client_cache>
 
 export default client_cache

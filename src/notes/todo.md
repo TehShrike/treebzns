@@ -1,5 +1,7 @@
 # Catch up
 
+Review ClientNameSearch and ClientPhoneSearch, make them use the same results component, make them look like other inputs.
+
 - create a lead screen should have a "the billing address is different" button below the project address field
 - regenerate "create a lead" implementation
 - I'm not happy with the string-building happening in filter_clients.  I suspect it would be more efficient to check for every(tokens, token => some(address_fields, field => field.includes(token)))
