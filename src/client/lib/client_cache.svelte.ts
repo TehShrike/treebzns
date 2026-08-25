@@ -1,8 +1,9 @@
 import type { ClientQueryFn } from "./client_query_fn.ts"
 import query_builder from "#shared/sql_request/typed_query_builder.ts"
+import group_joined_rows from "#shared/sql_request/group_joined_rows.ts"
 import { client, client_address, client_contact } from "#schema/all_table_column_names.ts"
 import type { Schema } from "#schema/types.ts"
-import { map } from "#shared/array.ts"
+import { map, filter, flat_map } from "#shared/array.ts"
 import { get_phone_digits } from "#shared/phone_number.ts"
 
 const table_identifier = <TableIdentifier extends string, Column extends string>(table_name: TableIdentifier, column: Column) => `${table_name}.${column}` as const
@@ -52,36 +53,38 @@ const client_contact_columns = [
 
 const client_query = query_builder<Schema>()
 	.from('client')
-	.left_join('client_address', on => on.comparison(`client.${client.client_id}`, '=', `client_address.${client_address.client_id}`))
+	.join('client_address', on => on.comparison(`client.${client.client_id}`, '=', `client_address.${client_address.client_id}`))
+	.left_join('client_contact', on => on.comparison(`client.${client.client_id}`, '=', `client_contact.${client_contact.client_id}`))
 	.order_by('client.name', 'ASC')
 	.order_by('client.client_id')
 	.order_by('client_address.sort', 'ASC')
-	.select(() => client_and_address_columns)
-
-const client_contact_query = query_builder<Schema>()
-	.from('client_contact')
-	.order_by('client_contact.client_id', 'ASC')
 	.order_by('client_contact.sort', 'ASC')
-	.select(() => client_contact_columns)
+	.select(() => [...client_and_address_columns, ...client_contact_columns] as const)
 
 const get_query_results = async (query: ClientQueryFn) => {
-	const [clients_results, contact_results] = await Promise.all([
-		query(client_query.build()),
-		query(client_contact_query.build())
-	])
-	return map(clients_results, (client_row) => {
-		return {
-			...client_row,
-			client_addresses:
-		}
+	const rows = await query(client_query.build())
+	return group_joined_rows(rows, {
+		table: 'client',
+		key: 'client_id',
+		children: {
+			client_addresses: { table: 'client_address', key: 'client_address_id' },
+			client_contacts: { table: 'client_contact', key: 'client_contact_id' },
+		},
 	})
 }
 
-const transform_clients_for_searching = (clients: Awaited<ReturnType<typeof get_query_results>>) => map(clients, client => {
+const tokenize_string = (str: string) => str.toLowerCase().split(/\s+/g)
+const tokenize_strings = (strs: string[]) => Array.from(new Set(flat_map(strs, tokenize_string)))
+
+const transform_clients_for_searching = (clients: Awaited<ReturnType<typeof get_query_results>>) => map(clients, row => {
 	return {
-		...client,
+		...row,
 		search_helpers: {
-			primary_phone_digits: client.client.primary_phone ? get_phone_digits(client.client.primary_phone) : '',
+			all_phone_digits: filter([
+				row.client.primary_phone ? get_phone_digits(row.client.primary_phone) : '',
+				...map(row.client_contacts, contact => get_phone_digits(contact.phone))
+			], Boolean),
+			all_name_tokens: tokenize_strings([row.client.name, ...map(row.client_contacts, contact => contact.name)])
 		}
 	}
 })
