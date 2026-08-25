@@ -7,6 +7,10 @@
 - Permissions
 - Which email/sms triggers are necessary
 
+## After the create-a-lead/project screens
+
+Use the tree inventory.  Search it/filter.  Then show on a map.
+
 # Sending sms/emails: queue
 
 Work queue table with the work, `attempts` count, some way to mark it as claimed.
