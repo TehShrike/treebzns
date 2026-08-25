@@ -483,8 +483,11 @@ test('typed_query_builder: left_join marks the join left and nulls its selected 
 			project_id: bigint
 		}
 		pd: {
-			name: string | null
-			grp: string | null
+			name: string
+			grp: string
+		} | {
+			name: null
+			grp: null
 		}
 	}
 
@@ -508,7 +511,9 @@ test('typed_query_builder: inner join columns stay non-null alongside a left_joi
 
 	type ExpectedRowType = {
 		pd: {
-			name: string | null
+			name: string
+		} | {
+			name: null
 		}
 		pli: {
 			price: FinancialNumber

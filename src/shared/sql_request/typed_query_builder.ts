@@ -111,11 +111,7 @@ type SelectInput<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
 	| SelectableFunctionExpression
 	| SelectGrouping
 
-// A LEFT JOIN can produce a row where the joined table matched nothing, so every column selected
-// through a left-joined alias picks up null.
-type NullIfLeftJoined<Value, T extends string, LeftJoined extends string> = T extends LeftJoined ? Value | null : Value
-
-type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoined extends string, Expr> =
+type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Expr> =
 	Expr extends { type: 'function'; table_identifier: infer T extends string; alias: infer K extends string; function: infer Fn extends FunctionName }
 		? T extends keyof A
 			? { [_ in T]: { [_ in K]: FunctionReturnType<Fn> } }
@@ -123,13 +119,13 @@ type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Left
 		: Expr extends `${infer T}.${infer C} AS ${infer K}`
 			? T extends keyof A
 				? C extends keyof Schema[A[T] & keyof Schema]
-					? { [_ in T]: { [_ in K]: NullIfLeftJoined<Schema[A[T] & keyof Schema][C], T, LeftJoined> } }
+					? { [_ in T]: { [_ in K]: Schema[A[T] & keyof Schema][C] } }
 					: never
 				: never
 			: Expr extends `${infer T}.${infer C}`
 				? T extends keyof A
 					? C extends keyof Schema[A[T] & keyof Schema]
-						? { [_ in T]: { [_ in C]: NullIfLeftJoined<Schema[A[T] & keyof Schema][C], T, LeftJoined> } }
+						? { [_ in T]: { [_ in C]: Schema[A[T] & keyof Schema][C] } }
 						: never
 					: never
 				: never
@@ -137,17 +133,21 @@ type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Left
 type UnionToIntersection<U> =
 	(U extends any ? (x: U) => void : never) extends (x: infer I) => void ? I : never
 
-type RowFromSelectExprs<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoined extends string, Exprs extends ReadonlyArray<unknown>> =
-	UnionToIntersection<{ [I in keyof Exprs]: RowEntry<Schema, A, LeftJoined, Exprs[I]> }[number]>
+type RowFromSelectExprs<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Exprs extends ReadonlyArray<unknown>> =
+	UnionToIntersection<{ [I in keyof Exprs]: RowEntry<Schema, A, Exprs[I]> }[number]>
 
 // Each selected column contributes a `{ table: { column: type } }` entry, and they get intersected
 // into `{ table: { a } } & { table: { b } } & ...`. Re-mapping both levels collapses those `&`s into
 // a single `{ table: { a; b; ... } }` object. Indexed access (`Row[Table][Column]`) is used on the
 // inner level so column value types (bigint, Temporal.Instant, ...) are preserved, not expanded.
-type FlattenRow<Row> = {
-	[Table in keyof Row]: {
-		[Column in keyof Row[Table]]: Row[Table][Column]
-	}
+// A left-joined table either matched (every column keeps its schema type) or matched nothing (the
+// runtime fills every selected column with null), so its object is a union of those two shapes
+// rather than `| null` on each column — that keeps schema nullability recoverable after a
+// null-key check proves the join matched (see group_joined_rows.ts).
+type FlattenRow<Row, LeftJoined extends string = never> = {
+	[Table in keyof Row]: Table extends LeftJoined
+		? { [Column in keyof Row[Table]]: Row[Table][Column] } | { [Column in keyof Row[Table]]: null }
+		: { [Column in keyof Row[Table]]: Row[Table][Column] }
 }
 
 export type ResponseColumn = {
@@ -161,8 +161,10 @@ export type BuiltQuery<Row> = {
 	positional_row_to_named: (row: unknown[]) => Row
 }
 
+// `build()` already flattened the row, so re-mapping here would collapse a left-joined table's
+// matched-or-all-null union back into `| null` on each column.
 export type ExtractQueryResponse<T> = T extends BuiltQuery<infer Row>
-	? FlattenRow<Row>
+	? Row
 	: never
 
 // Given a flattened `{ table: { identifier: type } }` row, the union of all identifiers (the inner keys).
@@ -216,7 +218,7 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoi
 
 	select: <const Exprs extends ReadonlyArray<SelectInput<Schema, A>>>(
 		cb: (b: SelectExpressionBuilder<Schema, A>) => Exprs,
-	) => Stage<Schema, A, LeftJoined, Row & RowFromSelectExprs<Schema, A, LeftJoined, Exprs>>
+	) => Stage<Schema, A, LeftJoined, Row & RowFromSelectExprs<Schema, A, Exprs>>
 
 	group_by: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A, LeftJoined, Row>
 
@@ -229,7 +231,7 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoi
 
 	limit: (count: bigint) => Stage<Schema, A, LeftJoined, Row>
 
-	build: () => BuiltQuery<FlattenRow<Row>>
+	build: () => BuiltQuery<FlattenRow<Row, LeftJoined>>
 }
 
 export type QueryBuilder<Schema extends SchemaColumnTypes> = {
