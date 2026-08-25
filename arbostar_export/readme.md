@@ -34,7 +34,11 @@ import type { ArbostarClient } from '#arbostar_export/clients.d.ts' // the recor
 | `users.js` | 6 | `ArbostarUser` | User accounts (estimators, office staff, field workers), all statuses. Merged from the user list + each user's detail page; deliberately excludes SIN/MFA/credential fields. |
 | `declines.js` | 365 | `ArbostarDecline` | One row per declined estimate with its decline reason (id + name), from the Decline Reasons report. `estimate_id` → estimates (which has the `lead_id`). |
 | `crew_roles.js` | 13 | `ArbostarCrewRole` | Crew Roles: codes CL0–CL3, GM, ... with cost per hour. `line_items.js` references these by code in its `crews` string. |
-| `work_types.js` | 17 | `ArbostarWorkType` | Pruning work types (Clean canopy, Crown reduction, ...). They attach to tree inventory entries, which nothing exports yet. |
+| `work_types.js` | 17 | `ArbostarWorkType` | Pruning work types (Clean canopy, Crown reduction, ...). They attach to trees (`tree_inventory.js` `work_types[]`), empty on every tree so far. |
+| `tree_inventory.js` | 15 | `ArbostarTree` | One row per tree on a client property map (species, condition, cost, lat/lng). From the unauthenticated markers microservice. `tis_id` → `tree_inventory_sets.js`. |
+| `tree_inventory_sets.js` | 10 | `ArbostarTreeInventorySet` | One row per property map that has trees (name, address, `markers_count`). `tis_client_id` → clients. |
+| `tree_species.js` | 694 | `ArbostarTreeSpecies` | Global species catalog (name + pin color). A tree's `species_id` → `species_id` here. |
+| `tree_priorities.js` | 9 | `ArbostarTreePriority` | Global condition/priority codebook (Low, Mid, Good, Fair, ...). A tree's `priority` → `priority` here. |
 
 \* counts as of each dataset's last run (June–August 2026); they grow as the account is used.
 
@@ -54,6 +58,7 @@ node ../scripts/arbostar/export_payments.ts     # payments.js
 node ../scripts/arbostar/export_users.ts        # users.js
 node ../scripts/arbostar/export_declines.ts     # declines.js  (run alongside export_estimates.ts so the two agree)
 node ../scripts/arbostar/export_work_types.ts   # crew_roles.js + work_types.js  (reads estimates.js)
+node ../scripts/arbostar/export_tree_inventory.ts # tree_inventory.js + tree_inventory_sets.js  (walks the global tis_id sequence)
 ```
 
 If you add/remove fields in an export script's mapper, update the matching `.d.ts` here so it

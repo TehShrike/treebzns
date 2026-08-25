@@ -34,6 +34,7 @@ node scripts/arbostar/export_users.ts        # -> users.js       (user accounts;
 node scripts/arbostar/export_taxes.ts        # -> taxes.js       (official tax list, scraped from /settings)
 node scripts/arbostar/export_declines.ts     # -> declines.js    (decline reasons; see the Decline reasons section)
 node scripts/arbostar/export_work_types.ts   # -> crew_roles.js + work_types.js  (reads estimates.js; see the labor catalogs section)
+node scripts/arbostar/export_tree_inventory.ts # -> tree_inventory.js + tree_inventory_sets.js  (see the tree inventory section)
 ```
 
 Each dataset is written to `arbostar_export/<name>.js` as an ESM `export default [...]` (gitignored;
@@ -57,9 +58,14 @@ datatable request (e.g. to `/clients`) → Copy as cURL, then fill in:
 - `headers.x-csrf-token` (same value as the XSRF-TOKEN cookie), `x-device-id`, `x-fingerprint`
 - `cookies` — the same `XSRF-TOKEN` + `[identifier]_session` as `{name,value,domain,path}` objects,
   used by the puppeteer discovery scripts (which set browser cookies rather than headers)
+- `map_markers_url` (optional) — origin of the tree-inventory markers microservice, e.g.
+  `https://map-markers-ohio-master.arbostar.com`. Region-specific, so it is not derivable from
+  `base_url`. In the app it is `Common.helpers.config_item('map_markers_url')`. Defaults to the
+  Ohio host if omitted. Only `export_tree_inventory.ts` uses it.
 
 The `[identifier]_session` cookie expires every couple of days. **Symptom of a stale
-session: the export throws `request failed: 302`** (a redirect to the login page).
+session: the export throws `request failed: 302`** (a redirect to the login page). The
+tree-inventory set enrichment is the one exception — it throws `401` instead of `302`.
 
 ## How the endpoints work (the non-obvious bits)
 
@@ -144,12 +150,63 @@ How they map to jobs:
   rows (`crew_service_id` = line item id, `crew_user_id` = crew_id) are the join table.
   Since line items carry `estimate_id` and `invoice_id`, this one string covers the
   estimate → skills and work-order → skills mapping.
-- **Work types attach to tree inventory entries** (`/treeInventory/indexData/{lead_id}`),
-  not to line items. No lead checked so far has inventory entries, so nothing references
-  `work_types.js` yet.
+- **Work types attach to tree inventory trees**, not to line items. See the tree inventory
+  section — each tree carries a `work_types[]` array (empty on every tree in this account so
+  far, so nothing references `work_types.js` yet).
 - The estimate entity also has per-role requirement flags (`climber`, `groundsmen`,
   `bucket_truck_operator`, ...), each `'yes'`/`'no'` — a coarser signal than the line-item
   `crews` string.
+
+## Tree inventory (`export_tree_inventory.ts`)
+
+Trees are not in the main ArboStar database. Each is a **marker** in a separate microservice
+(`map_markers_url`, e.g. `https://map-markers-ohio-master.arbostar.com`). The service stores
+one search index per **tree inventory set**, named `{subdomain}-treeInventory-{tis_id}`, and a
+`POST /markers` with `{searchIndex, filters:{}, perPage:-1}` returns that set's trees as GeoJSON
+(`features[]`, plus `marker_count_total`). Two things make this easy to scrape:
+
+- **The markers service is unauthenticated.** It trusts the index name — no cookie, no CSRF. So
+  the trees export needs no session (the export reads them with plain `fetch`).
+- **`searchIndex` is an exact index name — no wildcard.** `dufftreeservice-treeInventory-*` and
+  bare `dufftreeservice` both return an empty set, not a union. So there is no single
+  "all trees" query.
+
+A **set** (`tis_id`) is a client's property map. The app keys sets by client
+(`POST /treeInventory/indexData/{client_id}`, which returns set metadata + `markers_count`, and
+auto-creates an empty set the first time a client's map is opened). Listing every set the app's
+own way is one request per client (~1700). The export skips that: `tis_id` is a small **global**
+sequence, so it walks `tis_id` from 0 against the unauthenticated markers service and stops after
+`EMPTY_RUN_LIMIT` (10) tis_ids in a row return no trees. Empty sets occur inside the used range
+(auto-created, never filled), so the limit must clear the largest such gap — 5 in the August 2026
+data, hence 10. August 2026: **15 trees across 10 sets** (`tis_id` 3–24), everything above ~25
+empty.
+
+Two files:
+
+- **`tree_inventory.js`** — one row per tree (flattened GeoJSON feature): `ti_id`, `tis_id`,
+  `tree_number`, `species_id`/`species_name`/`species_color`, `priority`/`priority_label`
+  (condition: good/fair/poor…), `size`, `cost`, `stump_cost`, `remark`, `lat`/`lng`, and the raw
+  `work_types` / `recommended_services` / `files` arrays (all empty so far). Written **first**,
+  before any authed call, so a stale session never costs the tree data.
+- **`tree_inventory_sets.js`** — one row per set that has trees, enriched from
+  `POST /treeInventory/show/{tis_id}` (**authed**, ~10 calls, only the non-empty sets):
+  `tis_id`, `tis_name`, `tis_client_id`, address, `tis_lat`/`tis_lng`, `markers_count`.
+
+Plus two global reference catalogs the same script dumps:
+
+- **`tree_species.js`** — the species catalog (`POST /treeInventory/trees/loadData`), 694 rows of
+  `{species_id, species_name, species_color}`. A tree's `species_id` joins here.
+- **`tree_priorities.js`** — the condition/priority codebook
+  (`POST /treeInventory/markersPriority/loadData`), 9 rows of `{tip_id, priority, priority_label,
+  color}`. A tree's `priority` joins on `priority`. (The app calls it "priority" but the values
+  are conditions: Low, Mid, High, Excellent, Good, Fair, ...)
+
+Both catalogs are select2-style dropdown feeds: `{items, total_count}`, paged at 100 (a `perPage`
+override errors), so the export walks `page` until it has every row.
+
+**A tree has no client id** — only `tis_id`. Join `tree_inventory.js.tis_id` →
+`tree_inventory_sets.js.tis_id` for `tis_client_id`, then → `clients.js.client_id`. `cost` /
+`stump_cost` are raw API numbers — normalize with `#shared/arbostar/arbostar_number_to_fnum.ts`.
 
 ## Payments (`/business_intelligence/clientPaymentsDatatable`)
 

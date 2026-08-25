@@ -1,5 +1,6 @@
 {
 	"base_url": "https://YOUR-ACCOUNT.arbostar.com",
+	"map_markers_url": "https://map-markers-ohio-master.arbostar.com",
 	"headers": {
 		"cookie": "XSRF-TOKEN=...; YOUR-ACCOUNT_session=...",
 		"x-csrf-token": "...",
