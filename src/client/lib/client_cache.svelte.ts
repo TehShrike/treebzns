@@ -45,7 +45,6 @@ const client_contact_columns = [
 	table_identifier('client_contact', client_contact.name),
 	table_identifier('client_contact', client_contact.phone),
 	table_identifier('client_contact', client_contact.email),
-	table_identifier('client_contact', client_contact.arbostar_email_data),
 	table_identifier('client_contact', client_contact.is_primary),
 	table_identifier('client_contact', client_contact.sort),
 	table_identifier('client_contact', client_contact.created_at),
