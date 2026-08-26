@@ -23,7 +23,7 @@ const company_columns = [
 	`company.${company.invoice_due_after_days}`,
 ] as const
 
-const parse_session_cookie = (request: Request): string | null => {
+export const parse_session_cookie = (request: Request): string | null => {
 	const cookie_header = request.headers.get('Cookie') ?? ''
 	for (const part of cookie_header.split(';')) {
 		const [key, value] = part.trim().split('=')

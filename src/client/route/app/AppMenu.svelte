@@ -1,5 +1,12 @@
 <script lang="ts">
+	import f3tch from '#shared/f3tch.ts'
+
 	const { asr }: { asr: StateAsr } = $props()
+
+	const log_out = async () => {
+		await f3tch(`/api/log_out`, { method: `POST` })
+		window.location.href = `/app`
+	}
 </script>
 
 <nav class="app-menu">
@@ -10,6 +17,9 @@
 		<li><a class="menu-item" href={asr.makePath('app.clients')} data-active={asr.stateIsActive('app.clients')}>Clients</a></li>
 		<li><a class="menu-item" href={asr.makePath('app.projects')} data-active={asr.stateIsActive('app.projects')}>Projects</a></li>
 	</ul>
+	<div class="log-out-container">
+		<button type="button" onclick={log_out}>Log out</button>
+	</div>
 </nav>
 
 <style>
@@ -50,5 +60,12 @@
 	.menu-item[data-active='true'] {
 		background: var(--friendly_color);
 		color: var(--white);
+	}
+
+	.log-out-container {
+		margin-top: auto;
+		display: flex;
+		flex-direction: column;
+		padding: 1rem 1.25rem;
 	}
 </style>

@@ -3,6 +3,7 @@ import make_mysql_helpers_object, { MysqlHelpersObject } from '#worker/lib/mysql
 
 import create_company from './bare_endpoints/create_company.ts'
 import log_in from './bare_endpoints/log_in.ts'
+import log_out from './bare_endpoints/log_out.ts'
 import session from './bare_endpoints/session.ts'
 import server_functions from './bare_endpoints/server_functions.ts'
 import { error_object_response } from './lib/response_helpers.ts'
@@ -28,6 +29,8 @@ export default {
 				return run_with_connection(env, async mysql => create_company(request, mysql))
 			} else if (method === 'POST' && pathname === '/api/log_in') {
 				return run_with_connection(env, async mysql => log_in(request, mysql))
+			} else if (method === 'POST' && pathname === '/api/log_out') {
+				return run_with_connection(env, async mysql => log_out(request, mysql))
 			} else if (method === 'GET' && pathname === '/api/session') {
 				return run_with_connection(env, async mysql => session(request, mysql))
 			} else if (method === 'POST' && pathname.startsWith(server_function_route_prefix)) {
