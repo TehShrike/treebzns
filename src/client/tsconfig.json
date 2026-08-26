@@ -17,5 +17,6 @@
 		"verbatimModuleSyntax": true,
 		"plugins": [{ "name": "typescript-svelte-plugin" }]
 	},
-	"include": ["./**/*", "../../schema/type/**/*.d.ts"]
+	"include": ["./**/*", "../../schema/type/**/*.d.ts"],
+	"exclude": ["./**/*.test.ts"]
 }

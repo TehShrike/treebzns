@@ -1,6 +1,7 @@
 {
 	"include": [
 		"src/shared/**/*",
+		"src/client/**/*.test.ts",
 		"schema/**/*",
 		"scripts/**/*",
 		"*"

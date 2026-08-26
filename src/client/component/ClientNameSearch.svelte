@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import type { CachedClient, CachedClientContact, ClientCache } from '#client/lib/client_cache.svelte.ts'
 	import DropdownSearchInput from './dropdown_input/DropdownSearchInput.svelte'
-	import { every, filter, filter_map, for_each, some } from '#shared/array.ts'
+	import { every, filter, filter_map, for_each, some, find, reduce } from '#shared/array.ts'
 	import { tokenize_string } from '#shared/tokenize.ts'
 
 	export type NameSearchSelection = CachedClient & {
@@ -32,42 +32,51 @@
 			return []
 		}
 
-		const clients_matching_all_tokens = filter(client_cache.clients, cached_client =>
-			every(input_tokens, input_token => matches_token(cached_client.search_helpers.all_name_tokens, input_token))
-		)
+		/*
+			1. only include cached clients where every input token matches the start of one of all_name_tokens
+			2. find all the input tokens that do not match the start of a client name token, they are required to match a contact name
+			3. filter to keep only the contacts such that all the required-to-match-contact-name input tokens match the start of one of the contact's tokens
+			4. sort the contacts first by how many of the original input tokens match the contact's tokens, and second by the contact's sort order ascending
 
-		return filter_map(clients_matching_all_tokens, (cached_client): NameOption | null => {
-			const { client_name_tokens, contact_name_tokens } = cached_client.search_helpers
+			Move this function out to its own file next to this one and write tests for the different cases of which contact should be picked with which client
+		*/
+		return filter_map(client_cache.clients, (cached_client): NameOption | null => {
+			const { all_name_tokens, client_name_tokens, contact_name_tokens } = cached_client.search_helpers
 
-			const remaining_tokens = filter(input_tokens, input_token => !matches_token(client_name_tokens, input_token))
-
-			if (contact_name_tokens.length === 0) {
-				return remaining_tokens.length === 0 ? { cached_client, client_contact: null } : null
-			}
-
-			const covering_contacts = filter(contact_name_tokens, contact =>
-				every(remaining_tokens, input_token => matches_token(contact.tokens, input_token))
-			)
-
-			if (covering_contacts.length === 0) {
+			if (!every(input_tokens, input_token => matches_token(all_name_tokens, input_token))) {
 				return null
 			}
 
-			const matched_count = (tokens: readonly string[]) =>
-				filter(input_tokens, input_token => matches_token(tokens, input_token)).length
+			// copy contacts, sort by how many matching tokens they have in input_tokens
 
-			let best_contact = covering_contacts[0] as (typeof covering_contacts)[number]
-			let best_count = matched_count(best_contact.tokens)
+			//
+			// const tokens_remaining = // all_name_tokens minus
 
-			for_each(covering_contacts, contact => {
-				const count = matched_count(contact.tokens)
-				if (count > best_count) {
-					best_contact = contact
-					best_count = count
+			// Sort the contacts by the number of matching tokens,
+			// then find the first one of those that contains all tokens
+			// if (remaining_tokens.length === 0) {
+			// 	const client_contact = cached_client.client_contacts.length === 0
+			// 		? null
+			// 		: cached_client.client_contacts[0]
+
+			// 	return {
+			// 		cached_client,
+			// 		client_contact: null
+			// 	}
+			// }
+
+			const matching_contact = find(contact_name_tokens, contact =>
+				every(remaining_tokens, input_token => matches_token(contact.tokens, input_token))
+			)
+
+			if (matching_contact) {
+				return {
+					cached_client,
+					client_contact: matching_contact.client_contact
 				}
-			})
+			}
 
-			return { cached_client, client_contact: best_contact.client_contact }
+			return null
 		})
 	})
 
@@ -76,6 +85,8 @@
 			? { ...option.cached_client, selected_client_contact: option.client_contact }
 			: null
 	}
+
+	$inspect(options)
 </script>
 
 {#snippet name_option({ cached_client, client_contact }: NameOption)}
