@@ -19,7 +19,7 @@ echo '{"seq":1,"type":"request","command":"open","arguments":{"file":"myfile.ts"
 {"seq":2,"type":"request","command":"quickinfo","arguments":{"file":"myfile.ts","line":5,"offset":10}}' | npx tsserver
 ```
 
-This project uses pnpm.
+This project uses pnpm, nvm, and corepack.
 
 ## Writing style (Simplified Technical English)
 
