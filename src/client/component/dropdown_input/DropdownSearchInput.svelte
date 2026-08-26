@@ -148,10 +148,9 @@
 		should_look_like_a_select = true
 	}
 
-	// While an option is selected and the input isn't being searched, the input
-	// behaves like a `<select>`: the chosen option is rendered on top of the
-	// (empty) input via the `option` snippet.
-	const looks_like_a_select = $derived(!!selected_option && should_look_like_a_select)
+	const current_placeholder = $derived(
+		selected_option ? get_selected_option_text(selected_option) : placeholder ?? ``,
+	)
 </script>
 
 <Dropdown
@@ -159,26 +158,23 @@
 	bind:scrollable_dropdown_box
 >
 	{#snippet always_visible()}
-		<div class="input_container">
-			<input
-				onkeypress={on_keypress}
-				onkeydown={on_keydown}
-				onblur={on_input_blur}
-				onfocus={on_input_focus}
-				type="text"
-				bind:value={search_text}
-				{disabled}
-				{@attach autofocus_attachment(autofocus)}
-				{@attach capture_input}
-				placeholder={placeholder ?? ``}
-				style="width: 100%"
-			/>
-			{#if looks_like_a_select && selected_option}
-				<div class="selected_value">
-					{get_selected_option_text(selected_option)}
-				</div>
-			{/if}
-		</div>
+		<input
+			onkeypress={on_keypress}
+			onkeydown={on_keydown}
+			onblur={on_input_blur}
+			onfocus={on_input_focus}
+			type="text"
+			autocomplete="off"
+			data-1p-ignore
+			bind:value={search_text}
+			{disabled}
+			{@attach autofocus_attachment(autofocus)}
+			{@attach capture_input}
+			placeholder={current_placeholder}
+			data-option_selected={!!selected_option}
+			data-should_look_like_a_select={should_look_like_a_select}
+			style="width: 100%"
+		/>
 	{/snippet}
 
 	{#snippet dropdown()}
@@ -204,32 +200,17 @@
 </Dropdown>
 
 <style>
-	.input_container {
-		position: relative;
+	input::placeholder {
+		color: var(--text_color_light);
 	}
 
-	/* Impersonates the text of the input underneath it, which is styled by
-	98.css and global_styles.css: a 2px sunken border drawn with an inset
-	box-shadow, 0 .5rem padding, and 15px unsmoothed Arial. */
-	.selected_value {
-		position: absolute;
-		inset: 2px;
-		display: flex;
-		align-items: center;
-		padding: 0 calc(0.5rem - 2px);
-		pointer-events: none;
-		overflow: hidden;
-		white-space: nowrap;
-		font-family: Arial;
-		font-size: 15px;
-		-webkit-font-smoothing: none;
-		background-color: var(--button-highlight);
+	input[data-option_selected=true][data-should_look_like_a_select=true]::placeholder {
 		color: var(--text_color_normal);
+		opacity: 1;
 	}
 
-	input:disabled + .selected_value {
-		background-color: var(--surface);
-		color: var(--very_dark_gray);
+	input[data-option_selected=true][data-should_look_like_a_select=true] {
+		caret-color: transparent;
 	}
 
 	ol {
