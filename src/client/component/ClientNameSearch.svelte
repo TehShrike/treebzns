@@ -34,16 +34,13 @@
 	{/if}
 {/snippet}
 
-<label>
-	Name
-	<DropdownSearchInput
-		bind:search_text
-		{options}
-		onchange={on_change}
-		option={name_option}
-		get_selected_option_text={({ cached_client }) => cached_client.client.name}
-	/>
-</label>
+<DropdownSearchInput
+	bind:search_text
+	{options}
+	onchange={on_change}
+	option={name_option}
+	get_selected_option_text={({ cached_client }) => cached_client.client.name}
+/>
 
 <style>
 	.detail {

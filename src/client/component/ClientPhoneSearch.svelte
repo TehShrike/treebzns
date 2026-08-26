@@ -47,16 +47,13 @@
 	<span class="detail">{phone.display}</span>
 {/snippet}
 
-<label>
-	Phone
-	<DropdownSearchInput
-		bind:search_text
-		{options}
-		onchange={on_change}
-		option={phone_option}
-		get_selected_option_text={({ phone }) => phone.display}
-	/>
-</label>
+<DropdownSearchInput
+	bind:search_text
+	{options}
+	onchange={on_change}
+	option={phone_option}
+	get_selected_option_text={({ phone }) => phone.display}
+/>
 
 <style>
 	.detail {

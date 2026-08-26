@@ -239,31 +239,30 @@ fieldset {
 	padding: calc(2 * var(--border-width) + var(--element-spacing));
 	padding-block-start: var(--element-spacing);
 	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--grouped-element-spacing);
 }
-
-/* legend {
-	background: var(--surface);
-	} */
 
 .field-row {
 	display: flex;
-}
-
-[class^="field-row"] + [class^="field-row"] {
-	margin-top: var(--grouped-element-spacing);
-}
-
-.field-row > * + * {
-	margin-left: var(--grouped-element-spacing);
+	flex-direction: row;
+	align-items: center;
+	gap: var(--grouped-element-spacing);
 }
 
 .field-row-stacked {
 	display: flex;
 	flex-direction: column;
+	gap: var(--grouped-element-spacing);
 }
 
-.field-row-stacked * + * {
-	margin-top: var(--grouped-element-spacing);
+/* :where keeps the specificity at just `label`, so a single class on the
+   label (e.g. .field-row) can override the stacked layout */
+label:has(:where(input:not([type="radio"], [type="checkbox"]), select, textarea)) {
+	display: flex;
+	flex-direction: column;
+	/*gap: var(--grouped-element-spacing);*/
 }
 
 input[type="radio"],

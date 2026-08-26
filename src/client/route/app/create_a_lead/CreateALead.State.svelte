@@ -28,7 +28,13 @@
 <AppScreen>
 	<h1>Create a lead</h1>
 	<FormLayout>
-		<ClientNameSearch {client_cache} bind:value={name_selection} />
-		<ClientPhoneSearch {client_cache} bind:value={phone_selection} />
+		<label>
+			Name
+			<ClientNameSearch {client_cache} bind:value={name_selection} />
+		</label>
+		<label>
+			Phone
+			<ClientPhoneSearch {client_cache} bind:value={phone_selection} />
+		</label>
 	</FormLayout>
 </AppScreen>
