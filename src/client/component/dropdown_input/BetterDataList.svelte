@@ -14,6 +14,7 @@
 		placeholder = ``,
 		onchange,
 		option,
+		get_selected_option_text,
 	}: {
 		value?: T | null
 		options?: readonly T[]
@@ -25,6 +26,7 @@
 		placeholder?: string
 		onchange?: (option: T | null) => void
 		option: Snippet<[T]>
+		get_selected_option_text: (option: T) => string
 	} = $props()
 
 	const matched = $derived.by(() => {
@@ -42,4 +44,5 @@
 	{onchange}
 	{placeholder}
 	{option}
+	{get_selected_option_text}
 />

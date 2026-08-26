@@ -2,6 +2,8 @@
 
 Review ClientNameSearch and ClientPhoneSearch, make them use the same results component, make them look like other inputs.
 
+Name search is broken.  searching for a contact name shows the contact in bold text and faint text both.  When searching for a client, contact does not show up in the faint text.
+
 - create a lead screen should have a "the billing address is different" button below the project address field
 - regenerate "create a lead" implementation
 - I'm not happy with the string-building happening in filter_clients.  I suspect it would be more efficient to check for every(tokens, token => some(address_fields, field => field.includes(token)))

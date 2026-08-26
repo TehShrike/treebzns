@@ -54,6 +54,7 @@
 		{options}
 		onchange={on_change}
 		option={phone_option}
+		get_selected_option_text={({ phone }) => phone.display}
 	/>
 </label>
 

@@ -92,6 +92,7 @@
 		{options}
 		onchange={on_change}
 		option={name_option}
+		get_selected_option_text={({ cached_client }) => cached_client.client.name}
 	/>
 </label>
 

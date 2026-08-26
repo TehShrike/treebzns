@@ -15,6 +15,7 @@
 		placeholder = null,
 		onchange,
 		option,
+		get_selected_option_text,
 	}: {
 		search_text?: string
 		selected_option?: T | null
@@ -24,6 +25,7 @@
 		placeholder?: string | null
 		onchange?: ((option: T | null) => void) | undefined
 		option: Snippet<[T]>
+		get_selected_option_text: (option: T) => string
 	} = $props()
 
 	// Resets to the top of the list whenever the (filtered) options change, but
@@ -173,7 +175,7 @@
 			/>
 			{#if looks_like_a_select && selected_option}
 				<div class="selected_value">
-					{@render option(selected_option)}
+					{get_selected_option_text(selected_option)}
 				</div>
 			{/if}
 		</div>
@@ -206,31 +208,28 @@
 		position: relative;
 	}
 
-	input {
-		margin: 0;
-		padding: 2px 4px;
-		background-color: var(--input_background);
-		box-sizing: border-box;
-	}
-	input[disabled] {
-		background-color: var(--input_disabled_background);
-	}
-
-	input::placeholder {
-		color: var(--text_color_light);
-	}
-
+	/* Impersonates the text of the input underneath it, which is styled by
+	98.css and global_styles.css: a 2px sunken border drawn with an inset
+	box-shadow, 0 .5rem padding, and 15px unsmoothed Arial. */
 	.selected_value {
 		position: absolute;
-		inset: 0;
+		inset: 2px;
 		display: flex;
 		align-items: center;
-		padding: 2px 4px;
+		padding: 0 calc(0.5rem - 2px);
 		pointer-events: none;
 		overflow: hidden;
 		white-space: nowrap;
-		background-color: var(--input_background);
+		font-family: Arial;
+		font-size: 15px;
+		-webkit-font-smoothing: none;
+		background-color: var(--button-highlight);
 		color: var(--text_color_normal);
+	}
+
+	input:disabled + .selected_value {
+		background-color: var(--surface);
+		color: var(--very_dark_gray);
 	}
 
 	ol {
