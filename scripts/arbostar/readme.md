@@ -25,7 +25,7 @@ line items only exist behind per-record detail endpoints (fetched one by one).
 ```sh
 node scripts/arbostar/export_clients.ts      # -> clients.js (raw rows; contacts + address_related nested)
 node scripts/arbostar/export_workorders.ts   # -> workorders.js
-node scripts/arbostar/export_leads.ts        # -> leads.js
+node scripts/arbostar/export_leads.ts        # -> leads.js (two passes + the KPI New Leads referral join)
 node scripts/arbostar/export_estimates.ts    # -> estimates.js   (two passes)
 node scripts/arbostar/export_invoices.ts     # -> invoices.js
 node scripts/arbostar/export_line_items.ts   # -> line_items.js  (reads estimates.js; ~1684 × 355 KB — slowest)
@@ -42,7 +42,7 @@ the committed `arbostar_export/<name>.d.ts` types it). `export_line_items.ts` re
 `estimates.js`, so run that first. See
 [`arbostar_export/readme.md`](../../arbostar_export/readme.md) for the output side.
 
-Approximate volumes (June–August 2026): clients 1435, leads 1850, workorders 836,
+Approximate volumes (June–August 2026): clients 1435, leads 2181, workorders 836,
 estimates 1684, invoices 906, line items 3592, payments 1204, users 6. "Projects" in
 ArboStar are **Work Orders** (`/workorders`).
 
@@ -97,7 +97,7 @@ on-screen default view is almost never the full dataset:
 | --- | --- | --- |
 | `/workorders` | full history (836) ✅ | `-1` is enough |
 | `/estimates` | full history incl. declined (1684) ✅ | `-1` is enough |
-| `/leads` | only **active** leads (~4) ❌ | every status id (most leads become "Estimated" and leave the view) → 1850 |
+| `/leads` | only **active** leads (~4) ❌ | every status id (most leads become "Estimated" and leave the view) → 2181 |
 | `/invoices` | only **"All outstanding"** (27) ❌ — excludes Paid | every status id → 826 |
 
 Because no single filter is reliable, `fetch_all_rows_every_status()` does **both**: it fetches
@@ -455,6 +455,13 @@ Invoices and work orders have **no** full-entity JSON endpoint, so their datatab
 - Datatable: `GET /leads` — 23 columns
 - Full entity: `GET /estimates/edit/{lead_id} → lead` — 81 columns
 - **69 columns are only on the full endpoint** (what you miss with the datatable alone)
+
+The lead source (the lead form's "Referred by" select) is on neither in usable form: the full
+entity only carries the codebook *id* (`lead_reffered_by`), and no endpoint serving the
+id → name codebook has turned up. `export_leads.ts` instead resolves the names from the BI
+KPI New Leads report (`GET /business_intelligence/kpi_new_leads/datatables` — a standard GET
+datatable scoped by `report_date_from`/`report_date_to` instead of statuses) and joins its
+`referred_by` / `referred_by_name` columns onto each lead by `lead_id`.
 
 | Column | Datatable | Full entity |
 | --- | :---: | :---: |

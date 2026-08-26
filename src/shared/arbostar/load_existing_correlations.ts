@@ -18,6 +18,7 @@ export type ExistingCorrelations = {
 	// (company_id, name).
 	item_type_id_by_name: Map<string, bigint>
 	payment_method_id_by_name: Map<string, bigint>
+	lead_source_id_by_name: Map<string, bigint>
 	// Also keyed by normalize_name(name) — work_skill has no unique key on name, but the
 	// import treats the (derived) name as the natural key.
 	work_skill_id_by_name: Map<string, bigint>
@@ -42,7 +43,7 @@ export const load_existing_correlations = async (
 	connection: Connection | Pool,
 	tenanted_select: TenantedSelect,
 ): Promise<ExistingCorrelations> => {
-	const [employees, clients, projects, invoices, payments, contacts, line_items, item_types, payment_methods, tax_rates, work_skills] = await Promise.all([
+	const [employees, clients, projects, invoices, payments, contacts, line_items, item_types, payment_methods, tax_rates, work_skills, lead_sources] = await Promise.all([
 		tenanted_select(connection, q => q
 			.from('employee')
 			.select(() => ['employee.employee_id', 'employee.arbostar_user_id'])),
@@ -76,6 +77,9 @@ export const load_existing_correlations = async (
 		tenanted_select(connection, q => q
 			.from('work_skill')
 			.select(() => ['work_skill.work_skill_id', 'work_skill.name'])),
+		tenanted_select(connection, q => q
+			.from('lead_source')
+			.select(() => ['lead_source.lead_source_id', 'lead_source.name'])),
 	])
 
 	return {
@@ -137,6 +141,10 @@ export const load_existing_correlations = async (
 		work_skill_id_by_name: new Map(map(
 			work_skills,
 			row => [normalize_name(row.work_skill.name), BigInt(row.work_skill.work_skill_id)] as const,
+		)),
+		lead_source_id_by_name: new Map(map(
+			lead_sources,
+			row => [normalize_name(row.lead_source.name), BigInt(row.lead_source.lead_source_id)] as const,
 		)),
 	}
 }

@@ -23,6 +23,7 @@ import { invoice_validator, insertable_invoice_validator } from './validator/inv
 import { invoice_line_item_validator, insertable_invoice_line_item_validator } from './validator/invoice_line_item.ts'
 import { invoice_number_validator, insertable_invoice_number_validator } from './validator/invoice_number.ts'
 import { item_type_validator, insertable_item_type_validator } from './validator/item_type.ts'
+import { lead_source_validator, insertable_lead_source_validator } from './validator/lead_source.ts'
 import { line_item_template_validator, insertable_line_item_template_validator } from './validator/line_item_template.ts'
 import { line_item_template_work_skill_validator, insertable_line_item_template_work_skill_validator } from './validator/line_item_template_work_skill.ts'
 import { migration_validator, insertable_migration_validator } from './validator/migration.ts'
@@ -72,6 +73,7 @@ export const validators = {
 	invoice_line_item: invoice_line_item_validator,
 	invoice_number: invoice_number_validator,
 	item_type: item_type_validator,
+	lead_source: lead_source_validator,
 	line_item_template: line_item_template_validator,
 	line_item_template_work_skill: line_item_template_work_skill_validator,
 	migration: migration_validator,
@@ -122,6 +124,7 @@ export const insertable_validators = {
 	invoice_line_item: insertable_invoice_line_item_validator,
 	invoice_number: insertable_invoice_number_validator,
 	item_type: insertable_item_type_validator,
+	lead_source: insertable_lead_source_validator,
 	line_item_template: insertable_line_item_template_validator,
 	line_item_template_work_skill: insertable_line_item_template_work_skill_validator,
 	migration: insertable_migration_validator,

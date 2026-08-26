@@ -5,8 +5,19 @@
 // The lead list is status-scoped; status_ids[]=-1 only returns active leads (most leads
 // convert to status "Estimated" and drop out of that view), so we union across every status
 // id to get the full history. Auth comes from ./session.ts; shape from ./leads.d.ts.
+//
+// The lead source ("Referred by" in the lead form) is not on the datatable rows — the full
+// lead entity only carries the source *id* (lead_reffered_by), and no codebook endpoint for
+// it has turned up. The BI KPI New Leads report resolves the names, so a second pass over
+// GET /business_intelligence/kpi_new_leads/datatables (a standard GET datatable, scoped by a
+// report_date range instead of statuses) joins referred_by / referred_by_name on by lead_id.
+//
+// The free-text detail behind the "Other" source choice (lead_source_details) only exists on
+// the full lead entity, and sampling shows it is null on every non-"Other" lead — so a third
+// pass fetches the (large) editor payload for just the "Other" leads.
 
-import { fetch_all_rows_every_status } from './fetch_datatable.ts'
+import { fetch_all_rows, fetch_all_rows_every_status } from './fetch_datatable.ts'
+import { fetch_json, map_with_concurrency } from './fetch_record.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { write_output } from './output.ts'
 import type { ExportShape } from './output.ts'
@@ -37,7 +48,17 @@ type ArboStarLead = {
 	form_id: string | null
 }
 
-function to_export(lead: ArboStarLead): ExportShape<ArbostarLead> {
+type ArboStarKpiNewLeadsRow = {
+	lead_id: number
+	referred_by: string | null
+	referred_by_name: string | null
+}
+
+function to_export(
+	lead: ArboStarLead,
+	referral: ArboStarKpiNewLeadsRow | undefined,
+	lead_source_details: string | null,
+): ExportShape<ArbostarLead> {
 	return {
 		lead_id: lead.lead_id,
 		lead_no: lead.lead_no,
@@ -62,6 +83,9 @@ function to_export(lead: ArboStarLead): ExportShape<ArbostarLead> {
 		utm_referral: lead.utm_referral,
 		gclid: lead.gclid,
 		form_id: lead.form_id,
+		referred_by: referral?.referred_by ?? null,
+		referred_by_name: referral?.referred_by_name ?? null,
+		lead_source_details,
 	}
 }
 
@@ -75,5 +99,40 @@ const leads = await fetch_all_rows_every_status<ArboStarLead>({
 	on_progress: fetched => console.log(`  fetched ${fetched} leads`),
 })
 
-const exported = leads.map(to_export)
+const referral_rows = await fetch_all_rows<ArboStarKpiNewLeadsRow>({
+	path: '/business_intelligence/kpi_new_leads/datatables',
+	order: { column_index: 1, column_name: 'lead_date_created', dir: 'desc' },
+	extra_params: {
+		report_date_from: '01/01/2015',
+		report_date_to: '12/31/2099',
+		estimators: '',
+	},
+	base_url: BASE_URL,
+	headers: AUTH_HEADERS,
+	on_progress: (fetched, total) => console.log(`  fetched ${fetched} / ${total} lead referrals`),
+})
+const referral_by_lead_id = new Map(referral_rows.map(row => [row.lead_id, row]))
+
+const other_lead_ids = leads
+	.map(lead => lead.lead_id)
+	.filter(lead_id => referral_by_lead_id.get(lead_id)?.referred_by === 'Other')
+const detail_entries = await map_with_concurrency(
+	other_lead_ids,
+	6,
+	async lead_id => {
+		const data = await fetch_json<{ lead: { lead_source_details: string | null } }>(
+			`/estimates/edit/${lead_id}`,
+			{ base_url: BASE_URL, headers: AUTH_HEADERS },
+		)
+		return [lead_id, data.lead.lead_source_details] as const
+	},
+	(done, total) => console.log(`  fetched ${done} / ${total} lead source details`),
+)
+const details_by_lead_id = new Map(detail_entries)
+
+const exported = leads.map(lead => to_export(
+	lead,
+	referral_by_lead_id.get(lead.lead_id),
+	details_by_lead_id.get(lead.lead_id) ?? null,
+))
 console.log(`Wrote ${exported.length} leads -> ${write_output('leads.js', exported)}`)

@@ -19,6 +19,7 @@ export type ImportedProjects = {
 	project_id_by_arbostar_lead_id: Map<number, bigint>
 	counts: {
 		tax_rates_inserted: number
+		lead_sources_inserted: number
 		projects_inserted: number
 		projects_updated: number
 		projects_no_longer_in_export: number
@@ -222,6 +223,43 @@ export const import_projects = async (
 			tax_rate_row_by_name.set(entry.name, { tax_rate_id: insert_ids[index]!, tax_rate: entry.ratio }))
 	}
 
+	// The lead source codebook: one lead_source row per distinct "Referred by" name in the
+	// export, reusing existing rows by the case-insensitive (company_id, name) unique key.
+	// "Not Selected" is ArboStar's no-source placeholder, not a source. An "Other" lead's
+	// free-text detail is its real source ("JobsFuel", "Nextdoor", sometimes an existing
+	// source the caller didn't pick from the select), so the detail takes over as the name;
+	// only a detail-less "Other" stays "Other".
+	const lead_source_name = (lead: ArbostarLead): string | null => {
+		const name = lead.referred_by?.trim()
+		if (!name || normalize_name(name) === 'not selected') return null
+		const details = lead.lead_source_details?.trim()
+		return normalize_name(name) === 'other' && details ? details : name
+	}
+	const needed_source_names = new Map<string, string>()
+	for (const lead of importable) {
+		const name = lead_source_name(lead)
+		if (name !== null) needed_source_names.set(normalize_name(name), name)
+	}
+	const lead_source_id_by_name = new Map(context.existing.lead_source_id_by_name)
+	const new_lead_sources = filter([...needed_source_names.entries()], ([key]) => !lead_source_id_by_name.has(key))
+	if (new_lead_sources.length > 0) {
+		const { insert_ids } = await write_helper.bulk_insert(
+			connection,
+			'lead_source',
+			map(new_lead_sources, ([, name]) => ({ company_id: context.company_id, name })),
+			ROWS_PER_BATCH,
+		)
+		new_lead_sources.forEach(([key], index) => lead_source_id_by_name.set(key, insert_ids[index]!))
+	}
+
+	const lead_source_id = (lead: ArbostarLead): bigint | null => {
+		const name = lead_source_name(lead)
+		if (name === null) return null
+		const id = lead_source_id_by_name.get(normalize_name(name))
+		assert(id !== undefined, `lead source "${name}" has a row`)
+		return id
+	}
+
 	const project_tax = (lead: ArbostarLead): ProjectTax => {
 		const entry = official_tax_by_lead_id.get(lead.lead_id) ?? null
 		if (entry === null) return NOT_TAXABLE
@@ -346,6 +384,11 @@ export const import_projects = async (
 				? null
 				: `Created ${lead.lead_date_created}${lead.lead_created_by === null ? '' : ` by ${lead.lead_created_by}`}`,
 			assigned_estimator_employee_id === null && estimator_name !== null ? `Estimator: ${estimator_name}` : null,
+			// The source itself lives in lead_source_id — only a referring person needs prose.
+			// On "Other" leads referred_by_name just repeats the source detail text.
+			lead.referred_by_name && lead.referred_by_name.trim() !== lead.lead_source_details?.trim()
+				? `Referred by ${lead.referred_by_name}`
+				: null,
 			(lead.lead_address ?? lead.address_line_display) === null
 				? null
 				: `Lead address: ${lead.lead_address ?? lead.address_line_display}`,
@@ -382,7 +425,7 @@ export const import_projects = async (
 			notes_for_office,
 			closed,
 			project_decline_reason_id,
-			lead_source: lead.utm_source ?? '',
+			lead_source_id: lead_source_id(lead),
 			discount_description: '',
 			...totals,
 			...project_tax(lead),
@@ -437,6 +480,7 @@ export const import_projects = async (
 		project_id_by_arbostar_lead_id,
 		counts: {
 			tax_rates_inserted: new_tax_rates.length,
+			lead_sources_inserted: new_lead_sources.length,
 			projects_inserted: new_leads.length,
 			projects_updated: existing_leads.length,
 			projects_no_longer_in_export: no_longer_in_export,

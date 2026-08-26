@@ -24,6 +24,7 @@ export type Schema = {
 	invoice_line_item: DbInvoiceLineItem
 	invoice_number: DbInvoiceNumber
 	item_type: DbItemType
+	lead_source: DbLeadSource
 	line_item_template: DbLineItemTemplate
 	line_item_template_work_skill: DbLineItemTemplateWorkSkill
 	migration: DbMigration
@@ -74,6 +75,7 @@ export type InsertableSchema = {
 	invoice_line_item: DbInsertableInvoiceLineItem
 	invoice_number: DbInsertableInvoiceNumber
 	item_type: DbInsertableItemType
+	lead_source: DbInsertableLeadSource
 	line_item_template: DbInsertableLineItemTemplate
 	line_item_template_work_skill: DbInsertableLineItemTemplateWorkSkill
 	migration: DbInsertableMigration

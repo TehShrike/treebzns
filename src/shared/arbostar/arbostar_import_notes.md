@@ -78,7 +78,10 @@ nowhere to go.
 | `lead_assigned_date` / `lead_postpone_date` | dropped |
 | `estimator` | → `assigned_estimator_employee_id` on a name match, else lead_details |
 | `lead_address` / `address_line_display` | → lead_details (the project's address columns copy the client's primary address so they agree with `client_address_id`) |
-| `utm_medium` / `utm_campaign` / `utm_term` / `utm_content` / `utm_referral` / `gclid` / `form_id` | dropped (`utm_source` → `lead_source`) |
+| `referred_by` | the "Referred by" source name (joined from the BI KPI New Leads report by the export) → a `lead_source` row per distinct name (reused by the case-insensitive `(company_id, name)` key) → `project.lead_source_id`. "Not Selected" (ArboStar's no-source placeholder) and leads missing from the report import as null |
+| `lead_source_details` | the free text behind an "Other" source is the real source ("JobsFuel", "Nextdoor", ...), so it replaces "Other" as the lead_source name; a detail-less "Other" stays "Other" |
+| `referred_by_name` | the referring person on Employee/Client referrals → lead_details (`Referred by <name>`); skipped when it just repeats `lead_source_details` (it does on "Other" leads) |
+| `utm_source` / `utm_medium` / `utm_campaign` / `utm_term` / `utm_content` / `utm_referral` / `gclid` / `form_id` | dropped (only `utm_referral` has ever held a value in this account) |
 
 ### estimates.js (no estimate entity exists — one line each in lead_details)
 

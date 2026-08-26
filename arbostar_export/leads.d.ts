@@ -36,6 +36,19 @@ export type ArbostarLead = {
 	utm_referral: string | null
 	gclid: '' | null
 	form_id: '' | null
+	/**
+	 * The lead source name from the lead form's "Referred by" field ("Yelp", "Employee",
+	 * "Print, Flyers, etc", ...), resolved via the BI KPI New Leads report. Null when the
+	 * report has no row for the lead.
+	 */
+	referred_by: string | null
+	/** The referring person's display name when referred_by is a referral type ("Employee", "Client"); '' otherwise. */
+	referred_by_name: string | null
+	/**
+	 * Free text behind the "Other" source choice ("Nextdoor", "JobsFuel", ...), from the
+	 * full lead entity. Only fetched when referred_by is "Other" — null on every other lead.
+	 */
+	lead_source_details: string | null
 }
 
 // leads.js is an ESM module whose default export is the full array of records.

@@ -226,6 +226,11 @@ export const item_type = {
 	taxable: 'taxable',
 } as const
 
+export const lead_source = {
+	company_id: 'company_id',
+	name: 'name',
+} as const
+
 export const line_item_template = {
 	company_id: 'company_id',
 	title: 'title',
@@ -311,12 +316,12 @@ export const project = {
 	closed_at: 'closed_at',
 	closed_date: 'closed_date',
 	project_decline_reason_id: 'project_decline_reason_id',
-	lead_source: 'lead_source',
 	contact_name: 'contact_name',
 	contact_phone: 'contact_phone',
 	contact_email: 'contact_email',
 	latitude: 'latitude',
 	longitude: 'longitude',
+	lead_source_id: 'lead_source_id',
 } as const
 
 export const project_client_approval = {

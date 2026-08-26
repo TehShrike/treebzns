@@ -88,7 +88,7 @@ export const functions = {
 				due_date: arg.due_date ?? null,
 				emergency: arg.emergency,
 				lead_details: arg.lead_details,
-				lead_source: '',
+				lead_source_id: null,
 				discount_description: '',
 				notes_for_crew: '',
 				notes_for_office: '',

@@ -25,7 +25,7 @@ import type { ArbostarClient } from '#arbostar_export/clients.d.ts' // the recor
 | File | Records* | Record type | What it is |
 | --- | ---: | --- | --- |
 | `clients.js` | 1435 | `ArbostarClient` | Customers — the raw `/clients` datatable rows, unmodified. Contacts (`contacts[]`, phone/email per contact) and geocoding (`address_related`) come nested on each row. |
-| `leads.js` | 1850 | `ArbostarLead` | Every lead across all statuses (most convert to "Estimated"). `client_id` → clients. |
+| `leads.js` | 2181 | `ArbostarLead` | Every lead across all statuses (most convert to "Estimated"). `client_id` → clients. `referred_by` / `referred_by_name` (the lead source) are joined on from the BI KPI New Leads report. |
 | `estimates.js` | 1684 | `ArbostarEstimate` | Quotes, all statuses. `lead_id` → leads, `client_id` → clients. |
 | `invoices.js` | 906 | `ArbostarInvoice` | Invoices incl. Paid. `client_id` → clients, `lead_id` → leads. |
 | `workorders.js` | 836 | `ArbostarWorkOrder` | "Projects" / scheduled jobs. `client_id` → clients, `lead_id` → leads. |

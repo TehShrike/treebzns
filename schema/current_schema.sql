@@ -355,6 +355,16 @@ CREATE TABLE `item_type` (
   UNIQUE KEY `uq_item_type_company_name` (`company_id`,`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE `lead_source` (
+  `lead_source_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `name` varchar(200) COLLATE utf8mb4_general_ci NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`lead_source_id`),
+  UNIQUE KEY `uq_lead_source_company_name` (`company_id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE `line_item_template` (
   `line_item_template_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
@@ -481,12 +491,12 @@ CREATE TABLE `project` (
   `closed_at` datetime DEFAULT NULL,
   `closed_date` date DEFAULT NULL,
   `project_decline_reason_id` int unsigned DEFAULT NULL,
-  `lead_source` varchar(500) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `contact_name` varchar(500) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `contact_phone` varchar(30) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `contact_email` varchar(500) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `latitude` double DEFAULT NULL,
   `longitude` double DEFAULT NULL,
+  `lead_source_id` int unsigned DEFAULT NULL,
   PRIMARY KEY (`project_id`),
   UNIQUE KEY `uq_project_company_number` (`company_id`,`number`),
   KEY `idx_project_company_document` (`company_id`,`project_document_id`),
