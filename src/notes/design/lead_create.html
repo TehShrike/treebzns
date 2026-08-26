@@ -10,31 +10,6 @@
 	<link rel="stylesheet" href="../../public/98.css">
 	<link rel="stylesheet" href="mockup.css">
 	<style>
-		.search_results {
-			display: flex;
-			flex-direction: column;
-			gap: 2px;
-			max-width: 40rem;
-		}
-
-		.search_result {
-			display: flex;
-			flex-direction: row;
-			align-items: center;
-			justify-content: space-between;
-			gap: var(--gap_half);
-			padding: 4px 8px;
-			background: var(--white);
-			border: 1px solid var(--generic_border_color);
-			border-radius: var(--default_border_radius);
-			cursor: pointer;
-		}
-
-		.search_result[data-chosen=true] {
-			border-color: var(--friendly_color);
-			border-width: 2px;
-		}
-
 		.form_fields {
 			display: grid;
 			grid-template-columns: repeat(auto-fill, minmax(12rem, 20rem));
@@ -75,6 +50,10 @@
 		body:has(.billing_toggle input:not(:checked)) .billing_address_fieldset {
 			display: none;
 		}
+
+		body:has(.due_date_toggle input:not(:checked)) .due_date_field {
+			display: none;
+		}
 	</style>
 </head>
 <body>
@@ -84,8 +63,8 @@
 			<a href="index.html">All screens</a>
 		</div>
 		<p>
-			The screen the office uses during the first phone call.  One search box finds the client.  The
-			rest of the page collects what a lead needs.  No line items here.
+			The screen the office uses during the first phone call.  The Name and Phone searches find the
+			client.  The rest of the page collects what a lead needs.  No line items here.
 		</p>
 		<label class="schema_toggle"><input type="checkbox"> Show column names</label>
 	</header>
@@ -111,57 +90,29 @@
 			<fieldset>
 				<legend>Client</legend>
 				<div class="column">
-					<div class="wide_field">
-						<label for="client_search">Search for existing client</label>
-						<input id="client_search" type="search" value="whitfield" autofocus>
-					</div>
-					<span class="schema">searches client.name, primary_phone, primary_email, client_address.address_line_1</span>
-
 					<!--
-						The real implementation is BetterDataList
-						(src/client/component/dropdown_input/BetterDataList.svelte), so the results are a
-						dropdown under the input, not this inline list.
+						The real implementation is ClientNameSearch and ClientPhoneSearch
+						(src/client/component/), the same two searches as the top of the Clients screen.
+						Each one shows a dropdown of matches under the input.
 					-->
-					<div class="search_results">
-						<div class="search_result" data-chosen="true">
-							<div class="column">
-								<div class="row">
-									<strong>Whitfield, Marla</strong>
-									<span class="pill" style="border-color:#2f855a;color:#2f855a">Good client</span>
-								</div>
-								<span class="muted">4418 Kestrel Ridge Rd · (812) 555-0147 · 3 accepted · 1 declined</span>
-							</div>
-							<span class="pill">Chosen</span>
-						</div>
-						<div class="search_result">
-							<div class="column">
-								<div class="row">
-									<strong>Whitfield, Ronald</strong>
-									<span class="pill" style="border-color:#c05621;color:#c05621">Bad lead</span>
-								</div>
-								<span class="muted">77 Old Farm Rd · (812) 555-0188 · 0 accepted · 1 declined</span>
-							</div>
-						</div>
-						<div class="search_result">
-							<div class="column">
-								<strong>Start a new client</strong>
-								<span class="muted">Nobody in the list matches</span>
-							</div>
-						</div>
+					<div class="form_fields">
+						<label>Name<input type="search" value="Whitfield, Marla" autofocus></label>
+						<label>Phone<input type="search" value=""></label>
 					</div>
+					<span class="schema">client and contact names; client and contact phones, via the client cache search helpers</span>
 					<div class="muted">
-						The list shows every match while you type.  Picking one fills the client fields below
-						and offers their saved addresses.  Each match shows its tags and its accepted and
-						declined quote counts, so the person on the phone knows who they are talking to.
+						A pick in either search produces a client and sometimes a contact.  The client fields
+						below fill from that client.  When the pick carries a contact, the Project Contact
+						section starts on that contact.  With no pick, the fields stay empty and saving
+						creates a new client.
 					</div>
-					<span class="schema">client_tag via client_client_tag; counts from project_document_history against approved and declined documents</span>
 					<div class="form_fields">
 						<label>Client Name<input type="text" value="Whitfield, Marla"></label>
 						<label>Phone<input type="tel" value="(812) 555-0147"></label>
 						<label>Email<input type="email" value="marla.w@example.com"></label>
 						<label>Referred by<input type="text" value="Neighbor on Kestrel Ridge"></label>
 						<label>Tax rate<select><option selected>No tax</option><option>State sales tax (7%)</option></select></label>
-						<label>Commercial<select><option selected>No</option><option>Yes</option></select></label>
+						<label>Commercial<input type="checkbox"></label>
 					</div>
 					<span class="schema">client.name, primary_phone, primary_email, referred_by, tax_rate_id, is_commercial</span>
 					<div class="wide_field">
@@ -183,6 +134,7 @@
 								<option>Add a new address</option>
 							</select>
 						</label>
+						<span class="muted">Pre-existing clients only.</span>
 						<span class="schema">client_address rows for this client</span>
 					</div>
 					<div class="form_fields">
@@ -197,12 +149,15 @@
 						move an open job.
 					</div>
 					<span class="schema">project.address_line_1, city, state, zip, client_address_id</span>
-					<label class="billing_toggle"><input type="checkbox"> The billing address is different</label>
+					<div class="row">
+						<label class="billing_toggle"><input type="checkbox"> The billing address is different</label>
+						<span class="muted">New clients only.  Check it to try the Billing Address fieldset below.</span>
+					</div>
 				</div>
 			</fieldset>
 
 			<fieldset class="billing_address_fieldset">
-				<legend>Client Billing Address</legend>
+				<legend>Billing Address</legend>
 				<div class="column">
 					<div class="form_fields">
 						<label>Billing name<input type="text" value=""></label>
@@ -213,8 +168,9 @@
 						<label>Zip<input type="text" value=""></label>
 					</div>
 					<div class="muted">
-						Shown for a new client when the billing address is different.  Invoices go to this
-						address instead of the project location.
+						Shown for a new client when the billing address is different.  No saved address
+						dropdown here, the fields map directly to the billing address on the client.
+						Invoices go to this address instead of the project location.
 					</div>
 					<span class="schema">client.billing_name, billing_address_line_1, billing_address_line_2, billing_city, billing_state, billing_zip</span>
 				</div>
@@ -231,6 +187,7 @@
 								<option>&lt;New Contact&gt;</option>
 							</select>
 						</label>
+						<span class="muted">Pre-existing clients only.</span>
 						<span class="schema">client_contact rows for this client</span>
 					</div>
 					<div class="form_fields">
@@ -242,7 +199,8 @@
 					<div class="muted">
 						The crew calls this number, not the client record.  A tenant, a spouse, or a property
 						manager can go here without touching the client.  Picking a saved contact fills the
-						fields below.  &lt;New Contact&gt; is the only option for a new client.
+						fields below.  For a new client there is no dropdown, and the fields default from the
+						client's name, phone, and email.
 					</div>
 				</div>
 			</fieldset>
@@ -266,7 +224,7 @@
 						<!--
 							Lead source is a BetterDataList
 							(src/client/component/dropdown_input/BetterDataList.svelte).  Its options are the
-							distinct project.lead_source values already saved, and any new text is accepted.
+							company's lead_source rows, and new text creates a new row.
 						-->
 						<label>Lead source<input type="text" value="Phone call"></label>
 						<label>Estimator
@@ -276,10 +234,11 @@
 								<option>Andrew Duff</option>
 							</select>
 						</label>
-						<label>Due date<input type="date" value="2026-09-05"></label>
+						<label class="due_date_toggle">Has a due date<input type="checkbox"></label>
+						<label class="due_date_field">Due date<input type="date"></label>
 						<label>Emergency<input type="checkbox"></label>
 					</div>
-					<span class="schema">project.project_document_id, lead_source, assigned_estimator_employee_id, due_date, emergency</span>
+					<span class="schema">project.project_document_id, lead_source_id, assigned_estimator_employee_id, due_date, emergency</span>
 
 					<strong>When can we come look?</strong>
 					<div class="availability_row">
@@ -320,7 +279,7 @@
 		<h2>Design notes</h2>
 		<ul>
 			<li>
-				One search box, four sections, top to bottom.  The person on the phone reads down the
+				Two search inputs, four sections, top to bottom.  The person on the phone reads down the
 				page in the order the conversation goes.
 			</li>
 			<li>
@@ -345,10 +304,13 @@
 				columns are nullable, so a lead saves without them.
 			</li>
 			<li>
-				Lead source is a BetterDataList over the free text column
-				(<code>project.lead_source</code>).  The options are the distinct values already saved,
-				and any new text is accepted.  That keeps entries consistent for the reporting in
-				<code>src/notes/big_todos.md</code>.  The data can move to its own table later if needed.
+				Lead source is a BetterDataList over the <code>lead_source</code> table.  The options are
+				the company's saved rows, and new text creates a new row.  That keeps entries consistent
+				for the reporting in <code>src/notes/big_todos.md</code>.
+			</li>
+			<li>
+				Due date is blank by default, and <code>project.due_date</code> is nullable.  The "Has a
+				due date" checkbox reveals the date input, so an untouched form saves no due date.
 			</li>
 			<li>
 				<code>client.primary_client_address_id</code> is not nullable, and that is intentional.
