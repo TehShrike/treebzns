@@ -1,12 +1,9 @@
 <script module lang="ts">
-	import type { CachedClient, CachedClientContact, ClientCache } from '#client/lib/client_cache.svelte.ts'
+	import type { CachedClient, ClientCache } from '#client/lib/client_cache.svelte.ts'
+	import type { SearchSelection } from './client_search_selection.ts'
 	import DropdownSearchInput from './dropdown_input/DropdownSearchInput.svelte'
 	import { filter_map, find } from '#shared/array.ts'
 	import { get_phone_digits } from '#shared/phone_number.ts'
-
-	export type PhoneSearchSelection = CachedClient & {
-		selected_client_contact: CachedClientContact | null
-	}
 
 	export type PhoneSearchOption = {
 		cached_client: CachedClient
@@ -15,10 +12,9 @@
 </script>
 
 <script lang="ts">
-	let { client_cache, selected_option = $bindable(null), onchange }: {
+	let { client_cache, on_pick }: {
 		client_cache: ClientCache
-		selected_option?: PhoneSearchOption | null
-		onchange?: (value: PhoneSearchSelection | null) => void
+		on_pick: (selection: SearchSelection) => void
 	} = $props()
 
 	let search_text = $state(``)
@@ -36,10 +32,11 @@
 		})
 	})
 
-	const on_change = (option: PhoneSearchOption | null) => {
-		onchange?.(option
-			? { ...option.cached_client, selected_client_contact: option.phone.client_contact }
-			: null)
+	const set_selected_option = (option: PhoneSearchOption | null) => {
+		if (option) {
+			search_text = ``
+			on_pick({ client: option.cached_client.client, contact: option.phone.client_contact })
+		}
 	}
 </script>
 
@@ -50,9 +47,8 @@
 
 <DropdownSearchInput
 	bind:search_text
-	bind:selected_option
+	bind:selected_option={() => null, set_selected_option}
 	{options}
-	onchange={on_change}
 	option={phone_option}
 	get_selected_option_text={({ phone }) => phone.display}
 />

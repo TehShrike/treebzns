@@ -3,17 +3,17 @@
 </script>
 
 <script lang="ts">
-	const { picked_client, onclear }: {
+	let { picked_client = $bindable() }: {
 		picked_client: CachedClient | null
-		onclear: () => void
 	} = $props()
 </script>
 
 <div class="current_client">
-	<span class="current_client_name">{picked_client ? picked_client.client.name : `New client`}</span>
 	{#if picked_client}
-		<button type="button" onclick={onclear}>Clear</button>
+		<button type="button" onclick={() => picked_client = null}>Clear</button>
 	{/if}
+
+	<span class="current_client_name">{picked_client ? picked_client.client.name : `New client`}</span>
 </div>
 
 <style>

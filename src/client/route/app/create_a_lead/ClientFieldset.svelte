@@ -2,16 +2,9 @@
 	import FormLayout from '#client/component/FormLayout.svelte'
 	import FieldsetColumn from './FieldsetColumn.svelte'
 	import WideTextareaField from './WideTextareaField.svelte'
+	import type { LeadClient } from '#shared/type/lead.ts'
 
-	export type ClientForm = {
-		name: string
-		primary_phone: string
-		primary_email: string
-		referred_by: string
-		tax_rate_id: bigint | null
-		is_commercial: boolean
-		notes: string
-	}
+	export type ClientForm = Omit<LeadClient, 'client_id'>
 
 	export type TaxRate = { tax_rate_id: bigint, name: string }
 </script>

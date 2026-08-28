@@ -3,7 +3,8 @@
 	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
 	import type { CachedClient, CachedClientContact } from '#client/lib/client_cache.svelte.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
-	import SearchFieldset, { type NameSearchOption, type PhoneSearchOption, type SearchSelection } from './SearchFieldset.svelte'
+	import SearchFieldset from './SearchFieldset.svelte'
+	import type { SearchSelection } from '#client/component/client_search_selection.ts'
 	import CurrentClient from './CurrentClient.svelte'
 	import ClientFieldset, { type ClientForm } from './ClientFieldset.svelte'
 	import ProjectLocationFieldset, { type AddressForm, type CachedAddress } from './ProjectLocationFieldset.svelte'
@@ -13,6 +14,7 @@
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import { map, filter, find, some } from '#shared/array.ts'
+	import assert from '#shared/assert.ts'
 	import { Temporal } from '@js-temporal/polyfill'
 
 	const fetch_tax_rates = async (query: ClientQueryFn) => map(
@@ -75,9 +77,6 @@
 <script lang="ts">
 	const { client_cache, server, tax_rates, employees, lead_sources, asr }: Resolved & { asr: StateAsr } = $props()
 
-	let name_option = $state<NameSearchOption | null>(null)
-	let phone_option = $state<PhoneSearchOption | null>(null)
-
 	let picked_client = $state<CachedClient | null>(null)
 	let client_form = $state<ClientForm>({
 		name: ``,
@@ -129,22 +128,27 @@
 	let saving = $state(false)
 	let save_error = $state(``)
 
-	const fill_address_form = () => {
-		address_form.address_line_1 = selected_address?.address_line_1 ?? ``
-		address_form.address_line_2 = selected_address?.address_line_2 ?? ``
-		address_form.city = selected_address?.city ?? ``
-		address_form.state = selected_address?.state ?? ``
-		address_form.zip = selected_address?.zip ?? ``
+	const set_selected_address = (address: CachedAddress | null) => {
+		selected_address = address
+		address_form.address_line_1 = address?.address_line_1 ?? ``
+		address_form.address_line_2 = address?.address_line_2 ?? ``
+		address_form.city = address?.city ?? ``
+		address_form.state = address?.state ?? ``
+		address_form.zip = address?.zip ?? ``
 	}
 
-	const fill_contact_form = () => {
-		contact_form.name = selected_contact?.name ?? ``
-		contact_form.phone = selected_contact?.phone ?? ``
-		contact_form.email = selected_contact?.email ?? ``
+	const set_selected_contact = (contact: CachedClientContact | null) => {
+		selected_contact = contact
+		contact_form.name = contact?.name ?? ``
+		contact_form.phone = contact?.phone ?? ``
+		contact_form.email = contact?.email ?? ``
 	}
 
 	const apply_pick = (selection: SearchSelection) => {
-		picked_client = selection
+		const cached_client = find(client_cache.clients, ({ client }) => client.client_id === selection.client.client_id)
+		assert(cached_client, `the picked client is in the client cache`)
+
+		picked_client = cached_client
 
 		client_form.name = selection.client.name
 		client_form.primary_phone = selection.client.primary_phone
@@ -156,16 +160,18 @@
 
 		billing_is_different = false
 
-		selected_address = find(selection.client_addresses, address => address.client_address_id === selection.client.default_project_address_id)
-			?? selection.client_addresses[0]
-			?? null
-		fill_address_form()
+		set_selected_address(
+			find(cached_client.client_addresses, address => address.client_address_id === selection.client.default_project_address_id)
+				?? cached_client.client_addresses[0]
+				?? null
+		)
 
-		selected_contact = selection.selected_client_contact
-			?? find(selection.client_contacts, contact => contact.is_primary)
-			?? selection.client_contacts[0]
-			?? null
-		fill_contact_form()
+		set_selected_contact(
+			selection.contact
+				?? find(cached_client.client_contacts, contact => contact.is_primary)
+				?? cached_client.client_contacts[0]
+				?? null
+		)
 	}
 
 	const reset_to_new_client = () => {
@@ -178,16 +184,16 @@
 		client_form.is_commercial = false
 		client_form.notes = ``
 		billing_is_different = false
-		selected_address = null
-		fill_address_form()
-		selected_contact = null
-		fill_contact_form()
+		set_selected_address(null)
+		set_selected_contact(null)
 	}
 
-	const clear_picked_client = () => {
-		name_option = null
-		phone_option = null
-		reset_to_new_client()
+	const set_picked_client = (client: CachedClient | null) => {
+		if (client) {
+			picked_client = client
+		} else {
+			reset_to_new_client()
+		}
 	}
 
 	const submit = async (event: SubmitEvent) => {
@@ -258,18 +264,17 @@
 	<h1>Create a lead</h1>
 
 	<form onsubmit={submit}>
-		<SearchFieldset {client_cache} bind:name_option bind:phone_option onpick={apply_pick} />
+		<SearchFieldset {client_cache} on_pick={apply_pick} />
 
-		<CurrentClient {picked_client} onclear={clear_picked_client} />
+		<CurrentClient bind:picked_client={() => picked_client, set_picked_client} />
 
 		<ClientFieldset bind:client_form {tax_rates} />
 
 		<ProjectLocationFieldset
 			{picked_client}
-			bind:selected_address
+			bind:selected_address={() => selected_address, set_selected_address}
 			bind:address_form
 			bind:billing_is_different
-			onaddresschange={fill_address_form}
 		/>
 
 		{#if !picked_client && billing_is_different}
@@ -278,10 +283,9 @@
 
 		<ProjectContactFieldset
 			{picked_client}
-			bind:selected_contact
+			bind:selected_contact={() => selected_contact, set_selected_contact}
 			bind:contact_form
 			{client_form}
-			oncontactchange={fill_contact_form}
 		/>
 
 		<JobFieldset bind:job_form {lead_sources} {employees} />

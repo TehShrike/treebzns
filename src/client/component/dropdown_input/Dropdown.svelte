@@ -116,6 +116,8 @@
 		position: absolute;
 		top: -1px;
 		z-index: 1;
+		box-sizing: border-box;
+		min-width: 100%;
 		overflow-y: auto;
 		border: var(--border-width) solid var(--generic_border_color);
 		border-radius: 0 0 5px 5px;

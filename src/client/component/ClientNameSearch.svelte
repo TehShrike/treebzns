@@ -1,30 +1,27 @@
 <script module lang="ts">
-	import type { CachedClient, CachedClientContact, ClientCache } from '#client/lib/client_cache.svelte.ts'
+	import type { CachedClient, ClientCache } from '#client/lib/client_cache.svelte.ts'
+	import type { SearchSelection } from './client_search_selection.ts'
 	import DropdownSearchInput from './dropdown_input/DropdownSearchInput.svelte'
 	import { search_clients_by_name, type NameSearchMatch } from './client_name_search.ts'
-
-	export type NameSearchSelection = CachedClient & {
-		selected_client_contact: CachedClientContact | null
-	}
 
 	export type NameSearchOption = NameSearchMatch<CachedClient>
 </script>
 
 <script lang="ts">
-	let { client_cache, selected_option = $bindable(null), onchange }: {
+	let { client_cache, on_pick }: {
 		client_cache: ClientCache
-		selected_option?: NameSearchOption | null
-		onchange?: (value: NameSearchSelection | null) => void
+		on_pick: (selection: SearchSelection) => void
 	} = $props()
 
 	let search_text = $state(``)
 
 	const options = $derived(search_clients_by_name(client_cache.clients, search_text))
 
-	const on_change = (option: NameSearchOption | null) => {
-		onchange?.(option
-			? { ...option.cached_client, selected_client_contact: option.client_contact }
-			: null)
+	const set_selected_option = (option: NameSearchOption | null) => {
+		if (option) {
+			search_text = ``
+			on_pick({ client: option.cached_client.client, contact: option.client_contact })
+		}
 	}
 </script>
 
@@ -37,9 +34,8 @@
 
 <DropdownSearchInput
 	bind:search_text
-	bind:selected_option
+	bind:selected_option={() => null, set_selected_option}
 	{options}
-	onchange={on_change}
 	option={name_option}
 	get_selected_option_text={({ cached_client }) => cached_client.client.name}
 />

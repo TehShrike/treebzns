@@ -3,16 +3,11 @@
 	import FormLayout from '#client/component/FormLayout.svelte'
 	import FieldsetColumn from './FieldsetColumn.svelte'
 	import DropdownField from './DropdownField.svelte'
+	import type { LeadAddress } from '#shared/type/lead.ts'
 
 	export type CachedAddress = CachedClient['client_addresses'][number]
 
-	export type AddressForm = {
-		address_line_1: string
-		address_line_2: string
-		city: string
-		state: string
-		zip: string
-	}
+	export type AddressForm = Omit<LeadAddress, 'client_address_id'>
 </script>
 
 <script lang="ts">
@@ -21,13 +16,11 @@
 		selected_address = $bindable(null),
 		address_form = $bindable(),
 		billing_is_different = $bindable(false),
-		onaddresschange,
 	}: {
 		picked_client: CachedClient | null
 		selected_address?: CachedAddress | null
 		address_form: AddressForm
 		billing_is_different?: boolean
-		onaddresschange: () => void
 	} = $props()
 </script>
 
@@ -37,7 +30,7 @@
 		{#if picked_client}
 			<DropdownField>
 				Saved address
-				<select bind:value={selected_address} onchange={onaddresschange}>
+				<select bind:value={selected_address}>
 					{#each picked_client.client_addresses as address (address.client_address_id)}
 						<option value={address}>
 							{address.address_line_1}{address.name ? ` (${address.name})` : ``}

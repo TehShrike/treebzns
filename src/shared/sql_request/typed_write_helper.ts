@@ -1,5 +1,5 @@
 import type { Connection, ResultSetHeader } from 'mysql2/promise'
-import { map, chunk, filter, for_each } from '#shared/array.ts'
+import { map, chunk, filter, for_each, some } from '#shared/array.ts'
 import object_keys from '#shared/object_keys.ts'
 import assert from '#shared/assert.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
@@ -66,10 +66,14 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 
 		const entries = filter(Object.entries(set), ([, value]) => value !== undefined)
 		assert(entries.length > 0, `An update of table "${table_name}" must set at least one column`)
-		const set_sql = map(entries, ([column, value]) => {
+		const assignments = map(entries, ([column, value]) => {
 			assert(column in table_columns, `Column "${column}" must exist in schema constants for table "${table_name}"`)
 			return `${escape_identifier(column)} = ${serialize_value(value)}`
-		}).join(', ')
+		})
+		if ('updated_at' in table_columns && !some(entries, ([column]) => column === 'updated_at')) {
+			assignments.push('`updated_at` = UTC_TIMESTAMP()')
+		}
+		const set_sql = assignments.join(', ')
 
 		return `UPDATE ${escape_identifier(table_name)} SET ${set_sql} WHERE ${escape_identifier(key_column)} = ${serialize_value(key)}`
 	}

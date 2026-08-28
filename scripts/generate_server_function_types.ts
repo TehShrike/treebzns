@@ -117,6 +117,7 @@ const type_entries = [...allFunctions.entries()]
 const type_source_modules = [
 	{ specifier: '#shared/json_validator.ts', path: ['src', 'shared', 'json_validator.ts'] },
 	{ specifier: '#shared/sql_request/safe_select_query_validator.ts', path: ['src', 'shared', 'sql_request', 'safe_select_query_validator.ts'] },
+	{ specifier: '#shared/type/lead.ts', path: ['src', 'shared', 'type', 'lead.ts'] },
 ]
 
 const validator_import = type_source_modules

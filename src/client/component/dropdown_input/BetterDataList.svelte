@@ -12,7 +12,6 @@
 		disabled = false,
 		search_text = $bindable(``),
 		placeholder = ``,
-		onchange,
 		option,
 		get_selected_option_text,
 	}: {
@@ -24,7 +23,6 @@
 		disabled?: boolean
 		search_text?: string
 		placeholder?: string
-		onchange?: (option: T | null) => void
 		option: Snippet<[T]>
 		get_selected_option_text: (option: T) => string
 	} = $props()
@@ -41,7 +39,6 @@
 	bind:selected_option={value}
 	bind:search_text
 	options={matched}
-	{onchange}
 	{placeholder}
 	{option}
 	{get_selected_option_text}

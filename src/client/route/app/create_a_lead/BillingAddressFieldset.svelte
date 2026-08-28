@@ -1,15 +1,9 @@
 <script module lang="ts">
 	import FormLayout from '#client/component/FormLayout.svelte'
 	import FieldsetColumn from './FieldsetColumn.svelte'
+	import type { LeadBilling } from '#shared/type/lead.ts'
 
-	export type BillingForm = {
-		billing_name: string
-		billing_address_line_1: string
-		billing_address_line_2: string
-		billing_city: string
-		billing_state: string
-		billing_zip: string
-	}
+	export type BillingForm = LeadBilling
 </script>
 
 <script lang="ts">

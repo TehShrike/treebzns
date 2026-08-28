@@ -4,12 +4,9 @@
 	import FieldsetColumn from './FieldsetColumn.svelte'
 	import DropdownField from './DropdownField.svelte'
 	import type { ClientForm } from './ClientFieldset.svelte'
+	import type { LeadContact } from '#shared/type/lead.ts'
 
-	export type ContactForm = {
-		name: string
-		phone: string
-		email: string
-	}
+	export type ContactForm = Omit<LeadContact, 'client_contact_id'>
 </script>
 
 <script lang="ts">
@@ -18,13 +15,11 @@
 		selected_contact = $bindable(null),
 		contact_form = $bindable(),
 		client_form,
-		oncontactchange,
 	}: {
 		picked_client: CachedClient | null
 		selected_contact?: CachedClientContact | null
 		contact_form: ContactForm
 		client_form: ClientForm
-		oncontactchange: () => void
 	} = $props()
 </script>
 
@@ -33,7 +28,7 @@
 	<FieldsetColumn>
 		<DropdownField>
 			Saved contact
-			<select bind:value={selected_contact} onchange={oncontactchange}>
+			<select bind:value={selected_contact}>
 				{#if picked_client}
 					{#each picked_client.client_contacts as contact (contact.client_contact_id)}
 						<option value={contact}>

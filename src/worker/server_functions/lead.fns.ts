@@ -4,8 +4,26 @@ import { is_temporal_plain_date, is_temporal_plain_time } from '#schema/validato
 import { fns } from '#shared/sql_request/mysql_function.ts'
 import assert from '#shared/assert.ts'
 import { map, reduce } from '#shared/array.ts'
+import type { Context } from '#worker/lib/context.ts'
+import type { LeadClient, LeadBilling, LeadAddress, LeadContact } from '#shared/type/lead.ts'
 
-const create_lead_validator = jv.object({
+const create_lead_validator: jv.Validator<{
+	client: LeadClient
+	billing: LeadBilling | null
+	address: LeadAddress
+	contact: LeadContact
+	lead_details: DbProject['lead_details']
+	lead_source_name: string
+	assigned_estimator_employee_id: DbProject['assigned_estimator_employee_id']
+	due_date: DbProject['due_date']
+	emergency: DbProject['emergency']
+	notes_for_office: DbProject['notes_for_office']
+	availability: {
+		availability_date: DbEstimateAvailability['availability_date']
+		start_time: DbEstimateAvailability['start_time']
+		end_time: DbEstimateAvailability['end_time']
+	}[]
+}> = jv.object({
 	client: jv.object({
 		client_id: jv.nullable(jv.is_bigint),
 		name: jv.is_string,
@@ -51,7 +69,231 @@ const create_lead_validator = jv.object({
 	})),
 })
 
+const create_new_client = async ({
+	client,
+	billing,
+	address,
+	contact,
+	company,
+	write_helper,
+}: {
+	client: LeadClient
+	billing: LeadBilling | null
+	address: LeadAddress
+	contact: LeadContact
+	company: Context['company']
+	write_helper: Context['write_helper']
+}): Promise<bigint> => {
+	assert(address.client_address_id === null, `client_address_id is null when the client is new`)
+	assert(contact.client_contact_id === null, `client_contact_id is null when the client is new`)
+
+	const inserted = await write_helper.insert('client', {
+		company_id: company.company_id,
+		name: client.name,
+		is_commercial: client.is_commercial,
+		default_project_address_id: 0n,
+		billing_name: billing?.billing_name ?? '',
+		billing_address_line_1: billing?.billing_address_line_1 ?? '',
+		billing_address_line_2: billing?.billing_address_line_2 ?? '',
+		billing_city: billing?.billing_city ?? '',
+		billing_state: billing?.billing_state ?? '',
+		billing_zip: billing?.billing_zip ?? '',
+		primary_phone: client.primary_phone,
+		primary_email: client.primary_email,
+		tax_rate_id: client.tax_rate_id,
+		notes: client.notes,
+		referred_by: client.referred_by,
+	})
+
+	return inserted.insert_id
+}
+
+const update_existing_client = async ({
+	client_id,
+	client,
+	billing,
+	select_builder,
+	write_helper,
+}: {
+	client_id: bigint
+	client: LeadClient
+	billing: LeadBilling | null
+	select_builder: Context['select_builder']
+	write_helper: Context['write_helper']
+}): Promise<bigint> => {
+	assert(billing === null, `billing is null when the client already exists`)
+
+	const client_query = select_builder
+		.from('client')
+		.where(q => q.comparison('client.client_id', '=', { value: client_id }))
+		.select(() => ['client.client_id'])
+		.build()
+	const client_row = await select_builder.get_first_row(client_query)
+	if (!client_row) {
+		throw new Error(`No client found with client_id "${ client_id }"`)
+	}
+
+	await write_helper.update('client', 'client_id', client_id, {
+		name: client.name,
+		is_commercial: client.is_commercial,
+		primary_phone: client.primary_phone,
+		primary_email: client.primary_email,
+		tax_rate_id: client.tax_rate_id,
+		notes: client.notes,
+		referred_by: client.referred_by,
+	})
+
+	return client_id
+}
+
 const next_sort = (sorts: readonly bigint[]): bigint => reduce(sorts, 0n, (acc, sort) => (sort >= acc ? sort + 1n : acc))
+
+const create_client_address = async ({
+	client_id,
+	creating_new_client,
+	address,
+	company,
+	select_builder,
+	write_helper,
+}: {
+	client_id: bigint
+	creating_new_client: boolean
+	address: LeadAddress
+	company: Context['company']
+	select_builder: Context['select_builder']
+	write_helper: Context['write_helper']
+}): Promise<bigint> => {
+	const address_sorts_query = select_builder
+		.from('client_address')
+		.where(q => q.comparison('client_address.client_id', '=', { value: client_id }))
+		.select(() => ['client_address.sort'])
+		.build()
+	const address_rows = await select_builder.get_rows(address_sorts_query)
+
+	const inserted = await write_helper.insert('client_address', {
+		company_id: company.company_id,
+		client_id,
+		client_contact_id: null,
+		name: '',
+		address_line_1: address.address_line_1,
+		address_line_2: address.address_line_2,
+		city: address.city,
+		state: address.state,
+		zip: address.zip,
+		sort: next_sort(map(address_rows, row => row.client_address.sort)),
+	})
+	const client_address_id = inserted.insert_id
+
+	if (creating_new_client) {
+		await write_helper.update('client', 'client_id', client_id, {
+			default_project_address_id: client_address_id,
+		})
+	}
+
+	return client_address_id
+}
+
+const update_client_address = async ({
+	client_address_id,
+	client_id,
+	address,
+	select_builder,
+	write_helper,
+}: {
+	client_address_id: bigint
+	client_id: bigint
+	address: LeadAddress
+	select_builder: Context['select_builder']
+	write_helper: Context['write_helper']
+}): Promise<bigint> => {
+	const address_query = select_builder
+		.from('client_address')
+		.where(q => q.and(
+			q.comparison('client_address.client_address_id', '=', { value: client_address_id }),
+			q.comparison('client_address.client_id', '=', { value: client_id }),
+		))
+		.select(() => ['client_address.client_address_id'])
+		.build()
+	const address_row = await select_builder.get_first_row(address_query)
+	if (!address_row) {
+		throw new Error(`No client_address found with client_address_id "${ client_address_id }" for client_id "${ client_id }"`)
+	}
+
+	await write_helper.update('client_address', 'client_address_id', client_address_id, {
+		address_line_1: address.address_line_1,
+		address_line_2: address.address_line_2,
+		city: address.city,
+		state: address.state,
+		zip: address.zip,
+	})
+
+	return client_address_id
+}
+
+const create_client_contact = async ({
+	client_id,
+	contact,
+	company,
+	select_builder,
+	write_helper,
+}: {
+	client_id: bigint
+	contact: LeadContact
+	company: Context['company']
+	select_builder: Context['select_builder']
+	write_helper: Context['write_helper']
+}): Promise<void> => {
+	const contact_sorts_query = select_builder
+		.from('client_contact')
+		.where(q => q.comparison('client_contact.client_id', '=', { value: client_id }))
+		.select(() => ['client_contact.sort'])
+		.build()
+	const contact_rows = await select_builder.get_rows(contact_sorts_query)
+
+	await write_helper.insert('client_contact', {
+		company_id: company.company_id,
+		client_id,
+		description: '',
+		name: contact.name,
+		phone: contact.phone,
+		email: contact.email,
+		is_primary: contact_rows.length === 0,
+		sort: next_sort(map(contact_rows, row => row.client_contact.sort)),
+	})
+}
+
+const update_client_contact = async ({
+	client_contact_id,
+	client_id,
+	contact,
+	select_builder,
+	write_helper,
+}: {
+	client_contact_id: bigint
+	client_id: bigint
+	contact: LeadContact
+	select_builder: Context['select_builder']
+	write_helper: Context['write_helper']
+}): Promise<void> => {
+	const contact_query = select_builder
+		.from('client_contact')
+		.where(q => q.and(
+			q.comparison('client_contact.client_contact_id', '=', { value: client_contact_id }),
+			q.comparison('client_contact.client_id', '=', { value: client_id }),
+		))
+		.select(() => ['client_contact.client_contact_id'])
+		.build()
+	const contact_row = await select_builder.get_first_row(contact_query)
+	if (!contact_row) {
+		throw new Error(`No client_contact found with client_contact_id "${ client_contact_id }" for client_id "${ client_id }"`)
+	}
+
+	await write_helper.update('client_contact', 'client_contact_id', client_contact_id, {
+		name: contact.name,
+		phone: contact.phone,
+		email: contact.email,
+	})
+}
 
 export const functions = {
 	create_lead: sfn({
@@ -65,140 +307,46 @@ export const functions = {
 			const creating_new_client = client.client_id === null
 
 			if (client.client_id === null) {
-				assert(address.client_address_id === null, `client_address_id is null when the client is new`)
-				assert(contact.client_contact_id === null, `client_contact_id is null when the client is new`)
-
-				const inserted = await write_helper.insert('client', {
-					company_id,
-					name: client.name,
-					is_commercial: client.is_commercial,
-					default_project_address_id: 0n,
-					billing_name: billing?.billing_name ?? '',
-					billing_address_line_1: billing?.billing_address_line_1 ?? '',
-					billing_address_line_2: billing?.billing_address_line_2 ?? '',
-					billing_city: billing?.billing_city ?? '',
-					billing_state: billing?.billing_state ?? '',
-					billing_zip: billing?.billing_zip ?? '',
-					primary_phone: client.primary_phone,
-					primary_email: client.primary_email,
-					tax_rate_id: client.tax_rate_id,
-					notes: client.notes,
-					referred_by: client.referred_by,
-				})
-				client_id = inserted.insert_id
+				client_id = await create_new_client({ client, billing, address, contact, company, write_helper })
 			} else {
-				assert(billing === null, `billing is null when the client already exists`)
-
-				const client_query = select_builder
-					.from('client')
-					.where(q => q.comparison('client.client_id', '=', { value: client.client_id }))
-					.select(() => ['client.client_id'])
-					.build()
-				const client_row = await select_builder.get_first_row(client_query)
-				if (!client_row) {
-					throw new Error(`No client found with client_id "${ client.client_id }"`)
-				}
-				client_id = client.client_id
-
-				await write_helper.update('client', 'client_id', client_id, {
-					name: client.name,
-					is_commercial: client.is_commercial,
-					primary_phone: client.primary_phone,
-					primary_email: client.primary_email,
-					tax_rate_id: client.tax_rate_id,
-					notes: client.notes,
-					referred_by: client.referred_by,
+				client_id = await update_existing_client({
+					client_id: client.client_id,
+					client,
+					billing,
+					select_builder,
+					write_helper,
 				})
 			}
 
 			let client_address_id: bigint
 			if (address.client_address_id === null) {
-				const address_sorts_query = select_builder
-					.from('client_address')
-					.where(q => q.comparison('client_address.client_id', '=', { value: client_id }))
-					.select(() => ['client_address.sort'])
-					.build()
-				const address_rows = await select_builder.get_rows(address_sorts_query)
-
-				const inserted = await write_helper.insert('client_address', {
-					company_id,
+				client_address_id = await create_client_address({
 					client_id,
-					client_contact_id: null,
-					name: '',
-					address_line_1: address.address_line_1,
-					address_line_2: address.address_line_2,
-					city: address.city,
-					state: address.state,
-					zip: address.zip,
-					sort: next_sort(map(address_rows, row => row.client_address.sort)),
+					creating_new_client,
+					address,
+					company,
+					select_builder,
+					write_helper,
 				})
-				client_address_id = inserted.insert_id
-
-				if (creating_new_client) {
-					await write_helper.update('client', 'client_id', client_id, {
-						default_project_address_id: client_address_id,
-					})
-				}
 			} else {
-				const address_query = select_builder
-					.from('client_address')
-					.where(q => q.and(
-						q.comparison('client_address.client_address_id', '=', { value: address.client_address_id }),
-						q.comparison('client_address.client_id', '=', { value: client_id }),
-					))
-					.select(() => ['client_address.client_address_id'])
-					.build()
-				const address_row = await select_builder.get_first_row(address_query)
-				if (!address_row) {
-					throw new Error(`No client_address found with client_address_id "${ address.client_address_id }" for client_id "${ client_id }"`)
-				}
-				client_address_id = address.client_address_id
-
-				await write_helper.update('client_address', 'client_address_id', client_address_id, {
-					address_line_1: address.address_line_1,
-					address_line_2: address.address_line_2,
-					city: address.city,
-					state: address.state,
-					zip: address.zip,
+				client_address_id = await update_client_address({
+					client_address_id: address.client_address_id,
+					client_id,
+					address,
+					select_builder,
+					write_helper,
 				})
 			}
 
 			if (contact.client_contact_id === null) {
-				const contact_sorts_query = select_builder
-					.from('client_contact')
-					.where(q => q.comparison('client_contact.client_id', '=', { value: client_id }))
-					.select(() => ['client_contact.sort'])
-					.build()
-				const contact_rows = await select_builder.get_rows(contact_sorts_query)
-
-				await write_helper.insert('client_contact', {
-					company_id,
-					client_id,
-					description: '',
-					name: contact.name,
-					phone: contact.phone,
-					email: contact.email,
-					is_primary: contact_rows.length === 0,
-					sort: next_sort(map(contact_rows, row => row.client_contact.sort)),
-				})
+				await create_client_contact({ client_id, contact, company, select_builder, write_helper })
 			} else {
-				const contact_query = select_builder
-					.from('client_contact')
-					.where(q => q.and(
-						q.comparison('client_contact.client_contact_id', '=', { value: contact.client_contact_id }),
-						q.comparison('client_contact.client_id', '=', { value: client_id }),
-					))
-					.select(() => ['client_contact.client_contact_id'])
-					.build()
-				const contact_row = await select_builder.get_first_row(contact_query)
-				if (!contact_row) {
-					throw new Error(`No client_contact found with client_contact_id "${ contact.client_contact_id }" for client_id "${ client_id }"`)
-				}
-
-				await write_helper.update('client_contact', 'client_contact_id', contact.client_contact_id, {
-					name: contact.name,
-					phone: contact.phone,
-					email: contact.email,
+				await update_client_contact({
+					client_contact_id: contact.client_contact_id,
+					client_id,
+					contact,
+					select_builder,
+					write_helper,
 				})
 			}
 

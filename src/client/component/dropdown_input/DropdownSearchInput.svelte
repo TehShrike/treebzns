@@ -13,7 +13,6 @@
 		autofocus = false,
 		disabled = false,
 		placeholder = null,
-		onchange,
 		option,
 		get_selected_option_text,
 	}: {
@@ -23,7 +22,6 @@
 		autofocus?: boolean
 		disabled?: boolean
 		placeholder?: string | null
-		onchange?: ((option: T | null) => void) | undefined
 		option: Snippet<[T]>
 		get_selected_option_text: (option: T) => string
 	} = $props()
@@ -61,7 +59,6 @@
 		search_text = ``
 		show_dropdown = false
 		should_look_like_a_select = true
-		onchange?.(selected_option)
 	}
 
 	const click_list_item = (index: number) => {
@@ -154,7 +151,7 @@
 </script>
 
 <Dropdown
-	bind:show_dropdown
+	bind:show_dropdown={() => show_dropdown && options.length > 0, value => show_dropdown = value}
 	bind:scrollable_dropdown_box
 >
 	{#snippet always_visible()}
@@ -180,7 +177,6 @@
 	{#snippet dropdown()}
 		<ol
 			role="listbox"
-			data-empty={options.length === 0}
 		>
 			{#each options as item, index (item)}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -220,10 +216,6 @@
 		margin: 0;
 	}
 
-	ol[data-empty=true] {
-		display: none;
-	}
-
 	li {
 		padding: 4px;
 		user-select: none;
@@ -232,6 +224,6 @@
 
 	li[aria-selected=true] {
 		color: ivory;
-		background-color: var(--friendly_color);
+		background-color: var(--focus_color);
 	}
 </style>

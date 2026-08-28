@@ -21,7 +21,9 @@
 	--link_color: hsl(202, 100%, 30%);
 	--link_color_light: hsl(202, 40%, 60%);
 
-	--focus_color:  var(--friendly_color);
+	--dialog-blue: #000080;
+
+	--focus_color: var(--dialog-blue);
 	--focus_outline_width: 4px;
 
 	--attention_red: #d40000;

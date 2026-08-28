@@ -539,6 +539,75 @@ test('typed_write_helper: bulk_update rejects a non-positive or fractional rows_
 	await assert.rejects(async () => helper.bulk_update(connection, 'widget', 'widget_id', rows, 1.5))
 })
 
+test('typed_write_helper: updates set updated_at = UTC_TIMESTAMP() on tables that have the column', async () => {
+	type TrackedSchema = {
+		tracked: {
+			company_id: bigint
+			name: string
+		}
+	}
+	type TrackedRowSchema = {
+		tracked: {
+			tracked_id: bigint
+			company_id: bigint
+			name: string
+			updated_at: Temporal.Instant
+		}
+	}
+	const tracked_schema = {
+		tracked: {
+			tracked_id: 'tracked_id',
+			company_id: 'company_id',
+			name: 'name',
+			updated_at: 'updated_at',
+		},
+	} as const
+	const tracked_insertable_schema = {
+		tracked: {
+			company_id: 'company_id',
+			name: 'name',
+		},
+	} as const
+
+	const helper = typed_write_helper<TrackedSchema, TrackedRowSchema>(tracked_schema, tracked_insertable_schema)
+
+	assert.strictEqual(
+		helper.build_update_sql('tracked', 'tracked_id', 5n, { name: 'Sprocket' }),
+		"UPDATE `tracked` SET `name` = 'Sprocket', `updated_at` = UTC_TIMESTAMP() WHERE `tracked_id` = 5",
+	)
+
+	// An explicit updated_at wins over the automatic one.
+	assert.strictEqual(
+		helper.build_update_sql('tracked', 'tracked_id', 5n, {
+			name: 'Sprocket',
+			updated_at: Temporal.Instant.from('2026-01-02T03:04:05Z'),
+		}),
+		"UPDATE `tracked` SET `name` = 'Sprocket', `updated_at` = '2026-01-02 03:04:05' WHERE `tracked_id` = 5",
+	)
+
+	// An explicitly-undefined updated_at is skipped like any other column, so the automatic one applies.
+	assert.strictEqual(
+		helper.build_update_sql('tracked', 'tracked_id', 5n, { name: 'Sprocket', updated_at: undefined }),
+		"UPDATE `tracked` SET `name` = 'Sprocket', `updated_at` = UTC_TIMESTAMP() WHERE `tracked_id` = 5",
+	)
+
+	const { connection, calls } = make_update_mock_connection()
+	await helper.bulk_update(connection, 'tracked', 'tracked_id', [{ key: 1n, set: { name: 'a' } }], 10)
+	assert.strictEqual(
+		calls[0]!.sql,
+		"UPDATE `tracked` SET `name` = 'a', `updated_at` = UTC_TIMESTAMP() WHERE `tracked_id` = 1",
+	)
+})
+
+test('typed_write_helper: updates leave the SET clause alone on tables without an updated_at column', () => {
+	const helper = make_helper()
+
+	assert.strictEqual(
+		helper.build_update_sql('widget', 'widget_id', 5n, { name: 'Sprocket' }),
+		"UPDATE `widget` SET `name` = 'Sprocket' WHERE `widget_id` = 5",
+	)
+})
+
 test('typed_write_helper: MySQLFunction values render as SQL function calls in writes', async () => {
 	type SessionSchema = {
 		session: {

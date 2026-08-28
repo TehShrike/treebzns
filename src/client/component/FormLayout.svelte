@@ -62,7 +62,7 @@
 			auto-fill,
 			minmax(var(--min_field_width), var(--max_field_width))
 		);
-		align-items: start;
+		align-items: center;
 		gap: var(--gap_unit);
 	}
 
