@@ -1,8 +1,9 @@
 # Catch up
 
-Review ClientNameSearch and ClientPhoneSearch, make them use the same results component, make them look like other inputs.
+- Review ClientNameSearch and ClientPhoneSearch, make them use the same results component, make them look like other inputs.
+- Review create-a-lead server-side queries
+- Review the project list query on the home screen.  Add some inputs?
 
-Name search is broken.  searching for a contact name shows the contact in bold text and faint text both.  When searching for a client, contact does not show up in the faint text.
 
 - create a lead screen should have a "the billing address is different" button below the project address field
 - regenerate "create a lead" implementation

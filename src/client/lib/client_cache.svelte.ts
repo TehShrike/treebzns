@@ -13,6 +13,7 @@ const client_and_address_columns = [
 	table_identifier('client', client.client_id),
 	table_identifier('client', client.company_id),
 	table_identifier('client', client.name),
+	table_identifier('client', client.is_commercial),
 	table_identifier('client', client.default_project_address_id),
 	table_identifier('client', client.billing_name),
 	table_identifier('client', client.billing_address_line_1),

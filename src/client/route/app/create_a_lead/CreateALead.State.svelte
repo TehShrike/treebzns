@@ -1,40 +1,317 @@
 <script module lang="ts">
-	import { state_type } from '#client/lib/client_type.ts'
-	import type { SessionResponse } from '#client/lib/session_response.ts'
-	import type { Context } from '#client/lib/client_context.ts'
+	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
+	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
+	import type { CachedClient, CachedClientContact } from '#client/lib/client_cache.svelte.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
-	import FormLayout from '#client/component/FormLayout.svelte'
-	import ClientNameSearch, { type NameSearchSelection } from '#client/component/ClientNameSearch.svelte'
-	import ClientPhoneSearch, { type PhoneSearchSelection } from '#client/component/ClientPhoneSearch.svelte'
+	import SearchFieldset, { type NameSearchOption, type PhoneSearchOption, type SearchSelection } from './SearchFieldset.svelte'
+	import CurrentClient from './CurrentClient.svelte'
+	import ClientFieldset, { type ClientForm } from './ClientFieldset.svelte'
+	import ProjectLocationFieldset, { type AddressForm, type CachedAddress } from './ProjectLocationFieldset.svelte'
+	import BillingAddressFieldset, { type BillingForm } from './BillingAddressFieldset.svelte'
+	import ProjectContactFieldset, { type ContactForm } from './ProjectContactFieldset.svelte'
+	import JobFieldset, { type JobForm } from './JobFieldset.svelte'
+	import query_builder from '#shared/sql_request/typed_query_builder.ts'
+	import type { Schema } from '#schema/types.ts'
+	import { map, filter, find, some } from '#shared/array.ts'
+	import { Temporal } from '@js-temporal/polyfill'
+
+	const fetch_tax_rates = async (query: ClientQueryFn) => map(
+		await query(
+			query_builder<Schema>()
+				.from('tax_rate')
+				.order_by('tax_rate.name', 'ASC')
+				.select(() => ['tax_rate.tax_rate_id', 'tax_rate.name'] as const)
+				.build()
+		),
+		row => row.tax_rate,
+	)
+
+	const fetch_employees = async (query: ClientQueryFn) => map(
+		await query(
+			query_builder<Schema>()
+				.from('employee')
+				.order_by('employee.name', 'ASC')
+				.select(() => ['employee.employee_id', 'employee.name'] as const)
+				.build()
+		),
+		row => row.employee,
+	)
+
+	const fetch_lead_sources = async (query: ClientQueryFn) => map(
+		await query(
+			query_builder<Schema>()
+				.from('lead_source')
+				.order_by('lead_source.name', 'ASC')
+				.select(() => ['lead_source.lead_source_id', 'lead_source.name'] as const)
+				.build()
+		),
+		row => row.lead_source,
+	)
 
 	export const asr_state = state_type({
 		name: `app.create_a_lead`,
 		route: `/create_a_lead`,
-		resolve: async ({ client_cache }) => {
+		resolve: async ({ client_cache, query, server }) => {
+			const [tax_rates, employees, lead_sources] = await Promise.all([
+				fetch_tax_rates(query),
+				fetch_employees(query),
+				fetch_lead_sources(query),
+				client_cache.been_fetched_at_least_once,
+			])
+
 			return {
-				client_cache
+				client_cache,
+				server,
+				tax_rates,
+				employees,
+				lead_sources,
 			}
 		},
 	})
+
+	type Resolved = StateResolve<typeof asr_state>
 </script>
 
 <script lang="ts">
-	let { session, client_cache }: { session: SessionResponse, client_cache: Context['client_cache'] } = $props()
+	const { client_cache, server, tax_rates, employees, lead_sources, asr }: Resolved & { asr: StateAsr } = $props()
 
-	let name_selection = $state<NameSearchSelection | null>(null)
-	let phone_selection = $state<PhoneSearchSelection | null>(null)
+	let name_option = $state<NameSearchOption | null>(null)
+	let phone_option = $state<PhoneSearchOption | null>(null)
+
+	let picked_client = $state<CachedClient | null>(null)
+	let client_form = $state<ClientForm>({
+		name: ``,
+		primary_phone: ``,
+		primary_email: ``,
+		referred_by: ``,
+		tax_rate_id: null,
+		is_commercial: false,
+		notes: ``,
+	})
+
+	let billing_is_different = $state(false)
+	let billing_form = $state<BillingForm>({
+		billing_name: ``,
+		billing_address_line_1: ``,
+		billing_address_line_2: ``,
+		billing_city: ``,
+		billing_state: ``,
+		billing_zip: ``,
+	})
+
+	let selected_address = $state<CachedAddress | null>(null)
+	let address_form = $state<AddressForm>({
+		address_line_1: ``,
+		address_line_2: ``,
+		city: ``,
+		state: ``,
+		zip: ``,
+	})
+
+	let selected_contact = $state<CachedClientContact | null>(null)
+	let contact_form = $state<ContactForm>({
+		name: ``,
+		phone: ``,
+		email: ``,
+	})
+
+	let job_form = $state<JobForm>({
+		lead_details: ``,
+		lead_source_value: null,
+		assigned_estimator_employee_id: null,
+		has_due_date: false,
+		due_date: ``,
+		emergency: false,
+		notes_for_office: ``,
+		availability: [],
+	})
+
+	let saving = $state(false)
+	let save_error = $state(``)
+
+	const fill_address_form = () => {
+		address_form.address_line_1 = selected_address?.address_line_1 ?? ``
+		address_form.address_line_2 = selected_address?.address_line_2 ?? ``
+		address_form.city = selected_address?.city ?? ``
+		address_form.state = selected_address?.state ?? ``
+		address_form.zip = selected_address?.zip ?? ``
+	}
+
+	const fill_contact_form = () => {
+		contact_form.name = selected_contact?.name ?? ``
+		contact_form.phone = selected_contact?.phone ?? ``
+		contact_form.email = selected_contact?.email ?? ``
+	}
+
+	const apply_pick = (selection: SearchSelection) => {
+		picked_client = selection
+
+		client_form.name = selection.client.name
+		client_form.primary_phone = selection.client.primary_phone
+		client_form.primary_email = selection.client.primary_email
+		client_form.referred_by = selection.client.referred_by
+		client_form.tax_rate_id = selection.client.tax_rate_id
+		client_form.is_commercial = selection.client.is_commercial
+		client_form.notes = selection.client.notes
+
+		billing_is_different = false
+
+		selected_address = find(selection.client_addresses, address => address.client_address_id === selection.client.default_project_address_id)
+			?? selection.client_addresses[0]
+			?? null
+		fill_address_form()
+
+		selected_contact = selection.selected_client_contact
+			?? find(selection.client_contacts, contact => contact.is_primary)
+			?? selection.client_contacts[0]
+			?? null
+		fill_contact_form()
+	}
+
+	const reset_to_new_client = () => {
+		picked_client = null
+		client_form.name = ``
+		client_form.primary_phone = ``
+		client_form.primary_email = ``
+		client_form.referred_by = ``
+		client_form.tax_rate_id = null
+		client_form.is_commercial = false
+		client_form.notes = ``
+		billing_is_different = false
+		selected_address = null
+		fill_address_form()
+		selected_contact = null
+		fill_contact_form()
+	}
+
+	const clear_picked_client = () => {
+		name_option = null
+		phone_option = null
+		reset_to_new_client()
+	}
+
+	const submit = async (event: SubmitEvent) => {
+		event.preventDefault()
+		save_error = ``
+
+		if (client_form.name.trim() === ``) {
+			save_error = `The client needs a name`
+			return
+		}
+
+		const windows = filter(job_form.availability, window => window.date !== `` || window.from !== `` || window.to !== ``)
+		if (some(windows, window => window.date === `` || window.from === `` || window.to === ``)) {
+			save_error = `Each availability window needs a date, a start time, and an end time`
+			return
+		}
+
+		saving = true
+		try {
+			await server.create_lead({
+				client: {
+					client_id: picked_client?.client.client_id ?? null,
+					name: client_form.name,
+					primary_phone: client_form.primary_phone,
+					primary_email: client_form.primary_email,
+					referred_by: client_form.referred_by,
+					tax_rate_id: client_form.tax_rate_id,
+					is_commercial: client_form.is_commercial,
+					notes: client_form.notes,
+				},
+				billing: !picked_client && billing_is_different ? { ...billing_form } : null,
+				address: {
+					client_address_id: selected_address?.client_address_id ?? null,
+					address_line_1: address_form.address_line_1,
+					address_line_2: address_form.address_line_2,
+					city: address_form.city,
+					state: address_form.state,
+					zip: address_form.zip,
+				},
+				contact: {
+					client_contact_id: selected_contact?.client_contact_id ?? null,
+					name: contact_form.name.trim() || client_form.name,
+					phone: contact_form.phone.trim() || client_form.primary_phone,
+					email: contact_form.email.trim() || client_form.primary_email,
+				},
+				lead_details: job_form.lead_details,
+				lead_source_name: job_form.lead_source_value?.name ?? ``,
+				assigned_estimator_employee_id: job_form.assigned_estimator_employee_id,
+				due_date: job_form.has_due_date && job_form.due_date !== `` ? Temporal.PlainDate.from(job_form.due_date) : null,
+				emergency: job_form.emergency,
+				notes_for_office: job_form.notes_for_office,
+				availability: map(windows, window => ({
+					availability_date: Temporal.PlainDate.from(window.date),
+					start_time: Temporal.PlainTime.from(window.from),
+					end_time: Temporal.PlainTime.from(window.to),
+				})),
+			})
+			client_cache.refresh()
+			asr.go(`app.home`)
+		} catch (err: any) {
+			save_error = err?.body?.message ?? err?.message ?? `Something went wrong`
+			saving = false
+		}
+	}
 </script>
 
 <AppScreen>
 	<h1>Create a lead</h1>
-	<FormLayout>
-		<label>
-			Name
-			<ClientNameSearch {client_cache} bind:value={name_selection} />
-		</label>
-		<label>
-			Phone
-			<ClientPhoneSearch {client_cache} bind:value={phone_selection} />
-		</label>
-	</FormLayout>
+
+	<form onsubmit={submit}>
+		<SearchFieldset {client_cache} bind:name_option bind:phone_option onpick={apply_pick} />
+
+		<CurrentClient {picked_client} onclear={clear_picked_client} />
+
+		<ClientFieldset bind:client_form {tax_rates} />
+
+		<ProjectLocationFieldset
+			{picked_client}
+			bind:selected_address
+			bind:address_form
+			bind:billing_is_different
+			onaddresschange={fill_address_form}
+		/>
+
+		{#if !picked_client && billing_is_different}
+			<BillingAddressFieldset bind:billing_form />
+		{/if}
+
+		<ProjectContactFieldset
+			{picked_client}
+			bind:selected_contact
+			bind:contact_form
+			{client_form}
+			oncontactchange={fill_contact_form}
+		/>
+
+		<JobFieldset bind:job_form {lead_sources} {employees} />
+
+		{#if save_error}
+			<p class="error">{save_error}</p>
+		{/if}
+
+		<div class="footer">
+			<button type="button" onclick={() => asr.go(`app.home`)}>Cancel</button>
+			<button type="submit" class="default" disabled={saving}>Create the lead</button>
+		</div>
+	</form>
 </AppScreen>
+
+<style>
+	form {
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap_unit);
+	}
+
+	.footer {
+		display: flex;
+		justify-content: flex-end;
+		gap: var(--gap_half);
+	}
+
+	.error {
+		color: var(--attention_red);
+		margin: 0;
+	}
+</style>

@@ -7,27 +7,28 @@
 		selected_client_contact: CachedClientContact | null
 	}
 
-	type NameOption = NameSearchMatch<CachedClient>
+	export type NameSearchOption = NameSearchMatch<CachedClient>
 </script>
 
 <script lang="ts">
-	let { client_cache, value = $bindable(null) }: {
+	let { client_cache, selected_option = $bindable(null), onchange }: {
 		client_cache: ClientCache
-		value?: NameSearchSelection | null
+		selected_option?: NameSearchOption | null
+		onchange?: (value: NameSearchSelection | null) => void
 	} = $props()
 
 	let search_text = $state(``)
 
 	const options = $derived(search_clients_by_name(client_cache.clients, search_text))
 
-	const on_change = (option: NameOption | null) => {
-		value = option
+	const on_change = (option: NameSearchOption | null) => {
+		onchange?.(option
 			? { ...option.cached_client, selected_client_contact: option.client_contact }
-			: null
+			: null)
 	}
 </script>
 
-{#snippet name_option({ cached_client, client_contact }: NameOption)}
+{#snippet name_option({ cached_client, client_contact }: NameSearchOption)}
 	{cached_client.client.name}
 	{#if client_contact}
 		<span class="detail">{client_contact.name}</span>
@@ -36,6 +37,7 @@
 
 <DropdownSearchInput
 	bind:search_text
+	bind:selected_option
 	{options}
 	onchange={on_change}
 	option={name_option}

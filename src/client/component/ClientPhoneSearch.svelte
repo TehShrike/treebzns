@@ -8,21 +8,22 @@
 		selected_client_contact: CachedClientContact | null
 	}
 
-	type PhoneOption = {
+	export type PhoneSearchOption = {
 		cached_client: CachedClient
 		phone: CachedClient['search_helpers']['all_phones'][number]
 	}
 </script>
 
 <script lang="ts">
-	let { client_cache, value = $bindable(null) }: {
+	let { client_cache, selected_option = $bindable(null), onchange }: {
 		client_cache: ClientCache
-		value?: PhoneSearchSelection | null
+		selected_option?: PhoneSearchOption | null
+		onchange?: (value: PhoneSearchSelection | null) => void
 	} = $props()
 
 	let search_text = $state(``)
 
-	const options = $derived.by((): PhoneOption[] => {
+	const options = $derived.by((): PhoneSearchOption[] => {
 		const search_digits = get_phone_digits(search_text)
 
 		if (search_digits === ``) {
@@ -35,20 +36,21 @@
 		})
 	})
 
-	const on_change = (option: PhoneOption | null) => {
-		value = option
+	const on_change = (option: PhoneSearchOption | null) => {
+		onchange?.(option
 			? { ...option.cached_client, selected_client_contact: option.phone.client_contact }
-			: null
+			: null)
 	}
 </script>
 
-{#snippet phone_option({ cached_client, phone }: PhoneOption)}
+{#snippet phone_option({ cached_client, phone }: PhoneSearchOption)}
 	{cached_client.client.name}
 	<span class="detail">{phone.display}</span>
 {/snippet}
 
 <DropdownSearchInput
 	bind:search_text
+	bind:selected_option
 	{options}
 	onchange={on_change}
 	option={phone_option}
