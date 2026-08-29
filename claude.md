@@ -21,6 +21,10 @@ echo '{"seq":1,"type":"request","command":"open","arguments":{"file":"myfile.ts"
 
 This project uses pnpm, nvm, and corepack.
 
+Avoid importing from directories using ../ if it is possible to use a #dir/ import map path instead.
+
+`pnpm run test` to run automated tests and all type checks.  `pnpm run test:types` to check all types.
+
 ## Writing style (Simplified Technical English)
 
 Apply this to all prose you write: conversation replies, docs, PR text, commit messages, error messages, code comments.  It does not apply to code, identifiers, or command syntax.  For a full rewrite of existing text, invoke the ste-writing skill.
@@ -31,10 +35,6 @@ Apply this to all prose you write: conversation replies, docs, PR text, commit m
 - Use a verb for an action: "analyze the log", not "perform an analysis of the log".  No phrasal verbs ("spin up"), no stacked hedges ("it is important to note that this may help to").
 - No marketing adjectives: seamless, robust, powerful, effortless, cutting-edge.
 - No semicolons.  Write two sentences.
-
-Avoid importing from directories using ../ if it is possible to use a #dir/ import map path instead.
-
-`pnpm run test` to run automated tests and all type checks.  `pnpm run test:types` to check all types.
 
 ## Svelte
 
