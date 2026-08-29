@@ -10,7 +10,7 @@
 	import ProjectLocationFieldset, { type AddressForm, type CachedAddress } from './ProjectLocationFieldset.svelte'
 	import BillingAddressFieldset, { type BillingForm } from './BillingAddressFieldset.svelte'
 	import ProjectContactFieldset, { type ContactForm } from './ProjectContactFieldset.svelte'
-	import JobFieldset, { type JobForm } from './JobFieldset.svelte'
+	import JobFieldset, { type ProjectForm } from './JobFieldset.svelte'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import { map, filter, find, some } from '#shared/array.ts'
@@ -108,19 +108,21 @@
 	})
 
 	let selected_contact = $state<CachedClientContact | null>(null)
+	let client_is_project_contact = $state(true)
 	let contact_form = $state<ContactForm>({
 		name: ``,
 		phone: ``,
 		email: ``,
 	})
 
-	let job_form = $state<JobForm>({
+	let project = $state<ProjectForm>({
 		lead_details: ``,
 		lead_source_value: null,
 		assigned_estimator_employee_id: null,
 		has_due_date: false,
 		due_date: ``,
 		emergency: false,
+		notes_for_crew: ``,
 		notes_for_office: ``,
 		availability: [],
 	})
@@ -184,6 +186,7 @@
 		client_form.is_commercial = false
 		client_form.notes = ``
 		billing_is_different = false
+		client_is_project_contact = true
 		set_selected_address(null)
 		set_selected_contact(null)
 	}
@@ -205,7 +208,7 @@
 			return
 		}
 
-		const windows = filter(job_form.availability, window => window.date !== `` || window.from !== `` || window.to !== ``)
+		const windows = filter(project.availability, window => window.date !== `` || window.from !== `` || window.to !== ``)
 		if (some(windows, window => window.date === `` || window.from === `` || window.to === ``)) {
 			save_error = `Each availability window needs a date, a start time, and an end time`
 			return
@@ -213,6 +216,7 @@
 
 		saving = true
 		try {
+			const lead_source_value = project.lead_source_value
 			await server.create_lead({
 				client: {
 					client_id: picked_client?.client.client_id ?? null,
@@ -224,7 +228,7 @@
 					is_commercial: client_form.is_commercial,
 					notes: client_form.notes,
 				},
-				billing: !picked_client && billing_is_different ? { ...billing_form } : null,
+				billing_address: !picked_client && billing_is_different ? { ...billing_form } : null,
 				address: {
 					client_address_id: selected_address?.client_address_id ?? null,
 					address_line_1: address_form.address_line_1,
@@ -233,18 +237,30 @@
 					state: address_form.state,
 					zip: address_form.zip,
 				},
-				contact: {
-					client_contact_id: selected_contact?.client_contact_id ?? null,
-					name: contact_form.name.trim() || client_form.name,
-					phone: contact_form.phone.trim() || client_form.primary_phone,
-					email: contact_form.email.trim() || client_form.primary_email,
+				contact: !picked_client && client_is_project_contact
+					? {
+						client_contact_id: null,
+						name: client_form.name,
+						phone: client_form.primary_phone,
+						email: client_form.primary_email,
+					}
+					: {
+						client_contact_id: selected_contact?.client_contact_id ?? null,
+						name: contact_form.name.trim() || client_form.name,
+						phone: contact_form.phone.trim() || client_form.primary_phone,
+						email: contact_form.email.trim() || client_form.primary_email,
+					},
+				project: {
+					due_date: project.has_due_date && project.due_date !== `` ? Temporal.PlainDate.from(project.due_date) : null,
+					emergency: project.emergency,
+					lead_details: project.lead_details,
+					notes_for_crew: project.notes_for_crew,
+					notes_for_office: project.notes_for_office,
+					assigned_estimator_employee_id: project.assigned_estimator_employee_id,
+					...(lead_source_value?.lead_source_id != null
+						? { lead_source_id: lead_source_value.lead_source_id, lead_source_name: null }
+						: { lead_source_id: null, lead_source_name: lead_source_value?.name.trim() || null }),
 				},
-				lead_details: job_form.lead_details,
-				lead_source_name: job_form.lead_source_value?.name ?? ``,
-				assigned_estimator_employee_id: job_form.assigned_estimator_employee_id,
-				due_date: job_form.has_due_date && job_form.due_date !== `` ? Temporal.PlainDate.from(job_form.due_date) : null,
-				emergency: job_form.emergency,
-				notes_for_office: job_form.notes_for_office,
 				availability: map(windows, window => ({
 					availability_date: Temporal.PlainDate.from(window.date),
 					start_time: Temporal.PlainTime.from(window.from),
@@ -285,10 +301,11 @@
 			{picked_client}
 			bind:selected_contact={() => selected_contact, set_selected_contact}
 			bind:contact_form
+			bind:client_is_project_contact
 			{client_form}
 		/>
 
-		<JobFieldset bind:job_form {lead_sources} {employees} />
+		<JobFieldset bind:project {lead_sources} {employees} />
 
 		{#if save_error}
 			<p class="error">{save_error}</p>

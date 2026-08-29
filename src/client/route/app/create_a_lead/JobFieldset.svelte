@@ -9,21 +9,22 @@
 	export type LeadSourceOption = { lead_source_id: bigint | null, name: string }
 	export type Employee = { employee_id: bigint, name: string }
 
-	export type JobForm = {
+	export type ProjectForm = {
 		lead_details: string
 		lead_source_value: LeadSourceOption | null
 		assigned_estimator_employee_id: bigint | null
 		has_due_date: boolean
 		due_date: string
 		emergency: boolean
+		notes_for_crew: string
 		notes_for_office: string
 		availability: AvailabilityWindow[]
 	}
 </script>
 
 <script lang="ts">
-	let { job_form = $bindable(), lead_sources, employees }: {
-		job_form: JobForm
+	let { project = $bindable(), lead_sources, employees }: {
+		project: ProjectForm
 		lead_sources: LeadSourceOption[]
 		employees: Employee[]
 	} = $props()
@@ -42,13 +43,13 @@
 <fieldset>
 	<legend>The job</legend>
 	<FieldsetColumn>
-		<WideTextareaField id="lead_details" label="Lead details" rows={5} bind:value={job_form.lead_details} />
+		<WideTextareaField id="lead_details" label="Lead details" rows={5} bind:value={project.lead_details} />
 
 		<FormLayout>
 			<label>
 				Lead source
 				<BetterDataList
-					bind:value={job_form.lead_source_value}
+					bind:value={project.lead_source_value}
 					bind:search_text={lead_source_search}
 					options={lead_source_options}
 					predicate={search_text => option =>
@@ -68,7 +69,7 @@
 			</label>
 			<label>
 				Estimator
-				<select bind:value={job_form.assigned_estimator_employee_id}>
+				<select bind:value={project.assigned_estimator_employee_id}>
 					<option value={null}>Not assigned</option>
 					{#each employees as employee (employee.employee_id)}
 						<option value={employee.employee_id}>{employee.name}</option>
@@ -77,22 +78,24 @@
 			</label>
 			<label>
 				Has a due date
-				<input type="checkbox" bind:checked={job_form.has_due_date}>
+				<input type="checkbox" bind:checked={project.has_due_date}>
 			</label>
-			{#if job_form.has_due_date}
+			{#if project.has_due_date}
 				<label>
 					Due date
-					<input type="date" bind:value={job_form.due_date}>
+					<input type="date" bind:value={project.due_date}>
 				</label>
 			{/if}
 			<label>
 				Emergency
-				<input type="checkbox" bind:checked={job_form.emergency}>
+				<input type="checkbox" bind:checked={project.emergency}>
 			</label>
 		</FormLayout>
 
-		<AvailabilityWindows bind:windows={job_form.availability} />
+		<AvailabilityWindows bind:windows={project.availability} />
 
-		<WideTextareaField id="notes_for_office" label="Notes for the office" rows={2} bind:value={job_form.notes_for_office} />
+		<WideTextareaField id="notes_for_crew" label="Notes for the crew" rows={2} bind:value={project.notes_for_crew} />
+
+		<WideTextareaField id="notes_for_office" label="Notes for the office" rows={2} bind:value={project.notes_for_office} />
 	</FieldsetColumn>
 </fieldset>

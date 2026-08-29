@@ -96,6 +96,21 @@ const FUNCTIONS = {
 	'UUID_TO_BIN': (args: SomeFunctionArguments) => to_sql_chunk({
 		build_sql_1: (value: string) => `UUID_TO_BIN(${value})`
 	}, args),
+	'MAX': (args: SomeFunctionArguments) => to_sql_chunk({
+		build_sql_1: (value: string) => `MAX(${value})`
+	}, args),
+	'MIN': (args: SomeFunctionArguments) => to_sql_chunk({
+		build_sql_1: (value: string) => `MIN(${value})`
+	}, args),
+	'SUM': (args: SomeFunctionArguments) => to_sql_chunk({
+		build_sql_1: (value: string) => `SUM(${value})`
+	}, args),
+	'AVG': (args: SomeFunctionArguments) => to_sql_chunk({
+		build_sql_1: (value: string) => `AVG(${value})`
+	}, args),
+	'IFNULL': (args: SomeFunctionArguments) => to_sql_chunk({
+		build_sql_2: (value_a: string, value_b: string) => `IFNULL(${value_a}, ${value_b})`
+	}, args),
 } as const satisfies { [key in FunctionName]: (args: SomeFunctionArguments) => SqlChunk }
 
 const operand_to_sql_chunk = (operand: ComparisonOperand): SqlChunk => {

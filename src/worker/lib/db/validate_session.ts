@@ -47,9 +47,7 @@ const validate_session = async (request: Request, mysql: MysqlHelpersObject) => 
 		.select(() => [...employee_columns, ...company_columns])
 		.build()
 
-	const query = safe_select_query_builder.to_sql(typed_query.query)
-
-	const row = await mysql.query(query).get_first_row()
+	const row = await mysql.query(safe_select_query_builder.to_sql(typed_query.query)).get_first_row()
 
 	return row
 		? typed_query.positional_row_to_named(row)

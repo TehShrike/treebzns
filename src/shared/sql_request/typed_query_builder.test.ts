@@ -292,6 +292,60 @@ test('typed_query_builder: select with COUNT function', () => {
 	assert_valid_query_output(built)
 })
 
+test('typed_query_builder: select with aggregate functions', () => {
+	const built = q.from('project AS p')
+		.select(b => [
+			b.fn('MAX', 'p.max_due_date', 'p.due_date'),
+			b.fn('MIN', 'p.min_project_id', 'p.project_id'),
+			b.fn('SUM', 'p.hours_sum', 'p.created_by_employee_id'),
+			b.fn('AVG', 'p.avg_tax', 'p.tax_rate'),
+		])
+		.build()
+
+	type ExpectedRowType = {
+		p: {
+			max_due_date: Temporal.PlainDate | null
+			min_project_id: bigint | null
+			hours_sum: FinancialNumber | null
+			avg_tax: FinancialNumber | null
+		}
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
+	const { sql, values } = safe_select_query_builder.to_sql(built.query)
+	assert.strictEqual(sql, 'SELECT MAX(`p`.`due_date`) AS `max_due_date`, MIN(`p`.`project_id`) AS `min_project_id`, SUM(`p`.`created_by_employee_id`) AS `hours_sum`, AVG(`p`.`tax_rate`) AS `avg_tax`\nFROM `project` AS `p`')
+	assert.deepStrictEqual(values, [])
+
+	assert_valid_query_output(built)
+})
+
+test('typed_query_builder: select with IFNULL of a column and a value or column', () => {
+	const built = q.from('project AS p')
+		.select(b => [
+			b.fn('IFNULL', 'p.estimator', 'p.assigned_estimator_employee_id', { value: 0n }),
+			b.fn('IFNULL', 'p.crew_or_office_notes', 'p.notes_for_crew', 'p.notes_for_office'),
+		])
+		.build()
+
+	type ExpectedRowType = {
+		p: {
+			estimator: bigint
+			crew_or_office_notes: string | null
+		}
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
+	const { sql, values } = safe_select_query_builder.to_sql(built.query)
+	assert.strictEqual(sql, 'SELECT IFNULL(`p`.`assigned_estimator_employee_id`, ?) AS `estimator`, IFNULL(`p`.`notes_for_crew`, `p`.`notes_for_office`) AS `crew_or_office_notes`\nFROM `project` AS `p`')
+	assert.deepStrictEqual(values, [0n])
+
+	assert_valid_query_output(built)
+})
+
 test('typed_query_builder: where with UUID_TO_BIN function expression', () => {
 	const built = q.from('project AS p')
 		.where(q => q.comparison('p.project_id', '=', q.fn('UUID_TO_BIN', { value: 'some-uuid' })))

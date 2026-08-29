@@ -48,11 +48,10 @@ export type ArbostarExportData = {
 // non-tenanted query in the import — it lives up here so the per-entity importers only ever
 // build tenanted queries.
 const load_taken_identity_keys = async (connection: Connection): Promise<Set<string>> => {
-	const identity_query = query_builder<Schema>()
+	const identity_rows = await run_select(connection, query_builder<Schema>()
 		.from('employee')
 		.select(() => ['employee.email', 'employee.login_name'])
-		.build()
-	const identity_rows = await run_select(connection, identity_query)
+		.build())
 	return new Set(map(
 		filter(
 			[...map(identity_rows, row => row.employee.email), ...map(identity_rows, row => row.employee.login_name)],

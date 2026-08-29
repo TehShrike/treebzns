@@ -460,6 +460,7 @@ CREATE TABLE `project` (
   `number` int unsigned NOT NULL,
   `client_id` int unsigned NOT NULL,
   `client_address_id` int unsigned NOT NULL,
+  `client_contact_id` int unsigned NOT NULL,
   `address_line_1` varchar(500) COLLATE utf8mb4_general_ci NOT NULL,
   `address_line_2` varchar(500) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `city` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
@@ -491,9 +492,6 @@ CREATE TABLE `project` (
   `closed_at` datetime DEFAULT NULL,
   `closed_date` date DEFAULT NULL,
   `project_decline_reason_id` int unsigned DEFAULT NULL,
-  `contact_name` varchar(500) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `contact_phone` varchar(30) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `contact_email` varchar(500) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `latitude` double DEFAULT NULL,
   `longitude` double DEFAULT NULL,
   `lead_source_id` int unsigned DEFAULT NULL,
@@ -502,7 +500,8 @@ CREATE TABLE `project` (
   KEY `idx_project_company_document` (`company_id`,`project_document_id`),
   KEY `idx_project_company_closed` (`company_id`,`closed`,`closed_date`),
   KEY `idx_project_company_estimator` (`company_id`,`assigned_estimator_employee_id`),
-  KEY `idx_project_client` (`client_id`)
+  KEY `idx_project_client` (`client_id`),
+  KEY `idx_project_contact` (`client_contact_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `project_client_approval` (

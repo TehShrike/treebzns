@@ -12,14 +12,12 @@ type ImportedDefaultProjectAddress = {
 	city: string
 	state: string
 	zip: string
-	contact_name: string
-	contact_phone: string
-	contact_email: string
 }
 
 export type ImportedClients = {
 	client_id_by_arbostar_client_id: Map<number, bigint>
 	default_project_address_by_arbostar_client_id: Map<number, ImportedDefaultProjectAddress>
+	primary_client_contact_id_by_arbostar_client_id: Map<number, bigint>
 	counts: {
 		clients_inserted: number
 		clients_updated: number
@@ -137,7 +135,6 @@ export const import_clients = async (
 		{
 			client_address_id: context.existing.default_project_address_id_by_arbostar_client_id.get(client.client_id)!,
 			...address_fields(client),
-			...baked_contact_fields(client),
 		},
 	] as const))
 
@@ -200,7 +197,6 @@ export const import_clients = async (
 		new_clients.forEach((client, index) => default_project_address_by_arbostar_client_id.set(client.client_id, {
 			client_address_id: address_ids[index]!,
 			...address_fields(client),
-			...baked_contact_fields(client),
 		}))
 	}
 
@@ -236,8 +232,12 @@ export const import_clients = async (
 		})),
 		ROWS_PER_BATCH,
 	)
+	const contact_id_by_arbostar_contact_id = new Map(map(
+		existing_contacts,
+		({ contact }) => [contact.cc_id, correlated_contacts.get(contact.cc_id)!] as const,
+	))
 	if (new_contacts.length > 0) {
-		await write_helper.bulk_insert(
+		const { insert_ids: contact_ids } = await write_helper.bulk_insert(
 			connection,
 			'client_contact',
 			map(new_contacts, incoming => ({
@@ -248,7 +248,48 @@ export const import_clients = async (
 			})),
 			ROWS_PER_BATCH,
 		)
+		new_contacts.forEach((incoming, index) => contact_id_by_arbostar_contact_id.set(incoming.contact.cc_id, contact_ids[index]!))
 	}
+
+	// Every project points at a contact (project.client_contact_id is NOT NULL), so a client
+	// with no exported contacts gets a fallback contact baked from the client fields. The
+	// fallback has no arbostar_contact_id — re-imports find it through the existing primary
+	// contact instead of creating another one.
+	const known_primary_contact_id = (client: ArbostarClient): bigint | undefined => {
+		const first_contact = (client.contacts ?? [])[0]
+		return first_contact === undefined
+			? context.existing.primary_client_contact_id_by_client_id.get(Number(client_id_by_arbostar_client_id.get(client.client_id)!))
+			: contact_id_by_arbostar_contact_id.get(first_contact.cc_id)!
+	}
+	const clients_without_contacts = filter(clients, client => known_primary_contact_id(client) === undefined)
+	const fallback_contact_id_by_arbostar_client_id = new Map<number, bigint>()
+	if (clients_without_contacts.length > 0) {
+		const { insert_ids: fallback_ids } = await write_helper.bulk_insert(
+			connection,
+			'client_contact',
+			map(clients_without_contacts, client => {
+				const contact = baked_contact_fields(client)
+				return {
+					company_id: context.company_id,
+					client_id: client_id_by_arbostar_client_id.get(client.client_id)!,
+					description: '',
+					name: contact.contact_name,
+					phone: contact.contact_phone,
+					email: contact.contact_email,
+					arbostar_email_data: null,
+					is_primary: true,
+					sort: 0n,
+					arbostar_contact_id: null,
+				}
+			}),
+			ROWS_PER_BATCH,
+		)
+		clients_without_contacts.forEach((client, index) => fallback_contact_id_by_arbostar_client_id.set(client.client_id, fallback_ids[index]!))
+	}
+	const primary_client_contact_id_by_arbostar_client_id = new Map(map(clients, client => [
+		client.client_id,
+		known_primary_contact_id(client) ?? fallback_contact_id_by_arbostar_client_id.get(client.client_id)!,
+	] as const))
 
 	// Contacts that disappeared from the export are counted but never deleted — a partial
 	// export must not destroy data. If ArboStar-side deletions ever need reconciling, that
@@ -265,11 +306,12 @@ export const import_clients = async (
 	return {
 		client_id_by_arbostar_client_id,
 		default_project_address_by_arbostar_client_id,
+		primary_client_contact_id_by_arbostar_client_id,
 		counts: {
 			clients_inserted: new_clients.length,
 			clients_updated: existing_clients.length,
 			clients_no_longer_in_export: no_longer_in_export,
-			client_contacts_inserted: new_contacts.length,
+			client_contacts_inserted: new_contacts.length + clients_without_contacts.length,
 			client_contacts_updated: existing_contacts.length,
 			client_contacts_no_longer_in_export: contacts_no_longer_in_export,
 		},

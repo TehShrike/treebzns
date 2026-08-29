@@ -146,7 +146,7 @@ export const import_projects = async (
 	},
 	imported_clients: ImportedClients,
 ): Promise<ImportedProjects> => {
-	const { client_id_by_arbostar_client_id, default_project_address_by_arbostar_client_id } = imported_clients
+	const { client_id_by_arbostar_client_id, default_project_address_by_arbostar_client_id, primary_client_contact_id_by_arbostar_client_id } = imported_clients
 	const estimates_by_lead_id = group_by(filter(estimates, estimate => estimate.lead_id !== null), estimate => estimate.lead_id!)
 	const workorders_by_lead_id = group_by(filter(workorders, workorder => workorder.lead_id !== null), workorder => workorder.lead_id!)
 	const invoices_by_lead_id = group_by(filter(invoices, invoice => invoice.lead_id !== null), invoice => invoice.lead_id!)
@@ -411,9 +411,7 @@ export const import_projects = async (
 			city: address.city,
 			state: address.state,
 			zip: address.zip,
-			contact_name: address.contact_name,
-			contact_phone: address.contact_phone,
-			contact_email: address.contact_email,
+			client_contact_id: primary_client_contact_id_by_arbostar_client_id.get(lead.client_id!)!,
 			assigned_estimator_employee_id,
 			lead_details,
 			needs_client_approval: project_document_id === documents.estimate,

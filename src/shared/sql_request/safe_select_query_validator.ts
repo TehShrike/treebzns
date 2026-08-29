@@ -43,6 +43,11 @@ export const function_name_validator = jv.one_of(
 	jv.exact('COUNT' as const),
 	jv.exact('COUNT DISTINCT' as const),
 	jv.exact('UUID_TO_BIN' as const),
+	jv.exact('MAX' as const),
+	jv.exact('MIN' as const),
+	jv.exact('SUM' as const),
+	jv.exact('AVG' as const),
+	jv.exact('IFNULL' as const),
 )
 
 const function_argument_validator = jv.one_of(column_reference_validator, user_provided_value_validator)

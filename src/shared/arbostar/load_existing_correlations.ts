@@ -13,6 +13,9 @@ export type ExistingCorrelations = {
 	invoice_id_by_arbostar_invoice_id: Map<number, bigint>
 	payment_id_by_arbostar_payment_id: Map<number, bigint>
 	client_contact_id_by_arbostar_contact_id: Map<number, bigint>
+	// Keyed by the local client_id — covers contacts with no ArboStar correlation, such as
+	// the fallback contacts a prior import created for clients with no exported contacts.
+	primary_client_contact_id_by_client_id: Map<number, bigint>
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
 	// Keyed by normalize_name(name), matching the case-insensitive unique keys on
 	// (company_id, name).
@@ -43,7 +46,7 @@ export const load_existing_correlations = async (
 	connection: Connection | Pool,
 	tenanted_select: TenantedSelect,
 ): Promise<ExistingCorrelations> => {
-	const [employees, clients, projects, invoices, payments, contacts, line_items, item_types, payment_methods, tax_rates, work_skills, lead_sources] = await Promise.all([
+	const [employees, clients, projects, invoices, payments, contacts, primary_contacts, line_items, item_types, payment_methods, tax_rates, work_skills, lead_sources] = await Promise.all([
 		tenanted_select(connection, q => q
 			.from('employee')
 			.select(() => ['employee.employee_id', 'employee.arbostar_user_id'])),
@@ -62,6 +65,10 @@ export const load_existing_correlations = async (
 		tenanted_select(connection, q => q
 			.from('client_contact')
 			.select(() => ['client_contact.client_contact_id', 'client_contact.arbostar_contact_id'])),
+		tenanted_select(connection, q => q
+			.from('client_contact')
+			.where(b => b.comparison('client_contact.is_primary', '=', { value: 1 }))
+			.select(() => ['client_contact.client_contact_id', 'client_contact.client_id'])),
 		tenanted_select(connection, q => q
 			.from('project_line_item')
 			.select(() => ['project_line_item.project_line_item_id', 'project_line_item.arbostar_line_item_id'])),
@@ -116,6 +123,11 @@ export const load_existing_correlations = async (
 		client_contact_id_by_arbostar_contact_id: correlation_map(
 			contacts,
 			row => row.client_contact.arbostar_contact_id,
+			row => row.client_contact.client_contact_id,
+		),
+		primary_client_contact_id_by_client_id: correlation_map(
+			primary_contacts,
+			row => row.client_contact.client_id,
 			row => row.client_contact.client_contact_id,
 		),
 		project_line_item_id_by_arbostar_line_item_id: correlation_map(

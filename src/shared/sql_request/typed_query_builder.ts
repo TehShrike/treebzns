@@ -1,3 +1,4 @@
+import type { FinancialNumber } from 'financial-number'
 import { for_each, map } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import { omit } from '#shared/omit.ts'
@@ -66,14 +67,41 @@ type FunctionReturnType<Fn extends FunctionName> =
 	: Fn extends 'IS NULL' | 'IS NOT NULL' ? boolean
 	: unknown
 
+type ColumnTypeOf<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, CR> =
+	CR extends `${infer T}.${infer C}`
+		? T extends keyof A
+			? C extends keyof Schema[A[T] & keyof Schema]
+				? Schema[A[T] & keyof Schema][C]
+				: never
+			: never
+		: never
+
+// The claimed return types are assertions about the connection's typeCast, like the ones in
+// mysql_function.ts. MAX/MIN return the column's own MySQL type. SUM/AVG return NEWDECIMAL,
+// which typeCast maps to FinancialNumber. All aggregates return NULL when no rows match.
+type FunctionReturnTypeWithArg<Fn extends FunctionName, Arg> =
+	Fn extends 'MAX' | 'MIN' ? Arg | null
+	: Fn extends 'SUM' | 'AVG' ? FinancialNumber | null
+	: FunctionReturnType<Fn>
+
+type FunctionReturnTypeWithTwoArgs<Fn extends FunctionName, Arg1, Arg2> =
+	Fn extends 'IFNULL' ? Exclude<Arg1, null> | Arg2
+	: FunctionReturnType<Fn>
+
+declare const function_return_type: unique symbol
+
+// function_return_type is a phantom key recording the TS type the function produces in the row,
+// so RowEntry can recover it without re-deriving it from the function name and arguments.
 export type SelectableFunctionExpression<
 	Table extends string = string,
 	Alias extends string = string,
 	Fn extends FunctionName = FunctionName,
+	Return = unknown,
 > = FunctionExpression & {
 	function: Fn
 	table_identifier: Table
 	alias: Alias
+	readonly [function_return_type]?: Return
 }
 
 type BeforeDot<S> = S extends `${infer T extends string}.${string}` ? T : never
@@ -89,18 +117,24 @@ type SelectExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMa
 		<const Fn extends FunctionName, const Alias extends SelectFnAlias<A>>(
 			name: Fn,
 			alias: Alias,
-		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn>
+		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn, FunctionReturnType<Fn>>
 		<const Fn extends FunctionName, const Alias extends SelectFnAlias<A>, const CR extends ColumnRef<Schema, A>>(
 			name: Fn,
 			alias: Alias,
 			arg: CR,
-		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn>
+		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn, FunctionReturnTypeWithArg<Fn, ColumnTypeOf<Schema, A, CR>>>
 		<const Fn extends FunctionName, const Alias extends SelectFnAlias<A>, const CR1 extends ColumnRef<Schema, A>, const CR2 extends ColumnRef<Schema, A>>(
 			name: Fn,
 			alias: Alias,
 			arg1: CR1,
 			arg2: CR2,
-		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn>
+		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn, FunctionReturnTypeWithTwoArgs<Fn, ColumnTypeOf<Schema, A, CR1>, ColumnTypeOf<Schema, A, CR2>>>
+		<const Fn extends FunctionName, const Alias extends SelectFnAlias<A>, const CR1 extends ColumnRef<Schema, A>, const V>(
+			name: Fn,
+			alias: Alias,
+			arg1: CR1,
+			arg2: { value: V },
+		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn, FunctionReturnTypeWithTwoArgs<Fn, ColumnTypeOf<Schema, A, CR1>, V>>
 	}
 	and: <const Alias extends SelectFnAlias<A>>(alias: Alias, ...items: SelectGroupingItem<Schema, A>[]) => SelectGrouping
 	or: <const Alias extends SelectFnAlias<A>>(alias: Alias, ...items: SelectGroupingItem<Schema, A>[]) => SelectGrouping
@@ -112,9 +146,9 @@ type SelectInput<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
 	| SelectGrouping
 
 type RowEntry<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Expr> =
-	Expr extends { type: 'function'; table_identifier: infer T extends string; alias: infer K extends string; function: infer Fn extends FunctionName }
+	Expr extends { type: 'function'; table_identifier: infer T extends string; alias: infer K extends string; readonly [function_return_type]?: infer R }
 		? T extends keyof A
-			? { [_ in T]: { [_ in K]: FunctionReturnType<Fn> } }
+			? { [_ in T]: { [_ in K]: R } }
 			: never
 		: Expr extends `${infer T}.${infer C} AS ${infer K}`
 			? T extends keyof A
@@ -349,14 +383,17 @@ const to_select_grouping_expression = (item: string | SelectGrouping): SelectExp
 	typeof item === 'string' ? to_select_expression(item) : item
 
 const select_expression_builder = {
-	fn: (name: FunctionName, alias: string, ...col_refs: string[]): SelectableFunctionExpression => {
-		if (col_refs.length > 2) throw new Error('fn supports at most 2 arguments')
+	fn: (name: FunctionName, alias: string, ...fn_args: (string | { value: unknown })[]): SelectableFunctionExpression => {
+		if (fn_args.length > 2) throw new Error('fn supports at most 2 arguments')
 		const [table_identifier, col_alias, ...rest] = alias.split('.')
 		assert(table_identifier && col_alias && rest.length === 0, `select fn alias must be "table.col_alias": ${alias}`)
 		assert_identifier(table_identifier, 'select fn table identifier')
 		assert_identifier(col_alias, 'select fn alias')
-		const args = col_refs.map(r => {
-			const { table, column } = parse_col_ref(r)
+		const args = map(fn_args, arg => {
+			if (typeof arg === 'object') {
+				return { type: 'user provided value' as const, value: arg.value }
+			}
+			const { table, column } = parse_col_ref(arg)
 			return { type: 'column reference' as const, table_identifier: table, column }
 		})
 		return { type: 'function', function: name, arguments: args, alias: col_alias, table_identifier }

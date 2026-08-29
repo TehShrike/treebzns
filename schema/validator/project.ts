@@ -15,6 +15,7 @@ export const validator_object = {
 	number: jv.is_bigint,
 	client_id: jv.is_bigint,
 	client_address_id: jv.is_bigint,
+	client_contact_id: jv.is_bigint,
 	address_line_1: jv.is_string,
 	address_line_2: jv.is_string,
 	city: jv.is_string,
@@ -41,9 +42,6 @@ export const validator_object = {
 	closed_date: jv.nullable(is_temporal_plain_date),
 	project_decline_reason_id: jv.nullable(jv.is_bigint),
 	lead_source_id: jv.nullable(jv.is_bigint),
-	contact_name: jv.is_string,
-	contact_phone: jv.is_string,
-	contact_email: jv.is_string,
 	latitude: jv.nullable(jv.is_number),
 	longitude: jv.nullable(jv.is_number),
 }
