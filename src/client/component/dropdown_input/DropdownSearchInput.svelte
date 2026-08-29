@@ -129,6 +129,7 @@
 	const on_input_focus = () => {
 		if (saved_search_text) {
 			search_text = saved_search_text
+			saved_search_text = ''
 		}
 		show_dropdown = true
 		should_look_like_a_select = false
@@ -137,12 +138,15 @@
 	const on_input_blur = (event: FocusEvent) => {
 		const list_item_element_values = Object.values(list_item_elements).filter(Boolean)
 
-		if (list_item_element_values.includes(event.relatedTarget as HTMLLIElement)) {
-			return
+		const focus_is_moving_to_list_item = list_item_element_values.includes(event.relatedTarget as HTMLLIElement)
+		const an_option_is_selected = !!selected_option
+		const search_text_should_be_cleared = an_option_is_selected && !focus_is_moving_to_list_item
+
+		if (search_text_should_be_cleared) {
+			saved_search_text = search_text
+			search_text = ``
+			should_look_like_a_select = true
 		}
-		saved_search_text = search_text
-		search_text = ``
-		should_look_like_a_select = true
 	}
 
 	const current_placeholder = $derived(
