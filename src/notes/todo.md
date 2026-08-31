@@ -1,10 +1,16 @@
 # Catch up
 
-- Review ClientNameSearch and ClientPhoneSearch, make them use the same results component, make them look like other inputs.
-- Review create-a-lead server-side queries
+## Create a lead
+
+- For a record that has been saved already, inputs that have not been changed should appear less input-like (background same as the screen background color?)
+	- Need to track state-changed-since-database-version per entity
+- Review components and state management for sanity
+- Due date date picker needs to always be visible, but disabled when not "Has a due date"
+- Change "Client is project contact" to "Project contact is different from client" – show the contact inputs whether it is checked or not, but they should be disabled unless "Project contact is different" is checked
+
+## Other
+
 - Review the project list query on the home screen.  Add some inputs?
-
-
 - create a lead screen should have a "the billing address is different" button below the project address field
 - regenerate "create a lead" implementation
 - I'm not happy with the string-building happening in filter_clients.  I suspect it would be more efficient to check for every(tokens, token => some(address_fields, field => field.includes(token)))

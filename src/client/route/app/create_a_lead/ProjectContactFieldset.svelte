@@ -14,15 +14,17 @@
 		picked_client,
 		selected_contact = $bindable(null),
 		contact_form = $bindable(),
-		client_is_project_contact = $bindable(true),
+		project_contact_is_different = $bindable(false),
 		client_form,
 	}: {
 		picked_client: CachedClient | null
 		selected_contact?: CachedClientContact | null
 		contact_form: ContactForm
-		client_is_project_contact?: boolean
+		project_contact_is_different?: boolean
 		client_form: ClientForm
 	} = $props()
+
+	const inputs_disabled = $derived(!picked_client && !project_contact_is_different)
 </script>
 
 <fieldset>
@@ -42,25 +44,23 @@
 			</DropdownField>
 		{:else}
 			<label class="toggle">
-				<input type="checkbox" bind:checked={client_is_project_contact}>
-				Client is project contact
+				<input type="checkbox" bind:checked={project_contact_is_different}>
+				Project contact is different from client
 			</label>
 		{/if}
-		{#if picked_client || !client_is_project_contact}
-			<FormLayout>
-				<label>
-					Contact name
-					<input type="text" bind:value={contact_form.name} placeholder={client_form.name}>
-				</label>
-				<label>
-					Contact phone
-					<input type="tel" autocomplete="off" data-1p-ignore bind:value={contact_form.phone} placeholder={client_form.primary_phone}>
-				</label>
-				<label>
-					Contact email
-					<input type="email" bind:value={contact_form.email} placeholder={client_form.primary_email}>
-				</label>
-			</FormLayout>
-		{/if}
+		<FormLayout>
+			<label>
+				Contact name
+				<input type="text" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={contact_form.name} placeholder={client_form.name}>
+			</label>
+			<label>
+				Contact phone
+				<input type="tel" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={contact_form.phone} placeholder={client_form.primary_phone}>
+			</label>
+			<label>
+				Contact email
+				<input type="email" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={contact_form.email} placeholder={client_form.primary_email}>
+			</label>
+		</FormLayout>
 	</FieldsetColumn>
 </fieldset>

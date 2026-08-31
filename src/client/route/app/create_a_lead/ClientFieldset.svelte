@@ -21,8 +21,8 @@
 	<FieldsetColumn>
 		<FormLayout>
 			<label>
-				Client Name
-				<input type="text" bind:value={client_form.name}>
+				Name
+				<input type="text" autocomplete="off" data-1p-ignore bind:value={client_form.name}>
 			</label>
 			<label>
 				Phone
@@ -30,11 +30,11 @@
 			</label>
 			<label>
 				Email
-				<input type="email" bind:value={client_form.primary_email}>
+				<input type="email" autocomplete="off" data-1p-ignore bind:value={client_form.primary_email}>
 			</label>
 			<label>
 				Referred by
-				<input type="text" bind:value={client_form.referred_by}>
+				<input type="text" autocomplete="off" data-1p-ignore bind:value={client_form.referred_by}>
 			</label>
 			<label>
 				Tax rate

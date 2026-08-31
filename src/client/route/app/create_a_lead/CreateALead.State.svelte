@@ -108,7 +108,7 @@
 	})
 
 	let selected_contact = $state<CachedClientContact | null>(null)
-	let client_is_project_contact = $state(true)
+	let project_contact_is_different = $state(false)
 	let contact_form = $state<ContactForm>({
 		name: ``,
 		phone: ``,
@@ -186,7 +186,7 @@
 		client_form.is_commercial = false
 		client_form.notes = ``
 		billing_is_different = false
-		client_is_project_contact = true
+		project_contact_is_different = false
 		set_selected_address(null)
 		set_selected_contact(null)
 	}
@@ -237,7 +237,7 @@
 					state: address_form.state,
 					zip: address_form.zip,
 				},
-				contact: !picked_client && client_is_project_contact
+				contact: !picked_client && !project_contact_is_different
 					? {
 						client_contact_id: null,
 						name: client_form.name,
@@ -301,7 +301,7 @@
 			{picked_client}
 			bind:selected_contact={() => selected_contact, set_selected_contact}
 			bind:contact_form
-			bind:client_is_project_contact
+			bind:project_contact_is_different
 			{client_form}
 		/>
 
