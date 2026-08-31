@@ -17,10 +17,19 @@ line items only exist behind per-record detail endpoints (fetched one by one).
 | `session.ts` | Loads `.arbostar_session.json` and exposes `BASE_URL` / `AUTH_HEADERS` / `BROWSER_COOKIES`. |
 | `output.ts` | Reads/writes the `arbostar_export/` dir at the repo root — writes each dataset as `<name>.js` (`export default [...]`, gitignored). |
 | `export_*.ts` | One run-now script per dataset. |
+| `export_all.ts` | Runs every export script. Independent scripts run in parallel; the two that read `estimates.js` wait for `export_estimates.ts`. |
 | `discover_endpoints.ts` / `discover_details.ts` | Puppeteer crawlers that record the app's XHRs (list pages / detail pages). `discover_endpoints.ts` regenerates `arbostar_endpoints.json`. |
 | `arbostar_endpoints.json` | Map of all ~36 list/XHR endpoints, with an example `path_and_query` for each. |
 
 ## Running an export
+
+To run everything at once (parallel where dependencies allow, output prefixed per dataset):
+
+```sh
+node scripts/arbostar/export_all.ts
+```
+
+Or run one dataset at a time:
 
 ```sh
 node scripts/arbostar/export_clients.ts      # -> clients.js (raw rows; contacts + address_related nested)

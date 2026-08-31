@@ -45,7 +45,14 @@ import type { ArbostarClient } from '#arbostar_export/clients.d.ts' // the recor
 ## Regenerating
 
 Run the scripts in `../scripts/arbostar/` (each needs a valid `.arbostar_session.json` there —
-a stale session fails with `request failed: 302`). Some read earlier outputs, so mind the order:
+a stale session fails with `request failed: 302`). `export_all.ts` runs them all, in parallel
+where dependencies allow:
+
+```sh
+node ../scripts/arbostar/export_all.ts
+```
+
+Or run them individually — some read earlier outputs, so mind the order:
 
 ```sh
 node ../scripts/arbostar/export_clients.ts      # clients.js (raw rows, contacts nested)
