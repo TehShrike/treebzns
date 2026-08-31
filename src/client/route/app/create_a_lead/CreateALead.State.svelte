@@ -246,9 +246,9 @@
 					}
 					: {
 						client_contact_id: selected_contact?.client_contact_id ?? null,
-						name: contact_form.name.trim() || client_form.name,
-						phone: contact_form.phone.trim() || client_form.primary_phone,
-						email: contact_form.email.trim() || client_form.primary_email,
+						name: contact_form.name,
+						phone: contact_form.phone,
+						email: contact_form.email,
 					},
 				project: {
 					due_date: project.has_due_date && project.due_date !== `` ? Temporal.PlainDate.from(project.due_date) : null,

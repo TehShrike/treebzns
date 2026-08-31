@@ -51,15 +51,15 @@
 		<FormLayout>
 			<label>
 				Contact name
-				<input type="text" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={contact_form.name} placeholder={client_form.name}>
+				<input type="text" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={() => inputs_disabled ? client_form.name : contact_form.name, value => contact_form.name = value}>
 			</label>
 			<label>
 				Contact phone
-				<input type="tel" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={contact_form.phone} placeholder={client_form.primary_phone}>
+				<input type="tel" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={() => inputs_disabled ? client_form.primary_phone : contact_form.phone, value => contact_form.phone = value}>
 			</label>
 			<label>
 				Contact email
-				<input type="email" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={contact_form.email} placeholder={client_form.primary_email}>
+				<input type="email" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={() => inputs_disabled ? client_form.primary_email : contact_form.email, value => contact_form.email = value}>
 			</label>
 		</FormLayout>
 	</FieldsetColumn>
