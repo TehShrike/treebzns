@@ -74,4 +74,4 @@ After the import, regenerate the gitignored `company_inserts.sql` at the repo ro
 pnpm exec dotenv -- node scripts/dump_company_inserts.ts --company_id <id>
 ```
 
-It dumps the company's rows from every table with a company_id column, with a DELETE per table before the inserts. Replaying the file needs SUPER for its `SET GLOBAL max_allowed_packet` line. Without that privilege, skip the line: `grep -v "^SET GLOBAL" company_inserts.sql | mysql ...`.
+It dumps the company's rows from every table with a company_id column, with a DELETE per table before the inserts, capped at 100 rows per INSERT.
