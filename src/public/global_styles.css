@@ -6,7 +6,7 @@
 	gap: var(--gap_unit);
 }
 
-input:focus-visible, button:focus-visible, textarea:focus-visible, select:focus {
+input:focus-visible, button:focus-visible, textarea:focus-visible {
 	outline: var(--focus_outline_width) solid var(--focus_color);
 }
 

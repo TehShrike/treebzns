@@ -460,6 +460,10 @@ select {
 	background-repeat: no-repeat;
 	border-radius: 0;
 
+	&:focus-visible {
+		outline: none;
+	}
+
 	&:focus {
 		color: var(--button-highlight);
 		background-color: var(--dialog-blue);
