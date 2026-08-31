@@ -65,3 +65,13 @@ pnpm exec dotenv -- sh -c 'mysql -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_US
 ```
 
 Counts will not match the exports exactly. The import curates rows (see `src/shared/arbostar/arbostar_import_notes.md`), and the summary output is the source of truth.
+
+## 5. Refresh the SQL dump
+
+After the import, regenerate the gitignored `company_inserts.sql` at the repo root:
+
+```sh
+pnpm exec dotenv -- node scripts/dump_company_inserts.ts --company_id <id>
+```
+
+It dumps the company's rows from every table with a company_id column, with a DELETE per table before the inserts. Replaying the file needs SUPER for its `SET GLOBAL max_allowed_packet` line. Without that privilege, skip the line: `grep -v "^SET GLOBAL" company_inserts.sql | mysql ...`.

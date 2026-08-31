@@ -14,3 +14,4 @@ build/
 /.ds-sync/
 /.design-sync/.cache/
 .lavish/
+/company_inserts.sql

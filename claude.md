@@ -74,3 +74,5 @@ A bare `(company_id)` index is only for "load all rows for the company" on catal
 ## Exporting Arbostar client data
 
 Client domain names, session information, and data must never be committed to git.  They may be exported to gitignored files, to /tmp, and imported to mysql.
+
+To dump one company's rows (every table with a company_id column) into the gitignored company_inserts.sql at the repo root, run `pnpm exec dotenv -- node scripts/dump_company_inserts.ts --company_id <id>`.  The file deletes the company's rows per table and re-inserts them, capped at 500 rows per INSERT.
