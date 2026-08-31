@@ -78,7 +78,7 @@ jobs:
           command: pnpm run deploy
 
 workflows:
-  test_and_migrate:
+  test_migrate_deploy:
     jobs:
       # Runs on every branch.
       - test
