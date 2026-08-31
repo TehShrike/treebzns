@@ -20,7 +20,7 @@
 	</style>
 </head>
 <body>
-	<p><a href="app.html#/login">Log in</a></p>
+	<p><a href="app#/login">Log in</a></p>
 
 	<h1>Create company</h1>
 	<form id="form">
@@ -105,7 +105,7 @@
 				const { res, json } = await post_json('/api/create_company', body)
 				if (res.ok) {
 					// The endpoint logs us in (sets the session cookie), so go straight to the app.
-					window.location.href = 'app.html/#/app'
+					window.location.href = 'app#/app'
 					return
 				}
 				show_result(result, res, json, j => `Company created! ID: ${j.company_id}`)
