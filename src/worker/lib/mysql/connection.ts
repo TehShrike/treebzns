@@ -106,8 +106,6 @@ export const static_connection_options: ConnectionOptions = {
 	},
 }
 
-// Structural rather than the worker's global Env so non-worker scripts (which aren't in the
-// worker tsconfig) can create pools with the exact same connection options as the app.
 type MysqlEnv = {
 	MYSQL_HOST: string
 	MYSQL_PORT: string
@@ -117,23 +115,37 @@ type MysqlEnv = {
 	MYSQL_CA_CERT?: string
 }
 
-const connection_options_from_env = (env: MysqlEnv): ConnectionOptions => ({
-	host: env.MYSQL_HOST,
-	port: Number(env.MYSQL_PORT),
-	user: env.MYSQL_USER,
-	password: env.MYSQL_PASS,
-	database: env.MYSQL_DB,
-	// In prod, MYSQL_CA_CERT (base64-encoded PEM) is set, which makes TLS required and
-	// verifies the server against the CA. Unset locally, so the connection is plaintext.
-	...(env.MYSQL_CA_CERT
-		? { ssl: { ca: Buffer.from(env.MYSQL_CA_CERT, 'base64').toString('utf8') } }
-		: {}),
-	disableEval: true,
-	...static_connection_options
-})
-
 export const create_pool = (env: MysqlEnv): Pool =>
-	createPool(connection_options_from_env(env))
+	createPool({
+		host: env.MYSQL_HOST,
+		port: Number(env.MYSQL_PORT),
+		user: env.MYSQL_USER,
+		password: env.MYSQL_PASS,
+		database: env.MYSQL_DB,
+		// MYSQL_CA_CERT (base64-encoded PEM) makes TLS required and verifies the
+		// server against the CA. Unset locally, so the connection is plaintext.
+		...(env.MYSQL_CA_CERT
+			? { ssl: { ca: Buffer.from(env.MYSQL_CA_CERT, 'base64').toString('utf8') } }
+			: {}),
+		disableEval: true,
+		...static_connection_options
+	})
 
-export const create_connection = (env: MysqlEnv): Promise<Connection> =>
-	createConnection(connection_options_from_env(env))
+type HyperdriveBinding = {
+	host: string
+	port: number
+	user: string
+	password: string
+	database: string
+}
+
+export const create_connection = (hyperdrive: HyperdriveBinding): Promise<Connection> =>
+	createConnection({
+		host: hyperdrive.host,
+		port: hyperdrive.port,
+		user: hyperdrive.user,
+		password: hyperdrive.password,
+		database: hyperdrive.database,
+		disableEval: true,
+		...static_connection_options
+	})

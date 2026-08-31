@@ -11,7 +11,7 @@ import { error_object_response } from './lib/response_helpers.ts'
 const server_function_route_prefix = '/api/fn/'
 
 const run_with_connection = async <RESULT>(env: Env, fn: (connection: MysqlHelpersObject) => Promise<RESULT>): Promise<RESULT> => {
-	const conn = await create_connection(env)
+	const conn = await create_connection(env.HYPERDRIVE)
 	try {
 		const mysql = make_mysql_helpers_object(conn)
 		return await fn(mysql)
