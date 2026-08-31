@@ -37,7 +37,7 @@ node scripts/arbostar/export_workorders.ts   # -> workorders.js
 node scripts/arbostar/export_leads.ts        # -> leads.js (two passes + the KPI New Leads referral join)
 node scripts/arbostar/export_estimates.ts    # -> estimates.js   (two passes)
 node scripts/arbostar/export_invoices.ts     # -> invoices.js
-node scripts/arbostar/export_line_items.ts   # -> line_items.js  (reads estimates.js; ~1684 × 355 KB — slowest)
+node scripts/arbostar/export_line_items.ts   # -> line_items.js  (reads estimates.js; one profileData call per estimate)
 node scripts/arbostar/export_payments.ts     # -> payments.js    (BI Client Payments report; see the payments section)
 node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
 node scripts/arbostar/export_taxes.ts        # -> taxes.js       (official tax list, scraped from /settings)
@@ -121,20 +121,44 @@ other pass.)
 These don't exist on the list endpoints — each is a single-record JSON GET, fetched one per
 record via `fetch_record.ts`.
 
-**Line items** — `GET /estimates/edit/{LEAD_id}`, rows at `lead.estimate.estimates_service`:
+**Line items** — `GET /estimates/profile/profileData/{LEAD_id}`, rows at
+`lead.estimate.estimates_service`:
 
-- **Keyed by lead id, NOT estimate id.** `/estimates/edit/1696` loads the estimate for *lead*
-  1696, which is a different estimate than the one whose DB `estimate_id` is 1696. Use the
-  `lead_id` from `estimates.js` (it's 1:1 with estimates here). The returned line items'
-  `estimate_id` then matches the list's `estimate_id`.
-- It's the **estimate editor**, so the payload is ~355 KB — it re-sends the whole service
-  catalog (`tree_types` alone is ~694 entries) on every call. There is no lighter endpoint and
-  no per-estimate route (all the `/estimates/get*`/`/estimates/services/{id}` guesses 404).
+- **Keyed by lead id, NOT estimate id.** `/estimates/profile/profileData/1696` loads the
+  estimate for *lead* 1696, which is a different estimate than the one whose DB `estimate_id`
+  is 1696. Use the `lead_id` from `estimates.js` (it's 1:1 with estimates here). The returned
+  line items' `estimate_id` then matches the list's `estimate_id`. The app URL `/{lead_no}-E`
+  (the estimate profile page) is what loads this endpoint — it is defined in
+  `/assets/js/config/routes.js`, which is also where to look for other per-record endpoints.
+- The **estimate editor** (`GET /estimates/edit/{LEAD_id}`) returns the same
+  `estimates_service` rows (same fields, including the nested `service`/`status`/`crew`
+  joins), but its payload is ~355 KB — it re-sends the whole service catalog (`tree_types`
+  alone is ~694 entries) on every call — vs ~50–170 KB for the profile. Measured August 2026:
+  the profile sustains ~4.4 req/s against the editor's ~2, and raising concurrency past 6
+  changes neither (the server serializes requests that share a session), so the profile is
+  the fastest known source. There is no bulk/multi-estimate endpoint: the closest are the BI
+  KPI Revenue reports (`GET /business_intelligence/kpi_revenue_completed/datatables` +
+  `kpi_revenue_in_progress/datatables`, standard GET datatables scoped by
+  `report_date_from`/`report_date_to` in `MM/DD/YYYY` — a too-wide range like 2015–2099
+  silently returns 0 rows), which do return one row per line item (`id` = the line-item id)
+  but only for **scheduled** work, with a thin projection (no description, quantity, crews,
+  or flags). Unscheduled, declined, and pending estimates are absent, so they cannot replace
+  the per-estimate fetch.
 - **One source covers everything.** Each `estimates_service` row carries `estimate_id`,
   `invoice_id`, and `parent_invoice_id`. When an estimate is invoiced those rows get an
   `invoice_id`; work orders schedule the same rows. So invoices and work orders have **no
   separate line-item JSON endpoint** (the invoice editor renders them into HTML) — filter
   `line_items.js` by `invoice_id` instead.
+- **Service groups hide their line items from the profile.** A group ("Tree Removal Plus")
+  is a row with `type: 'group'` and its own id sequence — group ids collide with line-item
+  ids, which is why the pre-profile export produced duplicate ids with all-null phantom rows
+  (the importer's `data_score` dedupe exists for those old exports). The profile response
+  lists the group under `estimate_groups` but with an **empty** `group_services`; only the
+  editor nests the real child rows (`estimates_service[type=group].group_services`, same
+  shape as items, absent from every other array in the profile payload). So the export
+  fetches the editor for the few leads whose profile shows `estimate_groups`, takes the
+  children from there, skips the group rows themselves, and asserts the final ids are
+  unique. The old editor-only export dropped grouped line items entirely.
 - Line totals won't sum to the estimate total: `optional` lines and discounts are applied on top.
 
 ## Labor catalogs: crews + work types (from the estimate editor)

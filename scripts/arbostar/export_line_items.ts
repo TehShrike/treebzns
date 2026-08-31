@@ -4,11 +4,19 @@
 //
 //   node scripts/arbostar/export_line_items.ts
 //
-// Line items only exist behind the estimate EDITOR, which is keyed by LEAD id (not
-// estimate id) at /estimates/edit/{lead_id}; the rows live at lead.estimate.estimates_service.
+// Line items come from the estimate PROFILE endpoint, which is keyed by LEAD id (not
+// estimate id): /estimates/profile/profileData/{lead_id}, rows at lead.estimate.estimates_service.
 // Each row carries estimate_id + invoice_id, so this one pass covers quotes, invoices, and
-// work orders. The editor payload is ~355 KB each (it re-sends the whole service catalog),
-// so this is the slow export. Auth comes from ./session.ts; shape from #arbostar_export/line_items.d.ts.
+// work orders. The estimate editor (/estimates/edit/{lead_id}) returns the same rows, but its
+// payload is ~350 KB (it re-sends the whole service catalog) vs ~80 KB here, and it sustains
+// less than half the request rate.
+//
+// Line items inside a service GROUP are the one thing the profile omits: its group rows come
+// with an empty group_services array. Only the editor nests the children, so estimates whose
+// profile lists estimate_groups get one extra editor fetch. Auth comes from ./session.ts;
+// shape from #arbostar_export/line_items.d.ts.
+
+import assert from 'node:assert/strict'
 
 import { fetch_json, map_with_concurrency } from './fetch_record.ts'
 import { read_output, write_output } from './output.ts'
@@ -38,10 +46,17 @@ type ArboStarService = {
 	service_crews: string | null
 	service: { service_name: string | null } | null
 	status: { services_status_name: string | null } | null
+	type: 'item' | 'group'
+	group_services?: ArboStarService[]
 }
 
-type EstimateEditor = {
-	lead?: { estimate?: { estimates_service?: ArboStarService[] } | null } | null
+type EstimateData = {
+	lead?: {
+		estimate?: {
+			estimates_service?: ArboStarService[]
+			estimate_groups?: { id: number }[]
+		} | null
+	} | null
 }
 
 const number_or_null = (value: number | string | null | undefined): number | null =>
@@ -78,13 +93,23 @@ const lead_ids = [...new Set(estimates.map(e => e.lead_id).filter((id): id is nu
 console.log(`Fetching line items for ${lead_ids.length} estimates (by lead id)...`)
 
 let failures = 0
+let editor_fallbacks = 0
 const per_estimate = await map_with_concurrency(
 	lead_ids,
 	6,
 	async (lead_id): Promise<ExportShape<ArbostarLineItem>[]> => {
 		try {
-			const editor = await fetch_json<EstimateEditor>(`/estimates/edit/${lead_id}`, { base_url: BASE_URL, headers: AUTH_HEADERS })
-			const services = editor.lead?.estimate?.estimates_service ?? []
+			const profile = await fetch_json<EstimateData>(`/estimates/profile/profileData/${lead_id}`, { base_url: BASE_URL, headers: AUTH_HEADERS })
+			const estimate = profile.lead?.estimate
+			const services = (estimate?.estimates_service ?? []).filter(service => service.type !== 'group')
+			if ((estimate?.estimate_groups ?? []).length > 0) {
+				editor_fallbacks += 1
+				const editor = await fetch_json<EstimateData>(`/estimates/edit/${lead_id}`, { base_url: BASE_URL, headers: AUTH_HEADERS })
+				const grouped = (editor.lead?.estimate?.estimates_service ?? [])
+					.filter(service => service.type === 'group')
+					.flatMap(group => group.group_services ?? [])
+				services.push(...grouped)
+			}
 			return services.map(service => to_line_item(service, lead_id))
 		} catch (error) {
 			failures += 1
@@ -98,6 +123,9 @@ const per_estimate = await map_with_concurrency(
 )
 
 const line_items = per_estimate.flat()
+const line_item_ids = new Set(line_items.map(item => item.line_item_id))
+assert(line_item_ids.size === line_items.length, 'every exported line item has a unique line_item_id')
 const path = write_output('line_items.js', line_items)
 console.log(`Wrote ${line_items.length} line items from ${lead_ids.length - failures} estimates -> ${path}`)
+if (editor_fallbacks > 0) console.log(`(${editor_fallbacks} estimates with service groups needed an editor fetch)`)
 if (failures > 0) console.log(`(${failures} estimates failed to fetch)`)
