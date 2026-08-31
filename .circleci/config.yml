@@ -63,15 +63,34 @@ jobs:
           # DB credentials are provided via project environment variables in the CircleCI web UI.
           command: pnpm run prod:db_migrate
 
+  deploy:
+    executor: node
+    steps:
+      - checkout
+      - setup_pnpm
+      - run:
+          name: Build worker and client
+          command: pnpm run build
+      - run:
+          name: Deploy to Cloudflare
+          # CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are provided via
+          # project environment variables in the CircleCI web UI.
+          command: pnpm run deploy
+
 workflows:
   test_and_migrate:
     jobs:
       # Runs on every branch.
       - test
-      # Migrations run only on master, after tests pass.
       - migrate:
           requires:
             - test
+          filters:
+            branches:
+              only: master
+      - deploy:
+          requires:
+            - migrate
           filters:
             branches:
               only: master

@@ -1,4 +1,5 @@
 name = "treebzns"
+account_id = "97687a4fd8832d4c7d0fc5482e49d6cb"
 main = "src/worker/index.ts"
 compatibility_flags = [ "nodejs_compat" ]
 compatibility_date = "2025-01-01"
