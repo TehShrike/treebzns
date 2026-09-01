@@ -10,12 +10,13 @@
 	import ProjectLocationFieldset, { type AddressForm, type CachedAddress } from './ProjectLocationFieldset.svelte'
 	import BillingAddressFieldset, { type BillingForm } from './BillingAddressFieldset.svelte'
 	import ProjectContactFieldset, { type ContactForm } from './ProjectContactFieldset.svelte'
-	import JobFieldset, { type ProjectForm } from './JobFieldset.svelte'
+	import JobFieldset, { in_estimator_order, type ProjectForm } from './JobFieldset.svelte'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import { map, filter, find, some } from '#shared/array.ts'
 	import assert from '#shared/assert.ts'
 	import { Temporal } from '@js-temporal/polyfill'
+	import { untrack } from 'svelte'
 
 	const fetch_tax_rates = async (query: ClientQueryFn) => map(
 		await query(
@@ -33,7 +34,7 @@
 			query_builder<Schema>()
 				.from('employee')
 				.order_by('employee.name', 'ASC')
-				.select(() => ['employee.employee_id', 'employee.name'] as const)
+				.select(() => ['employee.employee_id', 'employee.name', 'employee.estimator_sort'] as const)
 				.build()
 		),
 		row => row.employee,
@@ -118,7 +119,7 @@
 	let project = $state<ProjectForm>({
 		lead_details: ``,
 		lead_source_value: null,
-		assigned_estimator_employee_id: null,
+		assigned_estimator_employee_id: untrack(() => in_estimator_order(employees)[0]?.employee_id ?? null),
 		has_due_date: false,
 		due_date: ``,
 		emergency: false,

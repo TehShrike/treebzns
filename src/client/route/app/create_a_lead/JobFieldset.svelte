@@ -7,7 +7,10 @@
 	import { some } from '#shared/array.ts'
 
 	export type LeadSourceOption = { lead_source_id: bigint | null, name: string }
-	export type Employee = { employee_id: bigint, name: string }
+	export type Employee = { employee_id: bigint, name: string, estimator_sort: bigint }
+
+	export const in_estimator_order = (employees: Employee[]): Employee[] =>
+		[...employees].sort((a, b) => Number(a.estimator_sort - b.estimator_sort))
 
 	export type ProjectForm = {
 		lead_details: string
@@ -30,6 +33,8 @@
 	} = $props()
 
 	let lead_source_search = $state(``)
+
+	const estimator_options = $derived(in_estimator_order(employees))
 
 	const lead_source_options = $derived.by((): LeadSourceOption[] => {
 		const trimmed = lead_source_search.trim()
@@ -71,7 +76,7 @@
 				Estimator
 				<select bind:value={project.assigned_estimator_employee_id}>
 					<option value={null}>Not assigned</option>
-					{#each employees as employee (employee.employee_id)}
+					{#each estimator_options as employee (employee.employee_id)}
 						<option value={employee.employee_id}>{employee.name}</option>
 					{/each}
 				</select>

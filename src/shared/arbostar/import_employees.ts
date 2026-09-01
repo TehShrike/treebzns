@@ -106,7 +106,7 @@ export const import_employees = async (
 			return true
 		}
 
-		return map(new_users, user => {
+		return map(new_users, (user, index) => {
 			let login_name = user.emailid === '' ? null : user.emailid
 			let email = user.personal_email === '' ? null : user.personal_email
 			if (login_name !== null && !claim(login_name)) {
@@ -134,6 +134,7 @@ export const import_employees = async (
 				is_owner: false,
 				number_of_password_hash_iterations: DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS,
 				arbostar_user_id: BigInt(user.user_id),
+				estimator_sort: context.next_estimator_sort + BigInt(index),
 			}
 		})
 	})()

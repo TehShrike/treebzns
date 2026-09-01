@@ -142,6 +142,7 @@ export const employee = {
 	email: 'email',
 	login_name: 'login_name',
 	phone: 'phone',
+	estimator_sort: 'estimator_sort',
 	password_hash: 'password_hash',
 	is_owner: 'is_owner',
 	number_of_password_hash_iterations: 'number_of_password_hash_iterations',

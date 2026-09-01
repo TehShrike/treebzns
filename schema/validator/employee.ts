@@ -10,6 +10,7 @@ export const validator_object = {
 	company_id: jv.is_bigint,
 	name: jv.is_string,
 	phone: jv.is_string,
+	estimator_sort: jv.is_bigint,
 	password_hash: jv.is_string,
 	is_owner: jv.is_boolean,
 	arbostar_user_id: jv.nullable(jv.is_bigint),

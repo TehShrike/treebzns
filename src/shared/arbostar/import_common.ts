@@ -52,8 +52,6 @@ export const placeholder_email = (company_id: bigint, arbostar_user_id: number):
 
 export type ArbostarImportContext = {
 	company_id: bigint
-	// The company's IANA timezone, for turning ArboStar's date-only values into instants.
-	timezone: string
 	// Runs a typed query with the tenant filter added automatically (see make_tenanted_select).
 	tenanted_select: TenantedSelect
 	// Imported projects are attributed to this employee (project.created_by_employee_id).
@@ -79,6 +77,9 @@ export type ArbostarImportContext = {
 	// login_name → employee_id, so an ArboStar user account can adopt the employee row a
 	// person created in-app before the first import.
 	employee_id_by_identity: Map<string, bigint>
+	// One past the company's highest employee.estimator_sort — where newly inserted
+	// employees start.
+	next_estimator_sort: bigint
 	// The company's rows from previous imports (see load_existing_correlations.ts) — how each
 	// importer decides update-vs-insert. All empty on a first import.
 	existing: ExistingCorrelations

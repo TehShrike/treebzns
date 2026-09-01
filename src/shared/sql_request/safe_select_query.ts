@@ -283,7 +283,7 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 				} else {
 					const whitelisted_columns = whitelisted_columns_by_table.get(table_name)
 					if (whitelisted_columns && !whitelisted_columns.has(ref.column)) {
-						messages.push(`Column "${ref.column}" on table "${table_name}" is not available through this endpoint`)
+						messages.push(`"${ref.column}" is not one of the whitelisted columns on the "${table_name}" table`)
 					}
 				}
 			} else {

@@ -10,7 +10,7 @@ export const DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS = 50_000n
 
 type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> : never
 
-type CreateEmployeeArg = DistributiveOmit<DbInsertableEmployee, 'password_hash' | 'number_of_password_hash_iterations' | 'arbostar_user_id'> & {
+type CreateEmployeeArg = DistributiveOmit<DbInsertableEmployee, 'password_hash' | 'number_of_password_hash_iterations' | 'arbostar_user_id' | 'estimator_sort'> & {
 	password: string
 }
 
@@ -25,11 +25,26 @@ const password_hash_column_values = async (password: string, company_id: bigint)
 	}
 }
 
+const next_estimator_sort = async (company_id: bigint, mysql: MysqlHelpersObject): Promise<bigint> => {
+	const max_sort_query = query_builder<Schema>()
+		.from('employee')
+		.where(q => q.comparison('employee.company_id', '=', { value: company_id }))
+		.select(q => [q.fn('MAX', 'employee.max_sort', 'employee.estimator_sort')])
+		.build()
+
+	const max_sort_row = await mysql.query(safe_select_query_builder.to_sql(max_sort_query.query)).get_first_row()
+	assert(max_sort_row, `An aggregate query returns exactly one row`)
+
+	const { max_sort } = max_sort_query.positional_row_to_named(max_sort_row).employee
+	return max_sort === null ? 0n : max_sort + 1n
+}
+
 export const create_employee = async (employee: CreateEmployeeArg, mysql: MysqlHelpersObject): Promise<bigint> => {
 	const { password, ...employee_fields } = employee
 
 	const { insert_id } = await write_helper.insert(mysql.connection, 'employee', {
 		...employee_fields,
+		estimator_sort: await next_estimator_sort(employee.company_id, mysql),
 		...await password_hash_column_values(password, employee.company_id),
 	})
 

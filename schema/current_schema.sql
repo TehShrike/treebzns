@@ -220,6 +220,7 @@ CREATE TABLE `employee` (
   `email` varchar(500) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `login_name` varchar(200) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `phone` varchar(30) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `estimator_sort` smallint unsigned NOT NULL,
   `password_hash` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `is_owner` bit(1) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),

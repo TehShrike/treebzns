@@ -5,7 +5,7 @@
 // connections.
 import type { Pool } from 'mysql2/promise'
 import assert from '#shared/assert.ts'
-import { map, filter, flatten, every } from '#shared/array.ts'
+import { map, filter, flatten, every, reduce } from '#shared/array.ts'
 import { normalize_name, identity_key, make_tenanted_select } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { load_existing_correlations } from './load_existing_correlations.ts'
@@ -16,11 +16,11 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 	const [company_rows, employee_rows, document_rows, decline_reason_rows, existing] = await Promise.all([
 		tenanted_select(pool, q => q
 			.from('company')
-			.select(() => ['company.company_id', 'company.timezone'])),
+			.select(() => ['company.company_id'])),
 		tenanted_select(pool, q => q
 			.from('employee')
 			.order_by('employee.is_owner', 'DESC')
-			.select(() => ['employee.employee_id', 'employee.name', 'employee.email', 'employee.login_name'])),
+			.select(() => ['employee.employee_id', 'employee.name', 'employee.email', 'employee.login_name', 'employee.estimator_sort'])),
 		tenanted_select(pool, q => q
 			.from('project_document')
 			.select(() => [
@@ -79,7 +79,6 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 
 	return {
 		company_id,
-		timezone: company_rows[0]!.company.timezone,
 		tenanted_select,
 		created_by_employee_id: BigInt(employee_rows[0]!.employee.employee_id),
 		project_document_ids: {
@@ -99,6 +98,11 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 			employee_rows,
 			row => [normalize_name(row.employee.name), BigInt(row.employee.employee_id)] as const,
 		)),
+		next_estimator_sort: reduce(
+			employee_rows,
+			0n,
+			(next, row) => row.employee.estimator_sort >= next ? row.employee.estimator_sort + 1n : next,
+		),
 		employee_id_by_identity: new Map(flatten(map(
 			employee_rows,
 			row => map(
