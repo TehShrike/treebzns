@@ -56,6 +56,10 @@ When asked to address comments, use the Chrome MCP tools.  Check `tabs_context_m
 
 Use the typed_query_builder for all SELECT queries.
 
+## _history tables
+
+Some tables have a companion `_history` table (e.g. `project` → `project_document_history`).  Code that inserts into the main table must also insert the initial `_history` row.  Code that changes the tracked value must insert a `_history` row for the change.
+
 ## company_id in indexes
 
 Every tenant-scoped table has a company_id column.  Every query filters on it for permission scoping.  That does not mean indexes need it.

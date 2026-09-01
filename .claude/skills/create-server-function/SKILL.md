@@ -55,6 +55,7 @@ Use `jv` from `#shared/json_validator.ts`. Temporal validators come from `#schem
 - Validate every id the client sent before any write. Use `assert_db_id_valid` from `#worker/lib/db/assert_db_id_valid.ts`. Batch the checks in one `Promise.all`, with `field !== null &&` guards for nullable ids. Put them in one `assert_input_ids_valid` helper.
 - Read with `select_builder`. Write with `write_helper.insert`, `write_helper.update`, and `write_helper.bulk_insert` (use `bulk_insert` for arrays).
 - Assert business assumptions with `assert` from `#shared/assert.ts`. The message states the thing asserted, not an error ("client_address_id is null when the client is new").
+- Check `schema/current_schema.sql` for a `_history` table that tracks a value you write (e.g. `project_document_history` tracks `project.project_document_id`). Insert a history row on the initial insert and on every change of the tracked value.
 - Return a typed object. The client gets this type through codegen, so it must not resolve to `any`.
 - Use the array functions from `#shared/array.ts`, not built-ins.
 

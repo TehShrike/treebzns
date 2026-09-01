@@ -204,6 +204,13 @@ export const functions = {
 				closed: false,
 			})
 
+			await write_helper.insert('project_document_history', {
+				company_id,
+				project_id,
+				project_document_id: initial_project_document_id,
+				changed_by_employee_id: user.employee_id,
+			})
+
 			if (availability.length > 0) {
 				await write_helper.bulk_insert('estimate_availability', map(availability, ({
 					availability_date,
