@@ -146,9 +146,11 @@ CREATE TABLE `clock_session_employee_history` (
   `new_clock_in` datetime DEFAULT NULL,
   `new_clock_out` datetime DEFAULT NULL,
   `changed_by_employee_id` int unsigned DEFAULT NULL,
+  `change_date` date NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   PRIMARY KEY (`clock_session_employee_history_id`),
-  KEY `idx_cseh_clock_session_employee` (`clock_session_employee_id`)
+  KEY `idx_cseh_clock_session_employee` (`clock_session_employee_id`),
+  KEY `idx_cseh_company_change_date` (`company_id`,`change_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `clock_session_line_item` (
@@ -203,10 +205,12 @@ CREATE TABLE `crew_regular_history` (
   `employee_id` int unsigned NOT NULL,
   `action` varchar(20) COLLATE utf8mb4_general_ci NOT NULL,
   `changed_by_employee_id` int unsigned DEFAULT NULL,
+  `change_date` date NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   PRIMARY KEY (`crew_regular_history_id`),
   KEY `idx_crew_regular_history_crew` (`crew_id`),
-  KEY `idx_crew_regular_history_employee` (`employee_id`)
+  KEY `idx_crew_regular_history_employee` (`employee_id`),
+  KEY `idx_crew_regular_history_company_change_date` (`company_id`,`change_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `employee` (
@@ -593,10 +597,12 @@ CREATE TABLE `project_document_history` (
   `project_id` int unsigned NOT NULL,
   `project_document_id` int unsigned NOT NULL,
   `changed_by_employee_id` int unsigned DEFAULT NULL,
+  `change_date` date NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   PRIMARY KEY (`project_document_history_id`),
   KEY `idx_pdh_company_project_document` (`company_id`,`project_document_id`),
-  KEY `idx_pdh_project` (`project_id`)
+  KEY `idx_pdh_project` (`project_id`),
+  KEY `idx_pdh_company_change_date` (`company_id`,`change_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `project_image` (

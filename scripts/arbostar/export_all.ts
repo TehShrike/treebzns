@@ -37,7 +37,7 @@ const format_duration = (ms: number): string => {
 
 const run = async (script: string): Promise<Result> => {
 	const label = script.replace(/^export_|\.ts$/g, '')
-	const started = Date.now()
+	const started = performance.now()
 	const child = spawn(process.execPath, [join(script_dir, script)], {
 		stdio: ['ignore', 'pipe', 'pipe'],
 	})
@@ -47,7 +47,7 @@ const run = async (script: string): Promise<Result> => {
 	prefix_lines(child.stderr!, process.stderr)
 	const [code] = (await once(child, 'close')) as [number | null]
 	const ok = code === 0
-	console.log(`[${label}] ${ok ? 'finished' : 'failed'} in ${format_duration(Date.now() - started)}`)
+	console.log(`[${label}] ${ok ? 'finished' : 'failed'} in ${format_duration(performance.now() - started)}`)
 	return { script, ok }
 }
 

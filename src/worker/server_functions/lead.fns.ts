@@ -1,3 +1,4 @@
+import { Temporal } from '@js-temporal/polyfill'
 import assert from '#shared/assert.ts'
 import * as jv from '#shared/json_validator.ts'
 import { sfn } from '#worker/lib/server_functions_api.ts'
@@ -209,6 +210,7 @@ export const functions = {
 				project_id,
 				project_document_id: initial_project_document_id,
 				changed_by_employee_id: user.employee_id,
+				change_date: Temporal.Now.instant().toZonedDateTimeISO(company.timezone).toPlainDate(),
 			})
 
 			if (availability.length > 0) {

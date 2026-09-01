@@ -16,7 +16,7 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 	const [company_rows, employee_rows, document_rows, decline_reason_rows, existing] = await Promise.all([
 		tenanted_select(pool, q => q
 			.from('company')
-			.select(() => ['company.company_id'])),
+			.select(() => ['company.company_id', 'company.timezone'])),
 		tenanted_select(pool, q => q
 			.from('employee')
 			.order_by('employee.is_owner', 'DESC')
@@ -79,6 +79,7 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 
 	return {
 		company_id,
+		timezone: company_rows[0]!.company.timezone,
 		tenanted_select,
 		created_by_employee_id: BigInt(employee_rows[0]!.employee.employee_id),
 		project_document_ids: {

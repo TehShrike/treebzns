@@ -1,5 +1,4 @@
 import type { Connection, ResultSetHeader } from 'mysql2/promise'
-import { Temporal } from '@js-temporal/polyfill'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
@@ -10,6 +9,7 @@ import { write_helper, ROWS_PER_BATCH, group_by, money } from './import_common.t
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
+import { date_from_yyyymmdd } from './arbostar_dates.ts'
 
 export type ImportedInvoices = {
 	invoice_id_by_arbostar_invoice_id: Map<number, bigint>
@@ -139,7 +139,7 @@ export const import_invoices = async (
 		const fee = total.minus(services).minus(tax_total)
 		if (!fee.equal('0')) invoices_with_fee += 1
 
-		const invoice_date = Temporal.PlainDate.from(invoice.date_created)
+		const invoice_date = date_from_yyyymmdd(invoice.date_created)
 
 		return {
 			invoice_number: constructed_number(invoice),

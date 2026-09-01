@@ -52,6 +52,8 @@ export const placeholder_email = (company_id: bigint, arbostar_user_id: number):
 
 export type ArbostarImportContext = {
 	company_id: bigint
+	// The company's IANA timezone, for turning ArboStar's date-only values into instants.
+	timezone: string
 	// Runs a typed query with the tenant filter added automatically (see make_tenanted_select).
 	tenanted_select: TenantedSelect
 	// Imported projects are attributed to this employee (project.created_by_employee_id).

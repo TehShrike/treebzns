@@ -7,6 +7,7 @@ import estimates from '#arbostar_export/estimates.js'
 import invoices from '#arbostar_export/invoices.js'
 import payments from '#arbostar_export/payments.js'
 import { every, filter, for_each, map, some } from '#shared/array.ts'
+import { instant_from_unix_seconds } from '#shared/arbostar/arbostar_dates.ts'
 import { client_name, display, money, sum } from './lib.ts'
 
 const estimates_by_id = new Map(map(estimates, estimate => [ estimate.estimate_id, estimate ]))
@@ -77,7 +78,7 @@ console.table(map(not_invoiced, payment => {
 	return {
 		payment_id: payment.payment_id,
 		client: client_name(payment.client_id),
-		date: new Date(payment.payment_date * 1000).toISOString().slice(0, 10),
+		date: instant_from_unix_seconds(payment.payment_date).toZonedDateTimeISO('UTC').toPlainDate().toString(),
 		amount: display(money(payment.payment_amount)),
 		type: payment.payment_type,
 		method: payment.pay_method_string,

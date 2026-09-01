@@ -10,6 +10,7 @@ import assert from '#shared/assert.ts'
 import { write_helper, ROWS_PER_BATCH, group_by, money, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
+import { date_from_yyyymmdd } from './arbostar_dates.ts'
 
 export type ImportedPayments = {
 	counts: {
@@ -105,7 +106,7 @@ export const import_payments = async (
 			payment.allocations,
 			allocation => (allocation.invoice_id === null ? null : string_or_null(invoice_date_by_invoice_id.get(allocation.invoice_id) ?? null)),
 		))
-		if (invoice_date !== null) return Temporal.PlainDate.from(invoice_date)
+		if (invoice_date !== null) return date_from_yyyymmdd(invoice_date)
 		const lead_date = earliest_date(map(
 			payment.allocations,
 			allocation => {

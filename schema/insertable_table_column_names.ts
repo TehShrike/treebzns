@@ -97,6 +97,7 @@ export const clock_session_employee_history = {
 	new_clock_in: 'new_clock_in',
 	new_clock_out: 'new_clock_out',
 	changed_by_employee_id: 'changed_by_employee_id',
+	change_date: 'change_date',
 } as const
 
 export const clock_session_line_item = {
@@ -132,6 +133,7 @@ export const crew_regular_history = {
 	employee_id: 'employee_id',
 	action: 'action',
 	changed_by_employee_id: 'changed_by_employee_id',
+	change_date: 'change_date',
 } as const
 
 export const employee = {
@@ -377,6 +379,7 @@ export const project_document_history = {
 	project_id: 'project_id',
 	project_document_id: 'project_document_id',
 	changed_by_employee_id: 'changed_by_employee_id',
+	change_date: 'change_date',
 } as const
 
 export const project_image = {

@@ -1,4 +1,5 @@
-import type { Connection } from 'mysql2/promise'
+import type { Connection, ResultSetHeader } from 'mysql2/promise'
+import { Temporal } from '@js-temporal/polyfill'
 import type { FinancialNumber } from 'financial-number'
 import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
 import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
@@ -7,9 +8,18 @@ import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import type { ArbostarDecline } from '#arbostar_export/declines.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
-import { map, filter, every, some } from '#shared/array.ts'
+import { map, filter, filter_map, flat_map, chunk, every, some } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
+import escape_value from '#shared/sql_request/escape_value.ts'
 import arbostar_number_to_fnum from './arbostar_number_to_fnum.ts'
+import {
+	is_midnight_iso,
+	instant_from_iso,
+	date_from_midnight_iso,
+	date_from_mmddyyyy,
+	date_from_yyyymmdd,
+	instant_from_unix_seconds,
+} from './arbostar_dates.ts'
 import { write_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
@@ -24,6 +34,8 @@ export type ImportedProjects = {
 		projects_updated: number
 		projects_no_longer_in_export: number
 		skipped_leads_without_client: number
+		document_history_inserted: number
+		projects_skipped_null_lead_date: number
 	}
 }
 
@@ -268,12 +280,12 @@ export const import_projects = async (
 		return { taxable: true, ...row }
 	}
 
-	// The ArboStar-derived columns — everything an update overwrites.
-	const project_fields = (lead: ArbostarLead) => {
+	// The decision inputs the current-document tree and the history chain share, so the chain
+	// always ends at the same document the project row carries.
+	const document_decision = (lead: ArbostarLead) => {
 		const lead_estimates = estimates_by_lead_id.get(lead.lead_id) ?? []
 		const lead_workorders = workorders_by_lead_id.get(lead.lead_id) ?? []
 		const lead_invoices = invoices_by_lead_id.get(lead.lead_id) ?? []
-		const address = default_project_address_by_arbostar_client_id.get(lead.client_id!)!
 
 		const documents = context.project_document_ids
 		// Dead at the estimate stage means every estimate is Declined/Expired/Thinking. An
@@ -293,6 +305,72 @@ export const import_projects = async (
 			: lead.lead_status_id === ARBOSTAR_LEAD_STATUS_NEW || lead.lead_status_id === ARBOSTAR_LEAD_STATUS_DRAFT
 				? documents.lead_unqualified
 				: documents.lead_qualified
+
+		return { lead_estimates, lead_workorders, lead_invoices, all_estimates_dead, declined_estimates, project_document_id }
+	}
+
+	const local_day = (instant: Temporal.Instant): Temporal.PlainDate =>
+		instant.toZonedDateTimeISO(context.timezone).toPlainDate()
+
+	// The document chain the project passed through, with `change_date` set from the export's
+	// evidence dates as company-local calendar days. Each row's `change_date` clamps to at
+	// least the previous row's, so every chain stays non-decreasing. Rows insert in chain
+	// order so the auto-increment id preserves the order of same-day stages.
+	const document_chain = (lead: ArbostarLead): Array<{ project_document_id: bigint; change_date: Temporal.PlainDate }> | null => {
+		if (!lead.lead_date_created) return null
+		const { lead_estimates, lead_workorders, lead_invoices, declined_estimates, project_document_id } = document_decision(lead)
+		const documents = context.project_document_ids
+
+		// Most leads carry a real creation instant, but backdated ones carry a
+		// midnight-encoded local date (155 of 2208 in the July 2026 export).
+		const lead_created = is_midnight_iso(lead.lead_date_created)
+			? date_from_midnight_iso(lead.lead_date_created)
+			: local_day(instant_from_iso(lead.lead_date_created))
+		const chain = [{ project_document_id: documents.lead_unqualified, change_date: lead_created }]
+		const append = (document_id: bigint, evidence: Temporal.PlainDate | null) => {
+			const previous = chain[chain.length - 1]!.change_date
+			chain.push({
+				project_document_id: document_id,
+				change_date: evidence === null || Temporal.PlainDate.compare(evidence, previous) < 0 ? previous : evidence,
+			})
+		}
+
+		if (lead_estimates.length > 0) {
+			const earliest = map(lead_estimates, estimate => date_from_mmddyyyy(estimate.date_created))
+				.reduce((a, b) => (Temporal.PlainDate.compare(b, a) < 0 ? b : a))
+			append(documents.estimate, earliest)
+		}
+		if (project_document_id === documents.declined_proposal) {
+			const decline_days = filter_map(declined_estimates, estimate => {
+				const unix = decline_by_estimate_id.get(estimate.estimate_id)?.date_created_unix ?? null
+				return unix === null ? null : local_day(instant_from_unix_seconds(unix))
+			})
+			const latest = decline_days.length === 0
+				? null
+				: decline_days.reduce((a, b) => (Temporal.PlainDate.compare(b, a) > 0 ? b : a))
+			append(project_document_id, latest)
+		} else if (project_document_id === documents.work_order) {
+			const dates = lead_workorders.length > 0
+				? map(lead_workorders, workorder => date_from_midnight_iso(workorder.date_created))
+				: map(lead_invoices, invoice => date_from_yyyymmdd(invoice.date_created))
+			const earliest = dates.reduce((a, b) => (Temporal.PlainDate.compare(b, a) < 0 ? b : a))
+			append(project_document_id, earliest)
+		} else if (project_document_id === documents.void || project_document_id === documents.lead_qualified) {
+			append(project_document_id, null)
+		}
+
+		assert(
+			chain[chain.length - 1]!.project_document_id === project_document_id,
+			`the document chain for lead ${lead.lead_id} ends at the project's current document`,
+		)
+		return chain
+	}
+
+	// The ArboStar-derived columns — everything an update overwrites.
+	const project_fields = (lead: ArbostarLead) => {
+		const { lead_estimates, lead_workorders, lead_invoices, all_estimates_dead, declined_estimates, project_document_id } = document_decision(lead)
+		const address = default_project_address_by_arbostar_client_id.get(lead.client_id!)!
+		const documents = context.project_document_ids
 
 		// Work completed, or the deal is dead: No Go leads (Void), declined proposals, and
 		// leads whose every estimate Expired / went Thinking have no more work to do. Dying
@@ -464,6 +542,35 @@ export const import_projects = async (
 		new_leads.forEach((lead, index) => project_id_by_arbostar_lead_id.set(lead.lead_id, insert_ids[index]!))
 	}
 
+	const lead_chains = filter_map(importable, lead => {
+		const chain = document_chain(lead)
+		return chain === null ? null : { lead, chain }
+	})
+
+	// ArboStar is the source of truth for imported projects, so a re-import wipes their whole
+	// history — in-app-authored rows included — and writes the recomputed chains fresh.
+	const history_project_ids = map(lead_chains, ({ lead }) => project_id_by_arbostar_lead_id.get(lead.lead_id)!)
+	for (const batch of chunk(history_project_ids, ROWS_PER_BATCH)) {
+		const id_list = map(batch, escape_value).join(', ')
+		await connection.query<ResultSetHeader>(
+			`DELETE FROM project_document_history WHERE company_id = ${escape_value(context.company_id)} AND project_id IN (${id_list})`,
+		)
+	}
+
+	const history_rows = flat_map(lead_chains, ({ lead, chain }) => {
+		const project_id = project_id_by_arbostar_lead_id.get(lead.lead_id)!
+		return map(chain, row => ({
+			company_id: context.company_id,
+			project_id,
+			project_document_id: row.project_document_id,
+			changed_by_employee_id: null,
+			change_date: row.change_date,
+		}))
+	})
+	if (history_rows.length > 0) {
+		await write_helper.bulk_insert(connection, 'project_document_history', history_rows, ROWS_PER_BATCH)
+	}
+
 	// Only numbers within ArboStar's issued range can be missing-from-export — anything above
 	// max_arbostar_number is an in-app allocation, not a deleted lead. A pre-import in-app
 	// project with a low number could still land in this count, so treat it as a flag to
@@ -483,6 +590,8 @@ export const import_projects = async (
 			projects_updated: existing_leads.length,
 			projects_no_longer_in_export: no_longer_in_export,
 			skipped_leads_without_client: leads.length - importable.length,
+			document_history_inserted: history_rows.length,
+			projects_skipped_null_lead_date: importable.length - lead_chains.length,
 		},
 	}
 }
