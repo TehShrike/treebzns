@@ -1,5 +1,6 @@
 import { create_connection } from '#shared/mysql/connection.ts'
 import make_mysql_helpers_object, { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
+import wrap_connection_with_query_logger from '#shared/mysql/query_logger.ts'
 
 import create_company from './bare_endpoints/create_company.ts'
 import log_in from './bare_endpoints/log_in.ts'
@@ -13,7 +14,7 @@ const server_function_route_prefix = '/api/fn/'
 const run_with_connection = async <RESULT>(env: Env, fn: (connection: MysqlHelpersObject) => Promise<RESULT>): Promise<RESULT> => {
 	const conn = await create_connection(env.HYPERDRIVE)
 	try {
-		const mysql = make_mysql_helpers_object(conn)
+		const mysql = make_mysql_helpers_object(wrap_connection_with_query_logger(conn))
 		return await fn(mysql)
 	} finally {
 		await conn.end()
