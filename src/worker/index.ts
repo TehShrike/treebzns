@@ -11,6 +11,9 @@ import { error_object_response } from './lib/response_helpers.ts'
 
 const server_function_route_prefix = '/api/fn/'
 
+const isolate_started_at = Date.now()
+let isolate_request_count = 0
+
 const run_with_connection = async <RESULT>(env: Env, fn: (connection: MysqlHelpersObject) => Promise<RESULT>): Promise<RESULT> => {
 	const conn = await create_connection(env.HYPERDRIVE)
 	try {
@@ -24,6 +27,8 @@ const run_with_connection = async <RESULT>(env: Env, fn: (connection: MysqlHelpe
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		const { pathname, method } = Object.assign(new URL(request.url), { method: request.method })
+		isolate_request_count++
+		console.log(`[isolate] request ${isolate_request_count}, isolate age ${Math.round((Date.now() - isolate_started_at) / 1000)}s, ${method} ${pathname}`)
 
 		try {
 			if (method === 'POST' && pathname === '/api/create_company') {
