@@ -29,7 +29,7 @@ const next_estimator_sort = async (company_id: bigint, mysql: MysqlHelpersObject
 	const max_sort_query = query_builder<Schema>()
 		.from('employee')
 		.where(q => q.comparison('employee.company_id', '=', { value: company_id }))
-		.select(q => [q.fn('MAX', 'employee.max_sort', 'employee.estimator_sort')])
+		.select(q => [q.fn('MAX', 'employee.estimator_sort', 'employee.max_sort')])
 		.build()
 
 	const max_sort_row = await mysql.query(safe_select_query_builder.to_sql(max_sort_query.query)).get_first_row()

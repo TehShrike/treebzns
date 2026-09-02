@@ -295,10 +295,10 @@ test('typed_query_builder: select with COUNT function', () => {
 test('typed_query_builder: select with aggregate functions', () => {
 	const built = q.from('project AS p')
 		.select(b => [
-			b.fn('MAX', 'p.max_due_date', 'p.due_date'),
-			b.fn('MIN', 'p.min_project_id', 'p.project_id'),
-			b.fn('SUM', 'p.hours_sum', 'p.created_by_employee_id'),
-			b.fn('AVG', 'p.avg_tax', 'p.tax_rate'),
+			b.fn('MAX', 'p.due_date', 'p.max_due_date'),
+			b.fn('MIN', 'p.project_id', 'p.min_project_id'),
+			b.fn('SUM', 'p.created_by_employee_id', 'p.hours_sum'),
+			b.fn('AVG', 'p.tax_rate', 'p.avg_tax'),
 		])
 		.build()
 
@@ -321,11 +321,36 @@ test('typed_query_builder: select with aggregate functions', () => {
 	assert_valid_query_output(built)
 })
 
+test('typed_query_builder: select fn accepts a value in any argument position', () => {
+	const built = q.from('project AS p')
+		.select(b => [
+			b.fn('IFNULL', { value: 'fallback' }, 'p.notes_for_crew', 'p.notes'),
+			b.fn('MAX', { value: 5n }, 'p.max_value'),
+		])
+		.build()
+
+	type ExpectedRowType = {
+		p: {
+			notes: string | null
+			max_value: 5n | null
+		}
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
+	const { sql, values } = safe_select_query_builder.to_sql(built.query)
+	assert.strictEqual(sql, 'SELECT IFNULL(?, `p`.`notes_for_crew`) AS `notes`, MAX(?) AS `max_value`\nFROM `project` AS `p`')
+	assert.deepStrictEqual(values, ['fallback', 5n])
+
+	assert_valid_query_output(built)
+})
+
 test('typed_query_builder: select with IFNULL of a column and a value or column', () => {
 	const built = q.from('project AS p')
 		.select(b => [
-			b.fn('IFNULL', 'p.estimator', 'p.assigned_estimator_employee_id', { value: 0n }),
-			b.fn('IFNULL', 'p.crew_or_office_notes', 'p.notes_for_crew', 'p.notes_for_office'),
+			b.fn('IFNULL', 'p.assigned_estimator_employee_id', { value: 0n }, 'p.estimator'),
+			b.fn('IFNULL', 'p.notes_for_crew', 'p.notes_for_office', 'p.crew_or_office_notes'),
 		])
 		.build()
 
@@ -384,7 +409,7 @@ test('typed_query_builder: SelectedIdentifiers is the union of selected output n
 		.select(b => [
 			'p.project_id',
 			'p.company_id AS co',
-			b.fn('COUNT', 'pli.line_count', 'pli.project_line_item_id'),
+			b.fn('COUNT', 'pli.project_line_item_id', 'pli.line_count'),
 		])
 		.build()
 
@@ -398,7 +423,7 @@ test('typed_query_builder: order_by by alias, table column, and inline function;
 		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
 		.select(b => [
 			'p.project_id',
-			b.fn('COUNT', 'pli.line_count', 'pli.project_line_item_id'),
+			b.fn('COUNT', 'pli.project_line_item_id', 'pli.line_count'),
 		])
 		.group_by('p.project_id')
 		.having(b => b.comparison('line_count', '>', { value: 1 }))
@@ -434,7 +459,7 @@ test('typed_query_builder: nested AND/OR in where, select grouping, group_by', (
 		))
 		.select(b => [
 			'p.project_id',
-			b.and('p.is_valid', 'p.closed', 'p.emergency'),
+			b.and('p.closed', 'p.emergency', 'p.is_valid'),
 		])
 		.group_by('p.project_id', 'p.company_id')
 		.build()
@@ -505,19 +530,21 @@ test('typed_query_builder: type errors on invalid references', () => {
 
 	q.from('project AS p')
 		.select(b => [
-			b.and('p.result',
+			b.and(
 				// @ts-expect-error: 'not_a_column' is not a column on project
 				'p.not_a_column',
 				'p.emergency',
+				'p.result',
 			),
 		])
 
 	q.from('project AS p')
 		.select(b => [
-			b.or('p.result',
-				'p.emergency',
+			b.or(
 				// @ts-expect-error: 'not_a_column' is not a column on project
+				'p.emergency',
 				'p.not_a_column',
+				'p.result',
 			),
 		])
 })

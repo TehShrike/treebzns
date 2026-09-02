@@ -36,8 +36,8 @@
 				`project.emergency`,
 				`client.name`,
 				`project_document.name`,
-				b.fn(`MAX`, `project_document_history.latest_change_datetime`, `project_document_history.change_datetime`),
-				b.fn(`MIN`, `project_document_history.first_project_document_history_datetime`, `project_document_history.change_datetime`),
+				b.fn(`MAX`, `project_document_history.change_datetime`, `project_document_history.latest_change_datetime`),
+				b.fn(`MIN`, `project_document_history.change_datetime`, `project_document_history.first_project_document_history_datetime`),
 			] as const)
 			.order_by(`project.number`, `DESC`)
 			.build()

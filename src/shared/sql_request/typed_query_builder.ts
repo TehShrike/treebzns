@@ -112,32 +112,31 @@ type SelectFnAlias<A extends AliasMap<any>> = `${keyof A & string}.${string}`
 type SelectGroupingItem<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
 	SelectColumnInput<Schema, A> | SelectGrouping
 
+type SelectFnArg<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = ColumnRef<Schema, A> | ValueRef
+
+type SelectFnArgType<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, Arg> =
+	Arg extends { value: infer V } ? V : ColumnTypeOf<Schema, A, Arg>
+
 type SelectExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
 	fn: {
 		<const Fn extends FunctionName, const Alias extends SelectFnAlias<A>>(
 			name: Fn,
 			alias: Alias,
 		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn, FunctionReturnType<Fn>>
-		<const Fn extends FunctionName, const Alias extends SelectFnAlias<A>, const CR extends ColumnRef<Schema, A>>(
+		<const Fn extends FunctionName, const Arg extends SelectFnArg<Schema, A>, const Alias extends SelectFnAlias<A>>(
 			name: Fn,
+			arg: Arg,
 			alias: Alias,
-			arg: CR,
-		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn, FunctionReturnTypeWithArg<Fn, ColumnTypeOf<Schema, A, CR>>>
-		<const Fn extends FunctionName, const Alias extends SelectFnAlias<A>, const CR1 extends ColumnRef<Schema, A>, const CR2 extends ColumnRef<Schema, A>>(
+		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn, FunctionReturnTypeWithArg<Fn, SelectFnArgType<Schema, A, Arg>>>
+		<const Fn extends FunctionName, const Arg1 extends SelectFnArg<Schema, A>, const Arg2 extends SelectFnArg<Schema, A>, const Alias extends SelectFnAlias<A>>(
 			name: Fn,
+			arg1: Arg1,
+			arg2: Arg2,
 			alias: Alias,
-			arg1: CR1,
-			arg2: CR2,
-		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn, FunctionReturnTypeWithTwoArgs<Fn, ColumnTypeOf<Schema, A, CR1>, ColumnTypeOf<Schema, A, CR2>>>
-		<const Fn extends FunctionName, const Alias extends SelectFnAlias<A>, const CR1 extends ColumnRef<Schema, A>, const V>(
-			name: Fn,
-			alias: Alias,
-			arg1: CR1,
-			arg2: { value: V },
-		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn, FunctionReturnTypeWithTwoArgs<Fn, ColumnTypeOf<Schema, A, CR1>, V>>
+		): SelectableFunctionExpression<BeforeDot<Alias>, AfterDot<Alias>, Fn, FunctionReturnTypeWithTwoArgs<Fn, SelectFnArgType<Schema, A, Arg1>, SelectFnArgType<Schema, A, Arg2>>>
 	}
-	and: <const Alias extends SelectFnAlias<A>>(alias: Alias, ...items: SelectGroupingItem<Schema, A>[]) => SelectGrouping
-	or: <const Alias extends SelectFnAlias<A>>(alias: Alias, ...items: SelectGroupingItem<Schema, A>[]) => SelectGrouping
+	and: <const Alias extends SelectFnAlias<A>>(...items: [...SelectGroupingItem<Schema, A>[], Alias]) => SelectGrouping
+	or: <const Alias extends SelectFnAlias<A>>(...items: [...SelectGroupingItem<Schema, A>[], Alias]) => SelectGrouping
 }
 
 type SelectInput<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> =
@@ -382,13 +381,25 @@ const having_bool_expr_to_grouping = (expr: HavingBoolExpr): HavingGrouping =>
 const to_select_grouping_expression = (item: string | SelectGrouping): SelectExpression | SelectGrouping =>
 	typeof item === 'string' ? to_select_expression(item) : item
 
+const parse_select_alias = (alias: string, role: string): { table_identifier: string; alias: string } => {
+	const [table_identifier, col_alias, ...rest] = alias.split('.')
+	assert(table_identifier && col_alias && rest.length === 0, `${role} alias must be "table.col_alias": ${alias}`)
+	return {
+		table_identifier: assert_identifier(table_identifier, `${role} table identifier`),
+		alias: assert_identifier(col_alias, `${role} alias`),
+	}
+}
+
+const split_trailing_alias = <T>(rest: (T | string)[], role: string): { items: (T | string)[]; alias: string } => {
+	const alias = rest.at(-1)
+	assert(typeof alias === 'string', `the last argument to ${role} is the alias string`)
+	return { items: rest.slice(0, -1), alias }
+}
+
 const select_expression_builder = {
-	fn: (name: FunctionName, alias: string, ...fn_args: (string | { value: unknown })[]): SelectableFunctionExpression => {
+	fn: (name: FunctionName, ...rest: (string | { value: unknown })[]): SelectableFunctionExpression => {
+		const { items: fn_args, alias } = split_trailing_alias(rest, 'select fn')
 		if (fn_args.length > 2) throw new Error('fn supports at most 2 arguments')
-		const [table_identifier, col_alias, ...rest] = alias.split('.')
-		assert(table_identifier && col_alias && rest.length === 0, `select fn alias must be "table.col_alias": ${alias}`)
-		assert_identifier(table_identifier, 'select fn table identifier')
-		assert_identifier(col_alias, 'select fn alias')
 		const args = map(fn_args, arg => {
 			if (typeof arg === 'object') {
 				return { type: 'user provided value' as const, value: arg.value }
@@ -396,21 +407,15 @@ const select_expression_builder = {
 			const { table, column } = parse_col_ref(arg)
 			return { type: 'column reference' as const, table_identifier: table, column }
 		})
-		return { type: 'function', function: name, arguments: args, alias: col_alias, table_identifier }
+		return { type: 'function', function: name, arguments: args, ...parse_select_alias(alias, 'select fn') }
 	},
-	and: (alias: string, ...items: (string | SelectGrouping)[]): InternalSelectGrouping => {
-		const [table_identifier, col_alias, ...rest] = alias.split('.')
-		assert(table_identifier && col_alias && rest.length === 0, `select grouping alias must be "table.col_alias": ${alias}`)
-		assert_identifier(table_identifier, 'select grouping table identifier')
-		assert_identifier(col_alias, 'select grouping alias')
-		return { type: 'and', expressions: items.map(to_select_grouping_expression), table_identifier, alias: col_alias }
+	and: (...rest: (string | SelectGrouping)[]): InternalSelectGrouping => {
+		const { items, alias } = split_trailing_alias(rest, 'select grouping')
+		return { type: 'and', expressions: map(items, to_select_grouping_expression), ...parse_select_alias(alias, 'select grouping') }
 	},
-	or: (alias: string, ...items: (string | SelectGrouping)[]): InternalSelectGrouping => {
-		const [table_identifier, col_alias, ...rest] = alias.split('.')
-		assert(table_identifier && col_alias && rest.length === 0, `select grouping alias must be "table.col_alias": ${alias}`)
-		assert_identifier(table_identifier, 'select grouping table identifier')
-		assert_identifier(col_alias, 'select grouping alias')
-		return { type: 'or', expressions: items.map(to_select_grouping_expression), table_identifier, alias: col_alias }
+	or: (...rest: (string | SelectGrouping)[]): InternalSelectGrouping => {
+		const { items, alias } = split_trailing_alias(rest, 'select grouping')
+		return { type: 'or', expressions: map(items, to_select_grouping_expression), ...parse_select_alias(alias, 'select grouping') }
 	},
 }
 

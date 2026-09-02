@@ -19,7 +19,7 @@ const create_client_contact = async ({
 	const max_sort_row = await select_builder.get_first_row(select_builder
 		.from('client_contact')
 		.where(q => q.comparison('client_contact.client_id', '=', { value: client_id }))
-		.select(q => [q.fn('MAX', 'client_contact.max_sort', 'client_contact.sort')])
+		.select(q => [q.fn('MAX', 'client_contact.sort', 'client_contact.max_sort')])
 		.build())
 	assert(max_sort_row, `An aggregate query returns exactly one row`)
 	const max_sort = max_sort_row.client_contact.max_sort

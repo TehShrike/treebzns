@@ -672,7 +672,7 @@ test('safe_select_query: order_by by alias and inline function, plus having on a
 	const q = typed_query_builder<TestSchema>()
 	const query = q.from('project AS p')
 		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
-		.select(b => ['p.project_id', b.fn('COUNT', 'pli.line_count', 'pli.project_line_item_id')])
+		.select(b => ['p.project_id', b.fn('COUNT', 'pli.project_line_item_id', 'pli.line_count')])
 		.group_by('p.project_id')
 		.having(b => b.comparison('line_count', '>=', { value: 2 }))
 		.order_by('line_count', 'DESC')
