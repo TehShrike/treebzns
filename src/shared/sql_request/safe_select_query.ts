@@ -14,6 +14,7 @@ import type {
 	OrderBy,
 	AndOrGrouping,
 	SafeSelectQuery,
+	TableSource,
 } from './safe_select_query_validator.ts'
 
 type ComparisonOperand = ColumnReference | UserProvidedValue | FunctionExpression | AliasReference
@@ -264,30 +265,29 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 	const collect_messages = (query: SafeSelectQuery, messages: string[]): void => {
 		const alias_to_table = new Map<string, { table_name: string | null, columns: ReadonlySet<string> }>()
 
-		const register_table = (table_name: string, alias: string) => {
-			const table_columns = schema[table_name]
+		const register_source = (source: TableSource) => {
+			if ('subquery' in source) {
+				collect_messages(source.subquery, messages)
+				const columns = new Set<string>()
+				for_each(select_identifiers(source.subquery.select), identifier => {
+					if (columns.has(identifier)) {
+						messages.push(`Duplicate column "${identifier}" in derived table "${source.alias}"`)
+					}
+					columns.add(identifier)
+				})
+				alias_to_table.set(source.alias, { table_name: null, columns })
+				return
+			}
+			const table_columns = schema[source.table_name]
 			if (table_columns) {
-				alias_to_table.set(alias, { table_name, columns: new Set(Object.keys(table_columns)) })
+				alias_to_table.set(source.alias, { table_name: source.table_name, columns: new Set(Object.keys(table_columns)) })
 			} else {
-				messages.push(`Unknown table: "${table_name}"`)
+				messages.push(`Unknown table: "${source.table_name}"`)
 			}
 		}
 
-		const from = query.from
-		if ('subquery' in from) {
-			collect_messages(from.subquery, messages)
-			const columns = new Set<string>()
-			for_each(select_identifiers(from.subquery.select), identifier => {
-				if (columns.has(identifier)) {
-					messages.push(`Duplicate column "${identifier}" in derived table "${from.alias}"`)
-				}
-				columns.add(identifier)
-			})
-			alias_to_table.set(from.alias, { table_name: null, columns })
-		} else {
-			register_table(from.table_name, from.alias)
-		}
-		for_each(query.joins, join => register_table(join.table_name, join.alias))
+		register_source(query.from)
+		for_each(query.joins, register_source)
 
 		const select_aliases = new Set(select_identifiers(query.select))
 
@@ -382,27 +382,28 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 		return { valid: true }
 	}
 
-	const from_to_chunk = (from: SafeSelectQuery['from']): SqlChunk => {
-		if ('subquery' in from) {
-			const inner = query_to_chunk(from.subquery)
+	const source_to_chunk = (source: TableSource): SqlChunk => {
+		if ('subquery' in source) {
+			const inner = query_to_chunk(source.subquery)
 			return {
-				sql: `FROM (\n${indent(inner.sql)}\n) AS \`${from.alias}\``,
+				sql: `(\n${indent(inner.sql)}\n) AS \`${source.alias}\``,
 				parameters: inner.parameters,
 			}
 		}
-		return { sql: `FROM \`${from.table_name}\` AS \`${from.alias}\``, parameters: [] }
+		return { sql: `\`${source.table_name}\` AS \`${source.alias}\``, parameters: [] }
 	}
 
 	const query_to_chunk = (query: SafeSelectQuery): SqlChunk => {
 		const select_chunk = merge_chunks(map(query.select, select_item_or_grouping_to_chunk), ', ')
 
-		const from_chunk = from_to_chunk(query.from)
+		const from_chunk = source_to_chunk(query.from)
 
 		const join_chunks = map(query.joins, join => {
+			const source = source_to_chunk(join)
 			const on = merge_chunks(map(join.on_clause, on_clause_item_to_chunk), '\n\tAND ')
 			return {
-				sql: `${join.left ? 'LEFT JOIN' : 'JOIN'} \`${join.table_name}\` AS \`${join.alias}\` ON ${on.sql}`,
-				parameters: on.parameters,
+				sql: `${join.left ? 'LEFT JOIN' : 'JOIN'} ${source.sql} ON ${on.sql}`,
+				parameters: [...source.parameters, ...on.parameters],
 			} satisfies SqlChunk
 		})
 
@@ -435,7 +436,7 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 		return {
 			sql: [
 				`SELECT ${select_chunk.sql}`,
-				from_chunk.sql,
+				`FROM ${from_chunk.sql}`,
 				...map(join_chunks, c => c.sql),
 				...(where_chunk ? [`WHERE ${where_chunk.sql}`] : []),
 				...(group_by_chunk ? [`GROUP BY ${group_by_chunk.sql}`] : []),

@@ -406,3 +406,13 @@ test('safe_select_query_validator: derived table subquery is validated', () => {
 	const query = { ...valid_query, from: { subquery: { ...valid_query, from: 'project' }, alias: 'derived' } }
 	assert.strictEqual(safe_select_query_validator.is_valid(query), false)
 })
+
+test('safe_select_query_validator: a join may be a derived table', () => {
+	const query = { ...valid_query, joins: [{ subquery: valid_query, alias: 'c', on_clause: valid_query.joins[0]!.on_clause }] }
+	assert.strictEqual(safe_select_query_validator.is_valid(query), true)
+})
+
+test('safe_select_query_validator: a derived table join subquery is validated', () => {
+	const query = { ...valid_query, joins: [{ subquery: { ...valid_query, limit: -1n }, alias: 'c', on_clause: [] }] }
+	assert.strictEqual(safe_select_query_validator.is_valid(query), false)
+})

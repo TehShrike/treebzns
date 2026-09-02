@@ -171,3 +171,22 @@ test('blacklisted tables cannot be read through a derived table', () => {
 	assert.ok(messages.length > 0, 'a blacklisted table inside a derived table must be rejected')
 	assert.match(messages.join(', '), /employee_session/)
 })
+
+test('password_hash cannot be pulled through a joined derived table', () => {
+	const messages = rejection_messages({
+		select: [{ type: 'column reference', table_identifier: 'd', column: 'password_hash' }],
+		from: { table_name: 'client', alias: 'c' },
+		joins: [{
+			subquery: employee_query({ select: [password_hash_ref] }),
+			alias: 'd',
+			on_clause: [],
+		}],
+		where: null,
+		group_by: [],
+		order_by: [],
+		limit: null,
+		having: null,
+	})
+	assert.ok(messages.length > 0, 'password_hash selected inside a joined derived table must be rejected')
+	assert.match(messages.join(', '), /password_hash/)
+})

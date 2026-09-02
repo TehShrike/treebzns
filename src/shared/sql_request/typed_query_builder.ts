@@ -20,8 +20,7 @@ import type {
 	SelectExpression,
 	SelectGrouping,
 	WhereGrouping,
-	TableAddition,
-	DerivedTable,
+	TableSource,
 } from "./safe_select_query_validator.ts"
 
 type SchemaColumnTypes = {
@@ -226,21 +225,55 @@ type ParseTableAlias<S extends string, Schema extends SchemaColumnTypes> =
 			? { [K in S]: S }
 			: never
 
+// A built query used as a derived table exposes its selected identifiers as the columns of one table.
+// The per-table namespacing collapses, the same way it does for `SelectedIdentifiers`.
+type DerivedColumns<Row> = UnionToIntersection<{
+	[Table in keyof Row]: { [Column in keyof Row[Table]]: Row[Table][Column] }
+}[keyof Row]>
+
+type DerivedTableArg<Alias extends string, Row> = {
+	subquery: BuiltQuery<Row>
+	alias: Alias
+}
+
+type DerivedSchema<Schema extends SchemaColumnTypes, Alias extends string, Row> =
+	Omit<Schema, Alias> & { [K in Alias]: DerivedColumns<Row> }
+
+// Intersecting each alias target with `keyof NewSchema` lets a generic alias map satisfy AliasMap for
+// the new schema. For concrete types the intersection resolves to the alias target itself.
+type RebindAliasMap<A, NewSchema extends SchemaColumnTypes> = {
+	[K in keyof A]: A[K] & Extract<keyof NewSchema, string>
+}
+
+type DerivedAliasMap<Schema extends SchemaColumnTypes, A, Alias extends string, Row> =
+	RebindAliasMap<A & { [K in Alias]: K }, DerivedSchema<Schema, Alias, Row>>
+
 type Joiner<
 	Schema extends SchemaColumnTypes,
 	A extends AliasMap<Schema>,
 	LeftJoined extends string,
 	Row,
 	Left extends boolean,
-> = <S extends TableAliasArg<Schema>>(
-	table_alias: S,
-	on: (b: ExpressionBuilder<Schema, A & ParseTableAlias<S, Schema>>) => Expression,
-) => Stage<
-	Schema,
-	A & ParseTableAlias<S, Schema>,
-	Left extends true ? LeftJoined | (keyof ParseTableAlias<S, Schema> & string) : LeftJoined,
-	Row
->
+> = {
+	<S extends TableAliasArg<Schema>>(
+		table_alias: S,
+		on: (b: ExpressionBuilder<Schema, A & ParseTableAlias<S, Schema>>) => Expression,
+	): Stage<
+		Schema,
+		A & ParseTableAlias<S, Schema>,
+		Left extends true ? LeftJoined | (keyof ParseTableAlias<S, Schema> & string) : LeftJoined,
+		Row
+	>
+	<const Alias extends string, DerivedRow>(
+		derived_table: DerivedTableArg<Alias, DerivedRow>,
+		on: (b: ExpressionBuilder<DerivedSchema<Schema, Alias, DerivedRow>, DerivedAliasMap<Schema, A, Alias, DerivedRow>>) => Expression,
+	): Stage<
+		DerivedSchema<Schema, Alias, DerivedRow>,
+		DerivedAliasMap<Schema, A, Alias, DerivedRow>,
+		Left extends true ? LeftJoined | Alias : LeftJoined,
+		Row
+	>
+}
 
 type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoined extends string = never, Row = {}> = {
 	join: Joiner<Schema, A, LeftJoined, Row, false>
@@ -269,25 +302,6 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoi
 	build: () => BuiltQuery<FlattenRow<Row, LeftJoined>>
 }
 
-// A built query used as a derived table exposes its selected identifiers as the columns of one table.
-// The per-table namespacing collapses, the same way it does for `SelectedIdentifiers`.
-type DerivedColumns<Row> = UnionToIntersection<{
-	[Table in keyof Row]: { [Column in keyof Row[Table]]: Row[Table][Column] }
-}[keyof Row]>
-
-type DerivedTableArg<Alias extends string, Row> = {
-	subquery: BuiltQuery<Row>
-	alias: Alias
-}
-
-type DerivedSchema<Schema extends SchemaColumnTypes, Alias extends string, Row> =
-	Omit<Schema, Alias> & { [K in Alias]: DerivedColumns<Row> }
-
-// `K & keyof DerivedSchema` lets the generic alias satisfy AliasMap; it resolves to the alias itself.
-type DerivedAliasMap<Schema extends SchemaColumnTypes, Alias extends string, Row> = {
-	[K in Alias]: K & Extract<keyof DerivedSchema<Schema, Alias, Row>, string>
-}
-
 export type QueryBuilder<Schema extends SchemaColumnTypes> = {
 	from: {
 		<S extends TableAliasArg<Schema>>(
@@ -295,7 +309,7 @@ export type QueryBuilder<Schema extends SchemaColumnTypes> = {
 		): Stage<Schema, ParseTableAlias<S, Schema>>
 		<const Alias extends string, Row>(
 			derived_table: DerivedTableArg<Alias, Row>,
-		): Stage<DerivedSchema<Schema, Alias, Row>, DerivedAliasMap<Schema, Alias, Row>>
+		): Stage<DerivedSchema<Schema, Alias, Row>, DerivedAliasMap<Schema, {}, Alias, Row>>
 	}
 }
 
@@ -308,7 +322,7 @@ type HavingBoolExpr = HavingGrouping | HavingComparison
 type InternalSelectGrouping = SelectGrouping & { table_identifier: string; alias: string }
 
 type State = {
-	from: TableAddition | DerivedTable
+	from: TableSource
 	joins: TrustableJoin[]
 	where_expressions: BoolExpr[]
 	selects: Array<SelectExpression | InternalSelectGrouping>
@@ -450,12 +464,19 @@ const bool_expr_to_where_grouping = (expr: BoolExpr): WhereGrouping =>
 		? expr
 		: { type: 'and' as const, expressions: [expr] }
 
-const joiner = ({ left, state }: { left: boolean, state: State }) => (table_alias: string, on: (b: typeof expression_builder) => BoolExpr) => {
-	const { table, alias } = parse_table_alias(table_alias)
+const to_source = (arg: string | DerivedTableArg<string, unknown>): TableSource => {
+	if (typeof arg === 'string') {
+		const { table, alias } = parse_table_alias(arg)
+		return { table_name: table, alias }
+	}
+	return { subquery: arg.subquery.query, alias: assert_identifier(arg.alias, 'derived table alias') }
+}
+
+const joiner = ({ left, state }: { left: boolean, state: State }) => (arg: string | DerivedTableArg<string, unknown>, on: (b: typeof expression_builder) => BoolExpr) => {
 	const expr = on(expression_builder)
 	return make_stage({
 		...state,
-		joins: [...state.joins, { table_name: table, alias, on_clause: [expr], left }],
+		joins: [...state.joins, { ...to_source(arg), on_clause: [expr], left }],
 	})
 }
 
@@ -548,18 +569,10 @@ const make_stage = (state: State): any => ({
 	},
 })
 
-const to_from = (arg: string | DerivedTableArg<string, unknown>): State['from'] => {
-	if (typeof arg === 'string') {
-		const { table, alias } = parse_table_alias(arg)
-		return { table_name: table, alias }
-	}
-	return { subquery: arg.subquery.query, alias: assert_identifier(arg.alias, 'derived table alias') }
-}
-
 const query_builder = <Schema extends SchemaColumnTypes>(): QueryBuilder<Schema> => ({
 	from: ((arg: string | DerivedTableArg<string, unknown>) => {
 		return make_stage({
-			from: to_from(arg),
+			from: to_source(arg),
 			joins: [],
 			where_expressions: [],
 			selects: [],

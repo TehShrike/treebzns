@@ -885,3 +885,68 @@ test('safe_select_query: problems inside the derived table subquery are reported
 	assert.strictEqual(result.valid, false)
 	assert.ok(some(result.messages, message => message.includes('nonexistent_column')))
 })
+
+test('safe_select_query: derived table in a join', () => {
+	const query = derived_table_query({
+		from: { table_name: 'project', alias: 'p' },
+		joins: [{
+			subquery: top_clients_subquery,
+			alias: 'top',
+			left: true,
+			on_clause: [{
+				type: 'comparison',
+				left: { type: 'column reference', table_identifier: 'top', column: 'client_id' },
+				comparator: '=',
+				right: { type: 'column reference', table_identifier: 'p', column: 'client_id' },
+			}],
+		}],
+	})
+	const { validate_table_and_column_names, to_sql } = make_safe_select_query_builder(test_schema)
+
+	assert.strictEqual(validate_table_and_column_names(query).valid, true)
+
+	const { sql, values } = to_sql(query)
+	assert.strictEqual(sql, [
+		'SELECT `p`.`project_id`, `top`.`client_name`',
+		'FROM `project` AS `p`',
+		'LEFT JOIN (',
+		'\tSELECT `c`.`client_id`, `c`.`name` AS `client_name`',
+		'\tFROM `client` AS `c`',
+		'\tWHERE `c`.`company_id` = ?',
+		'\tORDER BY `c`.`name` ASC',
+		'\tLIMIT 2',
+		') AS `top` ON `top`.`client_id` = `p`.`client_id`',
+		'WHERE `p`.`closed` = ?',
+	].join('\n'))
+	assert.deepStrictEqual(values, [7, false])
+})
+
+test('safe_select_query: a joined derived table exposes only the identifiers its subquery selects', () => {
+	const query = derived_table_query({
+		from: { table_name: 'project', alias: 'p' },
+		joins: [{ subquery: top_clients_subquery, alias: 'top', on_clause: [] }],
+		select: [{ type: 'column reference', table_identifier: 'top', column: 'notes' }],
+	})
+	const { validate_table_and_column_names } = make_safe_select_query_builder(test_schema)
+	const result = validate_table_and_column_names(query)
+
+	assert.strictEqual(result.valid, false)
+	assert.ok(some(result.messages, message => message.includes('notes')))
+})
+
+test('safe_select_query: problems inside a joined derived table subquery are reported', () => {
+	const query = derived_table_query({
+		from: { table_name: 'project', alias: 'p' },
+		joins: [{
+			subquery: { ...top_clients_subquery, select: [{ type: 'column reference', table_identifier: 'c', column: 'nonexistent_column' }] },
+			alias: 'top',
+			on_clause: [],
+		}],
+		select: [{ type: 'column reference', table_identifier: 'p', column: 'project_id' }],
+	})
+	const { validate_table_and_column_names } = make_safe_select_query_builder(test_schema)
+	const result = validate_table_and_column_names(query)
+
+	assert.strictEqual(result.valid, false)
+	assert.ok(some(result.messages, message => message.includes('nonexistent_column')))
+})

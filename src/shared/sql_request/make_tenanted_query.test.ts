@@ -273,3 +273,56 @@ test(`company_id is injected inside a derived table subquery, not on the derived
 	assert.strictEqual(tenanted_query.joins.length, 1)
 	assert.ok(some(tenanted_query.joins[0]!.on_clause, node => is_company_id_filter(node, `project_line_item_alias`, 42n)))
 })
+
+test(`company_id is injected inside a joined derived table subquery, not on the join itself`, () => {
+	const add_tenancy = prep_tenant_function<TestSchema, `permission`>({
+		non_tenanted_table_names: [`permission`],
+		column_name: `company_id`,
+	})
+
+	const query: SafeSelectQuery = {
+		select: [ { type: `column reference`, table_identifier: `project_alias`, column: `project_id` } ],
+		from: { table_name: `project`, alias: `project_alias` },
+		joins: [
+			{
+				subquery: {
+					select: [ { type: `column reference`, table_identifier: `project_line_item_alias`, column: `project_id` } ],
+					from: { table_name: `project_line_item`, alias: `project_line_item_alias` },
+					joins: [],
+					where: null,
+					group_by: [],
+					order_by: [],
+					limit: null,
+					having: null,
+				},
+				alias: `top`,
+				on_clause: [ {
+					type: `comparison`,
+					left: { type: `column reference`, table_identifier: `top`, column: `project_id` },
+					comparator: `=`,
+					right: { type: `column reference`, table_identifier: `project_alias`, column: `project_id` },
+				} ],
+			},
+		],
+		where: null,
+		group_by: [],
+		order_by: [],
+		limit: null,
+		having: null,
+	}
+
+	const tenanted_query = add_tenancy(query, 42n)
+
+	assert.ok(tenanted_query.where)
+	assert.ok(is_company_id_filter(tenanted_query.where.expressions[0], `project_alias`, 42n))
+
+	assert.strictEqual(tenanted_query.joins.length, 1)
+	const join = tenanted_query.joins[0]!
+	assert.strictEqual(join.on_clause.length, 1)
+	assert.ok(every(join.on_clause, node => !is_company_id_filter(node, `top`, 42n)))
+
+	assert.ok(`subquery` in join)
+	const subquery_where = join.subquery.where
+	assert.ok(subquery_where)
+	assert.ok(is_company_id_filter(subquery_where.expressions[0], `project_line_item_alias`, 42n))
+})

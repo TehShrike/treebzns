@@ -1,4 +1,4 @@
-import type { Comparison, Join, SafeSelectQuery, WhereGrouping } from "./safe_select_query_validator.ts"
+import type { Comparison, SafeSelectQuery, TableSource } from "./safe_select_query_validator.ts"
 import { map } from "../array.ts"
 
 type SchemaColumns = {
@@ -12,71 +12,6 @@ type TenantColumn<
 	NonTenantedTableNames extends keyof ThisSchema,
 > = (keyof ThisSchema[Exclude<keyof ThisSchema, NonTenantedTableNames>]) & string
 
-const add_tenant_filter_to_where_clause = <
-	ThisSchema extends SchemaColumns,
-	NonTenantedTableNames extends keyof ThisSchema,
->({
-	where,
-	table_identifier,
-	column_name,
-	value
-}: {
-	where: WhereGrouping | null,
-	table_identifier: string
-	column_name: TenantColumn<ThisSchema, NonTenantedTableNames>
-	value: any
-}): WhereGrouping => {
-	const comparison: Comparison = {
-		type: 'comparison',
-		left: {
-			type: 'column reference',
-			table_identifier,
-			column: column_name,
-		},
-		comparator: '=',
-		right: {
-			type: 'user provided value',
-			value,
-		},
-	}
-
-	return {
-		type: 'and',
-		expressions: where ? [comparison, where] : [comparison],
-	}
-}
-
-const add_tenant_filter_to_join_clause = <
-	ThisSchema extends SchemaColumns,
-	NonTenantedTableNames extends keyof ThisSchema,
->({
-	on_clause,
-	table_identifier,
-	column_name,
-	value
-}: {
-	on_clause: Join['on_clause']
-	table_identifier: string
-	column_name: TenantColumn<ThisSchema, NonTenantedTableNames>
-	value: any
-}): Join['on_clause'] => {
-	const comparison: Comparison = {
-		type: 'comparison',
-		left: {
-			type: 'column reference',
-			table_identifier,
-			column: column_name,
-		},
-		comparator: '=',
-		right: {
-			type: 'user provided value',
-			value,
-		},
-	}
-
-	return [comparison, ...on_clause]
-}
-
 const prep_tenant_function = <
 	ThisSchema extends SchemaColumns,
 	NonTenantedTableNames extends keyof ThisSchema
@@ -88,36 +23,54 @@ const prep_tenant_function = <
 	column_name: TenantColumn<ThisSchema, NonTenantedTableNames>
 }) => {
 	const non_tenanted_table_names_set = new Set<keyof ThisSchema>(non_tenanted_table_names)
+
+	const tenant_filter = (table_identifier: string, value: any): Comparison => ({
+		type: 'comparison',
+		left: {
+			type: 'column reference',
+			table_identifier,
+			column: column_name,
+		},
+		comparator: '=',
+		right: {
+			type: 'user provided value',
+			value,
+		},
+	})
+
+	// A derived table is tenanted by recursing into its subquery, so it needs no filter of its own.
+	const tenant_source = (source: TableSource, value: any): { source: TableSource, filter: Comparison | null } => {
+		if ('subquery' in source) {
+			return { source: { ...source, subquery: make_tenanted_query(source.subquery, value) }, filter: null }
+		}
+		if (non_tenanted_table_names_set.has(source.table_name)) {
+			return { source, filter: null }
+		}
+		return { source, filter: tenant_filter(source.alias, value) }
+	}
+
 	const make_tenanted_query = (query: SafeSelectQuery, value: any): SafeSelectQuery => {
-		const from = 'subquery' in query.from
-			? { ...query.from, subquery: make_tenanted_query(query.from.subquery, value) }
-			: query.from
+		const from = tenant_source(query.from, value)
 
-		const where = 'subquery' in query.from || non_tenanted_table_names_set.has(query.from.table_name)
+		const where = from.filter === null
 			? query.where
-			: add_tenant_filter_to_where_clause<ThisSchema, NonTenantedTableNames>({
-				where: query.where,
-				table_identifier: query.from.alias,
-				column_name,
-				value,
-			})
-
-		const joins = map(query.joins, join => non_tenanted_table_names_set.has(join.table_name)
-			? join
 			: {
-				...join,
-				on_clause: add_tenant_filter_to_join_clause<ThisSchema, NonTenantedTableNames>({
-					on_clause: join.on_clause,
-					table_identifier: join.alias,
-					column_name,
-					value,
-				}),
+				type: 'and' as const,
+				expressions: query.where ? [from.filter, query.where] : [from.filter],
 			}
-		)
+
+		const joins = map(query.joins, join => {
+			const { source, filter } = tenant_source(join, value)
+			return {
+				...join,
+				...source,
+				on_clause: filter === null ? join.on_clause : [filter, ...join.on_clause],
+			}
+		})
 
 		return {
 			...query,
-			from,
+			from: from.source,
 			where,
 			joins,
 		}

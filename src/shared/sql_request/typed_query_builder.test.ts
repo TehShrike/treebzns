@@ -652,3 +652,54 @@ test('typed_query_builder: a derived table subquery must be a built query', () =
 test('typed_query_builder: derived table alias must be an identifier', () => {
 	assert.throws(() => q.from({ subquery: first_documents, alias: 'top` UNION SELECT' }))
 })
+
+test('typed_query_builder: a built query as a joined derived table keeps its column types', () => {
+	const built = q.from('project AS p')
+		.join({ subquery: first_documents, alias: 'top' }, on => on.comparison('top.project_document_id', '=', 'p.project_document_id'))
+		.select(() => ['p.project_id', 'top.document_name'])
+		.build()
+
+	type ExpectedRowType = {
+		p: {
+			project_id: bigint
+		}
+		top: {
+			document_name: string
+		}
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
+	assert.deepStrictEqual(built.query.joins, [{ subquery: first_documents.query, alias: 'top', on_clause: built.query.joins[0]!.on_clause, left: false }])
+	assert_valid_query_output(built)
+
+	q.from('project AS p')
+		// @ts-expect-error: the subquery aliased name to document_name, so name is not a column of top
+		.join({ subquery: first_documents, alias: 'top' }, on => on.comparison('top.name', '=', 'p.project_document_id'))
+})
+
+test('typed_query_builder: a left-joined derived table nulls its selected columns', () => {
+	const built = q.from('project AS p')
+		.left_join({ subquery: first_documents, alias: 'top' }, on => on.comparison('top.project_document_id', '=', 'p.project_document_id'))
+		.join('project_line_item AS pli', on => on.comparison('pli.project_id', '=', 'p.project_id'))
+		.select(() => ['top.document_name', 'pli.price'])
+		.build()
+
+	type ExpectedRowType = {
+		top: {
+			document_name: string
+		} | {
+			document_name: null
+		}
+		pli: {
+			price: FinancialNumber
+		}
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
+	assert.strictEqual(built.query.joins[0]!.left, true)
+	assert_valid_query_output(built)
+})

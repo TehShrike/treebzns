@@ -1,5 +1,6 @@
 import * as jv from '#shared/json_validator.ts'
 import type { InferValidator, Validator } from '#shared/json_validator.ts'
+import assert from '#shared/assert.ts'
 
 const any_validator = jv.custom<any>({ is_valid: (_): _ is any => true, get_messages: () => [] })
 
@@ -83,10 +84,12 @@ export const select_expression_validator = jv.one_of(
 	select_function_expression_validator,
 )
 
-export const table_addition_validator = jv.object({
+const table_addition_properties = {
 	table_name: identifier_validator,
 	alias: identifier_validator,
-})
+} as const
+
+export const table_addition_validator = jv.object(table_addition_properties)
 
 // An identifier emitted by the SELECT clause (a column alias, function alias, or grouping alias),
 // referenced by name in ORDER BY / HAVING rather than re-qualified by table.
@@ -164,24 +167,34 @@ export const having_comparison_validator = jv.object({
 })
 export const having_grouping_validator = make_and_or_grouping_validator(having_comparison_validator)
 
-export const join_validator = jv.object({
-	table_name: identifier_validator,
-	alias: identifier_validator,
+const join_clause_properties = {
 	on_clause: jv.array(jv.one_of(comparison_validator, function_expression_validator, where_grouping_validator)),
 	left: jv.optional(jv.is_boolean),
-})
+} as const
 
-// FROM may be a derived table: a nested query whose selected identifiers become the columns of `alias`.
+// FROM and each JOIN may be a derived table: a nested query whose selected identifiers become the
+// columns of `alias`.
 const make_safe_select_query_validator = (): Validator<SafeSelectQuery> => {
 	const holder: { v: Validator<SafeSelectQuery> | null } = { v: null }
 	const lazy: Validator<SafeSelectQuery> = {
-		is_valid: (input): input is SafeSelectQuery => holder.v!.is_valid(input),
-		get_messages: (input, name) => holder.v!.get_messages(input, name),
+		is_valid: (input): input is SafeSelectQuery => {
+			// @ts-expect-error v will be assigned
+			return holder.v.is_valid(input)
+		},
+		get_messages: (input, name) => {
+			// @ts-expect-error v will be assigned
+			return holder.v.get_messages(input, name)
+		},
 	}
-	const derived_table_validator = jv.object({
+	const derived_table_properties = {
 		subquery: lazy,
 		alias: identifier_validator,
-	})
+	} as const
+	const derived_table_validator = jv.object(derived_table_properties)
+	const join_validator = jv.one_of(
+		jv.object({ ...table_addition_properties, ...join_clause_properties }),
+		jv.object({ ...derived_table_properties, ...join_clause_properties }),
+	)
 	holder.v = jv.object({
 		select: jv.array(jv.one_of(select_expression_validator, select_grouping_validator)),
 		from: jv.one_of(table_addition_validator, derived_table_validator),
@@ -216,9 +229,7 @@ export type HavingComparison = {
 	right: AliasReference | UserProvidedValue
 }
 export type HavingGrouping = AndOrGrouping<HavingComparison>
-export type Join = {
-	table_name: string
-	alias: string
+export type Join = TableSource & {
 	on_clause: Array<Comparison | FunctionExpression | WhereGrouping>
 	left?: boolean | undefined
 }
@@ -232,9 +243,10 @@ export type DerivedTable = {
 	subquery: SafeSelectQuery
 	alias: string
 }
+export type TableSource = TableAddition | DerivedTable
 export type SafeSelectQuery = {
 	select: Array<SelectExpression | SelectGrouping>
-	from: TableAddition | DerivedTable
+	from: TableSource
 	joins: Array<Join>
 	where: WhereGrouping | null
 	group_by: Array<SelectExpression>

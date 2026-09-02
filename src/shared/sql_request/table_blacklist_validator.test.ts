@@ -115,3 +115,18 @@ test(`table_blacklist_validator: derived table subquery`, () => {
 	assert_has_one_element(bad_subquery_output)
 	assert.strictEqual(bad_subquery_output[0].includes('employee_session'), true)
 })
+
+test(`table_blacklist_validator: derived table join subquery`, () => {
+	const validate = make_blackist_validator<TestSchema>([ `employee_session` ])
+
+	const derived_join = (subquery: SafeSelectQuery): SafeSelectQuery => ({
+		...make_query(`project`, `project_line_item`),
+		joins: [ { subquery, alias: `derived`, on_clause: [] } ],
+	})
+
+	assert.deepEqual(validate(derived_join(make_query(`project`, `project_line_item`))), [])
+
+	const bad_subquery_output = validate(derived_join(make_query(`project`, `employee_session`)))
+	assert_has_one_element(bad_subquery_output)
+	assert.strictEqual(bad_subquery_output[0].includes('employee_session'), true)
+})
