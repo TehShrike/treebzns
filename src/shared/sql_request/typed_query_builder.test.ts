@@ -609,3 +609,46 @@ test('typed_query_builder: inner join columns stay non-null alongside a left_joi
 
 	assert_valid_query_output(built)
 })
+
+const first_documents = q.from('project_document AS pd')
+	.select(() => ['pd.project_document_id', 'pd.name AS document_name'])
+	.order_by('pd.project_document_id')
+	.limit(2n)
+	.build()
+
+test('typed_query_builder: a built query as a derived table keeps its column types', () => {
+	const built = q.from({ subquery: first_documents, alias: 'top' })
+		.join('project AS p', on => on.comparison('p.project_document_id', '=', 'top.project_document_id'))
+		.select(() => ['p.project_id', 'top.document_name'])
+		.build()
+
+	type ExpectedRowType = {
+		p: {
+			project_id: bigint
+		}
+		top: {
+			document_name: string
+		}
+	}
+
+	const _row_type_check: AssertEqual<ExtractQueryResponse<typeof built>, ExpectedRowType> = true
+	void _row_type_check
+
+	assert.deepStrictEqual(built.query.from, { subquery: first_documents.query, alias: 'top' })
+	assert_valid_query_output(built)
+
+	// @ts-expect-error: the subquery aliased name to document_name, so name is not a column of top
+	q.from({ subquery: first_documents, alias: 'top' }).select(() => ['top.name'])
+
+	// @ts-expect-error: project_document was aliased to top
+	q.from({ subquery: first_documents, alias: 'top' }).select(() => ['project_document.name'])
+})
+
+test('typed_query_builder: a derived table subquery must be a built query', () => {
+	// @ts-expect-error: a plain safe select query carries no column types
+	q.from({ subquery: first_documents.query, alias: 'top' })
+})
+
+test('typed_query_builder: derived table alias must be an identifier', () => {
+	assert.throws(() => q.from({ subquery: first_documents, alias: 'top` UNION SELECT' }))
+})

@@ -191,6 +191,24 @@ const merge_chunks = (chunks: SqlChunk[], separator: string): SqlChunk => ({
 
 type SelectItem = SelectExpression | SelectGrouping
 
+// The output identifiers the SELECT clause produces — the only names an ORDER BY / HAVING alias
+// reference may name, and the columns of the derived table when the query is used as one.
+const select_identifiers = (select: SelectItem[]): string[] => {
+	const identifiers: string[] = []
+	for_each(select, item => {
+		if ('expressions' in item) {
+			if (item.alias !== undefined) identifiers.push(item.alias)
+		} else if (item.type === 'column reference') {
+			identifiers.push(item.alias ?? item.column)
+		} else {
+			identifiers.push(item.alias)
+		}
+	})
+	return identifiers
+}
+
+const indent = (sql: string): string => map(sql.split('\n'), line => `\t${line}`).join('\n')
+
 // Renders a boolean expression (comparison or nested grouping) with parentheses around nested groups.
 // Shared by WHERE, HAVING, and join ON clauses since they're structurally identical.
 const bool_expr_to_chunk = (expr: RenderableComparison | RenderableGrouping): SqlChunk => {
@@ -243,47 +261,45 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 		),
 	)
 
-	const validate_table_and_column_names = (query: SafeSelectQuery): QueryValidationResult => {
-		const messages: string[] = []
-		const alias_to_table_name = new Map<string, string>()
+	const collect_messages = (query: SafeSelectQuery, messages: string[]): void => {
+		const alias_to_table = new Map<string, { table_name: string | null, columns: ReadonlySet<string> }>()
 
 		const register_table = (table_name: string, alias: string) => {
-			if (table_name in schema) {
-				alias_to_table_name.set(alias, table_name)
+			const table_columns = schema[table_name]
+			if (table_columns) {
+				alias_to_table.set(alias, { table_name, columns: new Set(Object.keys(table_columns)) })
 			} else {
 				messages.push(`Unknown table: "${table_name}"`)
 			}
 		}
 
-		register_table(query.from.table_name, query.from.alias)
+		const from = query.from
+		if ('subquery' in from) {
+			collect_messages(from.subquery, messages)
+			const columns = new Set<string>()
+			for_each(select_identifiers(from.subquery.select), identifier => {
+				if (columns.has(identifier)) {
+					messages.push(`Duplicate column "${identifier}" in derived table "${from.alias}"`)
+				}
+				columns.add(identifier)
+			})
+			alias_to_table.set(from.alias, { table_name: null, columns })
+		} else {
+			register_table(from.table_name, from.alias)
+		}
 		for_each(query.joins, join => register_table(join.table_name, join.alias))
 
-		// The output identifiers the SELECT clause produces — the only names an ORDER BY / HAVING
-		// alias reference is allowed to name.
-		const select_aliases = new Set<string>()
-		for_each(query.select, item => {
-			if ('expressions' in item) {
-				if (item.alias !== undefined) select_aliases.add(item.alias)
-			} else if (item.type === 'column reference') {
-				select_aliases.add(item.alias ?? item.column)
-			} else {
-				select_aliases.add(item.alias)
-			}
-		})
+		const select_aliases = new Set(select_identifiers(query.select))
 
 		const check_col_ref = (ref: ColumnReference) => {
-			if (alias_to_table_name.has(ref.table_identifier)) {
-				const table_name = alias_to_table_name.get(ref.table_identifier)
-				assert(typeof table_name === 'string')
-				assert(table_name in schema)
-				const table_columns = schema[table_name]
-				assert(table_columns)
-				if (!(ref.column in table_columns)) {
+			const table = alias_to_table.get(ref.table_identifier)
+			if (table) {
+				if (!table.columns.has(ref.column)) {
 					messages.push(`Unknown column "${ref.column}" on table identifier "${ref.table_identifier}"`)
-				} else {
-					const whitelisted_columns = whitelisted_columns_by_table.get(table_name)
+				} else if (table.table_name !== null) {
+					const whitelisted_columns = whitelisted_columns_by_table.get(table.table_name)
 					if (whitelisted_columns && !whitelisted_columns.has(ref.column)) {
-						messages.push(`"${ref.column}" is not one of the whitelisted columns on the "${table_name}" table`)
+						messages.push(`"${ref.column}" is not one of the whitelisted columns on the "${table.table_name}" table`)
 					}
 				}
 			} else {
@@ -307,7 +323,7 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 		const check_select_expr = (expr: SelectExpression) => {
 			if (expr.type === 'column reference') check_col_ref(expr)
 			else {
-				if (!alias_to_table_name.has(expr.table_identifier)) {
+				if (!alias_to_table.has(expr.table_identifier)) {
 					messages.push(`Unknown table identifier: "${expr.table_identifier}"`)
 				}
 				for_each(expr.arguments, check_arg)
@@ -357,13 +373,30 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 		for_each(query.order_by, order => check_arg(order.expression))
 
 		if (query.having !== null) check_grouping(query.having)
+	}
 
+	const validate_table_and_column_names = (query: SafeSelectQuery): QueryValidationResult => {
+		const messages: string[] = []
+		collect_messages(query, messages)
 		if (messages.length > 0) return { valid: false, messages }
 		return { valid: true }
 	}
 
-	const to_sql = (query: SafeSelectQuery): { sql: string, values: any[] } => {
+	const from_to_chunk = (from: SafeSelectQuery['from']): SqlChunk => {
+		if ('subquery' in from) {
+			const inner = query_to_chunk(from.subquery)
+			return {
+				sql: `FROM (\n${indent(inner.sql)}\n) AS \`${from.alias}\``,
+				parameters: inner.parameters,
+			}
+		}
+		return { sql: `FROM \`${from.table_name}\` AS \`${from.alias}\``, parameters: [] }
+	}
+
+	const query_to_chunk = (query: SafeSelectQuery): SqlChunk => {
 		const select_chunk = merge_chunks(map(query.select, select_item_or_grouping_to_chunk), ', ')
+
+		const from_chunk = from_to_chunk(query.from)
 
 		const join_chunks = map(query.joins, join => {
 			const on = merge_chunks(map(join.on_clause, on_clause_item_to_chunk), '\n\tAND ')
@@ -391,6 +424,7 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 
 		const all_params = [
 			...select_chunk.parameters,
+			...from_chunk.parameters,
 			...join_chunks.map(c => c.parameters).flat(1),
 			...(where_chunk?.parameters ?? []),
 			...(group_by_chunk?.parameters ?? []),
@@ -401,7 +435,7 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 		return {
 			sql: [
 				`SELECT ${select_chunk.sql}`,
-				`FROM \`${query.from.table_name}\` AS \`${query.from.alias}\``,
+				from_chunk.sql,
 				...map(join_chunks, c => c.sql),
 				...(where_chunk ? [`WHERE ${where_chunk.sql}`] : []),
 				...(group_by_chunk ? [`GROUP BY ${group_by_chunk.sql}`] : []),
@@ -410,8 +444,13 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 				// LIMIT is a validated integer, so it's inlined rather than parameterized.
 				...(query.limit !== null ? [`LIMIT ${query.limit}`] : []),
 			].join('\n'),
-			values: map(all_params, p => p.value),
+			parameters: all_params,
 		}
+	}
+
+	const to_sql = (query: SafeSelectQuery): { sql: string, values: any[] } => {
+		const { sql, parameters } = query_to_chunk(query)
+		return { sql, values: map(parameters, p => p.value) }
 	}
 
 	return { validate_table_and_column_names, to_sql }

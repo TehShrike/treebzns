@@ -171,16 +171,31 @@ export const join_validator = jv.object({
 	left: jv.optional(jv.is_boolean),
 })
 
-export const safe_select_query_validator = jv.object({
-	select: jv.array(jv.one_of(select_expression_validator, select_grouping_validator)),
-	from: table_addition_validator,
-	joins: jv.array(join_validator),
-	where: jv.nullable(where_grouping_validator),
-	group_by: jv.array(select_expression_validator),
-	order_by: jv.array(order_by_validator),
-	limit: limit_validator,
-	having: jv.nullable(having_grouping_validator),
-})
+// FROM may be a derived table: a nested query whose selected identifiers become the columns of `alias`.
+const make_safe_select_query_validator = (): Validator<SafeSelectQuery> => {
+	const holder: { v: Validator<SafeSelectQuery> | null } = { v: null }
+	const lazy: Validator<SafeSelectQuery> = {
+		is_valid: (input): input is SafeSelectQuery => holder.v!.is_valid(input),
+		get_messages: (input, name) => holder.v!.get_messages(input, name),
+	}
+	const derived_table_validator = jv.object({
+		subquery: lazy,
+		alias: identifier_validator,
+	})
+	holder.v = jv.object({
+		select: jv.array(jv.one_of(select_expression_validator, select_grouping_validator)),
+		from: jv.one_of(table_addition_validator, derived_table_validator),
+		joins: jv.array(join_validator),
+		where: jv.nullable(where_grouping_validator),
+		group_by: jv.array(select_expression_validator),
+		order_by: jv.array(order_by_validator),
+		limit: limit_validator,
+		having: jv.nullable(having_grouping_validator),
+	}) as unknown as Validator<SafeSelectQuery>
+	return holder.v
+}
+
+export const safe_select_query_validator = make_safe_select_query_validator()
 
 export type ColumnReference = InferValidator<typeof column_reference_validator>
 export type UserProvidedValue = InferValidator<typeof user_provided_value_validator>
@@ -213,9 +228,13 @@ export type SelectGrouping = {
 	alias?: string
 }
 export type WhereGrouping = AndOrGrouping<Comparison>
+export type DerivedTable = {
+	subquery: SafeSelectQuery
+	alias: string
+}
 export type SafeSelectQuery = {
 	select: Array<SelectExpression | SelectGrouping>
-	from: TableAddition
+	from: TableAddition | DerivedTable
 	joins: Array<Join>
 	where: WhereGrouping | null
 	group_by: Array<SelectExpression>

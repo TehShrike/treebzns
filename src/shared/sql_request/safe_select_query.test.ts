@@ -760,3 +760,128 @@ test('safe_select_query: left join renders LEFT JOIN', () => {
 	assert.strictEqual(sql, 'SELECT `p`.`project_id`, `c`.`name`\nFROM `project` AS `p`\nLEFT JOIN `client` AS `c` ON `p`.`client_id` = `c`.`client_id`')
 	assert.deepStrictEqual(values, [])
 })
+
+const top_clients_subquery = {
+	select: [
+		{ type: 'column reference', table_identifier: 'c', column: 'client_id' },
+		{ type: 'column reference', table_identifier: 'c', column: 'name', alias: 'client_name' },
+	],
+	from: { table_name: 'client', alias: 'c' },
+	joins: [],
+	where: {
+		type: 'and',
+		expressions: [{
+			type: 'comparison',
+			left: { type: 'column reference', table_identifier: 'c', column: 'company_id' },
+			comparator: '=',
+			right: { type: 'user provided value', value: 7 },
+		}],
+	},
+	group_by: [],
+	order_by: [{ expression: { type: 'column reference', table_identifier: 'c', column: 'name' }, direction: 'ASC' }],
+	limit: 2n,
+	having: null,
+} satisfies SafeSelectQuery
+
+const derived_table_query = (overrides: Partial<SafeSelectQuery>): SafeSelectQuery => ({
+	select: [
+		{ type: 'column reference', table_identifier: 'p', column: 'project_id' },
+		{ type: 'column reference', table_identifier: 'top', column: 'client_name' },
+	],
+	from: { subquery: top_clients_subquery, alias: 'top' },
+	joins: [{
+		table_name: 'project',
+		alias: 'p',
+		on_clause: [{
+			type: 'comparison',
+			left: { type: 'column reference', table_identifier: 'p', column: 'client_id' },
+			comparator: '=',
+			right: { type: 'column reference', table_identifier: 'top', column: 'client_id' },
+		}],
+	}],
+	where: {
+		type: 'and',
+		expressions: [{
+			type: 'comparison',
+			left: { type: 'column reference', table_identifier: 'p', column: 'closed' },
+			comparator: '=',
+			right: { type: 'user provided value', value: false },
+		}],
+	},
+	group_by: [],
+	order_by: [],
+	limit: null,
+	having: null,
+	...overrides,
+})
+
+test('safe_select_query: derived table in from', () => {
+	const query = derived_table_query({})
+	const { validate_table_and_column_names, to_sql } = make_safe_select_query_builder(test_schema)
+
+	assert.strictEqual(validate_table_and_column_names(query).valid, true)
+
+	const { sql, values } = to_sql(query)
+	assert.strictEqual(sql, [
+		'SELECT `p`.`project_id`, `top`.`client_name`',
+		'FROM (',
+		'\tSELECT `c`.`client_id`, `c`.`name` AS `client_name`',
+		'\tFROM `client` AS `c`',
+		'\tWHERE `c`.`company_id` = ?',
+		'\tORDER BY `c`.`name` ASC',
+		'\tLIMIT 2',
+		') AS `top`',
+		'JOIN `project` AS `p` ON `p`.`client_id` = `top`.`client_id`',
+		'WHERE `p`.`closed` = ?',
+	].join('\n'))
+	assert.deepStrictEqual(values, [7, false])
+})
+
+test('safe_select_query: derived table exposes only the identifiers its subquery selects', () => {
+	const query = derived_table_query({
+		select: [{ type: 'column reference', table_identifier: 'top', column: 'notes' }],
+	})
+	const { validate_table_and_column_names } = make_safe_select_query_builder(test_schema)
+	const result = validate_table_and_column_names(query)
+
+	assert.strictEqual(result.valid, false)
+	assert.ok(some(result.messages, message => message.includes('notes')))
+})
+
+test('safe_select_query: derived table with duplicate output identifiers is invalid', () => {
+	const query = derived_table_query({
+		from: {
+			subquery: {
+				...top_clients_subquery,
+				select: [
+					{ type: 'column reference', table_identifier: 'c', column: 'client_id' },
+					{ type: 'column reference', table_identifier: 'c', column: 'name', alias: 'client_id' },
+				],
+			},
+			alias: 'top',
+		},
+	})
+	const { validate_table_and_column_names } = make_safe_select_query_builder(test_schema)
+	const result = validate_table_and_column_names(query)
+
+	assert.strictEqual(result.valid, false)
+	assert.ok(some(result.messages, message => message.includes('Duplicate column "client_id"')))
+})
+
+test('safe_select_query: problems inside the derived table subquery are reported', () => {
+	const query = derived_table_query({
+		from: {
+			subquery: {
+				...top_clients_subquery,
+				select: [{ type: 'column reference', table_identifier: 'c', column: 'nonexistent_column' }],
+			},
+			alias: 'top',
+		},
+		select: [{ type: 'column reference', table_identifier: 'p', column: 'project_id' }],
+	})
+	const { validate_table_and_column_names } = make_safe_select_query_builder(test_schema)
+	const result = validate_table_and_column_names(query)
+
+	assert.strictEqual(result.valid, false)
+	assert.ok(some(result.messages, message => message.includes('nonexistent_column')))
+})

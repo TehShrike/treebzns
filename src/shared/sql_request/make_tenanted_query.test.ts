@@ -220,3 +220,56 @@ test(`company_id is injected into the where and joins of tenanted tables`, () =>
 	assert.ok(some(tenanted_query.joins[0].on_clause, node => is_company_id_filter(node, `project_line_item_alias`, 42n)))
 	assert.ok(every(tenanted_query.joins[1].on_clause, node => !is_company_id_filter(node, `permission_alias`, 42n)))
 })
+
+test(`company_id is injected inside a derived table subquery, not on the derived table itself`, () => {
+	const add_tenancy = prep_tenant_function<TestSchema, `permission`>({
+		non_tenanted_table_names: [`permission`],
+		column_name: `company_id`,
+	})
+
+	const query: SafeSelectQuery = {
+		select: [ { type: `column reference`, table_identifier: `top`, column: `project_id` } ],
+		from: {
+			subquery: {
+				select: [ { type: `column reference`, table_identifier: `project_alias`, column: `project_id` } ],
+				from: { table_name: `project`, alias: `project_alias` },
+				joins: [],
+				where: null,
+				group_by: [],
+				order_by: [],
+				limit: 2n,
+				having: null,
+			},
+			alias: `top`,
+		},
+		joins: [
+			{
+				table_name: `project_line_item`,
+				alias: `project_line_item_alias`,
+				on_clause: [ {
+					type: `comparison`,
+					left: { type: `column reference`, table_identifier: `project_line_item_alias`, column: `project_id` },
+					comparator: `=`,
+					right: { type: `column reference`, table_identifier: `top`, column: `project_id` },
+				} ],
+			},
+		],
+		where: null,
+		group_by: [],
+		order_by: [],
+		limit: null,
+		having: null,
+	}
+
+	const tenanted_query = add_tenancy(query, 42n)
+
+	assert.strictEqual(tenanted_query.where, null)
+
+	assert.ok(`subquery` in tenanted_query.from)
+	const subquery_where = tenanted_query.from.subquery.where
+	assert.ok(subquery_where)
+	assert.ok(is_company_id_filter(subquery_where.expressions[0], `project_alias`, 42n))
+
+	assert.strictEqual(tenanted_query.joins.length, 1)
+	assert.ok(some(tenanted_query.joins[0]!.on_clause, node => is_company_id_filter(node, `project_line_item_alias`, 42n)))
+})

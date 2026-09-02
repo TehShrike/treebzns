@@ -129,3 +129,45 @@ test('tables without a whitelist entry remain fully readable', () => {
 	})
 	assert.deepStrictEqual(messages, [], 'client has no whitelist, so all its columns stay readable')
 })
+
+test('password_hash cannot be pulled through a derived table', () => {
+	const messages = rejection_messages({
+		select: [{ type: 'column reference', table_identifier: 'd', column: 'password_hash' }],
+		from: { subquery: employee_query({ select: [password_hash_ref] }), alias: 'd' },
+		joins: [],
+		where: null,
+		group_by: [],
+		order_by: [],
+		limit: null,
+		having: null,
+	})
+	assert.ok(messages.length > 0, 'password_hash selected inside a derived table must be rejected')
+	assert.match(messages.join(', '), /password_hash/)
+})
+
+test('blacklisted tables cannot be read through a derived table', () => {
+	const messages = rejection_messages({
+		select: [{ type: 'column reference', table_identifier: 'd', column: 'session_id' }],
+		from: {
+			subquery: {
+				select: [{ type: 'column reference', table_identifier: 's', column: 'session_id' }],
+				from: { table_name: 'employee_session', alias: 's' },
+				joins: [],
+				where: null,
+				group_by: [],
+				order_by: [],
+				limit: null,
+				having: null,
+			},
+			alias: 'd',
+		},
+		joins: [],
+		where: null,
+		group_by: [],
+		order_by: [],
+		limit: null,
+		having: null,
+	})
+	assert.ok(messages.length > 0, 'a blacklisted table inside a derived table must be rejected')
+	assert.match(messages.join(', '), /employee_session/)
+})

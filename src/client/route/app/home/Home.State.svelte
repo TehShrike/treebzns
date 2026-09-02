@@ -13,19 +13,26 @@
 
 	const display_active_project_days = 45
 
+	const pipeline_project_documents = query_builder<Schema>()
+		.from(`project_document`)
+		.select(() => [
+			`project_document.project_document_id`,
+			`project_document.name`,
+		] as const)
+		.order_by(`project_document.sort`)
+		.limit(2n)
+		.build()
+
 	const fetch_pipeline_projects = (query: ClientQueryFn) => query(
 		query_builder<Schema>()
-			.from(`project`)
-			.join(`project_document_history`, q => q.and(
-				q.comparison(`project.project_id`, `=`, `project_document_history.project_id`),
-				q.comparison(`project_document_history.change_date`, `>=`, { value: Temporal.Now.plainDateISO().subtract({ days: display_active_project_days }) }),
+			.from({ subquery: pipeline_project_documents, alias: `project_document` })
+			.join(`project_document_history`, q => q.comparison(`project_document_history.change_date`, `>=`, { value: Temporal.Now.plainDateISO().subtract({ days: display_active_project_days }) }))
+			.join(`project`, q => q.and(
+				q.comparison(`project.project_document_id`, `=`, `project_document.project_document_id`),
+				q.comparison(`project_document_history.project_id`, `=`, `project.project_id`),
 			))
-			.join(`client`, q => q.comparison(`project.client_id`, `=`, `client.client_id`))
-			.join(`project_document`, q => q.comparison(`project.project_document_id`, `=`, `project_document.project_document_id`))
-			.where(q => q.and(
-				q.comparison(`project.closed`, `=`, { value: false }),
-				q.comparison(q.fn(`IS NOT NULL`, `project_document.next_project_document_id`), `=`, { value: true }),
-			))
+			.join(`client`, q => q.comparison(`client.client_id`, `=`, `project.client_id`))
+			.where(q => q.comparison(`project.closed`, `=`, { value: false }))
 			.group_by(`project.project_id`)
 			.select(b => [
 				`project.project_id`,

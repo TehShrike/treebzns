@@ -88,8 +88,12 @@ const prep_tenant_function = <
 	column_name: TenantColumn<ThisSchema, NonTenantedTableNames>
 }) => {
 	const non_tenanted_table_names_set = new Set<keyof ThisSchema>(non_tenanted_table_names)
-	return (query: SafeSelectQuery, value: any): SafeSelectQuery => {
-		const where = non_tenanted_table_names_set.has(query.from.table_name)
+	const make_tenanted_query = (query: SafeSelectQuery, value: any): SafeSelectQuery => {
+		const from = 'subquery' in query.from
+			? { ...query.from, subquery: make_tenanted_query(query.from.subquery, value) }
+			: query.from
+
+		const where = 'subquery' in query.from || non_tenanted_table_names_set.has(query.from.table_name)
 			? query.where
 			: add_tenant_filter_to_where_clause<ThisSchema, NonTenantedTableNames>({
 				where: query.where,
@@ -113,10 +117,12 @@ const prep_tenant_function = <
 
 		return {
 			...query,
+			from,
 			where,
 			joins,
 		}
 	}
+	return make_tenanted_query
 }
 
 export default prep_tenant_function

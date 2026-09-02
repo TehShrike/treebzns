@@ -20,6 +20,8 @@ import type {
 	SelectExpression,
 	SelectGrouping,
 	WhereGrouping,
+	TableAddition,
+	DerivedTable,
 } from "./safe_select_query_validator.ts"
 
 type SchemaColumnTypes = {
@@ -267,10 +269,34 @@ type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoi
 	build: () => BuiltQuery<FlattenRow<Row, LeftJoined>>
 }
 
+// A built query used as a derived table exposes its selected identifiers as the columns of one table.
+// The per-table namespacing collapses, the same way it does for `SelectedIdentifiers`.
+type DerivedColumns<Row> = UnionToIntersection<{
+	[Table in keyof Row]: { [Column in keyof Row[Table]]: Row[Table][Column] }
+}[keyof Row]>
+
+type DerivedTableArg<Alias extends string, Row> = {
+	subquery: BuiltQuery<Row>
+	alias: Alias
+}
+
+type DerivedSchema<Schema extends SchemaColumnTypes, Alias extends string, Row> =
+	Omit<Schema, Alias> & { [K in Alias]: DerivedColumns<Row> }
+
+// `K & keyof DerivedSchema` lets the generic alias satisfy AliasMap; it resolves to the alias itself.
+type DerivedAliasMap<Schema extends SchemaColumnTypes, Alias extends string, Row> = {
+	[K in Alias]: K & Extract<keyof DerivedSchema<Schema, Alias, Row>, string>
+}
+
 export type QueryBuilder<Schema extends SchemaColumnTypes> = {
-	from: <S extends TableAliasArg<Schema>>(
-		table_alias: S,
-	) => Stage<Schema, ParseTableAlias<S, Schema>>
+	from: {
+		<S extends TableAliasArg<Schema>>(
+			table_alias: S,
+		): Stage<Schema, ParseTableAlias<S, Schema>>
+		<const Alias extends string, Row>(
+			derived_table: DerivedTableArg<Alias, Row>,
+		): Stage<DerivedSchema<Schema, Alias, Row>, DerivedAliasMap<Schema, Alias, Row>>
+	}
 }
 
 type ColumnOrValueInput = string | { value: unknown } | FunctionExpression
@@ -282,7 +308,7 @@ type HavingBoolExpr = HavingGrouping | HavingComparison
 type InternalSelectGrouping = SelectGrouping & { table_identifier: string; alias: string }
 
 type State = {
-	from: { table_name: string; alias: string }
+	from: TableAddition | DerivedTable
 	joins: TrustableJoin[]
 	where_expressions: BoolExpr[]
 	selects: Array<SelectExpression | InternalSelectGrouping>
@@ -522,11 +548,18 @@ const make_stage = (state: State): any => ({
 	},
 })
 
+const to_from = (arg: string | DerivedTableArg<string, unknown>): State['from'] => {
+	if (typeof arg === 'string') {
+		const { table, alias } = parse_table_alias(arg)
+		return { table_name: table, alias }
+	}
+	return { subquery: arg.subquery.query, alias: assert_identifier(arg.alias, 'derived table alias') }
+}
+
 const query_builder = <Schema extends SchemaColumnTypes>(): QueryBuilder<Schema> => ({
-	from: ((table_alias: string) => {
-		const { table, alias } = parse_table_alias(table_alias)
+	from: ((arg: string | DerivedTableArg<string, unknown>) => {
 		return make_stage({
-			from: { table_name: table, alias },
+			from: to_from(arg),
 			joins: [],
 			where_expressions: [],
 			selects: [],

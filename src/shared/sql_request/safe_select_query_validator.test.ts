@@ -391,3 +391,18 @@ test('safe_select_query_validator: join left flag rejects non-booleans', () => {
 	assert.strictEqual(safe_select_query_validator.is_valid(with_left(1)), false)
 	assert.strictEqual(safe_select_query_validator.is_valid(with_left(null)), false)
 })
+
+test('safe_select_query_validator: from may be a derived table', () => {
+	const query = { ...valid_query, from: { subquery: valid_query, alias: 'derived' } }
+	assert.strictEqual(safe_select_query_validator.is_valid(query), true)
+})
+
+test('safe_select_query_validator: derived table alias must be an identifier', () => {
+	const query = { ...valid_query, from: { subquery: valid_query, alias: 'd` UNION SELECT' } }
+	assert.strictEqual(safe_select_query_validator.is_valid(query), false)
+})
+
+test('safe_select_query_validator: derived table subquery is validated', () => {
+	const query = { ...valid_query, from: { subquery: { ...valid_query, from: 'project' }, alias: 'derived' } }
+	assert.strictEqual(safe_select_query_validator.is_valid(query), false)
+})

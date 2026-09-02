@@ -8,19 +8,23 @@ type SchemaColumns = {
 export default <ThisSchema extends SchemaColumns>(blacklist: (keyof ThisSchema)[]) => {
 	const blacklist_set = new Set<keyof ThisSchema>(blacklist)
 
-	return (query: SafeSelectQuery) => {
-		const messages: string[] = []
-
+	const collect_messages = (query: SafeSelectQuery, messages: string[]): void => {
 		for_each(query.joins, join => {
 			if (blacklist_set.has(join.table_name)) {
 				messages.push(`Table "${join.table_name}" is blacklisted`)
 			}
 		})
 
-		if (blacklist_set.has(query.from.table_name)) {
+		if ('subquery' in query.from) {
+			collect_messages(query.from.subquery, messages)
+		} else if (blacklist_set.has(query.from.table_name)) {
 			messages.push(`Table "${query.from.table_name}" is blacklisted`)
 		}
+	}
 
+	return (query: SafeSelectQuery) => {
+		const messages: string[] = []
+		collect_messages(query, messages)
 		return messages
 	}
 }
