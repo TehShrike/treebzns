@@ -1,7 +1,7 @@
 import assert from '#shared/assert.ts'
-import is_duplicate_key_error from '#worker/lib/mysql/is_duplicate_key_error.ts'
+import is_duplicate_key_error from '#shared/mysql/is_duplicate_key_error.ts'
 import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
-import type { ConnectionBoundWriteHelper } from '#worker/lib/mysql/write_helper.ts'
+import type { ConnectionBoundWriteHelper } from '#shared/mysql/write_helper.ts'
 
 export const insert_lead_source = async ({
 	lead_source_name,

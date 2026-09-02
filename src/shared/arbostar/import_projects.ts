@@ -20,6 +20,7 @@ import {
 	date_from_yyyymmdd,
 	instant_from_unix_seconds,
 } from './arbostar_dates.ts'
+import { derive_timezone_from_export } from './derive_timezone_from_export.ts'
 import { write_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
@@ -159,6 +160,7 @@ export const import_projects = async (
 	imported_clients: ImportedClients,
 ): Promise<ImportedProjects> => {
 	const { client_id_by_arbostar_client_id, default_project_address_by_arbostar_client_id, primary_client_contact_id_by_arbostar_client_id } = imported_clients
+	const timezone = derive_timezone_from_export({ leads, workorders })
 	const estimates_by_lead_id = group_by(filter(estimates, estimate => estimate.lead_id !== null), estimate => estimate.lead_id!)
 	const workorders_by_lead_id = group_by(filter(workorders, workorder => workorder.lead_id !== null), workorder => workorder.lead_id!)
 	const invoices_by_lead_id = group_by(filter(invoices, invoice => invoice.lead_id !== null), invoice => invoice.lead_id!)
@@ -310,7 +312,7 @@ export const import_projects = async (
 	}
 
 	const local_day = (instant: Temporal.Instant): Temporal.PlainDate =>
-		instant.toZonedDateTimeISO(context.timezone).toPlainDate()
+		instant.toZonedDateTimeISO(timezone).toPlainDate()
 
 	// The document chain the project passed through, with `change_date` set from the export's
 	// evidence dates as company-local calendar days. Each row's `change_date` clamps to at
@@ -323,9 +325,9 @@ export const import_projects = async (
 
 		// Most leads carry a real creation instant, but backdated ones carry a
 		// midnight-encoded local date (155 of 2208 in the July 2026 export).
-		const lead_created = is_midnight_iso(lead.lead_date_created)
-			? date_from_midnight_iso(lead.lead_date_created)
-			: local_day(instant_from_iso(lead.lead_date_created))
+		const lead_created = is_midnight_iso(lead.lead_date_created, timezone)
+			? date_from_midnight_iso(lead.lead_date_created, timezone)
+			: local_day(instant_from_iso(lead.lead_date_created, timezone))
 		const chain = [{ project_document_id: documents.lead_unqualified, change_date: lead_created }]
 		const append = (document_id: bigint, evidence: Temporal.PlainDate | null) => {
 			const previous = chain[chain.length - 1]!.change_date
@@ -351,7 +353,7 @@ export const import_projects = async (
 			append(project_document_id, latest)
 		} else if (project_document_id === documents.work_order) {
 			const dates = lead_workorders.length > 0
-				? map(lead_workorders, workorder => date_from_midnight_iso(workorder.date_created))
+				? map(lead_workorders, workorder => date_from_midnight_iso(workorder.date_created, timezone))
 				: map(lead_invoices, invoice => date_from_yyyymmdd(invoice.date_created))
 			const earliest = dates.reduce((a, b) => (Temporal.PlainDate.compare(b, a) < 0 ? b : a))
 			append(project_document_id, earliest)

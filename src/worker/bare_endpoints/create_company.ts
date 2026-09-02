@@ -1,5 +1,5 @@
 import { json_response, error_response } from '#worker/lib/response_helpers.ts'
-import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
+import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import { create_company as db_create_company } from '#worker/lib/db/create_company.ts'
 import { log_in_with_password } from './log_in.ts'
 import * as jv from '#shared/json_validator.ts'

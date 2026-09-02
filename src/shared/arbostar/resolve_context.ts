@@ -67,20 +67,20 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 		)
 		return matches[0]!.project_document
 	}
-	const document_id = (flags: DocumentFlags): bigint => BigInt(document_row(flags).project_document_id)
+	const document_id = (flags: DocumentFlags): bigint => document_row(flags).project_document_id
 	const declined_document_id = (flags: DocumentFlags): bigint => {
 		const document = document_row(flags)
 		assert(
 			document.declined_project_document_id !== null,
 			`The document matching ${JSON.stringify(flags)} has a declined document to route declines to`,
 		)
-		return BigInt(document.declined_project_document_id)
+		return document.declined_project_document_id
 	}
 
 	return {
 		company_id,
 		tenanted_select,
-		created_by_employee_id: BigInt(employee_rows[0]!.employee.employee_id),
+		created_by_employee_id: employee_rows[0]!.employee.employee_id,
 		project_document_ids: {
 			lead_unqualified: document_id({ needs_to_be_contacted_by_lead_qualifier: true }),
 			lead_qualified: document_id({ needs_estimate_to_move_on: true }),
@@ -92,11 +92,11 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 		},
 		decline_reason_id_by_reason: new Map(map(
 			decline_reason_rows,
-			row => [normalize_name(row.project_decline_reason.reason), BigInt(row.project_decline_reason.project_decline_reason_id)] as const,
+			row => [normalize_name(row.project_decline_reason.reason), row.project_decline_reason.project_decline_reason_id] as const,
 		)),
 		employee_id_by_name: new Map(map(
 			employee_rows,
-			row => [normalize_name(row.employee.name), BigInt(row.employee.employee_id)] as const,
+			row => [normalize_name(row.employee.name), row.employee.employee_id] as const,
 		)),
 		next_estimator_sort: reduce(
 			employee_rows,
@@ -107,7 +107,7 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 			employee_rows,
 			row => map(
 				filter([row.employee.email, row.employee.login_name], value => value !== null),
-				value => [identity_key(value!), BigInt(row.employee.employee_id)] as const,
+				value => [identity_key(value!), row.employee.employee_id] as const,
 			),
 		))),
 		existing,

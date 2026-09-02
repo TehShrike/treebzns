@@ -3,7 +3,7 @@ import query_builder, { type BuiltQuery, type QueryBuilder } from '#shared/sql_r
 import type { SafeSelectQuery } from '#shared/sql_request/safe_select_query.ts'
 import tenanted_query_builder from '#shared/treebzns_db/tenanted_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
-import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
+import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 
 export type TenantedSelectBuilder = {
 	from: QueryBuilder<Schema>['from']

@@ -106,7 +106,7 @@ export const static_connection_options: ConnectionOptions = {
 	},
 }
 
-type MysqlEnv = {
+export type MysqlEnv = {
 	MYSQL_HOST: string
 	MYSQL_PORT: string
 	MYSQL_USER: string
@@ -115,19 +115,34 @@ type MysqlEnv = {
 	MYSQL_CA_CERT?: string
 }
 
+const required_keys = ['MYSQL_HOST', 'MYSQL_PORT', 'MYSQL_USER', 'MYSQL_PASS', 'MYSQL_DB'] as const
+
+export const require_mysql_env = (env: Record<string, string | undefined>): MysqlEnv => {
+	for (const key of required_keys) {
+		if (env[key] === undefined) throw new Error(`Missing env var: ${key}`)
+	}
+	return env as MysqlEnv
+}
+
+// Host/credentials/TLS only — no type casting. Data-reading connections should also
+// spread static_connection_options.
+export const env_connection_options = (env: MysqlEnv): ConnectionOptions => ({
+	host: env.MYSQL_HOST,
+	port: Number(env.MYSQL_PORT),
+	user: env.MYSQL_USER,
+	password: env.MYSQL_PASS,
+	database: env.MYSQL_DB,
+	// MYSQL_CA_CERT (base64-encoded PEM) makes TLS required and verifies the
+	// server against the CA. Unset locally, so the connection is plaintext.
+	...(env.MYSQL_CA_CERT
+		? { ssl: { ca: Buffer.from(env.MYSQL_CA_CERT, 'base64').toString('utf8') } }
+		: {}),
+	disableEval: true,
+})
+
 export const create_pool = (env: MysqlEnv): Pool =>
 	createPool({
-		host: env.MYSQL_HOST,
-		port: Number(env.MYSQL_PORT),
-		user: env.MYSQL_USER,
-		password: env.MYSQL_PASS,
-		database: env.MYSQL_DB,
-		// MYSQL_CA_CERT (base64-encoded PEM) makes TLS required and verifies the
-		// server against the CA. Unset locally, so the connection is plaintext.
-		...(env.MYSQL_CA_CERT
-			? { ssl: { ca: Buffer.from(env.MYSQL_CA_CERT, 'base64').toString('utf8') } }
-			: {}),
-		disableEval: true,
+		...env_connection_options(env),
 		...static_connection_options
 	})
 

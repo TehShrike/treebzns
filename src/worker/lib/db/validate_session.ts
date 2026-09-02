@@ -1,4 +1,4 @@
-import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
+import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import { employee, company } from '#schema/all_table_column_names.ts'
 import type { Schema } from '#schema/types.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'

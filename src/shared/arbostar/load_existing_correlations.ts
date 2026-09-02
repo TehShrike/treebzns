@@ -30,16 +30,15 @@ export type ExistingCorrelations = {
 	tax_rate_by_name: Map<string, { tax_rate_id: bigint; tax_rate: string }>
 }
 
-// BigInt()/Number() rather than trusting the schema types: the worker connection typecasts
-// INTs to bigint, but plain script connections return them as numbers.
+// The maps are keyed by number because the ArboStar export ids are JSON numbers.
 const correlation_map = <Row>(
 	rows: Row[],
-	arbostar_id: (row: Row) => bigint | number | null,
-	local_id: (row: Row) => bigint | number,
+	arbostar_id: (row: Row) => bigint | null,
+	local_id: (row: Row) => bigint,
 ): Map<number, bigint> =>
 	new Map(map(
 		filter(rows, row => arbostar_id(row) !== null),
-		row => [Number(arbostar_id(row)), BigInt(local_id(row))] as const,
+		row => [Number(arbostar_id(row)), local_id(row)] as const,
 	))
 
 export const load_existing_correlations = async (
@@ -137,26 +136,26 @@ export const load_existing_correlations = async (
 		),
 		item_type_id_by_name: new Map(map(
 			item_types,
-			row => [normalize_name(row.item_type.name), BigInt(row.item_type.item_type_id)] as const,
+			row => [normalize_name(row.item_type.name), row.item_type.item_type_id] as const,
 		)),
 		payment_method_id_by_name: new Map(map(
 			payment_methods,
-			row => [normalize_name(row.payment_method.name), BigInt(row.payment_method.payment_method_id)] as const,
+			row => [normalize_name(row.payment_method.name), row.payment_method.payment_method_id] as const,
 		)),
 		tax_rate_by_name: new Map(map(
 			tax_rates,
 			row => [
 				normalize_name(row.tax_rate.name),
-				{ tax_rate_id: BigInt(row.tax_rate.tax_rate_id), tax_rate: String(row.tax_rate.tax_rate) },
+				{ tax_rate_id: row.tax_rate.tax_rate_id, tax_rate: String(row.tax_rate.tax_rate) },
 			] as const,
 		)),
 		work_skill_id_by_name: new Map(map(
 			work_skills,
-			row => [normalize_name(row.work_skill.name), BigInt(row.work_skill.work_skill_id)] as const,
+			row => [normalize_name(row.work_skill.name), row.work_skill.work_skill_id] as const,
 		)),
 		lead_source_id_by_name: new Map(map(
 			lead_sources,
-			row => [normalize_name(row.lead_source.name), BigInt(row.lead_source.lead_source_id)] as const,
+			row => [normalize_name(row.lead_source.name), row.lead_source.lead_source_id] as const,
 		)),
 	}
 }

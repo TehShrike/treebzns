@@ -234,10 +234,10 @@ export const import_payments = async (
 		.from('payment_invoice')
 		.select(() => ['payment_invoice.payment_invoice_id', 'payment_invoice.payment_id', 'payment_invoice.invoice_id']))
 	const existing_pi = new Map<string, bigint>(map(
-		filter(payment_invoice_rows, row => existing_payment_ids.has(BigInt(row.payment_invoice.payment_id))),
+		filter(payment_invoice_rows, row => existing_payment_ids.has(row.payment_invoice.payment_id)),
 		row => [
-			`${BigInt(row.payment_invoice.payment_id)}:${BigInt(row.payment_invoice.invoice_id)}`,
-			BigInt(row.payment_invoice.payment_invoice_id),
+			`${row.payment_invoice.payment_id}:${row.payment_invoice.invoice_id}`,
+			row.payment_invoice.payment_invoice_id,
 		] as const,
 	))
 

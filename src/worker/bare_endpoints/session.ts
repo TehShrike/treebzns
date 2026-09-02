@@ -1,5 +1,5 @@
 import { json_anything_response } from '#worker/lib/response_helpers.ts'
-import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
+import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import validate_session from '#worker/lib/db/validate_session.ts'
 
 export default async (request: Request, mysql: MysqlHelpersObject): Promise<Response> => {

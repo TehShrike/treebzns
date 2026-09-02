@@ -1,6 +1,6 @@
-import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
+import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import { password_hash } from '#worker/lib/password_hash.ts'
-import write_helper from '#worker/lib/mysql/write_helper.ts'
+import write_helper from '#shared/mysql/write_helper.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
 import type { Schema } from '#schema/types.ts'

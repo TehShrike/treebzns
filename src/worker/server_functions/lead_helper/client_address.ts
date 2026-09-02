@@ -1,6 +1,6 @@
 import assert from '#shared/assert.ts'
 import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
-import type { ConnectionBoundWriteHelper } from '#worker/lib/mysql/write_helper.ts'
+import type { ConnectionBoundWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { LeadAddress } from '#shared/type/lead.ts'
 
 const insert_client_address = async ({

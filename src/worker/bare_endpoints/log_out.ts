@@ -1,9 +1,9 @@
 import { json_response } from '#worker/lib/response_helpers.ts'
-import type { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
+import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import { parse_session_cookie } from '#worker/lib/db/validate_session.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
-import write_helper from '#worker/lib/mysql/write_helper.ts'
+import write_helper from '#shared/mysql/write_helper.ts'
 import get_session_cookie_headers from '#worker/lib/get_session_cookie_headers.ts'
 import type { Schema } from '#schema/types.ts'
 

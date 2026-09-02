@@ -12,12 +12,7 @@ import { parseArgs } from 'node:util'
 import mysql from 'mysql2/promise'
 import assert from '#shared/assert.ts'
 import { chunk, filter, for_each, map } from '#shared/array.ts'
-
-function requireEnv(key: string): string {
-	const val = process.env[key]
-	if (val === undefined) throw new Error(`Missing env var: ${key}`)
-	return val
-}
+import { env_connection_options, require_mysql_env } from '#shared/mysql/connection.ts'
 
 const { values: args } = parseArgs({ options: { company_id: { type: 'string' } } })
 assert(
@@ -31,11 +26,8 @@ const BINARY_TYPES = new Set(['binary', 'varbinary', 'blob', 'tinyblob', 'medium
 const OUTPUT_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', 'company_inserts.sql')
 
 const connection = await mysql.createConnection({
-	host: requireEnv('MYSQL_HOST'),
-	port: Number(requireEnv('MYSQL_PORT')),
-	user: requireEnv('MYSQL_USER'),
-	password: requireEnv('MYSQL_PASS'),
-	database: requireEnv('MYSQL_DB'),
+	...env_connection_options(require_mysql_env(process.env)),
+	// Everything as strings, so values round-trip into INSERT statements exactly.
 	typeCast: field => (field.type === 'JSON' ? field.string('utf8') : field.string()),
 })
 

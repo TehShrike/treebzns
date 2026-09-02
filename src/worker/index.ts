@@ -1,5 +1,5 @@
-import { create_connection } from '#worker/lib/mysql/connection.ts'
-import make_mysql_helpers_object, { MysqlHelpersObject } from '#worker/lib/mysql/mysql_helpers_object.ts'
+import { create_connection } from '#shared/mysql/connection.ts'
+import make_mysql_helpers_object, { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 
 import create_company from './bare_endpoints/create_company.ts'
 import log_in from './bare_endpoints/log_in.ts'

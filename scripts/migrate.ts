@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import assert from '#shared/assert.ts'
+import { env_connection_options, require_mysql_env } from '#shared/mysql/connection.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const MIGRATION_DIR = join(__dirname, '..', 'src', 'migration')
@@ -11,12 +12,6 @@ const MIGRATION_DIR = join(__dirname, '..', 'src', 'migration')
 type Migration = {
 	number: number
 	filename: string
-}
-
-function requireEnv(key: string): string {
-	const val = process.env[key]
-	if (val === undefined) throw new Error(`Missing env var: ${key}`)
-	return val
 }
 
 function readMigrations(): Migration[] {
@@ -42,16 +37,7 @@ function readMigrations(): Migration[] {
 }
 
 const conn = await createConnection({
-	host: requireEnv('MYSQL_HOST'),
-	port: Number(requireEnv('MYSQL_PORT')),
-	user: requireEnv('MYSQL_USER'),
-	password: requireEnv('MYSQL_PASS'),
-	database: requireEnv('MYSQL_DB'),
-	// In prod, MYSQL_CA_CERT (base64-encoded PEM) is set, which makes TLS required and
-	// verifies the server against the CA. Unset locally, so the connection is plaintext.
-	...(process.env.MYSQL_CA_CERT
-		? { ssl: { ca: Buffer.from(process.env.MYSQL_CA_CERT, 'base64').toString('utf8') } }
-		: {}),
+	...env_connection_options(require_mysql_env(process.env)),
 	// Migration files contain multiple statements (e.g. 0000-initial.sql).
 	multipleStatements: true,
 })

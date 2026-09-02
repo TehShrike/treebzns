@@ -782,3 +782,21 @@ starting from `/`, harvesting nav links and recording every XHR. Paste fresh coo
 `COOKIES` block (separate from `session.ts` — it sets browser cookies, not request headers)
 and run `node scripts/arbostar/discover_endpoints.ts`. It rewrites `arbostar_endpoints.json`
 (route metadata only — no response bodies or row data).
+
+## Company timezone
+
+No endpoint exposes the company timezone as a field (checked 2026-09-01: the page shells,
+the full settings key/value table, `/user/getData`, `/settings/getLocations`, and the client
+JS bundles — the server renders all datetimes company-local, so the zone name never ships).
+Two GET endpoints still reveal it:
+
+- `GET /estimates/profile/profileData/{lead_id}` returns the same event twice on the lead:
+  `updated_at` as a UTC ISO-Z instant and `last_update` / `system_update` as a company-local
+  string. The difference is the current UTC offset. Use a recently-updated lead — a data
+  migration rewrote old `system_*` values.
+- The `/workorders` datatable serializes `date_created` (a company-local date) as UTC
+  ISO-Z midnight, so every row embeds the offset. Rows ordered by `date_created` show the
+  standard and daylight offsets and the exact DST flip date, which pins the IANA zone.
+
+Do not use the `timeshift` query param on `schedule/office/data` — the app fills it from the
+browser's `getTimezoneOffset()`, so it reflects the viewer, not the tenant.

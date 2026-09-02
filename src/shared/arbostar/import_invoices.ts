@@ -94,7 +94,7 @@ export const import_invoices = async (
 		.select(() => ['tax_rate.tax_rate_id', 'tax_rate.tax_rate']))
 	const candidates = filter(
 		map(tax_rate_rows, row => ({
-			tax_rate_id: BigInt(row.tax_rate.tax_rate_id),
+			tax_rate_id: row.tax_rate.tax_rate_id,
 			ratio: number(String(row.tax_rate.tax_rate)),
 		})),
 		candidate => candidate.ratio.gt('0'),

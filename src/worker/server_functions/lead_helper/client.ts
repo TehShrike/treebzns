@@ -1,5 +1,5 @@
 import assert from '#shared/assert.ts'
-import type { ConnectionBoundWriteHelper } from '#worker/lib/mysql/write_helper.ts'
+import type { ConnectionBoundWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { LeadClient, LeadBilling, LeadAddress, LeadContact } from '#shared/type/lead.ts'
 
 const insert_new_client = async ({
