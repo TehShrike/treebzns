@@ -205,12 +205,14 @@ export const functions = {
 				closed: false,
 			})
 
+			const now = Temporal.Now.instant()
 			await write_helper.insert('project_document_history', {
 				company_id,
 				project_id,
 				project_document_id: initial_project_document_id,
 				changed_by_employee_id: user.employee_id,
-				change_date: Temporal.Now.instant().toZonedDateTimeISO(company.timezone).toPlainDate(),
+				change_date: now.toZonedDateTimeISO(company.timezone).toPlainDate(),
+				change_datetime: now,
 			})
 
 			if (availability.length > 0) {

@@ -313,12 +313,19 @@ export const import_projects = async (
 
 	const local_day = (instant: Temporal.Instant): Temporal.PlainDate =>
 		instant.toZonedDateTimeISO(timezone).toPlainDate()
+	const local_midnight = (date: Temporal.PlainDate): Temporal.Instant =>
+		date.toZonedDateTime(timezone).toInstant()
+	const earliest = (instants: Temporal.Instant[]): Temporal.Instant =>
+		instants.reduce((a, b) => (Temporal.Instant.compare(b, a) < 0 ? b : a))
+	const latest = (instants: Temporal.Instant[]): Temporal.Instant =>
+		instants.reduce((a, b) => (Temporal.Instant.compare(b, a) > 0 ? b : a))
 
-	// The document chain the project passed through, with `change_date` set from the export's
-	// evidence dates as company-local calendar days. Each row's `change_date` clamps to at
-	// least the previous row's, so every chain stays non-decreasing. Rows insert in chain
-	// order so the auto-increment id preserves the order of same-day stages.
-	const document_chain = (lead: ArbostarLead): Array<{ project_document_id: bigint; change_date: Temporal.PlainDate }> | null => {
+	// The document chain the project passed through, with `change_datetime` set from the
+	// export's evidence. Date-only evidence becomes local midnight in the derived timezone.
+	// Each row clamps to at least the previous row's instant, so every chain stays
+	// non-decreasing. Rows insert in chain order so the auto-increment id preserves the order
+	// of same-instant stages.
+	const document_chain = (lead: ArbostarLead): Array<{ project_document_id: bigint; change_datetime: Temporal.Instant }> | null => {
 		if (!lead.lead_date_created) return null
 		const { lead_estimates, lead_workorders, lead_invoices, declined_estimates, project_document_id } = document_decision(lead)
 		const documents = context.project_document_ids
@@ -326,37 +333,31 @@ export const import_projects = async (
 		// Most leads carry a real creation instant, but backdated ones carry a
 		// midnight-encoded local date (155 of 2208 in the July 2026 export).
 		const lead_created = is_midnight_iso(lead.lead_date_created, timezone)
-			? date_from_midnight_iso(lead.lead_date_created, timezone)
-			: local_day(instant_from_iso(lead.lead_date_created, timezone))
-		const chain = [{ project_document_id: documents.lead_unqualified, change_date: lead_created }]
-		const append = (document_id: bigint, evidence: Temporal.PlainDate | null) => {
-			const previous = chain[chain.length - 1]!.change_date
+			? local_midnight(date_from_midnight_iso(lead.lead_date_created, timezone))
+			: instant_from_iso(lead.lead_date_created, timezone)
+		const chain = [{ project_document_id: documents.lead_unqualified, change_datetime: lead_created }]
+		const append = (document_id: bigint, evidence: Temporal.Instant | null) => {
+			const previous = chain[chain.length - 1]!.change_datetime
 			chain.push({
 				project_document_id: document_id,
-				change_date: evidence === null || Temporal.PlainDate.compare(evidence, previous) < 0 ? previous : evidence,
+				change_datetime: evidence === null || Temporal.Instant.compare(evidence, previous) < 0 ? previous : evidence,
 			})
 		}
 
 		if (lead_estimates.length > 0) {
-			const earliest = map(lead_estimates, estimate => date_from_mmddyyyy(estimate.date_created))
-				.reduce((a, b) => (Temporal.PlainDate.compare(b, a) < 0 ? b : a))
-			append(documents.estimate, earliest)
+			append(documents.estimate, earliest(map(lead_estimates, estimate => local_midnight(date_from_mmddyyyy(estimate.date_created)))))
 		}
 		if (project_document_id === documents.declined_proposal) {
-			const decline_days = filter_map(declined_estimates, estimate => {
+			const decline_instants = filter_map(declined_estimates, estimate => {
 				const unix = decline_by_estimate_id.get(estimate.estimate_id)?.date_created_unix ?? null
-				return unix === null ? null : local_day(instant_from_unix_seconds(unix))
+				return unix === null ? null : instant_from_unix_seconds(unix)
 			})
-			const latest = decline_days.length === 0
-				? null
-				: decline_days.reduce((a, b) => (Temporal.PlainDate.compare(b, a) > 0 ? b : a))
-			append(project_document_id, latest)
+			append(project_document_id, decline_instants.length === 0 ? null : latest(decline_instants))
 		} else if (project_document_id === documents.work_order) {
 			const dates = lead_workorders.length > 0
 				? map(lead_workorders, workorder => date_from_midnight_iso(workorder.date_created, timezone))
 				: map(lead_invoices, invoice => date_from_yyyymmdd(invoice.date_created))
-			const earliest = dates.reduce((a, b) => (Temporal.PlainDate.compare(b, a) < 0 ? b : a))
-			append(project_document_id, earliest)
+			append(project_document_id, earliest(map(dates, local_midnight)))
 		} else if (project_document_id === documents.void || project_document_id === documents.lead_qualified) {
 			append(project_document_id, null)
 		}
@@ -566,7 +567,8 @@ export const import_projects = async (
 			project_id,
 			project_document_id: row.project_document_id,
 			changed_by_employee_id: null,
-			change_date: row.change_date,
+			change_date: local_day(row.change_datetime),
+			change_datetime: row.change_datetime,
 		}))
 	})
 	if (history_rows.length > 0) {

@@ -12,6 +12,7 @@ export const validator_object = {
 	new_clock_out: jv.nullable(is_temporal_instant),
 	changed_by_employee_id: jv.nullable(jv.is_bigint),
 	change_date: is_temporal_plain_date,
+	change_datetime: is_temporal_instant,
 	created_at: is_temporal_instant,
 }
 

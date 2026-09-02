@@ -10,6 +10,7 @@ export const validator_object = {
 	action: jv.is_string,
 	changed_by_employee_id: jv.nullable(jv.is_bigint),
 	change_date: is_temporal_plain_date,
+	change_datetime: is_temporal_instant,
 	created_at: is_temporal_instant,
 }
 

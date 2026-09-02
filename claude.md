@@ -59,6 +59,7 @@ Use the typed_query_builder for all SELECT queries.
 ## _history tables
 
 Some tables have a companion `_history` table (e.g. `project` → `project_document_history`).  Code that inserts into the main table must also insert the initial `_history` row.  Code that changes the tracked value must insert a `_history` row for the change.
+Every `_history` row carries `change_date` (the company-local calendar day) and `change_datetime` (the UTC instant).  Neither has a default, so every writer supplies both from the same instant.
 
 ## company_id in indexes
 

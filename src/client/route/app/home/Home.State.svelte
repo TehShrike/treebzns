@@ -1,6 +1,5 @@
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
-	import type { SessionResponse } from '#client/lib/session_response.ts'
 	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
 	import LinkThatLooksLikeAButton from '#client/component/LinkThatLooksLikeAButton.svelte'
@@ -8,28 +7,39 @@
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import { filter } from '#shared/array.ts'
+	import { datetime_age_display } from '#shared/age_display.ts'
+	import assert from '#shared/assert.ts'
+	import { Temporal } from '@js-temporal/polyfill'
+
+	const display_active_project_days = 45
 
 	const fetch_pipeline_projects = (query: ClientQueryFn) => query(
 		query_builder<Schema>()
 			.from(`project`)
+			.join(`project_document_history`, q => q.and(
+				q.comparison(`project.project_id`, `=`, `project_document_history.project_id`),
+				q.comparison(`project_document_history.change_date`, `>=`, { value: Temporal.Now.plainDateISO().subtract({ days: display_active_project_days }) }),
+			))
 			.join(`client`, q => q.comparison(`project.client_id`, `=`, `client.client_id`))
 			.join(`project_document`, q => q.comparison(`project.project_document_id`, `=`, `project_document.project_document_id`))
 			.where(q => q.and(
 				q.comparison(`project.closed`, `=`, { value: false }),
 				q.comparison(q.fn(`IS NOT NULL`, `project_document.next_project_document_id`), `=`, { value: true }),
 			))
-			.order_by(`project.number`, `DESC`)
-			.select(() => [
+			.group_by(`project.project_id`)
+			.select(b => [
 				`project.project_id`,
 				`project.number`,
 				`project.address_line_1`,
 				`project.city`,
 				`project.due_date`,
-				`project.created_at`,
 				`project.emergency`,
 				`client.name`,
 				`project_document.name`,
+				b.fn(`MAX`, `project_document_history.latest_change_datetime`, `project_document_history.change_datetime`),
+				b.fn(`MIN`, `project_document_history.first_project_document_history_datetime`, `project_document_history.change_datetime`),
 			] as const)
+			.order_by(`project.number`, `DESC`)
 			.build()
 	)
 
@@ -45,10 +55,12 @@
 </script>
 
 <script lang="ts">
-	let { session, asr, projects }: StateResolve<typeof asr_state> & { session: SessionResponse, asr: StateAsr } = $props()
+	let { asr, projects }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
 
-	const format_instant = (instant: ProjectRow[`project`][`created_at`]) =>
-		instant.toZonedDateTimeISO(session.company.timezone).toPlainDate().toString()
+	const format_age = (instant: Temporal.Instant | null) => {
+		assert(instant !== null, `every pipeline project has at least one project_document_history row`)
+		return datetime_age_display(Temporal.Now.instant(), instant)
+	}
 </script>
 
 {#snippet number_cell(row: ProjectRow)}
@@ -71,8 +83,12 @@
 	<div>{row.project.due_date?.toString() ?? ``}</div>
 {/snippet}
 
-{#snippet created_cell(row: ProjectRow)}
-	<div>{format_instant(row.project.created_at)}</div>
+{#snippet status_age_cell(row: ProjectRow)}
+	<div>{format_age(row.project_document_history.latest_change_datetime)}</div>
+{/snippet}
+
+{#snippet project_age_cell(row: ProjectRow)}
+	<div>{format_age(row.project_document_history.first_project_document_history_datetime)}</div>
 {/snippet}
 
 <AppScreen>
@@ -90,9 +106,10 @@
 			{ header: `Number`, cell: number_cell, width: `6rem` },
 			{ header: `Client`, cell: client_cell },
 			{ header: `Status`, cell: status_cell },
+			{ header: `Status age`, cell: status_age_cell, width: `7rem` },
 			{ header: `Address`, cell: address_cell, width: `2fr` },
 			{ header: `Due date`, cell: due_date_cell, width: `7rem` },
-			{ header: `Created`, cell: created_cell, width: `7rem` },
+			{ header: `Project age`, cell: project_age_cell, width: `7rem` },
 		]}
 	/>
 </AppScreen>
