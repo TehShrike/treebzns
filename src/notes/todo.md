@@ -6,17 +6,45 @@
 	- Need to track state-changed-since-database-version per entity
 - Review components and state management for sanity
 - Due date date picker needs to always be visible, but disabled when not "Has a due date"
-- Change "Client is project contact" to "Project contact is different from client" – show the contact inputs whether it is checked or not, but they should be disabled unless "Project contact is different" is checked
+- Build an initial "create a screen" skill
+
+## Deploy to dedicated Cloudflare account
+
+- [ ] Create a new email address
+	- treesoftware@joshduff.com?
+- [ ] Create a new Cloudflare account with a new email address
+- [ ] Transfer dufftreesoftware.com to the new Cloudflare account
+- [ ] Configure the worker
+	- [ ] Configure environment variables
+	- [ ] Hyperdrive
+- [ ] Business card: Chase Ink Business Unlimited
+
+## List of screens to make
+
+Keep iterating on the "create a screen" skill.
+
+- [ ] Client
+- [ ] Project list
+- [ ] Crews
+- [ ] Customer-facing: Invoice
+- [ ] Customer-facing: Proposal
+- [ ] Customer-facing: Work Order
+- [ ] Estimating
+- [ ] Foreman/project check-in
+- [ ] Create a lead
+- [ ] Project
+- [ ] Scheduling: week/all jobs
+- [ ] Scheduling: day
+- [ ] Settings
+
+
 
 ## Other
 
-- Review the project list query on the home screen.  Add some inputs?
-- create a lead screen should have a "the billing address is different" button below the project address field
-- regenerate "create a lead" implementation
-- I'm not happy with the string-building happening in filter_clients.  I suspect it would be more efficient to check for every(tokens, token => some(address_fields, field => field.includes(token)))
-	- or we could just make something smarter and more efficient.  CachedClient should contain something easier to search.  Like: a unique array of the all-numeric tokens (only check startsWith, not includes) and a unique array of all other tokens (use includes).
 - Permissions
 - Which email/sms triggers are necessary
+- Use a trie thing for client search autocomplete
+- DateTimeInput – maybe we can pull a single date picker out of it and use that on Create A Lead
 
 ## After the create-a-lead/project screens
 
