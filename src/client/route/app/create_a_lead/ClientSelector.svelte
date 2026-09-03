@@ -9,6 +9,7 @@
 	import type { LeadClient } from '#shared/type/lead.ts'
 	import { find } from '#shared/array.ts'
 	import assert from '#shared/assert.ts'
+	import matches_saved from '#client/lib/matches_saved.ts'
 
 	export type TaxRate = { tax_rate_id: bigint, name: string }
 </script>
@@ -27,6 +28,8 @@
 		selected_pre_existing_client?: CachedClient | null
 		selected_pre_existing_client_contact?: CachedClientContact | null
 	} = $props()
+
+	const client_matches_saved = matches_saved(() => client, () => selected_pre_existing_client?.client ?? null)
 
 	const select_client_and_contact = (selection: SearchSelection) => {
 		const cached_client = find(client_cache.clients, ({ client }) => client.client_id === selection.client.client_id)
@@ -85,23 +88,23 @@
 		<FormLayout>
 			<label>
 				Name
-				<input type="text" autocomplete="off" data-1p-ignore required bind:value={client.name}>
+				<input type="text" autocomplete="off" data-1p-ignore required data-matches-saved={client_matches_saved(`name`)} bind:value={client.name}>
 			</label>
 			<label>
 				Phone
-				<input type="tel" autocomplete="off" data-1p-ignore bind:value={client.primary_phone}>
+				<input type="tel" autocomplete="off" data-1p-ignore data-matches-saved={client_matches_saved(`primary_phone`)} bind:value={client.primary_phone}>
 			</label>
 			<label>
 				Email
-				<input type="email" autocomplete="off" data-1p-ignore bind:value={client.primary_email}>
+				<input type="email" autocomplete="off" data-1p-ignore data-matches-saved={client_matches_saved(`primary_email`)} bind:value={client.primary_email}>
 			</label>
 			<label>
 				Referred by
-				<input type="text" autocomplete="off" data-1p-ignore bind:value={client.referred_by}>
+				<input type="text" autocomplete="off" data-1p-ignore data-matches-saved={client_matches_saved(`referred_by`)} bind:value={client.referred_by}>
 			</label>
 			<label>
 				Tax rate
-				<select bind:value={client.tax_rate_id}>
+				<select data-matches-saved={client_matches_saved(`tax_rate_id`)} bind:value={client.tax_rate_id}>
 					<option value={null}>No tax</option>
 					{#each tax_rates as tax_rate (tax_rate.tax_rate_id)}
 						<option value={tax_rate.tax_rate_id}>{tax_rate.name}</option>
@@ -110,10 +113,10 @@
 			</label>
 			<label>
 				Commercial
-				<input type="checkbox" bind:checked={client.is_commercial}>
+				<input type="checkbox" data-matches-saved={client_matches_saved(`is_commercial`)} bind:checked={client.is_commercial}>
 			</label>
 		</FormLayout>
-		<WideTextareaField id="client_notes" label="Notes" rows={2} bind:value={client.notes} />
+		<WideTextareaField id="client_notes" label="Notes" rows={2} matches_saved={client_matches_saved(`notes`)} bind:value={client.notes} />
 	</FieldsetColumn>
 </fieldset>
 

@@ -5,6 +5,7 @@
 	import DropdownField from './_helpers/DropdownField.svelte'
 	import type { LeadClient, LeadContact } from '#shared/type/lead.ts'
 	import { find } from '#shared/array.ts'
+	import matches_saved from '#client/lib/matches_saved.ts'
 
 	const get_initial_contact_values = ({ selected_pre_existing_client, selected_pre_existing_client_contact }: {
 		selected_pre_existing_client: CachedClient | null
@@ -35,6 +36,8 @@
 	let inputs = $state({ name: ``, phone: ``, email: `` })
 
 	const inputs_disabled = $derived(!selected_pre_existing_client && !project_contact_is_different)
+
+	const contact_matches_saved = matches_saved(() => contact, () => selected_contact)
 
 	const select_contact = (contact: CachedClientContact | null) => {
 		selected_contact = contact
@@ -79,15 +82,15 @@
 		<FormLayout>
 			<label>
 				Contact name
-				<input type="text" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={() => contact.name, value => inputs.name = value}>
+				<input type="text" autocomplete="off" data-1p-ignore data-matches-saved={contact_matches_saved(`name`)} disabled={inputs_disabled} bind:value={() => contact.name, value => inputs.name = value}>
 			</label>
 			<label>
 				Contact phone
-				<input type="tel" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={() => contact.phone, value => inputs.phone = value}>
+				<input type="tel" autocomplete="off" data-1p-ignore data-matches-saved={contact_matches_saved(`phone`)} disabled={inputs_disabled} bind:value={() => contact.phone, value => inputs.phone = value}>
 			</label>
 			<label>
 				Contact email
-				<input type="email" autocomplete="off" data-1p-ignore disabled={inputs_disabled} bind:value={() => contact.email, value => inputs.email = value}>
+				<input type="email" autocomplete="off" data-1p-ignore data-matches-saved={contact_matches_saved(`email`)} disabled={inputs_disabled} bind:value={() => contact.email, value => inputs.email = value}>
 			</label>
 		</FormLayout>
 	</FieldsetColumn>

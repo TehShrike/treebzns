@@ -102,6 +102,7 @@ Inside the selector:
 - **Nullable sub-objects toggle by their own checkbox.** The billing checkbox reads `billing_address !== null`. Checking it builds the object with prefilled values from the client and address. Unchecking it stores the object in a plain `let` draft and sets null, so re-checking restores the draft. The screen renders the child inside `{#if billing_address}`.
 - **Initial-value functions take one object.** `get_initial_contact_values({ selected_pre_existing_client, selected_pre_existing_client_contact })`. Name them `get_initial_<thing>_values`.
 - **Row groups** (availability windows) keep string rows locally and write the converted, complete rows into the bound array from an effect.
+- **Mark inputs that still match the database.** Build a checker from the bound object and the selected cached row with `matches_saved` from `#client/lib/matches_saved.ts`, then set `data-matches-saved={client_matches_saved(`name`)}` on each input. The 98.css rule paints a matching input with the app background. The saved row is the cached row the user selected, so there is no snapshot to keep. A new record has no saved row and every input reads as new.
 
 ### 5. Validate with the browser
 

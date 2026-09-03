@@ -5,6 +5,7 @@
 	import DropdownField from './_helpers/DropdownField.svelte'
 	import type { LeadAddress, LeadBilling, LeadClient } from '#shared/type/lead.ts'
 	import { find } from '#shared/array.ts'
+	import matches_saved from '#client/lib/matches_saved.ts'
 
 	export type CachedAddress = CachedClient['client_addresses'][number]
 
@@ -30,6 +31,8 @@
 
 	let selected_pre_existing_address = $state<CachedAddress | null>(null)
 	let billing_draft: LeadBilling | null = null
+
+	const address_matches_saved = matches_saved(() => address, () => selected_pre_existing_address)
 
 	const select_pre_existing_address = (cached_address: CachedAddress | null) => {
 		selected_pre_existing_address = cached_address
@@ -84,23 +87,23 @@
 		<FormLayout>
 			<label>
 				Address line 1
-				<input type="text" autocomplete="off" data-1p-ignore bind:value={address.address_line_1}>
+				<input type="text" autocomplete="off" data-1p-ignore data-matches-saved={address_matches_saved(`address_line_1`)} bind:value={address.address_line_1}>
 			</label>
 			<label>
 				Address line 2
-				<input type="text" autocomplete="off" data-1p-ignore bind:value={address.address_line_2}>
+				<input type="text" autocomplete="off" data-1p-ignore data-matches-saved={address_matches_saved(`address_line_2`)} bind:value={address.address_line_2}>
 			</label>
 			<label>
 				City
-				<input type="text" autocomplete="off" data-1p-ignore bind:value={address.city}>
+				<input type="text" autocomplete="off" data-1p-ignore data-matches-saved={address_matches_saved(`city`)} bind:value={address.city}>
 			</label>
 			<label>
 				State
-				<input type="text" autocomplete="off" data-1p-ignore bind:value={address.state}>
+				<input type="text" autocomplete="off" data-1p-ignore data-matches-saved={address_matches_saved(`state`)} bind:value={address.state}>
 			</label>
 			<label>
 				Zip
-				<input type="text" autocomplete="off" data-1p-ignore bind:value={address.zip}>
+				<input type="text" autocomplete="off" data-1p-ignore data-matches-saved={address_matches_saved(`zip`)} bind:value={address.zip}>
 			</label>
 		</FormLayout>
 		{#if !selected_pre_existing_client}

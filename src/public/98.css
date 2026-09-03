@@ -448,6 +448,15 @@ textarea:disabled {
 	background-color: var(--surface);
 }
 
+input[data-matches-saved="true"],
+textarea[data-matches-saved="true"],
+select[data-matches-saved="true"] {
+	background-color: var(--background);
+}
+label:has(input[data-matches-saved="true"])::before {
+	background: var(--background);
+}
+
 select {
 	appearance: none;
 	-webkit-appearance: none;
