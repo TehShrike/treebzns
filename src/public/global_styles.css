@@ -6,6 +6,12 @@
 	gap: var(--gap_unit);
 }
 
+form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_unit);
+}
+
 input:focus-visible, button:focus-visible, textarea:focus-visible {
 	outline: var(--focus_outline_width) solid var(--focus_color);
 }

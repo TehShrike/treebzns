@@ -25,6 +25,10 @@ Avoid importing from directories using ../ if it is possible to use a #dir/ impo
 
 `pnpm run test` to run automated tests and all type checks.  `pnpm run test:types` to check all types.
 
+## css
+
+When you need styles based on dynamic state, prefer data attributes rather than classes.
+
 ## Writing style (Simplified Technical English)
 
 Apply this to all prose you write: conversation replies, docs, PR text, commit messages, error messages, code comments.  It does not apply to code, identifiers, or command syntax.  For a full rewrite of existing text, invoke the ste-writing skill.

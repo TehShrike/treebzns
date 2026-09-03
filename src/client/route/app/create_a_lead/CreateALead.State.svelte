@@ -3,19 +3,15 @@
 	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
 	import type { CachedClient, CachedClientContact } from '#client/lib/client_cache.svelte.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
-	import SearchFieldset from './SearchFieldset.svelte'
-	import type { SearchSelection } from '#client/component/client_search_selection.ts'
-	import CurrentClient from './CurrentClient.svelte'
-	import ClientFieldset, { type ClientForm } from './ClientFieldset.svelte'
-	import ProjectLocationFieldset, { type AddressForm, type CachedAddress } from './ProjectLocationFieldset.svelte'
-	import BillingAddressFieldset, { type BillingForm } from './BillingAddressFieldset.svelte'
-	import ProjectContactFieldset, { type ContactForm } from './ProjectContactFieldset.svelte'
-	import JobFieldset, { in_estimator_order, type ProjectForm } from './JobFieldset.svelte'
+	import ClientSelector from './ClientSelector.svelte'
+	import AddressSelector from './AddressSelector.svelte'
+	import BillingAddressSelector from './BillingAddressSelector.svelte'
+	import ContactSelector from './ContactSelector.svelte'
+	import ProjectSelector, { in_estimator_order } from './ProjectSelector.svelte'
+	import type { LeadClient, LeadBilling, LeadAddress, LeadContact, LeadProject, LeadAvailability } from '#shared/type/lead.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
-	import { map, filter, find, some } from '#shared/array.ts'
-	import assert from '#shared/assert.ts'
-	import { Temporal } from '@js-temporal/polyfill'
+	import { map } from '#shared/array.ts'
 	import { untrack } from 'svelte'
 
 	const fetch_tax_rates = async (query: ClientQueryFn) => map(
@@ -78,8 +74,8 @@
 <script lang="ts">
 	const { client_cache, server, tax_rates, employees, lead_sources, asr }: Resolved & { asr: StateAsr } = $props()
 
-	let picked_client = $state<CachedClient | null>(null)
-	let client_form = $state<ClientForm>({
+	let client = $state<LeadClient>({
+		client_id: null,
 		name: ``,
 		primary_phone: ``,
 		primary_email: ``,
@@ -88,19 +84,13 @@
 		is_commercial: false,
 		notes: ``,
 	})
+	let selected_pre_existing_client = $state<CachedClient | null>(null)
+	let selected_pre_existing_client_contact = $state<CachedClientContact | null>(null)
 
-	let billing_is_different = $state(false)
-	let billing_form = $state<BillingForm>({
-		billing_name: ``,
-		billing_address_line_1: ``,
-		billing_address_line_2: ``,
-		billing_city: ``,
-		billing_state: ``,
-		billing_zip: ``,
-	})
+	let billing_address = $state<LeadBilling | null>(null)
 
-	let selected_address = $state<CachedAddress | null>(null)
-	let address_form = $state<AddressForm>({
+	let address = $state<LeadAddress>({
+		client_address_id: null,
 		address_line_1: ``,
 		address_line_2: ``,
 		city: ``,
@@ -108,166 +98,35 @@
 		zip: ``,
 	})
 
-	let selected_contact = $state<CachedClientContact | null>(null)
-	let project_contact_is_different = $state(false)
-	let contact_form = $state<ContactForm>({
+	let contact = $state<LeadContact>({
+		client_contact_id: null,
 		name: ``,
 		phone: ``,
 		email: ``,
 	})
 
-	let project = $state<ProjectForm>({
-		lead_details: ``,
-		lead_source_value: null,
-		assigned_estimator_employee_id: untrack(() => in_estimator_order(employees)[0]?.employee_id ?? null),
-		has_due_date: false,
-		due_date: ``,
+	let project = $state<LeadProject>({
+		due_date: null,
 		emergency: false,
+		lead_details: ``,
 		notes_for_crew: ``,
 		notes_for_office: ``,
-		availability: [],
+		assigned_estimator_employee_id: untrack(() => in_estimator_order(employees)[0]?.employee_id ?? null),
+		lead_source_id: null,
+		lead_source_name: null,
 	})
+
+	let availability = $state<LeadAvailability[]>([])
 
 	let saving = $state(false)
 	let save_error = $state(``)
 
-	const set_selected_address = (address: CachedAddress | null) => {
-		selected_address = address
-		address_form.address_line_1 = address?.address_line_1 ?? ``
-		address_form.address_line_2 = address?.address_line_2 ?? ``
-		address_form.city = address?.city ?? ``
-		address_form.state = address?.state ?? ``
-		address_form.zip = address?.zip ?? ``
-	}
-
-	const set_selected_contact = (contact: CachedClientContact | null) => {
-		selected_contact = contact
-		contact_form.name = contact?.name ?? ``
-		contact_form.phone = contact?.phone ?? ``
-		contact_form.email = contact?.email ?? ``
-	}
-
-	const apply_pick = (selection: SearchSelection) => {
-		const cached_client = find(client_cache.clients, ({ client }) => client.client_id === selection.client.client_id)
-		assert(cached_client, `the picked client is in the client cache`)
-
-		picked_client = cached_client
-
-		client_form.name = selection.client.name
-		client_form.primary_phone = selection.client.primary_phone
-		client_form.primary_email = selection.client.primary_email
-		client_form.referred_by = selection.client.referred_by
-		client_form.tax_rate_id = selection.client.tax_rate_id
-		client_form.is_commercial = selection.client.is_commercial
-		client_form.notes = selection.client.notes
-
-		billing_is_different = false
-
-		set_selected_address(
-			find(cached_client.client_addresses, address => address.client_address_id === selection.client.default_project_address_id)
-				?? cached_client.client_addresses[0]
-				?? null
-		)
-
-		set_selected_contact(
-			selection.contact
-				?? find(cached_client.client_contacts, contact => contact.is_primary)
-				?? cached_client.client_contacts[0]
-				?? null
-		)
-	}
-
-	const reset_to_new_client = () => {
-		picked_client = null
-		client_form.name = ``
-		client_form.primary_phone = ``
-		client_form.primary_email = ``
-		client_form.referred_by = ``
-		client_form.tax_rate_id = null
-		client_form.is_commercial = false
-		client_form.notes = ``
-		billing_is_different = false
-		project_contact_is_different = false
-		set_selected_address(null)
-		set_selected_contact(null)
-	}
-
-	const set_picked_client = (client: CachedClient | null) => {
-		if (client) {
-			picked_client = client
-		} else {
-			reset_to_new_client()
-		}
-	}
-
 	const submit = async (event: SubmitEvent) => {
 		event.preventDefault()
 		save_error = ``
-
-		if (client_form.name.trim() === ``) {
-			save_error = `The client needs a name`
-			return
-		}
-
-		const windows = filter(project.availability, window => window.date !== `` || window.from !== `` || window.to !== ``)
-		if (some(windows, window => window.date === `` || window.from === `` || window.to === ``)) {
-			save_error = `Each availability window needs a date, a start time, and an end time`
-			return
-		}
-
 		saving = true
 		try {
-			const lead_source_value = project.lead_source_value
-			await server.create_lead({
-				client: {
-					client_id: picked_client?.client.client_id ?? null,
-					name: client_form.name,
-					primary_phone: client_form.primary_phone,
-					primary_email: client_form.primary_email,
-					referred_by: client_form.referred_by,
-					tax_rate_id: client_form.tax_rate_id,
-					is_commercial: client_form.is_commercial,
-					notes: client_form.notes,
-				},
-				billing_address: !picked_client && billing_is_different ? { ...billing_form } : null,
-				address: {
-					client_address_id: selected_address?.client_address_id ?? null,
-					address_line_1: address_form.address_line_1,
-					address_line_2: address_form.address_line_2,
-					city: address_form.city,
-					state: address_form.state,
-					zip: address_form.zip,
-				},
-				contact: !picked_client && !project_contact_is_different
-					? {
-						client_contact_id: null,
-						name: client_form.name,
-						phone: client_form.primary_phone,
-						email: client_form.primary_email,
-					}
-					: {
-						client_contact_id: selected_contact?.client_contact_id ?? null,
-						name: contact_form.name,
-						phone: contact_form.phone,
-						email: contact_form.email,
-					},
-				project: {
-					due_date: project.has_due_date && project.due_date !== `` ? Temporal.PlainDate.from(project.due_date) : null,
-					emergency: project.emergency,
-					lead_details: project.lead_details,
-					notes_for_crew: project.notes_for_crew,
-					notes_for_office: project.notes_for_office,
-					assigned_estimator_employee_id: project.assigned_estimator_employee_id,
-					...(lead_source_value?.lead_source_id != null
-						? { lead_source_id: lead_source_value.lead_source_id, lead_source_name: null }
-						: { lead_source_id: null, lead_source_name: lead_source_value?.name.trim() || null }),
-				},
-				availability: map(windows, window => ({
-					availability_date: Temporal.PlainDate.from(window.date),
-					start_time: Temporal.PlainTime.from(window.from),
-					end_time: Temporal.PlainTime.from(window.to),
-				})),
-			})
+			await server.create_lead({ client, billing_address, address, contact, project, availability })
 			client_cache.refresh()
 			asr.go(`app.home`)
 		} catch (err: any) {
@@ -281,32 +140,17 @@
 	<h1>Create a lead</h1>
 
 	<form onsubmit={submit}>
-		<SearchFieldset {client_cache} on_pick={apply_pick} />
+		<ClientSelector {client_cache} {tax_rates} bind:client bind:selected_pre_existing_client bind:selected_pre_existing_client_contact />
 
-		<CurrentClient bind:picked_client={() => picked_client, set_picked_client} />
+		<AddressSelector {selected_pre_existing_client} {client} bind:address bind:billing_address />
 
-		<ClientFieldset bind:client_form {tax_rates} />
-
-		<ProjectLocationFieldset
-			{picked_client}
-			bind:selected_address={() => selected_address, set_selected_address}
-			bind:address_form
-			bind:billing_is_different
-		/>
-
-		{#if !picked_client && billing_is_different}
-			<BillingAddressFieldset bind:billing_form />
+		{#if billing_address}
+			<BillingAddressSelector bind:billing_address />
 		{/if}
 
-		<ProjectContactFieldset
-			{picked_client}
-			bind:selected_contact={() => selected_contact, set_selected_contact}
-			bind:contact_form
-			bind:project_contact_is_different
-			{client_form}
-		/>
+		<ContactSelector {selected_pre_existing_client} {selected_pre_existing_client_contact} {client} bind:contact />
 
-		<JobFieldset bind:project {lead_sources} {employees} />
+		<ProjectSelector bind:project bind:availability {lead_sources} {employees} />
 
 		{#if save_error}
 			<p class="error">{save_error}</p>
@@ -320,12 +164,6 @@
 </AppScreen>
 
 <style>
-	form {
-		display: flex;
-		flex-direction: column;
-		gap: var(--gap_unit);
-	}
-
 	.footer {
 		display: flex;
 		justify-content: flex-end;

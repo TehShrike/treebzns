@@ -12,7 +12,7 @@ import { upsert_client_contact } from './lead_helper/client_contact.ts'
 import { insert_lead_source } from './lead_helper/lead_source.ts'
 import { filter_map, for_each_parallel, map } from '#shared/array.ts'
 import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
-import type { LeadClient, LeadBilling, LeadAddress, LeadContact } from '#shared/type/lead.ts'
+import type { LeadClient, LeadBilling, LeadAddress, LeadContact, LeadProject, LeadAvailability } from '#shared/type/lead.ts'
 
 const project_field_validators = {
 	due_date: jv.nullable(is_temporal_plain_date),
@@ -28,19 +28,8 @@ const create_lead_validator: jv.Validator<{
 	billing_address: LeadBilling | null
 	address: LeadAddress
 	contact: LeadContact
-	project: {
-		due_date: DbProject['due_date']
-		emergency: DbProject['emergency']
-		lead_details: DbProject['lead_details']
-		notes_for_crew: DbProject['notes_for_crew']
-		notes_for_office: DbProject['notes_for_office']
-		assigned_estimator_employee_id: DbProject['assigned_estimator_employee_id']
-	} & ({ lead_source_id: bigint, lead_source_name: null } | { lead_source_id: null, lead_source_name: string | null })
-	availability: {
-		availability_date: DbEstimateAvailability['availability_date']
-		start_time: DbEstimateAvailability['start_time']
-		end_time: DbEstimateAvailability['end_time']
-	}[]
+	project: LeadProject
+	availability: LeadAvailability[]
 }> = jv.object({
 	client: jv.object({
 		client_id: jv.nullable(jv.is_bigint),
