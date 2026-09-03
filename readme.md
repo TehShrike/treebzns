@@ -23,3 +23,9 @@ npx wrangler hyperdrive create treebzns-prod \
         --password 'PASSWORD' \
         --caching-disabled
 ```
+
+To dump some local data
+
+```sh
+npx dotenv -- node scripts/dump_company_inserts.ts --company_id [N]
+```
