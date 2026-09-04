@@ -178,13 +178,13 @@ export const functions = {
 			const project_number = await get_next_project_number_and_increment({ company_id, write_helper })
 
 			const { insert_id: project_id } = await write_helper.insert('project', {
+				...all_address_values,
 				company_id,
 				number: project_number,
 				project_document_id: initial_project_document_id,
 				client_id,
 				client_address_id,
 				client_contact_id,
-				...all_address_values,
 				due_date: project.due_date,
 				emergency: project.emergency,
 				lead_details: project.lead_details,
