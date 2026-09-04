@@ -15,7 +15,7 @@
 	} = $props()
 
 	let project_contact_is_different_from_client = $state(false)
-	let contact_draft: LeadContactValues = { name: ``, phone: ``, email: `` }
+	let contact_draft: LeadContactValues | null = null
 
 	const inputs_disabled = $derived(!client.exists_in_the_database_already() && !project_contact_is_different_from_client)
 
@@ -25,11 +25,11 @@
 
 	const set_project_contact_is_different_from_client = (checked: boolean) => {
 		project_contact_is_different_from_client = checked
-		if (checked) {
+		if (checked && contact_draft) {
 			contact.form_values.name = contact_draft.name
 			contact.form_values.phone = contact_draft.phone
 			contact.form_values.email = contact_draft.email
-		} else {
+		} else if (!checked) {
 			contact_draft = $state.snapshot(contact.form_values)
 		}
 	}
