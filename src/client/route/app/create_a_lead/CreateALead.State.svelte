@@ -1,14 +1,13 @@
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
 	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
-	import type { CachedClient, CachedClientContact } from '#client/lib/client_cache.svelte.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
 	import ClientSelector from './ClientSelector.svelte'
 	import AddressSelector from './AddressSelector.svelte'
 	import BillingAddressSelector from './BillingAddressSelector.svelte'
 	import ContactSelector from './ContactSelector.svelte'
 	import ProjectSelector, { in_estimator_order } from './ProjectSelector.svelte'
-	import type { LeadClient, LeadBilling, LeadAddress, LeadContact, LeadProject, LeadAvailability } from '#shared/type/lead.ts'
+	import make_lead_form from './lead_form.svelte.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import { map } from '#shared/array.ts'
@@ -74,49 +73,7 @@
 <script lang="ts">
 	const { client_cache, server, tax_rates, employees, lead_sources, asr }: Resolved & { asr: StateAsr } = $props()
 
-	let client = $state<LeadClient>({
-		client_id: null,
-		name: ``,
-		primary_phone: ``,
-		primary_email: ``,
-		referred_by: ``,
-		tax_rate_id: null,
-		is_commercial: false,
-		notes: ``,
-	})
-	let selected_pre_existing_client = $state<CachedClient | null>(null)
-	let selected_pre_existing_client_contact = $state<CachedClientContact | null>(null)
-
-	let billing_address = $state<LeadBilling | null>(null)
-
-	let address = $state<LeadAddress>({
-		client_address_id: null,
-		address_line_1: ``,
-		address_line_2: ``,
-		city: ``,
-		state: ``,
-		zip: ``,
-	})
-
-	let contact = $state<LeadContact>({
-		client_contact_id: null,
-		name: ``,
-		phone: ``,
-		email: ``,
-	})
-
-	let project = $state<LeadProject>({
-		due_date: null,
-		emergency: false,
-		lead_details: ``,
-		notes_for_crew: ``,
-		notes_for_office: ``,
-		assigned_estimator_employee_id: untrack(() => in_estimator_order(employees)[0]?.employee_id ?? null),
-		lead_source_id: null,
-		lead_source_name: null,
-	})
-
-	let availability = $state<LeadAvailability[]>([])
+	const lead = make_lead_form(untrack(() => in_estimator_order(employees)[0]?.employee_id ?? null))
 
 	let saving = $state(false)
 	let save_error = $state(``)
@@ -126,7 +83,7 @@
 		save_error = ``
 		saving = true
 		try {
-			await server.create_lead({ client, billing_address, address, contact, project, availability })
+			await server.create_lead(lead.values_to_save)
 			client_cache.refresh()
 			asr.go(`app.home`)
 		} catch (err: any) {
@@ -140,17 +97,26 @@
 	<h1>Create a lead</h1>
 
 	<form onsubmit={submit}>
-		<ClientSelector {client_cache} {tax_rates} bind:client bind:selected_pre_existing_client bind:selected_pre_existing_client_contact />
+		<ClientSelector {client_cache} {tax_rates} {lead} />
 
-		<AddressSelector {selected_pre_existing_client} {client} bind:address bind:billing_address />
+		<AddressSelector
+			client={lead.client}
+			client_addresses={lead.selected_client?.client_addresses ?? []}
+			address={lead.address}
+			bind:billing_address={lead.billing_address}
+		/>
 
-		{#if billing_address}
-			<BillingAddressSelector bind:billing_address />
+		{#if lead.billing_address}
+			<BillingAddressSelector bind:billing_address={lead.billing_address} />
 		{/if}
 
-		<ContactSelector {selected_pre_existing_client} {selected_pre_existing_client_contact} {client} bind:contact />
+		<ContactSelector
+			client={lead.client}
+			client_contacts={lead.selected_client?.client_contacts ?? []}
+			contact={lead.contact}
+		/>
 
-		<ProjectSelector bind:project bind:availability {lead_sources} {employees} />
+		<ProjectSelector bind:project={lead.project} bind:availability={lead.availability} {lead_sources} {employees} />
 
 		{#if save_error}
 			<p class="error">{save_error}</p>

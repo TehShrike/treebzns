@@ -12,7 +12,7 @@ import { upsert_client_contact } from './lead_helper/client_contact.ts'
 import { insert_lead_source } from './lead_helper/lead_source.ts'
 import { filter_map, for_each_parallel, map } from '#shared/array.ts'
 import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
-import type { LeadClient, LeadBilling, LeadAddress, LeadContact, LeadProject, LeadAvailability } from '#shared/type/lead.ts'
+import type { LeadClient, LeadBilling, LeadAddress, LeadAddressValues, LeadContact, LeadProject, LeadAvailability } from '#shared/type/lead.ts'
 
 const project_field_validators = {
 	due_date: jv.nullable(is_temporal_plain_date),
@@ -23,6 +23,30 @@ const project_field_validators = {
 	assigned_estimator_employee_id: jv.nullable(jv.is_bigint),
 }
 
+const client_value_validators = {
+	name: jv.is_string,
+	primary_phone: jv.is_string,
+	primary_email: jv.is_string,
+	referred_by: jv.is_string,
+	tax_rate_id: jv.nullable(jv.is_bigint),
+	is_commercial: jv.is_boolean,
+	notes: jv.is_string,
+}
+
+const address_value_validators = {
+	address_line_1: jv.is_string,
+	address_line_2: jv.is_string,
+	city: jv.is_string,
+	state: jv.is_string,
+	zip: jv.is_string,
+}
+
+const contact_value_validators = {
+	name: jv.is_string,
+	phone: jv.is_string,
+	email: jv.is_string,
+}
+
 const create_lead_validator: jv.Validator<{
 	client: LeadClient
 	billing_address: LeadBilling | null
@@ -31,16 +55,10 @@ const create_lead_validator: jv.Validator<{
 	project: LeadProject
 	availability: LeadAvailability[]
 }> = jv.object({
-	client: jv.object({
-		client_id: jv.nullable(jv.is_bigint),
-		name: jv.is_string,
-		primary_phone: jv.is_string,
-		primary_email: jv.is_string,
-		referred_by: jv.is_string,
-		tax_rate_id: jv.nullable(jv.is_bigint),
-		is_commercial: jv.is_boolean,
-		notes: jv.is_string,
-	}),
+	client: jv.one_of(
+		jv.object({ client_id: jv.is_null, ...client_value_validators }),
+		jv.object({ client_id: jv.is_bigint, ...jv.optional_shape(client_value_validators) }),
+	),
 	billing_address: jv.nullable(jv.object({
 		billing_name: jv.is_string,
 		billing_address_line_1: jv.is_string,
@@ -49,20 +67,14 @@ const create_lead_validator: jv.Validator<{
 		billing_state: jv.is_string,
 		billing_zip: jv.is_string,
 	})),
-	address: jv.object({
-		client_address_id: jv.nullable(jv.is_bigint),
-		address_line_1: jv.is_string,
-		address_line_2: jv.is_string,
-		city: jv.is_string,
-		state: jv.is_string,
-		zip: jv.is_string,
-	}),
-	contact: jv.object({
-		client_contact_id: jv.nullable(jv.is_bigint),
-		name: jv.is_string,
-		phone: jv.is_string,
-		email: jv.is_string,
-	}),
+	address: jv.one_of(
+		jv.object({ client_address_id: jv.is_null, ...address_value_validators }),
+		jv.object({ client_address_id: jv.is_bigint, ...jv.optional_shape(address_value_validators) }),
+	),
+	contact: jv.one_of(
+		jv.object({ client_contact_id: jv.is_null, ...contact_value_validators }),
+		jv.object({ client_contact_id: jv.is_bigint, ...jv.optional_shape(contact_value_validators) }),
+	),
 	project: jv.one_of(
 		jv.object({
 			...project_field_validators,
@@ -96,14 +108,14 @@ const assert_input_ids_valid = async ({
 	select_builder: TenantedSelectBuilder
 }) => Promise.all([
 	client.client_id !== null && assert_db_id_valid({ select_builder, table_name: 'client', id: client.client_id }),
-	client.tax_rate_id !== null && assert_db_id_valid({ select_builder, table_name: 'tax_rate', id: client.tax_rate_id }),
+	client.tax_rate_id != null && assert_db_id_valid({ select_builder, table_name: 'tax_rate', id: client.tax_rate_id }),
 	address.client_address_id !== null && assert_db_id_valid({ select_builder, table_name: 'client_address', id: address.client_address_id }),
 	contact.client_contact_id !== null && assert_db_id_valid({ select_builder, table_name: 'client_contact', id: contact.client_contact_id }),
 	project.lead_source_id !== null && assert_db_id_valid({ select_builder, table_name: 'lead_source', id: project.lead_source_id }),
 	project.assigned_estimator_employee_id !== null && assert_db_id_valid({ select_builder, table_name: 'employee', id: project.assigned_estimator_employee_id }),
 ])
 
-const address_to_billing_address = (name: string, address: LeadAddress) => ({
+const address_to_billing_address = (name: string, address: LeadAddressValues): LeadBilling => ({
 	billing_name: name,
 	billing_address_line_1: address.address_line_1,
 	billing_address_line_2: address.address_line_2,
@@ -124,32 +136,30 @@ export const functions = {
 			await assert_input_ids_valid({ client, address, contact, project, select_builder })
 
 			const creating_new_client = client.client_id === null
-			const use_project_address_as_billing_address = creating_new_client && !billing_address
-
-			const client_id = await upsert_client({
-				client,
-				billing_address: use_project_address_as_billing_address ? address_to_billing_address(client.name, address) : billing_address,
-				company_id,
-				write_helper,
-			})
 
 			if (creating_new_client) {
-				assert(address.client_address_id === null)
-				assert(contact.client_contact_id === null)
+				assert(address.client_address_id === null, `a new client gets a new address`)
+				assert(contact.client_contact_id === null, `a new client gets a new contact`)
 			}
 
-			const client_address_id = await upsert_client_address({
-				client_id,
+			const { client_address_id, address: all_address_values } = await upsert_client_address({
+				client_id: creating_new_client ? 0n : client.client_id,
 				address,
 				company_id,
 				select_builder,
 				write_helper,
 			})
 
+			const use_project_address_as_billing_address = creating_new_client && !billing_address
+			const client_id = await upsert_client({
+				client: creating_new_client ? {...client, default_project_address_id: client_address_id} : client,
+				billing_address: use_project_address_as_billing_address ? address_to_billing_address(client.name, all_address_values) : billing_address,
+				company_id,
+				write_helper,
+			})
+
 			if (creating_new_client) {
-				await write_helper.update('client', 'client_id', client_id, {
-					default_project_address_id: client_address_id,
-				})
+				await write_helper.update('client_address', 'client_address_id', client_address_id, { client_id })
 			}
 
 			const client_contact_id = await upsert_client_contact({ client_id, contact, company_id, select_builder, write_helper })
@@ -174,11 +184,7 @@ export const functions = {
 				client_id,
 				client_address_id,
 				client_contact_id,
-				address_line_1: address.address_line_1,
-				address_line_2: address.address_line_2,
-				city: address.city,
-				state: address.state,
-				zip: address.zip,
+				...all_address_values,
 				due_date: project.due_date,
 				emergency: project.emergency,
 				lead_details: project.lead_details,

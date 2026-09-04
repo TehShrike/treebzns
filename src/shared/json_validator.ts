@@ -72,7 +72,7 @@ const values_plz = <const VALUE>(object: { [key: string]: VALUE }): VALUE[] => O
 export type OptionalizeUndefinedKeys<OBJECT> = {
 	[K in keyof OBJECT as undefined extends OBJECT[K] ? never : K]: OBJECT[K]
 } & {
-	[K in keyof OBJECT as undefined extends OBJECT[K] ? K : never]?: OBJECT[K]
+	[K in keyof OBJECT as undefined extends OBJECT[K] ? K : never]?: Exclude<OBJECT[K], undefined>
 }
 
 const make_object_validator = <const OBJECT extends { [key: string]: any }>(shape: ValidatorShape<OBJECT>) => {
@@ -262,6 +262,13 @@ const make_exact_validator = <T>(value: T): Validator<T> => ({
 
 const optional = <T>(validator: Validator<T>): Validator<T | undefined> => one_of(validator, undefined_validator)
 
+type OptionalShape<SHAPE extends { [key: string]: Validator<any> }> = {
+	[K in keyof SHAPE]: Validator<InferValidator<SHAPE[K]> | undefined>
+}
+
+const optional_shape = <const SHAPE extends { [key: string]: Validator<any> }>(shape: SHAPE): OptionalShape<SHAPE> =>
+	Object.fromEntries(map(Object.entries(shape), ([key, validator]) => [key, optional(validator)])) as OptionalShape<SHAPE>
+
 const make_custom_validator = <T>({
 	is_valid,
 	get_messages,
@@ -282,6 +289,7 @@ export {
 	make_custom_validator as custom,
 	one_of,
 	optional,
+	optional_shape,
 	nullable,
 	integer_validator as is_integer,
 	boolean_validator as is_boolean,

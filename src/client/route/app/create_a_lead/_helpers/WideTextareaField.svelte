@@ -1,16 +1,16 @@
 <script lang="ts">
-	let { id, label, rows = 2, value = $bindable(``), matches_saved = false }: {
+	let { id, label, rows = 2, value = $bindable(``), value_needs_to_be_saved = true }: {
 		id: string
 		label: string
 		rows?: number
 		value?: string
-		matches_saved?: boolean
+		value_needs_to_be_saved?: boolean
 	} = $props()
 </script>
 
 <div class="wide_field">
 	<label for={id}>{label}</label>
-	<textarea {id} {rows} data-matches-saved={matches_saved} bind:value></textarea>
+	<textarea {id} {rows} data-value-needs-to-be-saved={value_needs_to_be_saved} bind:value></textarea>
 </div>
 
 <style>

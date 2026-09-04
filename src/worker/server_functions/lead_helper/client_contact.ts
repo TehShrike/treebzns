@@ -1,7 +1,7 @@
 import assert from '#shared/assert.ts'
 import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
 import type { ConnectionBoundWriteHelper } from '#shared/mysql/write_helper.ts'
-import type { LeadContact } from '#shared/type/lead.ts'
+import type { LeadContact, LeadContactValues } from '#shared/type/lead.ts'
 
 const create_client_contact = async ({
 	client_id,
@@ -11,7 +11,7 @@ const create_client_contact = async ({
 	write_helper,
 }: {
 	client_id: bigint
-	contact: LeadContact
+	contact: LeadContactValues
 	company_id: bigint
 	select_builder: TenantedSelectBuilder
 	write_helper: ConnectionBoundWriteHelper
@@ -39,19 +39,17 @@ const create_client_contact = async ({
 }
 
 const update_client_contact = async ({
-	client_contact_id,
 	contact,
 	write_helper,
 }: {
-	client_contact_id: bigint
-	contact: LeadContact
+	contact: Extract<LeadContact, { client_contact_id: bigint }>
 	write_helper: ConnectionBoundWriteHelper
 }) => {
-	await write_helper.update('client_contact', 'client_contact_id', client_contact_id, {
-		name: contact.name,
-		phone: contact.phone,
-		email: contact.email,
-	})
+	const { client_contact_id, ...changes } = contact
+
+	if (Object.keys(changes).length > 0) {
+		await write_helper.update('client_contact', 'client_contact_id', client_contact_id, changes)
+	}
 
 	return client_contact_id
 }
@@ -70,8 +68,4 @@ export const upsert_client_contact = ({
 	write_helper: ConnectionBoundWriteHelper
 }) => contact.client_contact_id === null
 	? create_client_contact({ client_id, contact, company_id, select_builder, write_helper })
-	: update_client_contact({
-		client_contact_id: contact.client_contact_id,
-		contact,
-		write_helper,
-	})
+	: update_client_contact({ contact, write_helper })
