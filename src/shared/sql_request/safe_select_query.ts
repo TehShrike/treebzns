@@ -112,6 +112,9 @@ const FUNCTIONS = {
 	'IFNULL': (args: SomeFunctionArguments) => to_sql_chunk({
 		build_sql_2: (value_a: string, value_b: string) => `IFNULL(${value_a}, ${value_b})`
 	}, args),
+	'GREATEST': (args: SomeFunctionArguments) => to_sql_chunk({
+		build_sql_2: (value_a: string, value_b: string) => `GREATEST(${value_a}, ${value_b})`
+	}, args),
 } as const satisfies { [key in FunctionName]: (args: SomeFunctionArguments) => SqlChunk }
 
 const operand_to_sql_chunk = (operand: ComparisonOperand): SqlChunk => {

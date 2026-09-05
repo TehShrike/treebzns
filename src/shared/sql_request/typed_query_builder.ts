@@ -88,6 +88,7 @@ type FunctionReturnTypeWithArg<Fn extends FunctionName, Arg> =
 
 type FunctionReturnTypeWithTwoArgs<Fn extends FunctionName, Arg1, Arg2> =
 	Fn extends 'IFNULL' ? Exclude<Arg1, null> | Arg2
+	: Fn extends 'GREATEST' ? Arg1 | Arg2
 	: FunctionReturnType<Fn>
 
 declare const function_return_type: unique symbol

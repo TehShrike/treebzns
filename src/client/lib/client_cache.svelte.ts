@@ -3,9 +3,12 @@ import query_builder from "#shared/sql_request/typed_query_builder.ts"
 import group_joined_rows from "#shared/sql_request/group_joined_rows.ts"
 import { client, client_address, client_contact } from "#schema/all_table_column_names.ts"
 import type { Schema } from "#schema/types.ts"
-import { map, filter } from "#shared/array.ts"
+import { map, filter, reduce } from "#shared/array.ts"
 import { get_phone_digits } from "#shared/phone_number.ts"
 import { tokenize_string, tokenize_strings } from "#shared/tokenize.ts"
+import { latest_instant } from '#shared/temporal.ts'
+import assert from '#shared/assert.ts'
+import { get_latest_database_update, make_update_snapshot, type UpdateSnapshot, type UpdateSnapshotValues } from './client_cache_change_detection.ts'
 
 const table_identifier = <TableIdentifier extends string, Column extends string>(table_name: TableIdentifier, column: Column) => `${table_name}.${column}` as const
 
@@ -36,6 +39,7 @@ const client_and_address_columns = [
 	table_identifier('client_address', client_address.city),
 	table_identifier('client_address', client_address.state),
 	table_identifier('client_address', client_address.zip),
+	table_identifier('client_address', client_address.updated_at),
 ] as const
 
 const client_contact_columns = [
@@ -92,24 +96,56 @@ const transform_clients_for_searching = (clients: Awaited<ReturnType<typeof get_
 export type CachedClient = ReturnType<typeof transform_clients_for_searching>[number]
 export type CachedClientContact = CachedClient['client_contacts'][number]
 
+const get_cached_update_snapshot = (clients: readonly CachedClient[]): UpdateSnapshot => make_update_snapshot(reduce(
+	clients,
+	{ client_count: 0n, client_contact_count: 0n, client_address_count: 0n, latest_update: null } as UpdateSnapshotValues,
+	(snapshot, { client, client_contacts, client_addresses }) => ({
+		client_count: snapshot.client_count + 1n,
+		client_contact_count: snapshot.client_contact_count + BigInt(client_contacts.length),
+		client_address_count: snapshot.client_address_count + BigInt(client_addresses.length),
+		latest_update: latest_instant(
+			snapshot.latest_update,
+			client.updated_at,
+			...map(client_contacts, contact => contact.updated_at),
+			...map(client_addresses, address => address.updated_at),
+		),
+	}),
+))
+
 const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refresh_interval_ms: number}) => {
 	let cache = $state<readonly CachedClient[]>([])
-	const first_refresh_returned = Promise.withResolvers()
-
-	const refresh = () => get_query_results(query).then(clients => {
-		cache = transform_clients_for_searching(clients)
+	let cached_snapshot: UpdateSnapshot | null = null
+	const first_refresh_returned = Object.assign(Promise.withResolvers<void>(), {
+		resolved: false
 	})
 
-	let interval_id: number | null = null
+	const refresh = (): Promise<void> => get_query_results(query).then(clients => {
+		const refreshed_cache = transform_clients_for_searching(clients)
+		cached_snapshot = get_cached_update_snapshot(refreshed_cache)
+		cache = refreshed_cache
+
+		if (!first_refresh_returned.resolved) {
+			first_refresh_returned.resolve()
+			first_refresh_returned.resolved = true
+		}
+	})
+
+	const refresh_if_necessary = async (): Promise<void> => {
+		const database_snapshot = await get_latest_database_update(query)
+		if (cached_snapshot === null || cached_snapshot.is_superseded_by(database_snapshot)) {
+			await refresh()
+		}
+	}
+
+	let interval_id: ReturnType<typeof setInterval> | null = null
 
 	const start = () => {
-		refresh().then(first_refresh_returned.resolve)
-		interval_id = setInterval(refresh, refresh_interval_ms)
+		assert(interval_id === null, 'client cache start should not be called when it has already been started')
+		refresh()
+		interval_id = setInterval(refresh_if_necessary, refresh_interval_ms)
 	}
 
 	return {
-		// A getter (not a snapshot) so reading `client_cache.clients` inside a reactive context
-		// tracks the `$state` and re-runs whenever `refresh`/`add` swaps the array.
 		get clients() {
 			return cache
 		},
@@ -118,7 +154,7 @@ const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refre
 		},
 		refresh,
 		stop: () => {
-			if (interval_id) {
+			if (interval_id !== null) {
 				clearInterval(interval_id)
 				interval_id = null
 			}

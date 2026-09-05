@@ -352,6 +352,7 @@ test('typed_query_builder: select with IFNULL of a column and a value or column'
 		.select(b => [
 			b.fn('IFNULL', 'p.assigned_estimator_employee_id', { value: 0n }, 'p.estimator'),
 			b.fn('IFNULL', 'p.notes_for_crew', 'p.notes_for_office', 'p.crew_or_office_notes'),
+			b.fn('GREATEST', 'p.created_at', 'p.updated_at', 'p.latest_update'),
 		])
 		.build()
 
@@ -359,6 +360,7 @@ test('typed_query_builder: select with IFNULL of a column and a value or column'
 		p: {
 			estimator: bigint
 			crew_or_office_notes: string | null
+			latest_update: Temporal.Instant
 		}
 	}
 
@@ -366,7 +368,7 @@ test('typed_query_builder: select with IFNULL of a column and a value or column'
 	void _row_type_check
 
 	const { sql, values } = safe_select_query_builder.to_sql(built.query)
-	assert.strictEqual(sql, 'SELECT IFNULL(`p`.`assigned_estimator_employee_id`, ?) AS `estimator`, IFNULL(`p`.`notes_for_crew`, `p`.`notes_for_office`) AS `crew_or_office_notes`\nFROM `project` AS `p`')
+	assert.strictEqual(sql, 'SELECT IFNULL(`p`.`assigned_estimator_employee_id`, ?) AS `estimator`, IFNULL(`p`.`notes_for_crew`, `p`.`notes_for_office`) AS `crew_or_office_notes`, GREATEST(`p`.`created_at`, `p`.`updated_at`) AS `latest_update`\nFROM `project` AS `p`')
 	assert.deepStrictEqual(values, [0n])
 
 	assert_valid_query_output(built)

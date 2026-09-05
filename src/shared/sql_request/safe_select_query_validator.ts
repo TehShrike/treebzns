@@ -49,6 +49,7 @@ export const function_name_validator = jv.one_of(
 	jv.exact('SUM' as const),
 	jv.exact('AVG' as const),
 	jv.exact('IFNULL' as const),
+	jv.exact('GREATEST' as const),
 )
 
 const function_argument_validator = jv.one_of(column_reference_validator, user_provided_value_validator)
