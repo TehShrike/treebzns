@@ -634,6 +634,21 @@ test('safe_select_query: order_by and limit produce correct SQL', () => {
 	assert.deepStrictEqual(values, [])
 })
 
+test('safe_select_query: for_update is rendered after limit', () => {
+	const q = typed_query_builder<TestSchema>({ allow_transaction_required_queries: true })
+	const query = q.from('project AS p')
+		.select(() => ['p.project_id'])
+		.limit(1n)
+		.for_update()
+		.build()
+
+	const { to_sql } = make_safe_select_query_builder(test_schema)
+	const { sql, values } = to_sql(query.query)
+
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nLIMIT 1\nFOR UPDATE')
+	assert.deepStrictEqual(values, [])
+})
+
 test('safe_select_query: order_by / having alias references must name a select alias', () => {
 	const { validate_table_and_column_names } = make_safe_select_query_builder(test_schema)
 

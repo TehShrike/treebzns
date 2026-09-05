@@ -155,6 +155,7 @@ function assert_valid_query_output(built: BuiltQuery<unknown>) {
 
 
 const q = query_builder<ExampleSchema>()
+const transaction_q = query_builder<ExampleSchema>({ allow_transaction_required_queries: true })
 
 test('typed_query_builder: from with valid table', () => {
 	const built = q.from('project AS projectz').build()
@@ -401,6 +402,51 @@ test('typed_query_builder: order_by and limit', () => {
 	assert.strictEqual(built.query.limit, 10n)
 
 	assert_valid_query_output(built)
+})
+
+test('typed_query_builder: for_update marks a locking read', () => {
+	const built = transaction_q.from('project AS p')
+		.select(() => ['p.project_id'])
+		.for_update()
+		.build()
+
+	assert.strictEqual(built.query.for_update, true)
+	assert_valid_query_output(built)
+})
+
+test('typed_query_builder: the default builder hides and rejects for_update', () => {
+	const stage = q.from('project AS p').select(() => ['p.project_id'])
+	if (false) {
+		// @ts-expect-error: an ordinary query builder cannot construct transaction-required queries
+		stage.for_update()
+	}
+
+	assert.throws(
+		() => (stage as unknown as { for_update: () => unknown }).for_update(),
+		/FOR UPDATE requires a transaction-enabled query builder/,
+	)
+})
+
+test('typed_query_builder: the default builder rejects locking derived tables recursively', () => {
+	const locking_query = transaction_q.from('project AS p')
+		.select(() => ['p.project_id'])
+		.for_update()
+		.build()
+	const nested_locking_query = transaction_q.from({ subquery: locking_query, alias: 'locked' })
+		.select(() => ['locked.project_id'])
+		.build()
+
+	assert.throws(
+		() => q.from({ subquery: nested_locking_query, alias: 'nested' }),
+		/Derived table query requires a transaction-enabled query builder/,
+	)
+	assert.throws(
+		() => q.from('project AS p').join(
+			{ subquery: nested_locking_query, alias: 'nested' },
+			on => on.comparison('nested.project_id', '=', 'p.project_id'),
+		),
+		/Derived table query requires a transaction-enabled query builder/,
+	)
 })
 
 test('typed_query_builder: SelectedIdentifiers is the union of selected output names', () => {

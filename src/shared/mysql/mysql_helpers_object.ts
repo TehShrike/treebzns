@@ -20,11 +20,12 @@ const make_handy_result_object = (query_promise: QueryPromise) => {
 }
 
 type Values = any[] | { [param: string]: any }
-const make_mysql_helpers_object = (mysql: Connection) => ({
+const make_mysql_helpers_object = <MysqlConnection extends Connection>(mysql: MysqlConnection) => ({
 	query: (sql: { sql: string, values: Values } | string) => make_handy_result_object(mysql.query(typeof sql === 'object' ? sql : { sql })),
 	connection: mysql,
 })
 
-export type MysqlHelpersObject = ReturnType<typeof make_mysql_helpers_object>
+export type MysqlHelpersObject<MysqlConnection extends Connection = Connection> =
+	ReturnType<typeof make_mysql_helpers_object<MysqlConnection>>
 
 export default make_mysql_helpers_object

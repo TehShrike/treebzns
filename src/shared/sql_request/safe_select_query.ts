@@ -444,6 +444,7 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 				...(order_by_chunk ? [`ORDER BY ${order_by_chunk.sql}`] : []),
 				// LIMIT is a validated integer, so it's inlined rather than parameterized.
 				...(query.limit !== null ? [`LIMIT ${query.limit}`] : []),
+				...(query.for_update === true ? ['FOR UPDATE'] : []),
 			].join('\n'),
 			parameters: all_params,
 		}

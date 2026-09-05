@@ -10,6 +10,7 @@ import globbed_server_functions from '../server_functions.generated.ts'
 import { map } from '#shared/array.ts'
 import object_to_entries from '#shared/object_to_entries.ts'
 import { deserialize } from '#shared/json_anything.ts'
+import make_mysql_helpers_object from '#shared/mysql/mysql_helpers_object.ts'
 
 type ServerFunction = {
 	validator: Validator<unknown>
@@ -58,7 +59,17 @@ const call_server_function = async ({ function_name, arg, mysql, session }: Argu
 		company: session.company,
 		select_builder: make_tenanted_select_builder({ company_id: session.company.company_id, mysql }),
 		write_helper: write_helper.for_connection(mysql.connection),
-		transaction: fn => transaction(mysql.connection, fn),
+		transaction: fn => transaction(mysql.connection, transaction_connection => {
+			const transaction_mysql = make_mysql_helpers_object(transaction_connection)
+			return fn({
+				connection: transaction_connection,
+				select_builder: make_tenanted_select_builder({
+					company_id: session.company.company_id,
+					mysql: transaction_mysql,
+				}),
+				write_helper: write_helper.for_connection(transaction_connection),
+			})
+		}),
 	}
 
 	const result = await server_function.fn(arg, context)

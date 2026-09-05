@@ -1,8 +1,12 @@
 import assert from '#shared/assert.ts'
-import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
+import type {
+	TenantedSelectBuilder,
+	TransactionTenantedSelectBuilder,
+} from '#worker/lib/db/make_tenanted_select_builder.ts'
 import type { ConnectionBoundWriteHelper } from '#shared/mysql/write_helper.ts'
 import all_properties_have_values from '#shared/all_properties_have_values.ts'
 import type { LeadAddress, LeadAddressValues } from '#shared/type/lead.ts'
+import { get_next_sort } from '#worker/lib/db/sort_column.ts'
 
 
 const select_address_values = async ({ client_address_id, select_builder }: {
@@ -35,18 +39,10 @@ const insert_client_address = async ({
 	client_id: bigint
 	address: LeadAddressValues
 	company_id: bigint
-	select_builder: TenantedSelectBuilder
+	select_builder: TransactionTenantedSelectBuilder
 	write_helper: ConnectionBoundWriteHelper
 }) => {
-	const max_sort_row = await select_builder.get_first_row(select_builder
-		.from('client_address')
-		.where(q => q.comparison('client_address.client_id', '=', { value: client_id }))
-		.select(q => [q.fn('MAX', 'client_address.sort', 'client_address.max_sort')])
-		.build())
-	assert(max_sort_row, `An aggregate query returns exactly one row`)
-
-	const { max_sort } = max_sort_row.client_address
-	const sort = max_sort === null ? 1n : max_sort + 1n
+	const sort = await get_next_sort({ select_builder, table_name: 'client_address', client_id })
 
 	const { insert_id: client_address_id } = await write_helper.insert('client_address', {
 		company_id,
@@ -97,7 +93,7 @@ export const upsert_client_address = ({
 	client_id: bigint
 	address: LeadAddress
 	company_id: bigint
-	select_builder: TenantedSelectBuilder
+	select_builder: TransactionTenantedSelectBuilder
 	write_helper: ConnectionBoundWriteHelper
 }) => address.client_address_id === null
 	? insert_client_address({ client_id, address, company_id, select_builder, write_helper })

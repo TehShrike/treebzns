@@ -55,6 +55,11 @@ test('safe_select_query_validator: valid query', () => {
 	assert.strictEqual(safe_select_query_validator.is_valid(valid_query), true)
 })
 
+test('safe_select_query_validator: for_update is an optional boolean', () => {
+	assert.strictEqual(safe_select_query_validator.is_valid({ ...valid_query, for_update: true }), true)
+	assert.strictEqual(safe_select_query_validator.is_valid({ ...valid_query, for_update: 'yes' }), false)
+})
+
 test('safe_select_query_validator: invalid comparator', () => {
 	const query = {
 		...valid_query,

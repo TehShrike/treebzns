@@ -2,6 +2,7 @@ import type { FinancialNumber } from 'financial-number'
 import { for_each, map } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import { omit } from '#shared/omit.ts'
+import { query_requires_transaction } from './query_requires_transaction.ts'
 import type {
 	Comparator,
 	SafeSelectQuery,
@@ -254,6 +255,7 @@ type Joiner<
 	LeftJoined extends string,
 	Row,
 	Left extends boolean,
+	AllowsTransactionRequiredQueries extends boolean,
 > = {
 	<S extends TableAliasArg<Schema>>(
 		table_alias: S,
@@ -262,7 +264,8 @@ type Joiner<
 		Schema,
 		A & ParseTableAlias<S, Schema>,
 		Left extends true ? LeftJoined | (keyof ParseTableAlias<S, Schema> & string) : LeftJoined,
-		Row
+		Row,
+		AllowsTransactionRequiredQueries
 	>
 	<const Alias extends string, DerivedRow>(
 		derived_table: DerivedTableArg<Alias, DerivedRow>,
@@ -271,45 +274,62 @@ type Joiner<
 		DerivedSchema<Schema, Alias, DerivedRow>,
 		DerivedAliasMap<Schema, A, Alias, DerivedRow>,
 		Left extends true ? LeftJoined | Alias : LeftJoined,
-		Row
+		Row,
+		AllowsTransactionRequiredQueries
 	>
 }
 
-type Stage<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>, LeftJoined extends string = never, Row = {}> = {
-	join: Joiner<Schema, A, LeftJoined, Row, false>
+type TransactionRequiredMethods<
+	Schema extends SchemaColumnTypes,
+	A extends AliasMap<Schema>,
+	LeftJoined extends string,
+	Row,
+	Allows extends boolean,
+> = Allows extends true
+	? { for_update: () => Stage<Schema, A, LeftJoined, Row, Allows> }
+	: {}
 
-	left_join: Joiner<Schema, A, LeftJoined, Row, true>
+type Stage<
+	Schema extends SchemaColumnTypes,
+	A extends AliasMap<Schema>,
+	LeftJoined extends string = never,
+	Row = {},
+	AllowsTransactionRequiredQueries extends boolean = false,
+> = {
+	join: Joiner<Schema, A, LeftJoined, Row, false, AllowsTransactionRequiredQueries>
+
+	left_join: Joiner<Schema, A, LeftJoined, Row, true, AllowsTransactionRequiredQueries>
 
 	where: (
 		cb: (b: ExpressionBuilder<Schema, A>) => Expression,
-	) => Stage<Schema, A, LeftJoined, Row>
+	) => Stage<Schema, A, LeftJoined, Row, AllowsTransactionRequiredQueries>
 
 	select: <const Exprs extends ReadonlyArray<SelectInput<Schema, A>>>(
 		cb: (b: SelectExpressionBuilder<Schema, A>) => Exprs,
-	) => Stage<Schema, A, LeftJoined, Row & RowFromSelectExprs<Schema, A, Exprs>>
+	) => Stage<Schema, A, LeftJoined, Row & RowFromSelectExprs<Schema, A, Exprs>, AllowsTransactionRequiredQueries>
 
-	group_by: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A, LeftJoined, Row>
+	group_by: (...exprs: SelectColumnInput<Schema, A>[]) => Stage<Schema, A, LeftJoined, Row, AllowsTransactionRequiredQueries>
 
 	order_by: (
 		column: ColumnRef<Schema, A> | RowIdentifiers<Row> | ((b: ExpressionBuilder<Schema, A>) => FunctionExpression),
 		direction?: OrderByDirection,
-	) => Stage<Schema, A, LeftJoined, Row>
+	) => Stage<Schema, A, LeftJoined, Row, AllowsTransactionRequiredQueries>
 
-	having: (cb: (b: HavingExpressionBuilder<RowIdentifiers<Row>>) => Expression) => Stage<Schema, A, LeftJoined, Row>
+	having: (cb: (b: HavingExpressionBuilder<RowIdentifiers<Row>>) => Expression) => Stage<Schema, A, LeftJoined, Row, AllowsTransactionRequiredQueries>
 
-	limit: (count: bigint) => Stage<Schema, A, LeftJoined, Row>
+	limit: (count: bigint) => Stage<Schema, A, LeftJoined, Row, AllowsTransactionRequiredQueries>
 
 	build: () => BuiltQuery<FlattenRow<Row, LeftJoined>>
-}
+} & TransactionRequiredMethods<Schema, A, LeftJoined, Row, AllowsTransactionRequiredQueries>
 
-export type QueryBuilder<Schema extends SchemaColumnTypes> = {
+export type QueryBuilder<Schema extends SchemaColumnTypes, AllowsTransactionRequiredQueries extends boolean = false> = {
 	from: {
 		<S extends TableAliasArg<Schema>>(
 			table_alias: S,
-		): Stage<Schema, ParseTableAlias<S, Schema>>
+		): Stage<Schema, ParseTableAlias<S, Schema>, never, {}, AllowsTransactionRequiredQueries>
 		<const Alias extends string, Row>(
 			derived_table: DerivedTableArg<Alias, Row>,
-		): Stage<DerivedSchema<Schema, Alias, Row>, DerivedAliasMap<Schema, {}, Alias, Row>>
+		): Stage<DerivedSchema<Schema, Alias, Row>, DerivedAliasMap<Schema, {}, Alias, Row>, never, {}, AllowsTransactionRequiredQueries>
 	}
 }
 
@@ -330,6 +350,8 @@ type State = {
 	order_bys: OrderBy[]
 	havings: HavingBoolExpr[]
 	limit: bigint | null
+	for_update: boolean
+	allow_transaction_required_queries: boolean
 }
 
 // Identifiers are interpolated straight into the SQL string (inside backticks), not parameterized,
@@ -464,19 +486,29 @@ const bool_expr_to_where_grouping = (expr: BoolExpr): WhereGrouping =>
 		? expr
 		: { type: 'and' as const, expressions: [expr] }
 
-const to_source = (arg: string | DerivedTableArg<string, unknown>): TableSource => {
+const to_source = (
+	arg: string | DerivedTableArg<string, unknown>,
+	allow_transaction_required_queries: boolean,
+): TableSource => {
 	if (typeof arg === 'string') {
 		const { table, alias } = parse_table_alias(arg)
 		return { table_name: table, alias }
 	}
-	return { subquery: arg.subquery.query, alias: assert_identifier(arg.alias, 'derived table alias') }
+	const derived_query = arg.subquery.query
+	assert(
+		allow_transaction_required_queries
+			|| derived_query === undefined
+			|| !query_requires_transaction(derived_query),
+		'Derived table query requires a transaction-enabled query builder',
+	)
+	return { subquery: derived_query, alias: assert_identifier(arg.alias, 'derived table alias') }
 }
 
 const joiner = ({ left, state }: { left: boolean, state: State }) => (arg: string | DerivedTableArg<string, unknown>, on: (b: typeof expression_builder) => BoolExpr) => {
 	const expr = on(expression_builder)
 	return make_stage({
 		...state,
-		joins: [...state.joins, { ...to_source(arg), on_clause: [expr], left }],
+		joins: [...state.joins, { ...to_source(arg, state.allow_transaction_required_queries), on_clause: [expr], left }],
 	})
 }
 
@@ -518,6 +550,10 @@ const make_stage = (state: State): any => ({
 	limit: (count: bigint) => {
 		return make_stage({ ...state, limit: count })
 	},
+	for_update: () => {
+		assert(state.allow_transaction_required_queries, 'FOR UPDATE requires a transaction-enabled query builder')
+		return make_stage({ ...state, for_update: true })
+	},
 	build: (): BuiltQuery<unknown> => {
 		const response_columns: ResponseColumn[] = map(state.selects, s => {
 			if ('expressions' in s) {
@@ -551,6 +587,7 @@ const make_stage = (state: State): any => ({
 					: state.havings.length === 1
 						? having_bool_expr_to_grouping(state.havings[0]!)
 						: { type: 'and' as const, expressions: state.havings },
+				...(state.for_update ? { for_update: true } : {}),
 			},
 			response_columns,
 			positional_row_to_named: (row: unknown[]): Record<string, Record<string, unknown>> => {
@@ -569,19 +606,33 @@ const make_stage = (state: State): any => ({
 	},
 })
 
-const query_builder = <Schema extends SchemaColumnTypes>(): QueryBuilder<Schema> => ({
-	from: ((arg: string | DerivedTableArg<string, unknown>) => {
-		return make_stage({
-			from: to_source(arg),
-			joins: [],
-			where_expressions: [],
-			selects: [],
-			group_bys: [],
-			order_bys: [],
-			havings: [],
-			limit: null,
-		})
-	}) as any,
-})
+function query_builder<Schema extends SchemaColumnTypes>(): QueryBuilder<Schema, false>
+function query_builder<Schema extends SchemaColumnTypes>(
+	options: { allow_transaction_required_queries?: false },
+): QueryBuilder<Schema, false>
+function query_builder<Schema extends SchemaColumnTypes>(
+	options: { allow_transaction_required_queries: true },
+): QueryBuilder<Schema, true>
+function query_builder<Schema extends SchemaColumnTypes>(
+	options: { allow_transaction_required_queries?: boolean } = {},
+): QueryBuilder<Schema, boolean> {
+	const allow_transaction_required_queries = options.allow_transaction_required_queries === true
+	return {
+		from: ((arg: string | DerivedTableArg<string, unknown>) => {
+			return make_stage({
+				from: to_source(arg, allow_transaction_required_queries),
+				joins: [],
+				where_expressions: [],
+				selects: [],
+				group_bys: [],
+				order_bys: [],
+				havings: [],
+				limit: null,
+				for_update: false,
+				allow_transaction_required_queries,
+			})
+		}) as any,
+	}
+}
 
 export default query_builder

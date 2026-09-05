@@ -129,8 +129,8 @@ export const functions = {
 		validator: create_lead_validator,
 		fn: (
 			{ client, billing_address, address, contact, project, availability },
-			{ company, user, select_builder, write_helper, transaction }
-		) => transaction(async () => {
+			{ company, user, transaction }
+		) => transaction(async ({ select_builder, write_helper }) => {
 			const company_id = company.company_id
 
 			await assert_input_ids_valid({ client, address, contact, project, select_builder })

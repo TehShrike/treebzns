@@ -25,10 +25,10 @@ export const functions = {
 	create_client: sfn({
 		validator: create_client_validator,
 		fn: async (arg, context): Promise<Pick<DbClient, 'client_id' | 'default_project_address_id'>> => {
-			const { company, write_helper, transaction } = context
+			const { company, transaction } = context
 			const company_id = company.company_id
 
-			return transaction(async () => {
+			return transaction(async ({ write_helper }) => {
 				const { insert_id: client_id } = await write_helper.insert('client', {
 					company_id,
 					name: arg.name,

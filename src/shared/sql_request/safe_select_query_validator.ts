@@ -204,6 +204,7 @@ const make_safe_select_query_validator = (): Validator<SafeSelectQuery> => {
 		order_by: jv.array(order_by_validator),
 		limit: limit_validator,
 		having: jv.nullable(having_grouping_validator),
+		for_update: jv.optional(jv.is_boolean),
 	}) as unknown as Validator<SafeSelectQuery>
 	return holder.v
 }
@@ -253,4 +254,5 @@ export type SafeSelectQuery = {
 	order_by: Array<OrderBy>
 	limit: bigint | null
 	having: HavingGrouping | null
+	for_update?: boolean
 }
