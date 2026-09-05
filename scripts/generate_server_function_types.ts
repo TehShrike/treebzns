@@ -157,6 +157,7 @@ ${temporal_import}${financial_number_import}${validator_import}
 const call_server_function = (function_name: string) => async (arg: unknown) => f3tch(\`/api/fn/\${function_name}\`, {
 	method: 'POST',
 	body: arg,
+	signal: AbortSignal.timeout(60_000),
 })
 
 const server_functions: {
