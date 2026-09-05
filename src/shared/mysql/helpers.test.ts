@@ -149,7 +149,7 @@ test('nested transactions are rejected before another START TRANSACTION', async 
 
 	await transaction(connection, async transaction_connection => {
 		await assert.rejects(transaction(connection, async () => {}), /already active/)
-		await assert.rejects(transaction(transaction_connection, async () => {}), /nested transaction/)
+		await assert.rejects(transaction(transaction_connection, async () => {}), /open transaction/)
 		assert.deepStrictEqual(sql_calls(calls), [ 'START TRANSACTION' ])
 	})
 

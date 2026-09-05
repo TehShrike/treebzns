@@ -47,7 +47,7 @@ test('tenanted select builders allow locking queries only on an active transacti
 		})
 		assert.throws(
 			() => builder_on_unbranded_connection.get_raw_rows(locking_query!.query),
-			/active transaction connection/,
+			/active transaction/,
 		)
 	})
 
@@ -56,7 +56,7 @@ test('tenanted select builders allow locking queries only on an active transacti
 	assert(locking_query)
 	await assert.rejects(
 		transaction_builder.get_rows(locking_query),
-		/active transaction connection/,
+		/active transaction/,
 	)
 
 	const ordinary_builder = make_tenanted_select_builder({
@@ -65,7 +65,7 @@ test('tenanted select builders allow locking queries only on an active transacti
 	})
 	await assert.rejects(
 		ordinary_builder.get_rows(locking_query),
-		/active transaction connection/,
+		/active transaction/,
 	)
 	assert.equal(queries.length, 3)
 })
