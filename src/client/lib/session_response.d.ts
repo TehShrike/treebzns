@@ -1,6 +1,4 @@
-import type { employee, company } from '#schema/all_table_column_names.ts'
-
 export type SessionResponse = {
-	employee: Pick<DbEmployee, typeof employee.employee_id | typeof employee.company_id | typeof employee.name | typeof employee.email | typeof employee.login_name | typeof employee.phone | typeof employee.is_owner>
-	company: Pick<DbCompany, typeof company.company_id | typeof company.name | typeof company.brand_color | typeof company.timezone>
+	employee: Pick<DbEmployee, 'employee_id' | 'company_id' | 'name' | 'email' | 'login_name' | 'phone' | 'is_owner'>
+	company: Pick<DbCompany, 'company_id' | 'name' | 'brand_color' | 'timezone'>
 }

@@ -1,7 +1,6 @@
 import type { ClientQueryFn } from "./client_query_fn.ts"
 import query_builder from "#shared/sql_request/typed_query_builder.ts"
 import group_joined_rows from "#shared/sql_request/group_joined_rows.ts"
-import { client, client_address, client_contact } from "#schema/all_table_column_names.ts"
 import type { Schema } from "#schema/types.ts"
 import { map, filter, reduce } from "#shared/array.ts"
 import { get_phone_digits } from "#shared/phone_number.ts"
@@ -10,56 +9,54 @@ import { latest_instant } from '#shared/temporal.ts'
 import assert from '#shared/assert.ts'
 import { get_latest_database_update, make_update_snapshot, type UpdateSnapshot, type UpdateSnapshotValues } from './client_cache_change_detection.ts'
 
-const table_identifier = <TableIdentifier extends string, Column extends string>(table_name: TableIdentifier, column: Column) => `${table_name}.${column}` as const
-
 const client_and_address_columns = [
-	table_identifier('client', client.client_id),
-	table_identifier('client', client.company_id),
-	table_identifier('client', client.name),
-	table_identifier('client', client.is_commercial),
-	table_identifier('client', client.default_project_address_id),
-	table_identifier('client', client.billing_name),
-	table_identifier('client', client.billing_address_line_1),
-	table_identifier('client', client.billing_address_line_2),
-	table_identifier('client', client.billing_city),
-	table_identifier('client', client.billing_state),
-	table_identifier('client', client.billing_zip),
-	table_identifier('client', client.primary_phone),
-	table_identifier('client', client.primary_email),
-	table_identifier('client', client.tax_rate_id),
-	table_identifier('client', client.notes),
-	table_identifier('client', client.referred_by),
-	table_identifier('client', client.created_at),
-	table_identifier('client', client.updated_at),
+	'client.client_id',
+	'client.company_id',
+	'client.name',
+	'client.is_commercial',
+	'client.default_project_address_id',
+	'client.billing_name',
+	'client.billing_address_line_1',
+	'client.billing_address_line_2',
+	'client.billing_city',
+	'client.billing_state',
+	'client.billing_zip',
+	'client.primary_phone',
+	'client.primary_email',
+	'client.tax_rate_id',
+	'client.notes',
+	'client.referred_by',
+	'client.created_at',
+	'client.updated_at',
 
-	table_identifier('client_address', client_address.client_address_id),
-	table_identifier('client_address', client_address.name),
-	table_identifier('client_address', client_address.address_line_1),
-	table_identifier('client_address', client_address.address_line_2),
-	table_identifier('client_address', client_address.city),
-	table_identifier('client_address', client_address.state),
-	table_identifier('client_address', client_address.zip),
-	table_identifier('client_address', client_address.updated_at),
+	'client_address.client_address_id',
+	'client_address.name',
+	'client_address.address_line_1',
+	'client_address.address_line_2',
+	'client_address.city',
+	'client_address.state',
+	'client_address.zip',
+	'client_address.updated_at',
 ] as const
 
 const client_contact_columns = [
-	table_identifier('client_contact', client_contact.client_contact_id),
-	table_identifier('client_contact', client_contact.company_id),
-	table_identifier('client_contact', client_contact.client_id),
-	table_identifier('client_contact', client_contact.description),
-	table_identifier('client_contact', client_contact.name),
-	table_identifier('client_contact', client_contact.phone),
-	table_identifier('client_contact', client_contact.email),
-	table_identifier('client_contact', client_contact.is_primary),
-	table_identifier('client_contact', client_contact.sort),
-	table_identifier('client_contact', client_contact.created_at),
-	table_identifier('client_contact', client_contact.updated_at),
+	'client_contact.client_contact_id',
+	'client_contact.company_id',
+	'client_contact.client_id',
+	'client_contact.description',
+	'client_contact.name',
+	'client_contact.phone',
+	'client_contact.email',
+	'client_contact.is_primary',
+	'client_contact.sort',
+	'client_contact.created_at',
+	'client_contact.updated_at',
 ] as const
 
 const client_query = query_builder<Schema>()
 	.from('client')
-	.join('client_address', on => on.comparison(`client.${client.client_id}`, '=', `client_address.${client_address.client_id}`))
-	.left_join('client_contact', on => on.comparison(`client.${client.client_id}`, '=', `client_contact.${client_contact.client_id}`))
+	.join('client_address', on => on.comparison('client.client_id', '=', 'client_address.client_id'))
+	.left_join('client_contact', on => on.comparison('client.client_id', '=', 'client_contact.client_id'))
 	.order_by('client.name', 'ASC')
 	.order_by('client.client_id')
 	.order_by('client_address.sort', 'ASC')
