@@ -12,32 +12,47 @@ I suspect that each component should bind to an object that represents the thing
 
 ## Deploy to dedicated Cloudflare account
 
-- [ ] Create a new email address
+- [x] Create a new email address
 	- treesoftware@joshduff.com?
-- [ ] Create a new Cloudflare account with a new email address
-- [ ] Transfer dufftreesoftware.com to the new Cloudflare account
+- [x] Business card: Chase Ink Business Unlimited
+- [ ] Wait for new credit card to arrive, add it to 1Password
+- [x] Create a new Cloudflare account
+- [ ] Subscribe to Workers Paid
+- [ ] Buy domain name treeoperator.com
 - [ ] Configure the worker
 	- [ ] Configure environment variables
 	- [ ] Hyperdrive
-- [ ] Business card: Chase Ink Business Unlimited
+- [ ] Create new Digital Ocean account with new credit card
+- [ ] Create new managed DO database
+- [ ] Deploy from CI
 
 ## List of screens to make
 
 Keep iterating on the "create a screen" skill.
 
-- [ ] Client
-- [ ] Project list
-- [ ] Crews
-- [ ] Customer-facing: Invoice
-- [ ] Customer-facing: Proposal
-- [ ] Customer-facing: Work Order
-- [ ] Estimating
-- [ ] Foreman/project check-in
-- [ ] Create a lead
-- [ ] Project
-- [ ] Scheduling: week/all jobs
-- [ ] Scheduling: day
-- [ ] Settings
+Client-facing
+- View Invoice page
+- View Proposal page
+- View Work Order page
+- Automatic emails
+- Automatic SMS
+- Accept payments
+
+Project management
+- Client
+- Project list
+- Project
+- Scheduling: week/all jobs
+- Scheduling: day
+
+Worker
+- Estimating (phone UI)
+- Foreman/project check-in
+
+Backend
+- Settings page
+- Permissions
+- Edit crews
 
 
 
