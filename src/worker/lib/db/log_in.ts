@@ -3,7 +3,7 @@ import { password_hash } from '#worker/lib/password_hash.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
 import { fns } from '#shared/sql_request/mysql_function.ts'
-import write_helper from '#shared/mysql/write_helper.ts'
+import make_write_helper from '#shared/mysql/write_helper.ts'
 import type { Schema } from '#schema/types.ts'
 
 type LogInArg = {
@@ -53,7 +53,7 @@ export const log_in = async ({ email_or_login_name, password, user_agent }: LogI
 	}
 
 	const session_identifier = crypto.randomUUID()
-	await write_helper.insert(mysql.connection, 'employee_session', {
+	await make_write_helper({ connection: mysql.connection, company_id: null }).insert('employee_session', {
 		employee_id: employee.employee_id,
 		identifier: fns.uuid_to_bin(session_identifier),
 		invalidated: false,

@@ -145,7 +145,6 @@ export const functions = {
 			const { client_address_id, address: all_address_values } = await upsert_client_address({
 				client_id: creating_new_client ? 0n : client.client_id,
 				address,
-				company_id,
 				select_builder,
 				write_helper,
 			})
@@ -154,7 +153,6 @@ export const functions = {
 			const client_id = await upsert_client({
 				client: creating_new_client ? {...client, default_project_address_id: client_address_id} : client,
 				billing_address: use_project_address_as_billing_address ? address_to_billing_address(client.name, all_address_values) : billing_address,
-				company_id,
 				write_helper,
 			})
 
@@ -162,12 +160,11 @@ export const functions = {
 				await write_helper.update('client_address', 'client_address_id', client_address_id, { client_id })
 			}
 
-			const client_contact_id = await upsert_client_contact({ client_id, contact, company_id, select_builder, write_helper })
+			const client_contact_id = await upsert_client_contact({ client_id, contact, select_builder, write_helper })
 
 			const lead_source_id = project.lead_source_id === null && project.lead_source_name
 				? await insert_lead_source({
 					lead_source_name: project.lead_source_name,
-					company_id,
 					select_builder,
 					write_helper,
 				})
@@ -179,7 +176,6 @@ export const functions = {
 
 			const { insert_id: project_id } = await write_helper.insert('project', {
 				...all_address_values,
-				company_id,
 				number: project_number,
 				project_document_id: initial_project_document_id,
 				client_id,
@@ -202,7 +198,6 @@ export const functions = {
 
 			const now = Temporal.Now.instant()
 			await write_helper.insert('project_document_history', {
-				company_id,
 				project_id,
 				project_document_id: initial_project_document_id,
 				changed_by_employee_id: user.employee_id,
@@ -216,7 +211,6 @@ export const functions = {
 					start_time,
 					end_time,
 				}) => ({
-					company_id,
 					project_id,
 					availability_date,
 					start_time,

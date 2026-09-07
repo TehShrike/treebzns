@@ -2,7 +2,7 @@ import type { Connection } from 'mysql2/promise'
 import type { ArbostarClient, ArbostarContact } from '#arbostar_export/clients.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten, chunk } from '#shared/array.ts'
-import { write_helper, ROWS_PER_BATCH, join_lines } from './import_common.ts'
+import { make_write_helper, ROWS_PER_BATCH, join_lines } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 type ImportedDefaultProjectAddress = {
@@ -71,6 +71,7 @@ export const import_clients = async (
 	context: ArbostarImportContext,
 	clients: ArbostarClient[],
 ): Promise<ImportedClients> => {
+	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const correlated = context.existing.client_id_by_arbostar_client_id
 
 	const baked_contact_fields = (client: ArbostarClient) => {
@@ -109,14 +110,12 @@ export const import_clients = async (
 	const new_clients = filter(clients, client => !correlated.has(client.client_id))
 
 	await write_helper.bulk_update(
-		connection,
 		'client',
 		'client_id',
 		map(existing_clients, client => ({ key: correlated.get(client.client_id)!, set: client_fields(client) })),
 		ROWS_PER_BATCH,
 	)
 	await write_helper.bulk_update(
-		connection,
 		'client_address',
 		'client_address_id',
 		map(existing_clients, client => ({
@@ -143,7 +142,6 @@ export const import_clients = async (
 			const fields = client_fields(client)
 			const address = address_fields(client)
 			return {
-				company_id: context.company_id,
 				...fields,
 				default_project_address_id: 0n, // fixed up below once the address rows exist
 				billing_name: fields.name,
@@ -157,14 +155,13 @@ export const import_clients = async (
 				arbostar_client_id: BigInt(client.client_id),
 			}
 		})
-		const { insert_ids: client_ids } = await write_helper.bulk_insert(connection, 'client', client_rows, ROWS_PER_BATCH)
+		const { insert_ids: client_ids } = await write_helper.bulk_insert('client', client_rows, ROWS_PER_BATCH)
 		new_clients.forEach((client, index) => client_id_by_arbostar_client_id.set(client.client_id, client_ids[index]!))
 
 		// The client row's own address columns are the primary address. client_address2 has never
 		// been non-empty in an export; ArboStar's optional "second address" (profile-only, dropped
 		// along with addresses.js) has never had data either.
 		const primary_address_rows = map(new_clients, (client, index) => ({
-			company_id: context.company_id,
 			client_id: client_ids[index]!,
 			client_contact_id: null,
 			name: 'Primary',
@@ -172,7 +169,6 @@ export const import_clients = async (
 			sort: 0n,
 		}))
 		const { insert_ids: address_ids } = await write_helper.bulk_insert(
-			connection,
 			'client_address',
 			primary_address_rows,
 			ROWS_PER_BATCH,
@@ -223,7 +219,6 @@ export const import_clients = async (
 	const new_contacts = filter(incoming_contacts, ({ contact }) => !correlated_contacts.has(contact.cc_id))
 
 	await write_helper.bulk_update(
-		connection,
 		'client_contact',
 		'client_contact_id',
 		map(existing_contacts, incoming => ({
@@ -238,10 +233,8 @@ export const import_clients = async (
 	))
 	if (new_contacts.length > 0) {
 		const { insert_ids: contact_ids } = await write_helper.bulk_insert(
-			connection,
 			'client_contact',
 			map(new_contacts, incoming => ({
-				company_id: context.company_id,
 				client_id: incoming.client_id,
 				...contact_fields(incoming),
 				arbostar_contact_id: BigInt(incoming.contact.cc_id),
@@ -265,12 +258,10 @@ export const import_clients = async (
 	const fallback_contact_id_by_arbostar_client_id = new Map<number, bigint>()
 	if (clients_without_contacts.length > 0) {
 		const { insert_ids: fallback_ids } = await write_helper.bulk_insert(
-			connection,
 			'client_contact',
 			map(clients_without_contacts, client => {
 				const contact = baked_contact_fields(client)
 				return {
-					company_id: context.company_id,
 					client_id: client_id_by_arbostar_client_id.get(client.client_id)!,
 					description: '',
 					name: contact.contact_name,

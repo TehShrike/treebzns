@@ -2,7 +2,7 @@ import type { Connection } from 'mysql2/promise'
 import type { ArbostarUser } from '#arbostar_export/users.d.ts'
 import { DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS } from '#worker/lib/employee.ts'
 import { map, filter } from '#shared/array.ts'
-import { write_helper, ROWS_PER_BATCH, normalize_name, identity_key, placeholder_email } from './import_common.ts'
+import { make_write_helper, ROWS_PER_BATCH, normalize_name, identity_key, placeholder_email } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedEmployees = {
@@ -41,6 +41,7 @@ export const import_employees = async (
 	// load_taken_identity_keys in import_arbostar_export.ts).
 	load_taken_identity_keys: () => Promise<Set<string>>,
 ): Promise<ImportedEmployees> => {
+	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const employee_id_by_name = new Map(context.employee_id_by_name)
 	const adoptable_by_identity = new Map(context.employee_id_by_identity)
 	const correlated = context.existing.employee_id_by_arbostar_user_id
@@ -81,7 +82,6 @@ export const import_employees = async (
 
 	if (updates.length > 0) {
 		await write_helper.bulk_update(
-			connection,
 			'employee',
 			'employee_id',
 			map(updates, ({ user, employee_id }) => ({
@@ -124,7 +124,6 @@ export const import_employees = async (
 				: { email: null, login_name: login_name! }
 
 			return {
-				company_id: context.company_id,
 				name: user.full_name,
 				...identity,
 				phone: user.emp_phone,
@@ -141,7 +140,7 @@ export const import_employees = async (
 
 	const employee_id_by_arbostar_user_id = new Map(map(updates, ({ user, employee_id }) => [user.user_id, employee_id] as const))
 	if (employee_rows.length > 0) {
-		const { insert_ids } = await write_helper.bulk_insert(connection, 'employee', employee_rows, ROWS_PER_BATCH)
+		const { insert_ids } = await write_helper.bulk_insert('employee', employee_rows, ROWS_PER_BATCH)
 		new_users.forEach((user, index) => employee_id_by_arbostar_user_id.set(user.user_id, insert_ids[index]!))
 	}
 	for (const user of active_users) {

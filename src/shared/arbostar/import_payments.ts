@@ -7,7 +7,7 @@ import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
-import { write_helper, ROWS_PER_BATCH, group_by, money, normalize_name, string_or_null } from './import_common.ts'
+import { make_write_helper, ROWS_PER_BATCH, group_by, money, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 import { date_from_yyyymmdd } from './arbostar_dates.ts'
@@ -84,6 +84,7 @@ export const import_payments = async (
 	invoice_id_by_arbostar_invoice_id: Map<number, bigint>,
 	employee_id_by_arbostar_user_id: Map<number, bigint>,
 ): Promise<ImportedPayments> => {
+	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const { client_id_by_arbostar_client_id } = imported_clients
 	const correlated = context.existing.payment_id_by_arbostar_payment_id
 	const with_client = filter(payments, payment => client_id_by_arbostar_client_id.has(payment.client_id))
@@ -131,9 +132,8 @@ export const import_payments = async (
 	const new_payment_methods = [...normalized_payment_method_name_to_payment_method_name.entries()]
 	if (new_payment_methods.length > 0) {
 		const { insert_ids } = await write_helper.bulk_insert(
-			connection,
 			'payment_method',
-			map(new_payment_methods, ([, name]) => ({ company_id: context.company_id, name })),
+			map(new_payment_methods, ([, name]) => ({ name })),
 			ROWS_PER_BATCH,
 		)
 		new_payment_methods.forEach(([normalized_name], index) => payment_method_id_by_name.set(normalized_name, insert_ids[index]!))
@@ -182,7 +182,6 @@ export const import_payments = async (
 	const new_payments = filter(importable, payment => !correlated.has(payment.payment_id))
 
 	await write_helper.bulk_update(
-		connection,
 		'payment',
 		'payment_id',
 		map(existing_payments, payment => ({ key: correlated.get(payment.payment_id)!, set: payment_fields(payment) })),
@@ -195,11 +194,10 @@ export const import_payments = async (
 	))
 	if (new_payments.length > 0) {
 		const payment_rows = map(new_payments, payment => ({
-			company_id: context.company_id,
 			...payment_fields(payment),
 			arbostar_payment_id: BigInt(payment.payment_id),
 		}))
-		const { insert_ids } = await write_helper.bulk_insert(connection, 'payment', payment_rows, ROWS_PER_BATCH)
+		const { insert_ids } = await write_helper.bulk_insert('payment', payment_rows, ROWS_PER_BATCH)
 		new_payments.forEach((payment, index) => payment_id_by_arbostar_payment_id.set(payment.payment_id, insert_ids[index]!))
 	}
 
@@ -251,10 +249,8 @@ export const import_payments = async (
 
 	if (pi_inserts.length > 0) {
 		await write_helper.bulk_insert(
-			connection,
 			'payment_invoice',
 			map(pi_inserts, ({ payment_id, invoice_id, amount }) => ({
-				company_id: context.company_id,
 				payment_id,
 				invoice_id,
 				amount,
@@ -263,7 +259,6 @@ export const import_payments = async (
 		)
 	}
 	await write_helper.bulk_update(
-		connection,
 		'payment_invoice',
 		'payment_invoice_id',
 		map(pi_updates, ({ payment_invoice_key, amount }) => ({

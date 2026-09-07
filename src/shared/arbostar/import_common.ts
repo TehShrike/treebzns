@@ -1,10 +1,8 @@
 // Shared pieces of the ArboStar → current-schema import (see import_arbostar_export.ts for
 // the orchestrator and arbostar_import_notes.md for what does/doesn't survive the mapping).
 import type { Connection, Pool, RowDataPacket } from 'mysql2/promise'
-import type { InsertableSchema, Schema } from '#schema/types.ts'
+import type { Schema } from '#schema/types.ts'
 import * as schema from '#schema/all_table_column_names.ts'
-import * as insertable_schema from '#schema/insertable_table_column_names.ts'
-import typed_write_helper from '#shared/sql_request/typed_write_helper.ts'
 import { make_safe_select_query_builder } from '#shared/sql_request/safe_select_query.ts'
 import query_builder, { type BuiltQuery, type QueryBuilder } from '#shared/sql_request/typed_query_builder.ts'
 import { make_tenanted_query } from '#shared/treebzns_db/tenanted_query_builder.ts'
@@ -12,7 +10,7 @@ import { map, filter } from '#shared/array.ts'
 import arbostar_number_to_fnum from './arbostar_number_to_fnum.ts'
 import type { ExistingCorrelations } from './load_existing_correlations.ts'
 
-export const write_helper = typed_write_helper<InsertableSchema, Schema>(schema, insertable_schema)
+export { default as make_write_helper } from '#shared/mysql/write_helper.ts'
 
 export const ROWS_PER_BATCH = 1000
 

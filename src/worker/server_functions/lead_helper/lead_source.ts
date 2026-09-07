@@ -1,22 +1,19 @@
 import assert from '#shared/assert.ts'
 import is_duplicate_key_error from '#shared/mysql/is_duplicate_key_error.ts'
 import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
-import type { ConnectionBoundWriteHelper } from '#shared/mysql/write_helper.ts'
+import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 
 export const insert_lead_source = async ({
 	lead_source_name,
-	company_id,
 	select_builder,
 	write_helper,
 }: {
 	lead_source_name: string
-	company_id: bigint
 	select_builder: TenantedSelectBuilder
-	write_helper: ConnectionBoundWriteHelper
+	write_helper: TenantedWriteHelper
 }) => {
 	try {
 		const { insert_id: lead_source_id } = await write_helper.insert('lead_source', {
-			company_id,
 			name: lead_source_name,
 		})
 

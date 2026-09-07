@@ -2,7 +2,7 @@ import type { Connection, ResultSetHeader } from 'mysql2/promise'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter } from '#shared/array.ts'
-import { write_helper, ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
+import { make_write_helper, ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedLineItems = {
@@ -39,6 +39,7 @@ export const import_line_items = async (
 	line_items: ArbostarLineItem[],
 	project_id_by_arbostar_lead_id: Map<number, bigint>,
 ): Promise<ImportedLineItems> => {
+	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const with_project = filter(line_items, item => project_id_by_arbostar_lead_id.has(item.lead_id))
 	const best_by_line_item_id = new Map<number, ArbostarLineItem>()
 	for (const item of with_project) {
@@ -60,11 +61,10 @@ export const import_line_items = async (
 
 	if (new_item_types.length > 0) {
 		const item_type_rows = map(new_item_types, ([, { name, taxable }]) => ({
-			company_id: context.company_id,
 			name,
 			taxable,
 		}))
-		const { insert_ids } = await write_helper.bulk_insert(connection, 'item_type', item_type_rows, ROWS_PER_BATCH)
+		const { insert_ids } = await write_helper.bulk_insert('item_type', item_type_rows, ROWS_PER_BATCH)
 		new_item_types.forEach(([normalized_name], index) => item_type_id_by_name.set(normalized_name, insert_ids[index]!))
 	}
 
@@ -96,7 +96,6 @@ export const import_line_items = async (
 	const new_items = filter(importable, item => !correlated.has(item.line_item_id))
 
 	await write_helper.bulk_update(
-		connection,
 		'project_line_item',
 		'project_line_item_id',
 		map(existing_items, item => ({ key: correlated.get(item.line_item_id)!, set: line_item_fields(item) })),
@@ -105,10 +104,8 @@ export const import_line_items = async (
 	const project_line_item_id_by_arbostar_line_item_id = new Map(correlated)
 	if (new_items.length > 0) {
 		const { insert_ids } = await write_helper.bulk_insert(
-			connection,
 			'project_line_item',
 			map(new_items, item => ({
-				company_id: context.company_id,
 				...line_item_fields(item),
 				arbostar_line_item_id: BigInt(item.line_item_id),
 			})),

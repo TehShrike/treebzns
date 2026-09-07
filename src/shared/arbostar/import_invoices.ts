@@ -5,7 +5,7 @@ import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import number from '#shared/fnum.ts'
-import { write_helper, ROWS_PER_BATCH, group_by, money } from './import_common.ts'
+import { make_write_helper, ROWS_PER_BATCH, group_by, money } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
@@ -54,6 +54,7 @@ export const import_invoices = async (
 	project_id_by_arbostar_lead_id: Map<number, bigint>,
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>,
 ): Promise<ImportedInvoices> => {
+	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const { client_id_by_arbostar_client_id } = imported_clients
 	const correlated = context.existing.invoice_id_by_arbostar_invoice_id
 	const importable = filter(invoices, invoice => client_id_by_arbostar_client_id.has(invoice.client_id))
@@ -166,7 +167,6 @@ export const import_invoices = async (
 	const new_invoices = filter(importable, invoice => !correlated.has(invoice.invoice_id))
 
 	await write_helper.bulk_update(
-		connection,
 		'invoice',
 		'invoice_id',
 		map(existing_invoices, invoice => ({ key: correlated.get(invoice.invoice_id)!, set: invoice_fields(invoice) })),
@@ -179,11 +179,10 @@ export const import_invoices = async (
 	))
 	if (new_invoices.length > 0) {
 		const invoice_rows = map(new_invoices, invoice => ({
-			company_id: context.company_id,
 			...invoice_fields(invoice),
 			arbostar_invoice_id: BigInt(invoice.invoice_id),
 		}))
-		const { insert_ids } = await write_helper.bulk_insert(connection, 'invoice', invoice_rows, ROWS_PER_BATCH)
+		const { insert_ids } = await write_helper.bulk_insert('invoice', invoice_rows, ROWS_PER_BATCH)
 		new_invoices.forEach((invoice, index) => invoice_id_by_arbostar_invoice_id.set(invoice.invoice_id, insert_ids[index]!))
 	}
 
@@ -205,7 +204,6 @@ export const import_invoices = async (
 			const project_line_item_id = project_line_item_id_by_arbostar_line_item_id.get(line.line_item_id) ?? null
 			if (project_line_item_id === null) invoice_lines_without_project_line_item += 1
 			return {
-				company_id: context.company_id,
 				invoice_id: invoice_id_by_arbostar_invoice_id.get(line.invoice_id!)!,
 				project_line_item_id,
 				description: line.service_name?.trim() ?? '',
@@ -218,7 +216,7 @@ export const import_invoices = async (
 		},
 	)
 	if (line_rows.length > 0) {
-		await write_helper.bulk_insert(connection, 'invoice_line_item', line_rows, ROWS_PER_BATCH)
+		await write_helper.bulk_insert('invoice_line_item', line_rows, ROWS_PER_BATCH)
 	}
 
 	const incoming_invoice_ids = new Set(map(invoices, invoice => invoice.invoice_id))

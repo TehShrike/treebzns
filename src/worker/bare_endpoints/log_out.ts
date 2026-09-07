@@ -3,7 +3,7 @@ import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import { parse_session_cookie } from '#worker/lib/db/validate_session.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
-import write_helper from '#shared/mysql/write_helper.ts'
+import make_write_helper from '#shared/mysql/write_helper.ts'
 import get_session_cookie_headers from '#worker/lib/get_session_cookie_headers.ts'
 import type { Schema } from '#schema/types.ts'
 
@@ -21,7 +21,7 @@ export default async (request: Request, mysql: MysqlHelpersObject): Promise<Resp
 
 		if (row) {
 			const { employee_session } = session_query.positional_row_to_named(row)
-			await write_helper.update(mysql.connection, 'employee_session', 'employee_session_id', employee_session.employee_session_id, {
+			await make_write_helper({ connection: mysql.connection, company_id: null }).update('employee_session', 'employee_session_id', employee_session.employee_session_id, {
 				invalidated: true,
 			})
 		}

@@ -1,5 +1,5 @@
 import assert from '#shared/assert.ts'
-import type { ConnectionBoundWriteHelper } from '#shared/mysql/write_helper.ts'
+import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { LeadClient, LeadClientValues, LeadBilling } from '#shared/type/lead.ts'
 
 type UpsertClient = LeadClient & { default_project_address_id?: DbClient['default_project_address_id'] }
@@ -8,17 +8,14 @@ const insert_new_client = async ({
 	client,
 	billing_address,
 	default_project_address_id,
-	company_id,
 	write_helper,
 }: {
 	client: LeadClientValues
 	billing_address: LeadBilling
 	default_project_address_id: bigint
-	company_id: bigint
-	write_helper: ConnectionBoundWriteHelper
+	write_helper: TenantedWriteHelper
 }) => {
 	const { insert_id } = await write_helper.insert('client', {
-		company_id,
 		default_project_address_id,
 		...billing_address,
 		...client
@@ -32,7 +29,7 @@ const update_existing_client = async ({
 	write_helper,
 }: {
 	client: Extract<UpsertClient, { client_id: bigint }>
-	write_helper: ConnectionBoundWriteHelper
+	write_helper: TenantedWriteHelper
 }) => {
 	const { client_id, ...changes } = client
 
@@ -46,13 +43,11 @@ const update_existing_client = async ({
 export const upsert_client = ({
 	client,
 	billing_address,
-	company_id,
 	write_helper,
 }: {
 	client: UpsertClient
 	billing_address: LeadBilling | null
-	company_id: bigint
-	write_helper: ConnectionBoundWriteHelper
+	write_helper: TenantedWriteHelper
 }) => {
 	if (client.client_id === null) {
 		assert(billing_address !== null, `billing_address is provided when the client is new`)
@@ -63,7 +58,6 @@ export const upsert_client = ({
 			client: client_values,
 			billing_address,
 			default_project_address_id,
-			company_id,
 			write_helper,
 		})
 	}

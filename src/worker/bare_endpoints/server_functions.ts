@@ -2,7 +2,7 @@ import { json_anything_response, error_response } from '#worker/lib/response_hel
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import validate_session from '#worker/lib/db/validate_session.ts'
 import make_tenanted_select_builder from '#worker/lib/db/make_tenanted_select_builder.ts'
-import write_helper from '#shared/mysql/write_helper.ts'
+import make_write_helper from '#shared/mysql/write_helper.ts'
 import { transaction } from '#shared/mysql/helpers.ts'
 import type { Context } from '#worker/lib/context.ts'
 import type { Validator } from '#shared/json_validator.ts'
@@ -58,7 +58,7 @@ const call_server_function = async ({ function_name, arg, mysql, session }: Argu
 		user: session.employee,
 		company: session.company,
 		select_builder: make_tenanted_select_builder({ company_id: session.company.company_id, mysql }),
-		write_helper: write_helper.for_connection(mysql.connection),
+		write_helper: make_write_helper({ connection: mysql.connection, company_id: session.company.company_id }),
 		transaction: fn => transaction(mysql.connection, transaction_connection => {
 			const transaction_mysql = make_mysql_helpers_object(transaction_connection)
 			return fn({
@@ -67,7 +67,10 @@ const call_server_function = async ({ function_name, arg, mysql, session }: Argu
 					company_id: session.company.company_id,
 					mysql: transaction_mysql,
 				}),
-				write_helper: write_helper.for_connection(transaction_connection),
+				write_helper: make_write_helper({
+					connection: transaction_connection,
+					company_id: session.company.company_id,
+				}),
 			})
 		}),
 	}

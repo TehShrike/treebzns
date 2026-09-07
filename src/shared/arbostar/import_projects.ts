@@ -21,7 +21,7 @@ import {
 	instant_from_unix_seconds,
 } from './arbostar_dates.ts'
 import { derive_timezone_from_export } from './derive_timezone_from_export.ts'
-import { write_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
+import { make_write_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
@@ -159,6 +159,7 @@ export const import_projects = async (
 	},
 	imported_clients: ImportedClients,
 ): Promise<ImportedProjects> => {
+	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const { client_id_by_arbostar_client_id, default_project_address_by_arbostar_client_id, primary_client_contact_id_by_arbostar_client_id } = imported_clients
 	const timezone = derive_timezone_from_export({ leads, workorders })
 	const estimates_by_lead_id = group_by(filter(estimates, estimate => estimate.lead_id !== null), estimate => estimate.lead_id!)
@@ -224,10 +225,8 @@ export const import_projects = async (
 	}
 	if (new_tax_rates.length > 0) {
 		const { insert_ids } = await write_helper.bulk_insert(
-			connection,
 			'tax_rate',
 			map(new_tax_rates, entry => ({
-				company_id: context.company_id,
 				name: entry.name,
 				tax_rate: entry.ratio,
 			})),
@@ -258,9 +257,8 @@ export const import_projects = async (
 	const new_lead_sources = filter([...needed_source_names.entries()], ([key]) => !lead_source_id_by_name.has(key))
 	if (new_lead_sources.length > 0) {
 		const { insert_ids } = await write_helper.bulk_insert(
-			connection,
 			'lead_source',
-			map(new_lead_sources, ([, name]) => ({ company_id: context.company_id, name })),
+			map(new_lead_sources, ([, name]) => ({ name })),
 			ROWS_PER_BATCH,
 		)
 		new_lead_sources.forEach(([key], index) => lead_source_id_by_name.set(key, insert_ids[index]!))
@@ -523,7 +521,7 @@ export const import_projects = async (
 			set: closed ? { closed, ...set } : set,
 		}
 	})
-	await write_helper.bulk_update(connection, 'project', 'project_id', existing_rows, ROWS_PER_BATCH)
+	await write_helper.bulk_update('project', 'project_id', existing_rows, ROWS_PER_BATCH)
 	const project_id_by_arbostar_lead_id = new Map(map(
 		existing_leads,
 		lead => [lead.lead_id, context.existing.project_id_by_number.get(Number(lead_number(lead)))!] as const,
@@ -531,7 +529,6 @@ export const import_projects = async (
 
 	if (new_leads.length > 0) {
 		const project_rows = map(new_leads, lead => ({
-			company_id: context.company_id,
 			number: lead_number(lead),
 			...project_fields(lead),
 			due_date: null,
@@ -541,7 +538,7 @@ export const import_projects = async (
 			closed_at: null,
 			closed_date: null,
 		}))
-		const { insert_ids } = await write_helper.bulk_insert(connection, 'project', project_rows, ROWS_PER_BATCH)
+		const { insert_ids } = await write_helper.bulk_insert('project', project_rows, ROWS_PER_BATCH)
 		new_leads.forEach((lead, index) => project_id_by_arbostar_lead_id.set(lead.lead_id, insert_ids[index]!))
 	}
 
@@ -563,7 +560,6 @@ export const import_projects = async (
 	const history_rows = flat_map(lead_chains, ({ lead, chain }) => {
 		const project_id = project_id_by_arbostar_lead_id.get(lead.lead_id)!
 		return map(chain, row => ({
-			company_id: context.company_id,
 			project_id,
 			project_document_id: row.project_document_id,
 			changed_by_employee_id: null,
@@ -572,7 +568,7 @@ export const import_projects = async (
 		}))
 	})
 	if (history_rows.length > 0) {
-		await write_helper.bulk_insert(connection, 'project_document_history', history_rows, ROWS_PER_BATCH)
+		await write_helper.bulk_insert('project_document_history', history_rows, ROWS_PER_BATCH)
 	}
 
 	// Only numbers within ArboStar's issued range can be missing-from-export — anything above

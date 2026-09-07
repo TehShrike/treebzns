@@ -2,7 +2,7 @@ import type { Connection } from 'mysql2/promise'
 import type { ArbostarCrewRole } from '#arbostar_export/crew_roles.d.ts'
 import assert from '#shared/assert.ts'
 import { map, filter } from '#shared/array.ts'
-import { write_helper, ROWS_PER_BATCH, normalize_name, money } from './import_common.ts'
+import { make_write_helper, ROWS_PER_BATCH, normalize_name, money } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedWorkSkills = {
@@ -24,6 +24,7 @@ export const import_work_skills = async (
 	context: ArbostarImportContext,
 	crew_roles: ArbostarCrewRole[],
 ): Promise<ImportedWorkSkills> => {
+	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const skills = map(crew_roles, role => {
 		const digits = /(\d+)$/.exec(role.crew_name)?.[1]
 		return {
@@ -42,7 +43,6 @@ export const import_work_skills = async (
 
 	if (updates.length > 0) {
 		await write_helper.bulk_update(
-			connection,
 			'work_skill',
 			'work_skill_id',
 			map(updates, skill => ({
@@ -54,10 +54,8 @@ export const import_work_skills = async (
 	}
 	if (inserts.length > 0) {
 		await write_helper.bulk_insert(
-			connection,
 			'work_skill',
 			map(inserts, skill => ({
-				company_id: context.company_id,
 				name: skill.name,
 				hourly_rate: skill.hourly_rate,
 			})),

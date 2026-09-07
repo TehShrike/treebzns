@@ -1,6 +1,6 @@
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import { password_hash } from '#worker/lib/password_hash.ts'
-import write_helper from '#shared/mysql/write_helper.ts'
+import make_write_helper from '#shared/mysql/write_helper.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
@@ -40,12 +40,12 @@ const next_estimator_sort = async (company_id: bigint, mysql: MysqlHelpersObject
 }
 
 export const create_employee = async (employee: CreateEmployeeArg, mysql: MysqlHelpersObject): Promise<bigint> => {
-	const { password, ...employee_fields } = employee
+	const { password, company_id, ...employee_fields } = employee
 
-	const { insert_id } = await write_helper.insert(mysql.connection, 'employee', {
+	const { insert_id } = await make_write_helper({ connection: mysql.connection, company_id }).insert('employee', {
 		...employee_fields,
-		estimator_sort: await next_estimator_sort(employee.company_id, mysql),
-		...await password_hash_column_values(password, employee.company_id),
+		estimator_sort: await next_estimator_sort(company_id, mysql),
+		...await password_hash_column_values(password, company_id),
 	})
 
 	return insert_id
@@ -65,8 +65,7 @@ export const update_password = async (employee_id: bigint, password: string, mys
 
 	const { employee } = employee_query.positional_row_to_named(employee_row)
 
-	await write_helper.update(
-		mysql.connection,
+	await make_write_helper({ connection: mysql.connection, company_id: employee.company_id }).update(
 		'employee',
 		'employee_id',
 		employee_id,

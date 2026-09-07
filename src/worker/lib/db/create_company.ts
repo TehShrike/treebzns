@@ -5,7 +5,7 @@ import { map } from '#shared/array.ts'
 import { transaction } from '#shared/mysql/helpers.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
-import write_helper from '#shared/mysql/write_helper.ts'
+import make_write_helper from '#shared/mysql/write_helper.ts'
 import assert from '#shared/assert.ts'
 import is_valid_timezone from '#shared/is_valid_timezone.ts'
 import type { Schema } from '#schema/types.ts'
@@ -56,23 +56,23 @@ export const create_company = async (
 
 	return transaction(mysql.connection, async transaction_connection => {
 		const transaction_mysql = make_mysql_helpers_object(transaction_connection)
-		const { insert_id: company_id } = await write_helper.insert(transaction_connection, 'company', company)
+		const { insert_id: company_id } = await make_write_helper({ connection: transaction_connection, company_id: null })
+			.insert('company', company)
+		const write_helper = make_write_helper({ connection: transaction_connection, company_id })
 
-		await write_helper.insert(transaction_connection, 'project_number', { company_id, next_number: 1100n })
+		await write_helper.insert('project_number', { next_number: 1100n })
 
-		await write_helper.insert(transaction_connection, 'invoice_number', { company_id, next_number: 1100n })
+		await write_helper.insert('invoice_number', { next_number: 1100n })
 
 		await write_helper.bulk_insert(
-			transaction_connection,
 			'payment_method',
-			map(default_payment_method_names, name => ({ company_id, name })),
+			map(default_payment_method_names, name => ({ name })),
 			ROWS_PER_BATCH,
 		)
 
 		await write_helper.bulk_insert(
-			transaction_connection,
 			'project_decline_reason',
-			map(default_decline_reasons, reason => ({ company_id, reason })),
+			map(default_decline_reasons, reason => ({ reason })),
 			ROWS_PER_BATCH,
 		)
 
@@ -89,8 +89,7 @@ export const create_company = async (
 
 		let owner_software_role_id: bigint | null = null
 		await Promise.all(map(default_software_roles, async role => {
-			const { insert_id: software_role_id } = await write_helper.insert(transaction_connection, 'software_role', {
-				company_id,
+			const { insert_id: software_role_id } = await write_helper.insert('software_role', {
 				name: role.name,
 			})
 
@@ -99,9 +98,8 @@ export const create_company = async (
 			}
 
 			await write_helper.bulk_insert(
-				transaction_connection,
 				'software_role_permission',
-				map(role.permission_codes, code => ({ company_id, software_role_id, permission_id: permission_id_by_code.get(code)! })),
+				map(role.permission_codes, code => ({ software_role_id, permission_id: permission_id_by_code.get(code)! })),
 				ROWS_PER_BATCH,
 			)
 		}))
@@ -115,8 +113,7 @@ export const create_company = async (
 		}, transaction_mysql)
 
 		assert(owner_software_role_id !== null, 'One of the default software roles is the owner role')
-		await write_helper.insert(transaction_connection, 'employee_software_role', {
-			company_id,
+		await write_helper.insert('employee_software_role', {
 			employee_id,
 			software_role_id: owner_software_role_id,
 		})
