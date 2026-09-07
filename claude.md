@@ -29,16 +29,21 @@ Avoid importing from directories using ../ if it is possible to use a #dir/ impo
 
 When you need styles based on dynamic state, prefer data attributes rather than classes.
 
-## Writing style (Simplified Technical English)
+## Writing style
 
-Apply this to all prose you write: conversation replies, docs, PR text, commit messages, error messages, code comments.  It does not apply to code, identifiers, or command syntax.  For a full rewrite of existing text, invoke the ste-writing skill.
+Apply this to all prose you write.
 
-- Active voice.  Keep sentences under about 20 words.  One instruction per sentence.
-- Use the short common word: use (not utilize/leverage), start (not initiate), make sure (not ensure), before (not prior to), about (not regarding), also (not additionally/furthermore).
-- Use one name for one thing.  Do not call the same item by two different names.
-- Use a verb for an action: "analyze the log", not "perform an analysis of the log".  No phrasal verbs ("spin up"), no stacked hedges ("it is important to note that this may help to").
-- No marketing adjectives: seamless, robust, powerful, effortless, cutting-edge.
-- No semicolons.  Write two sentences.
+- Use one name for one thing. Do not call the same item by two different names.
+- Use the short common word: start (not begin/commence/initiate), use (not utilize/leverage), help (not facilitate), make sure (not ensure), before (not prior to), after (not subsequent to), about (not regarding/concerning), get (not obtain/acquire), show (not demonstrate), also (not additionally/furthermore/moreover).
+- Give each word one meaning. "fall" means to move down, not to decrease.
+- No marketing adjectives: seamless, robust, powerful, cutting-edge, effortless, world-class, next-generation, revolutionary.
+- American spelling.
+- Any sentence over 20 words? Split it.
+- Any semicolon? Replace with a period.
+- Any contraction? Expand it.
+- Any passive voice with a known actor? Make it active.
+- Any "-ing" main verb, nominalization ("perform an analysis"), or phrasal verb ("spin up")? Replace with a plain verb.
+- Same thing named two ways? Pick one name.
 
 ## Svelte
 
