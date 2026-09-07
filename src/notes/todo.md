@@ -10,6 +10,28 @@ I suspect that each component should bind to an object that represents the thing
 - Due date date picker needs to always be visible, but disabled when not "Has a due date"
 - Build an initial "create a screen" skill
 
+## Client screen
+
+Fieldset groups:
+
+- Ungrouped/no fieldset
+	- Name
+	- Commercial
+- Billing contact
+	- Phone
+	- Email
+- Billing address
+	- Name
+	- Line 1
+	- Line 2
+	- City
+	- State
+	- Zip
+- Unnamed fieldset
+	- Tax rate
+	- Referred by
+	- Notes
+
 ## Deploy to dedicated Cloudflare account
 
 - [x] Create a new email address
@@ -25,6 +47,12 @@ I suspect that each component should bind to an object that represents the thing
 - [ ] Create new Digital Ocean account with new credit card
 - [ ] Create new managed DO database
 - [ ] Deploy from CI
+
+## Logs
+
+- Bot log
+	- ~/.codex/sessions/YYYY/MM/DD/
+	- ~/.claude/projects/-Users-joshduff-git-treebzns/
 
 ## List of screens to make
 
