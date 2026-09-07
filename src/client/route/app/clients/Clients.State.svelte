@@ -36,8 +36,8 @@
 {/snippet}
 
 {#snippet phone_cell(client: CachedClient)}
-	{#if client.client.primary_phone}
-		<a href={`tel:${client.client.primary_phone.replace(/[^\d+]/gu, ``)}`}>{client.client.primary_phone}</a>
+	{#if client.client.billing_phone}
+		<a href={`tel:${client.client.billing_phone.replace(/[^\d+]/gu, ``)}`}>{client.client.billing_phone}</a>
 	{/if}
 {/snippet}
 

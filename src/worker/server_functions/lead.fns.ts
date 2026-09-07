@@ -25,8 +25,8 @@ const project_field_validators = {
 
 const client_value_validators = {
 	name: jv.is_string,
-	primary_phone: jv.is_string,
-	primary_email: jv.is_string,
+	billing_phone: jv.is_string,
+	billing_email: jv.is_string,
 	referred_by: jv.is_string,
 	tax_rate_id: jv.nullable(jv.is_bigint),
 	is_commercial: jv.is_boolean,

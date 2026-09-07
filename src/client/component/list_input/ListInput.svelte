@@ -1,7 +1,8 @@
 <script module lang="ts">
 	import type { Snippet } from 'svelte'
+	import type { RowKey } from './row_key.ts'
 
-	export type RowKey = string | number | bigint
+	export type { RowKey }
 
 	export type Column<Row> = {
 		header: string
@@ -19,11 +20,13 @@
 		columns,
 		get_key,
 		focused_row_key = $bindable(null),
+		row_is_placeholder = () => false,
 	}: {
 		rows: readonly Row[]
 		columns: readonly Column<Row>[]
 		get_key: (row: Row) => RowKey
 		focused_row_key?: RowKey | null
+		row_is_placeholder?: (row: Row) => boolean
 	} = $props()
 
 	const grid_template_columns = $derived(map(columns, ({ width }) => width ?? `1fr`).join(` `))
@@ -81,7 +84,7 @@
 	</div>
 
 	{#each rows as row, row_index (get_key(row))}
-		<div role="row">
+		<div role="row" data-placeholder-row={row_is_placeholder(row)}>
 			{#each columns as column, column_index (column)}
 				<!-- svelte-ignore a11y_interactive_supports_focus -->
 				<div
@@ -100,6 +103,7 @@
 <style>
 	[role=table] {
 		--cell_border_width: 2px;
+		--cell_padding: 4px 8px;
 
 		display: grid;
 		gap: var(--cell_border_width);
@@ -115,9 +119,13 @@
 		grid-template-columns: var(--grid_template_columns);
 	}
 
+	[role=row][data-placeholder-row=true] {
+		color: var(--text_color_light);
+	}
+
 	[role=columnheader] {
 		font-weight: 500;
-		padding: 4px 8px;
+		padding: var(--cell_padding);
 		background-color: var(--accent_background);
 	}
 
@@ -127,21 +135,22 @@
 		overflow: hidden;
 	}
 
-	[role=cell]:focus-within {
-		border-radius: var(--default_border_radius);
-		outline: var(--focus_outline_width) solid var(--focus_color);
-		z-index: 1;
-	}
-
 	[role=cell] > :global(*) {
 		flex: 1;
 		box-sizing: border-box;
 		min-width: 0;
 		margin: 0;
-		padding: 4px 8px;
+		padding: var(--cell_padding);
+	}
+
+	[role=cell] > :global(:has(input, textarea, select)) {
+		padding: 0;
 	}
 
 	[role=cell] :global(:is(input, textarea, select)) {
+		width: 100%;
+		box-sizing: border-box;
+		padding: var(--cell_padding);
 		border: none;
 		border-radius: 0;
 		box-shadow: none;
@@ -151,12 +160,14 @@
 		line-height: inherit;
 	}
 
-	[role=cell] :global(textarea) {
-		resize: none;
+	[role=cell] :global(:is(input, textarea, select):disabled) {
+		color: var(--very_dark_gray);
 	}
 
 	[role=cell] :global(:is(input, textarea, select):focus) {
 		outline: none;
+		box-shadow: var(--border-field);
+		background-color: var(--input_background);
 	}
 
 	[data-header-text-align=center] {

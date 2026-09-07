@@ -7,11 +7,11 @@ import type { LeadAddress, LeadAvailability, LeadBilling, LeadClient, LeadContac
 const call_server_function = (function_name: string) => async (arg: unknown) => f3tch(`/api/fn/${function_name}`, {
 	method: 'POST',
 	body: arg,
-	signal: AbortSignal.timeout(60_000)
+	signal: AbortSignal.timeout(60_000),
 })
 
 const server_functions: {
-	create_client: (arg: OptionalizeUndefinedKeys<{ readonly name: string; readonly is_commercial: boolean; readonly primary_phone: string; readonly primary_email: string; readonly tax_rate_id: bigint | null | undefined; readonly notes: string; readonly referred_by: string; readonly primary_address: OptionalizeUndefinedKeys<{ readonly name: string; readonly address_line_1: string; readonly address_line_2: string; readonly city: string; readonly state: string; readonly zip: string; }>; }>) => Promise<Pick<DbClient, "client_id" | "default_project_address_id">>
+	create_client: (arg: OptionalizeUndefinedKeys<{ readonly name: string; readonly is_commercial: boolean; readonly billing_phone: string; readonly billing_email: string; readonly tax_rate_id: bigint | null | undefined; readonly notes: string; readonly referred_by: string; readonly primary_address: OptionalizeUndefinedKeys<{ readonly name: string; readonly address_line_1: string; readonly address_line_2: string; readonly city: string; readonly state: string; readonly zip: string; }>; }>) => Promise<Pick<DbClient, "client_id" | "default_project_address_id">>
 	create_company: (arg: OptionalizeUndefinedKeys<{ name: string; }>) => Promise<Pick<DbCompany, "name" | "company_id">>
 	create_lead: (arg: { client: LeadClient; billing_address: LeadBilling | null; address: LeadAddress; contact: LeadContact; project: LeadProject; availability: LeadAvailability[]; }) => Promise<{ project_id: bigint; client_id: bigint; }>
 	query: (arg: SafeSelectQuery) => Promise<unknown[][]>

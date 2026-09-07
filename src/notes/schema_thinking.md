@@ -57,8 +57,8 @@ add actual permission scheme
 - name VARCHAR(500) NOT NULL
 - primary_client_address_id BIGINT NOT NULL
 - billing_client_address_id BIGINT NOT NULL
-- primary_phone VARCHAR(30)
-- primary_email VARCHAR(500)
+- billing_phone VARCHAR(30)
+- billing_email VARCHAR(500)
 - tax_rate_id BIGINT
 - notes TEXT
 - referred_by VARCHAR(500)

@@ -1,4 +1,4 @@
-export type LeadClientValues = Pick<DbClient, 'name' | 'primary_phone' | 'primary_email' | 'referred_by' | 'tax_rate_id' | 'is_commercial' | 'notes'>
+export type LeadClientValues = Pick<DbClient, 'name' | 'billing_phone' | 'billing_email' | 'referred_by' | 'tax_rate_id' | 'is_commercial' | 'notes'>
 export type LeadClient =
 	| ({ client_id: null } & LeadClientValues)
 	| ({ client_id: DbClient['client_id'] } & Partial<LeadClientValues>)

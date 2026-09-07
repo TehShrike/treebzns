@@ -37,8 +37,8 @@
 	$effect(() => {
 		if (inputs_disabled) {
 			contact.form_values.name = client.form_values.name
-			contact.form_values.phone = client.form_values.primary_phone
-			contact.form_values.email = client.form_values.primary_email
+			contact.form_values.phone = client.form_values.billing_phone
+			contact.form_values.email = client.form_values.billing_email
 		}
 	})
 </script>

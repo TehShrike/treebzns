@@ -54,8 +54,8 @@ const test_schema = {
 		name: 'name',
 		primary_client_address_id: 'primary_client_address_id',
 		billing_client_address_id: 'billing_client_address_id',
-		primary_phone: 'primary_phone',
-		primary_email: 'primary_email',
+		billing_phone: 'billing_phone',
+		billing_email: 'billing_email',
 		tax_rate_id: 'tax_rate_id',
 		notes: 'notes',
 		referred_by: 'referred_by',
@@ -112,8 +112,8 @@ export type TestSchema = {
 		name: string
 		primary_client_address_id: bigint
 		billing_client_address_id: bigint
-		primary_phone: string | null
-		primary_email: string | null
+		billing_phone: string | null
+		billing_email: string | null
 		tax_rate_id: bigint | null
 		notes: string | null
 		referred_by: string | null

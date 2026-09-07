@@ -21,8 +21,8 @@ const client_and_address_columns = [
 	'client.billing_city',
 	'client.billing_state',
 	'client.billing_zip',
-	'client.primary_phone',
-	'client.primary_email',
+	'client.billing_phone',
+	'client.billing_email',
 	'client.tax_rate_id',
 	'client.notes',
 	'client.referred_by',
@@ -80,7 +80,7 @@ const transform_clients_for_searching = (clients: Awaited<ReturnType<typeof get_
 		...row,
 		search_helpers: {
 			all_phones: filter([
-				{ digits: get_phone_digits(row.client.primary_phone), display: row.client.primary_phone, client_contact: null },
+				{ digits: get_phone_digits(row.client.billing_phone), display: row.client.billing_phone, client_contact: null },
 				...map(row.client_contacts, contact => ({ digits: get_phone_digits(contact.phone), display: contact.phone, client_contact: contact }))
 			], phone => phone.digits !== ''),
 			all_name_tokens: tokenize_strings([row.client.name, ...map(row.client_contacts, contact => contact.name)]),

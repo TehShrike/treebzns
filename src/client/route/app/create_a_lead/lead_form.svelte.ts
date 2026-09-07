@@ -5,7 +5,7 @@ import { find } from '#shared/array.ts'
 
 const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 	const client = tracked_record<LeadClientValues, 'client_id'>({
-		initial: { name: ``, primary_phone: ``, primary_email: ``, referred_by: ``, tax_rate_id: null, is_commercial: false, notes: `` },
+		initial: { name: ``, billing_phone: ``, billing_email: ``, referred_by: ``, tax_rate_id: null, is_commercial: false, notes: `` },
 		id_key: `client_id`,
 	})
 	const address = tracked_record<LeadAddressValues, 'client_address_id'>({

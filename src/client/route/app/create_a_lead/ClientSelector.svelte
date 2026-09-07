@@ -56,11 +56,11 @@
 			</label>
 			<label>
 				Phone
-				<input type="tel" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={lead.client.value_needs_to_be_saved(`primary_phone`)} bind:value={lead.client.form_values.primary_phone}>
+				<input type="tel" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={lead.client.value_needs_to_be_saved(`billing_phone`)} bind:value={lead.client.form_values.billing_phone}>
 			</label>
 			<label>
 				Email
-				<input type="email" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={lead.client.value_needs_to_be_saved(`primary_email`)} bind:value={lead.client.form_values.primary_email}>
+				<input type="email" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={lead.client.value_needs_to_be_saved(`billing_email`)} bind:value={lead.client.form_values.billing_email}>
 			</label>
 			<label>
 				Referred by

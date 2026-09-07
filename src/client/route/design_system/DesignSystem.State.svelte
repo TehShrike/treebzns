@@ -2,6 +2,34 @@
 	import { state_type } from "#client/lib/client_type.ts";
 	import AppScreen from "#client/component/AppScreen.svelte";
 	import FormLayout from "#client/component/FormLayout.svelte";
+	import ListInput from "#client/component/list_input/ListInput.svelte";
+	import TextInput from "#client/component/list_input/TextInput.svelte";
+	import TextArea from "#client/component/list_input/TextArea.svelte";
+	import NumberInput from "#client/component/list_input/NumberInput.svelte";
+	import NumberDisplay from "#client/component/list_input/NumberDisplay.svelte";
+	import Checkbox from "#client/component/list_input/Checkbox.svelte";
+	import DeleteButton from "#client/component/list_input/DeleteButton.svelte";
+	import editable_rows from "#client/component/list_input/editable_rows.svelte.ts";
+	import number, { type FinancialNumber } from "#shared/fnum.ts";
+
+	type LineItemRow = {
+		line_item_id: bigint | null;
+		description: string;
+		quantity: FinancialNumber;
+		price: FinancialNumber;
+		taxable: boolean;
+	};
+
+	const make_empty_line_item = (): LineItemRow => ({
+		line_item_id: null,
+		description: ``,
+		quantity: number(`1`),
+		price: number(`0.00`),
+		taxable: true,
+	});
+
+	const line_item_is_empty = (row: LineItemRow) =>
+		row.description === `` && row.quantity.equal(`1`) && row.price.equal(`0.00`);
 
 	export const asr_state = state_type({
 		name: `design_system`,
@@ -32,7 +60,48 @@
 
 		return () => table.removeEventListener(`click`, on_click);
 	};
+
+	const line_items = editable_rows<LineItemRow>({
+		initial: [
+			{ line_item_id: 1n, description: `Remove the oak in the back yard`, quantity: number(`1`), price: number(`1800.00`), taxable: true },
+			{ line_item_id: 2n, description: `Stump grinding`, quantity: number(`2`), price: number(`150.00`), taxable: false },
+		],
+		make_empty_row: make_empty_line_item,
+		row_is_empty: line_item_is_empty,
+		get_key: (row) => row.line_item_id,
+	});
 </script>
+
+{#snippet description_cell(row: LineItemRow)}
+	<TextArea bind:value={row.description} />
+{/snippet}
+
+{#snippet quantity_cell(row: LineItemRow)}
+	<NumberInput bind:value={row.quantity} decimal_places={0} />
+{/snippet}
+
+{#snippet price_cell(row: LineItemRow)}
+	<NumberInput bind:value={row.price} decimal_places={2} />
+{/snippet}
+
+{#snippet total_cell(row: LineItemRow)}
+	<NumberDisplay value={row.quantity.times(row.price).changeDecimalPlaces(2)} />
+{/snippet}
+
+{#snippet taxable_cell(row: LineItemRow)}
+	<Checkbox bind:checked={row.taxable} />
+{/snippet}
+
+{#snippet note_cell(row: LineItemRow)}
+	<TextInput bind:value={row.description} />
+{/snippet}
+
+{#snippet delete_cell(row: LineItemRow)}
+	<DeleteButton
+		disabled={line_items.row_is_placeholder(row)}
+		onclick={() => line_items.remove(line_items.get_key(row))}
+	/>
+{/snippet}
 
 <AppScreen>
 	<main>
@@ -890,6 +959,37 @@
 					</label>
 				</FormLayout>
 			</div>
+		</section>
+
+		<section class="component">
+			<h3 id="list-input">List input</h3>
+
+			<p>
+				A list input is a table whose cells are inputs. At rest it reads as a table. The cell with
+				the cursor in it shows the matching control. <kbd>Enter</kbd> moves down a column,
+				<kbd>Shift</kbd>+<kbd>Enter</kbd> moves up. The last row is always empty. An empty row
+				disappears once the cursor leaves it.
+			</p>
+
+			<div class="example">
+				<ListInput
+					rows={line_items.rows}
+					get_key={line_items.get_key}
+					bind:focused_row_key={line_items.focused_row_key}
+					row_is_placeholder={line_items.row_is_placeholder}
+					columns={[
+						{ header: `Description`, cell: description_cell, width: `4fr` },
+						{ header: `Same description`, cell: note_cell, width: `2fr` },
+						{ header: `Quantity`, cell: quantity_cell, width: `5rem`, header_text_align: `right` },
+						{ header: `Price`, cell: price_cell, width: `7rem`, header_text_align: `right` },
+						{ header: `Total`, cell: total_cell, width: `7rem`, header_text_align: `right` },
+						{ header: `Taxable`, cell: taxable_cell, width: `5rem`, header_text_align: `center` },
+						{ header: ``, cell: delete_cell, width: `2.5rem` },
+					]}
+				/>
+			</div>
+
+			<p>Rows with content: {line_items.non_empty_rows.length}</p>
 		</section>
 	</main>
 </AppScreen>

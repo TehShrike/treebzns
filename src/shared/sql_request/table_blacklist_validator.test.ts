@@ -53,8 +53,8 @@ type TestSchema = {
 		name: string
 		primary_client_address_id: bigint
 		billing_client_address_id: bigint
-		primary_phone: string | null
-		primary_email: string | null
+		billing_phone: string | null
+		billing_email: string | null
 		tax_rate_id: bigint | null
 		notes: string | null
 		referred_by: string | null

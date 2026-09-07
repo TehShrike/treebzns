@@ -87,8 +87,8 @@ export const import_clients = async (
 		return {
 			name: contact.contact_name,
 			is_commercial: is_commercial(client.client_type),
-			primary_phone: contact.contact_phone,
-			primary_email: contact.contact_email,
+			billing_phone: contact.contact_phone,
+			billing_email: contact.contact_email,
 			notes: join_lines([
 				is_known_client_type(client.client_type) ? null : `ArboStar client type: ${client.client_type}`,
 				// client_date_created is already YYYY-MM-DD; the slice guards against a future
