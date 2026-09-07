@@ -5,6 +5,8 @@ import { omit } from '#shared/omit.ts'
 import { query_requires_transaction } from './query_requires_transaction.ts'
 import type {
 	Comparator,
+	ArrayComparator,
+	SingleValue,
 	SafeSelectQuery,
 	Comparison,
 	ColumnReference,
@@ -38,7 +40,9 @@ type ColumnRef<Schema extends SchemaColumnTypes, A extends AliasMap<Schema>> = {
 	[Alias in keyof A & string]: `${Alias}.${Extract<keyof Schema[A[Alias]], string>}`
 }[keyof A & string]
 
-type ValueRef = { value: unknown }
+type ValueRef = { value: SingleValue }
+
+type ArrayValues = readonly (string | bigint)[]
 
 type Expression = { __expression: true }
 
@@ -48,6 +52,8 @@ type ExpressionBuilder<Schema extends SchemaColumnTypes, A extends AliasMap<Sche
 		comparator: Comparator,
 		right: ColumnRef<Schema, A> | ValueRef | FunctionExpression,
 	) => Expression
+	in: (left: ColumnRef<Schema, A> | FunctionExpression, values: ArrayValues) => Expression
+	not_in: (left: ColumnRef<Schema, A> | FunctionExpression, values: ArrayValues) => Expression
 	and: (...exprs: Expression[]) => Expression
 	or: (...exprs: Expression[]) => Expression
 	fn: (name: FunctionName, ...args: (ColumnRef<Schema, A> | ValueRef)[]) => FunctionExpression
@@ -334,7 +340,7 @@ export type QueryBuilder<Schema extends SchemaColumnTypes, AllowsTransactionRequ
 	}
 }
 
-type ColumnOrValueInput = string | { value: unknown } | FunctionExpression
+type ColumnOrValueInput = string | ValueRef | FunctionExpression
 
 type BoolExpr = WhereGrouping | Comparison
 
@@ -390,10 +396,22 @@ const to_select_expression = (input: string | SelectableFunctionExpression): Sel
 const to_column_or_value = (input: ColumnOrValueInput): ColumnReference | UserProvidedValue | FunctionExpression => {
 	if (typeof input === 'object' && 'type' in input && input.type === 'function') return input
 	if (typeof input === 'object' && 'value' in input) {
-		return { type: 'user provided value', value: (input as { value: unknown }).value }
+		return { type: 'user provided value', value: input.value }
 	}
 	const { table, column } = parse_col_ref(input as string)
 	return { type: 'column reference', table_identifier: table, column }
+}
+
+const array_comparison = (left: string | FunctionExpression, comparator: ArrayComparator, values: ArrayValues): BoolExpr => {
+	assert(values.length > 0, `an ${comparator} array has at least one value`)
+	const left_operand = to_column_or_value(left)
+	assert(left_operand.type !== 'user provided value', `the left side of ${comparator} is a column or a function`)
+	return {
+		type: 'comparison',
+		left: left_operand,
+		comparator,
+		right: { type: 'user provided value array', values: [...values] },
+	}
 }
 
 const expression_builder = {
@@ -403,6 +421,8 @@ const expression_builder = {
 		comparator,
 		right: to_column_or_value(right),
 	}),
+	in: (left: string | FunctionExpression, values: ArrayValues): BoolExpr => array_comparison(left, 'IN', values),
+	not_in: (left: string | FunctionExpression, values: ArrayValues): BoolExpr => array_comparison(left, 'NOT IN', values),
 	and: (...exprs: BoolExpr[]): BoolExpr => ({ type: 'and', expressions: exprs }),
 	or: (...exprs: BoolExpr[]): BoolExpr => ({ type: 'or', expressions: exprs }),
 	fn: (name: FunctionName, ...args: ColumnOrValueInput[]): FunctionExpression => ({
@@ -416,14 +436,14 @@ const expression_builder = {
 	}),
 }
 
-const to_alias_or_value = (input: string | { value: unknown }): AliasReference | UserProvidedValue =>
+const to_alias_or_value = (input: AliasOrValueInput): AliasReference | UserProvidedValue =>
 	typeof input === 'object'
 		? { type: 'user provided value', value: input.value }
 		// Alias references are typed as the finite union of selected aliases (RowIdentifiers), so the
 		// type system already constrains them; the validator is the authoritative runtime guard.
 		: { type: 'alias reference', alias: input }
 
-type AliasOrValueInput = string | { value: unknown }
+type AliasOrValueInput = string | ValueRef
 
 const having_expression_builder = {
 	comparison: (left: AliasOrValueInput, comparator: Comparator, right: AliasOrValueInput): HavingBoolExpr => ({
@@ -460,7 +480,7 @@ const split_trailing_alias = <T>(rest: (T | string)[], role: string): { items: (
 }
 
 const select_expression_builder = {
-	fn: (name: FunctionName, ...rest: (string | { value: unknown })[]): SelectableFunctionExpression => {
+	fn: (name: FunctionName, ...rest: (string | ValueRef)[]): SelectableFunctionExpression => {
 		const { items: fn_args, alias } = split_trailing_alias(rest, 'select fn')
 		if (fn_args.length > 2) throw new Error('fn supports at most 2 arguments')
 		const args = map(fn_args, arg => {

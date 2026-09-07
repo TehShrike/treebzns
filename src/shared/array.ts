@@ -73,6 +73,15 @@ export const map = <T, U>(arr: readonly T[], mapper: MapperWithIndex<T, U>): U[]
 	return res
 }
 
+export const map_async = async <T, U>(arr: readonly T[], mapper: (item: T, index: number) => Promise<U>): Promise<U[]> => {
+	const length = arr.length,
+		res: U[] = new Array(length)
+	for (let i = 0; i < length; ++i) {
+		res[i] = await mapper(arr[i] as T, i)
+	}
+	return res
+}
+
 export const reduce = <T, U>(arr: readonly T[], initial: U, fn: (acc: U, item: T, index: number) => U): U => {
 	let acc = initial
 	const length = arr.length

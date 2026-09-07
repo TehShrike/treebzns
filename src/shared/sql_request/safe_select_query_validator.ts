@@ -1,8 +1,12 @@
 import * as jv from '#shared/json_validator.ts'
 import type { InferValidator, Validator } from '#shared/json_validator.ts'
 import assert from '#shared/assert.ts'
-
-const any_validator = jv.custom<any>({ is_valid: (_): _ is any => true, get_messages: () => [] })
+import {
+	is_financial_number,
+	is_temporal_instant,
+	is_temporal_plain_date,
+	is_temporal_plain_time,
+} from '#shared/value_validators.ts'
 
 // Identifiers (table names, column names, and aliases) are interpolated directly into the SQL
 // string inside backticks rather than being parameterized, so they must be constrained to a safe
@@ -23,9 +27,36 @@ const column_reference_object_properties = {
 
 export const column_reference_validator = jv.object(column_reference_object_properties)
 
+// Every value is passed to the driver as a parameter, which escapes primitives and stringifies
+// objects, but expands arrays into SQL list syntax. Only accept what the driver escapes as one value.
+const single_value_validator = jv.one_of(
+	jv.is_string,
+	jv.is_bigint,
+	jv.is_number,
+	jv.is_boolean,
+	jv.is_null,
+	is_temporal_plain_date,
+	is_temporal_plain_time,
+	is_temporal_instant,
+	is_financial_number,
+)
+
 export const user_provided_value_validator = jv.object({
 	type: jv.exact('user provided value' as const),
-	value: any_validator,
+	value: single_value_validator,
+})
+
+const array_value_validator = jv.one_of(jv.is_string, jv.is_bigint)
+const array_values_validator = jv.array(array_value_validator)
+const is_non_empty_array = (input: unknown): input is Array<string | bigint> => array_values_validator.is_valid(input) && input.length > 0
+export const user_provided_value_array_validator = jv.object({
+	type: jv.exact('user provided value array' as const),
+	values: jv.custom<Array<string | bigint>>({
+		is_valid: is_non_empty_array,
+		get_messages: (input, name) => is_non_empty_array(input)
+			? []
+			: [...array_values_validator.get_messages(input, name), ...(Array.isArray(input) && input.length === 0 ? [`"${name}" must have at least one value`] : [])],
+	}),
 })
 
 export const comparator_validator = jv.one_of(
@@ -36,6 +67,11 @@ export const comparator_validator = jv.one_of(
 	jv.exact('<=' as const),
 	jv.exact('<=>' as const),
 	jv.exact('=' as const),
+)
+
+export const array_comparator_validator = jv.one_of(
+	jv.exact('IN' as const),
+	jv.exact('NOT IN' as const),
 )
 
 export const function_name_validator = jv.one_of(
@@ -68,12 +104,21 @@ export const select_function_expression_validator = jv.object({
 	table_identifier: identifier_validator,
 })
 
-export const comparison_validator = jv.object({
+export const value_comparison_validator = jv.object({
 	type: jv.exact('comparison' as const),
 	left: jv.one_of(column_reference_validator, user_provided_value_validator, function_expression_validator),
 	comparator: comparator_validator,
 	right: jv.one_of(column_reference_validator, user_provided_value_validator, function_expression_validator),
 })
+
+export const array_comparison_validator = jv.object({
+	type: jv.exact('comparison' as const),
+	left: jv.one_of(column_reference_validator, function_expression_validator),
+	comparator: array_comparator_validator,
+	right: user_provided_value_array_validator,
+})
+
+export const comparison_validator = jv.one_of(value_comparison_validator, array_comparison_validator)
 
 const column_reference_select_validator = jv.object({
 	...column_reference_object_properties,
@@ -214,7 +259,12 @@ export const safe_select_query_validator = make_safe_select_query_validator()
 
 export type ColumnReference = InferValidator<typeof column_reference_validator>
 export type UserProvidedValue = InferValidator<typeof user_provided_value_validator>
+export type SingleValue = InferValidator<typeof single_value_validator>
+export type UserProvidedValueArray = InferValidator<typeof user_provided_value_array_validator>
 export type Comparator = InferValidator<typeof comparator_validator>
+export type ArrayComparator = InferValidator<typeof array_comparator_validator>
+export type ValueComparison = InferValidator<typeof value_comparison_validator>
+export type ArrayComparison = InferValidator<typeof array_comparison_validator>
 export type Comparison = InferValidator<typeof comparison_validator>
 export type FunctionName = InferValidator<typeof function_name_validator>
 export type FunctionExpression = InferValidator<typeof function_expression_validator>

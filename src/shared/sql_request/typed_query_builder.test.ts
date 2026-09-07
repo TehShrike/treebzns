@@ -751,3 +751,49 @@ test('typed_query_builder: a left-joined derived table nulls its selected column
 	assert.strictEqual(built.query.joins[0]!.left, true)
 	assert_valid_query_output(built)
 })
+
+test('typed_query_builder: where with in and not_in', () => {
+	const built = q.from('project_line_item AS pli')
+		.where(q => q.and(
+			q.in('pli.project_id', [2n, 3n]),
+			q.not_in('pli.item_type_id', [1n]),
+		))
+		.build()
+	assert_valid_query_output(built)
+	assert.deepStrictEqual(built.query.where, {
+		type: 'and',
+		expressions: [{
+			type: 'comparison',
+			left: { type: 'column reference', table_identifier: 'pli', column: 'project_id' },
+			comparator: 'IN',
+			right: { type: 'user provided value array', values: [2n, 3n] },
+		}, {
+			type: 'comparison',
+			left: { type: 'column reference', table_identifier: 'pli', column: 'item_type_id' },
+			comparator: 'NOT IN',
+			right: { type: 'user provided value array', values: [1n] },
+		}],
+	})
+})
+
+test('typed_query_builder: in inside a join on clause', () => {
+	const built = q.from('project AS p')
+		.join('project_line_item AS pli', on => on.and(
+			on.comparison('pli.project_id', '=', 'p.project_id'),
+			on.in('pli.item_type_id', [1n, 2n]),
+		))
+		.build()
+	assert_valid_query_output(built)
+})
+
+test('typed_query_builder: in rejects an empty array', () => {
+	assert.throws(
+		() => q.from('project AS p').where(q => q.in('p.project_id', [])).build(),
+		/at least one value/,
+	)
+})
+
+test('typed_query_builder: in rejects a column that is not on the schema', () => {
+	// @ts-expect-error nonexistent column
+	q.from('project AS p').where(q => q.in('p.nonexistent', [1n]))
+})

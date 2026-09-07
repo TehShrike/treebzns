@@ -1,5 +1,7 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert'
+import { Temporal } from '@js-temporal/polyfill'
+import fnum from '#shared/fnum.ts'
 import { safe_select_query_validator } from './safe_select_query_validator.ts'
 
 const valid_query = {
@@ -420,4 +422,73 @@ test('safe_select_query_validator: a join may be a derived table', () => {
 test('safe_select_query_validator: a derived table join subquery is validated', () => {
 	const query = { ...valid_query, joins: [{ subquery: { ...valid_query, limit: -1n }, alias: 'c', on_clause: [] }] }
 	assert.strictEqual(safe_select_query_validator.is_valid(query), false)
+})
+
+const in_comparison = (right: unknown) => ({
+	...valid_query,
+	where: {
+		type: 'and',
+		expressions: [{
+			type: 'comparison',
+			left: { type: 'column reference', table_identifier: 'project', column: 'client_id' },
+			comparator: 'IN',
+			right,
+		}],
+	},
+})
+
+test('safe_select_query_validator: IN with a non-empty value array is valid', () => {
+	assert.strictEqual(safe_select_query_validator.is_valid(in_comparison({ type: 'user provided value array', values: [1n, 'two'] })), true)
+})
+
+test('safe_select_query_validator: NOT IN with a non-empty value array is valid', () => {
+	const query = in_comparison({ type: 'user provided value array', values: [1n] })
+	query.where.expressions[0]!.comparator = 'NOT IN'
+	assert.strictEqual(safe_select_query_validator.is_valid(query), true)
+})
+
+test('safe_select_query_validator: IN with an empty value array is invalid', () => {
+	assert.strictEqual(safe_select_query_validator.is_valid(in_comparison({ type: 'user provided value array', values: [] })), false)
+})
+
+test('safe_select_query_validator: IN with a scalar right operand is invalid', () => {
+	assert.strictEqual(safe_select_query_validator.is_valid(in_comparison({ type: 'user provided value', value: 1 })), false)
+})
+
+test('safe_select_query_validator: a value comparator with a value array is invalid', () => {
+	const query = in_comparison({ type: 'user provided value array', values: [1n] })
+	query.where.expressions[0]!.comparator = '='
+	assert.strictEqual(safe_select_query_validator.is_valid(query), false)
+})
+
+test('safe_select_query_validator: IN array elements must be strings or bigints', () => {
+	assert.strictEqual(safe_select_query_validator.is_valid(in_comparison({ type: 'user provided value array', values: [1] })), false)
+	assert.strictEqual(safe_select_query_validator.is_valid(in_comparison({ type: 'user provided value array', values: [{ x: 1 }] })), false)
+	assert.strictEqual(safe_select_query_validator.is_valid(in_comparison({ type: 'user provided value array', values: [[1n]] })), false)
+	assert.strictEqual(safe_select_query_validator.is_valid(in_comparison({ type: 'user provided value array', values: [null] })), false)
+})
+
+const value_comparison = (value: unknown) => ({
+	...valid_query,
+	where: {
+		type: 'and',
+		expressions: [{
+			type: 'comparison',
+			left: { type: 'column reference', table_identifier: 'project', column: 'client_id' },
+			comparator: '=',
+			right: { type: 'user provided value', value },
+		}],
+	},
+})
+
+test('safe_select_query_validator: a user provided value may be any single escapable value', () => {
+	for (const value of ['text', 1n, 1.5, true, null, Temporal.PlainDate.from('2024-01-01'), Temporal.PlainTime.from('12:00'), Temporal.Instant.from('2024-01-01T00:00:00Z'), fnum('1.50')]) {
+		assert.strictEqual(safe_select_query_validator.is_valid(value_comparison(value)), true, String(value))
+	}
+})
+
+test('safe_select_query_validator: a user provided value may not be an array, object, or undefined', () => {
+	for (const value of [[1n], [[1n, 2n]], { 'e.password_hash': 'x' }, undefined, new Date()]) {
+		assert.strictEqual(safe_select_query_validator.is_valid(value_comparison(value)), false, String(value))
+	}
 })

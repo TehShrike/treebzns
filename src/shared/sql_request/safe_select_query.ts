@@ -3,7 +3,9 @@ import { for_each, map } from '#shared/array.ts'
 import type {
 	ColumnReference,
 	UserProvidedValue,
+	UserProvidedValueArray,
 	Comparator,
+	ArrayComparator,
 	Comparison,
 	FunctionName,
 	FunctionExpression,
@@ -21,14 +23,16 @@ type ComparisonOperand = ColumnReference | UserProvidedValue | FunctionExpressio
 
 // A comparison whose operands may be any renderable operand — covers both WHERE (columns/values/functions)
 // and HAVING (aliases/values). Used so one set of renderers handles both clauses.
-type RenderableComparison = { type: 'comparison'; left: ComparisonOperand; comparator: Comparator; right: ComparisonOperand }
+type RenderableComparison =
+	| { type: 'comparison'; left: ComparisonOperand; comparator: Comparator; right: ComparisonOperand }
+	| { type: 'comparison'; left: ComparisonOperand; comparator: ArrayComparator; right: UserProvidedValueArray }
 type RenderableGrouping = AndOrGrouping<RenderableComparison>
 
 export type { SafeSelectQuery }
 
 type SqlChunk = {
 	sql: string
-	parameters: Array<UserProvidedValue>
+	parameters: Array<UserProvidedValue | UserProvidedValueArray>
 }
 
 const value_to_sql_chunk = (value: ColumnReference | UserProvidedValue) => {
@@ -150,6 +154,13 @@ type QueryValidationResult = {
 
 const comparison_to_chunk = (comp: RenderableComparison): SqlChunk => {
 	const left = operand_to_sql_chunk(comp.left)
+	if (comp.right.type === 'user provided value array') {
+		assert(comp.right.values.length > 0, `an IN array has at least one value`)
+		return {
+			sql: `${left.sql} ${comp.comparator} (?)`,
+			parameters: [...left.parameters, comp.right],
+		}
+	}
 	const right = operand_to_sql_chunk(comp.right)
 	return {
 		sql: `${left.sql} ${comp.comparator} ${right.sql}`,
@@ -349,7 +360,7 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 					check_grouping(expr)
 				} else {
 					check_arg(expr.left)
-					check_arg(expr.right)
+					if (expr.right.type !== 'user provided value array') check_arg(expr.right)
 				}
 			})
 		}
@@ -360,7 +371,7 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 			for_each(join.on_clause, clause => {
 				if (clause.type === 'comparison') {
 					check_arg(clause.left)
-					check_arg(clause.right)
+					if (clause.right.type !== 'user provided value array') check_arg(clause.right)
 				} else if (clause.type === 'function') {
 					for_each(clause.arguments, check_arg)
 				} else {
@@ -455,7 +466,7 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 
 	const to_sql = (query: SafeSelectQuery): { sql: string, values: any[] } => {
 		const { sql, parameters } = query_to_chunk(query)
-		return { sql, values: map(parameters, p => p.value) }
+		return { sql, values: map(parameters, p => p.type === 'user provided value array' ? p.values : p.value) }
 	}
 
 	return { validate_table_and_column_names, to_sql }

@@ -965,3 +965,73 @@ test('safe_select_query: problems inside a joined derived table subquery are rep
 	assert.strictEqual(result.valid, false)
 	assert.ok(some(result.messages, message => message.includes('nonexistent_column')))
 })
+
+test('safe_select_query: IN renders a parenthesized placeholder with the array as one value', () => {
+	const query = {
+		select: [{ type: 'column reference', table_identifier: 'p', column: 'project_id' }],
+		from: { table_name: 'project', alias: 'p' },
+		joins: [],
+		where: {
+			type: 'and',
+			expressions: [
+				{
+					type: 'comparison',
+					left: { type: 'column reference', table_identifier: 'p', column: 'client_id' },
+					comparator: 'IN',
+					right: { type: 'user provided value array', values: [1n, 2n] },
+				},
+				{
+					type: 'comparison',
+					left: { type: 'column reference', table_identifier: 'p', column: 'closed' },
+					comparator: '=',
+					right: { type: 'user provided value', value: 0 },
+				},
+			],
+		},
+		group_by: [],
+		order_by: [],
+		limit: null,
+		having: null,
+	} satisfies SafeSelectQuery
+
+	const { validate_table_and_column_names, to_sql } = make_safe_select_query_builder(test_schema)
+	assert.strictEqual(validate_table_and_column_names(query).valid, true)
+
+	const { sql, values } = to_sql(query)
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nWHERE `p`.`client_id` IN (?)\n\tAND `p`.`closed` = ?')
+	assert.deepStrictEqual(values, [[1n, 2n], 0])
+})
+
+test('safe_select_query: NOT IN in a join on clause', () => {
+	const query = {
+		select: [{ type: 'column reference', table_identifier: 'p', column: 'project_id' }],
+		from: { table_name: 'project', alias: 'p' },
+		joins: [{
+			table_name: 'project_line_item',
+			alias: 'pli',
+			on_clause: [{
+				type: 'comparison',
+				left: { type: 'column reference', table_identifier: 'pli', column: 'project_id' },
+				comparator: '=',
+				right: { type: 'column reference', table_identifier: 'p', column: 'project_id' },
+			}, {
+				type: 'comparison',
+				left: { type: 'column reference', table_identifier: 'pli', column: 'item_type_id' },
+				comparator: 'NOT IN',
+				right: { type: 'user provided value array', values: [3n, 4n] },
+			}],
+		}],
+		where: null,
+		group_by: [],
+		order_by: [],
+		limit: null,
+		having: null,
+	} satisfies SafeSelectQuery
+
+	const { validate_table_and_column_names, to_sql } = make_safe_select_query_builder(test_schema)
+	assert.strictEqual(validate_table_and_column_names(query).valid, true)
+
+	const { sql, values } = to_sql(query)
+	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nJOIN `project_line_item` AS `pli` ON `pli`.`project_id` = `p`.`project_id`\n\tAND `pli`.`item_type_id` NOT IN (?)')
+	assert.deepStrictEqual(values, [[3n, 4n]])
+})
