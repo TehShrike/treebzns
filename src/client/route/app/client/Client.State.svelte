@@ -210,7 +210,7 @@
 <AppScreen>
 	<div class="header">
 		<h1>{client.db_values?.name ?? ``}</h1>
-		<button type="submit" form="client_form" class="default" disabled={saver.saving}>Save</button>
+		<button type="submit" form="client_form" class="default" disabled={saver.saving || !form.needs_to_be_saved}>Save</button>
 	</div>
 
 	{#if saver.save_error}

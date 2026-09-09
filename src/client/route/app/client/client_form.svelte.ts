@@ -78,6 +78,8 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 		remove_address_ids: addresses.removed_ids,
 	})
 
+	const needs_to_be_saved = $derived(client.needs_to_be_saved || contacts.needs_to_be_saved || addresses.needs_to_be_saved)
+
 	const update_db_values = (saved: SavedClientValues) => {
 		client.update_db_values(saved.client)
 		contacts.update_db_values(saved.contacts, saved.remove_contact_ids)
@@ -89,6 +91,7 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 		contact_rows,
 		address_rows,
 		get values_to_save() { return values_to_save },
+		get needs_to_be_saved() { return needs_to_be_saved },
 		update_db_values,
 	}
 }

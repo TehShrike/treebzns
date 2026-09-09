@@ -25,6 +25,8 @@ const tracked_record_array = <VALUES extends object, ID_KEY extends string>({
 
 	const removed_ids = $derived([...db_ids.difference(record_ids)])
 
+	const needs_to_be_saved = $derived(values_to_save.length > 0 || removed_ids.length > 0)
+
 	const update_db_values = (saved: readonly SavedRowValues<VALUES, ID_KEY>[], removed_db_ids: readonly bigint[]) => {
 		const saved_values_by_key = new Map(
 			map(saved, values => [
@@ -57,6 +59,7 @@ const tracked_record_array = <VALUES extends object, ID_KEY extends string>({
 	return {
 		get values_to_save() { return values_to_save },
 		get removed_ids() { return removed_ids },
+		get needs_to_be_saved() { return needs_to_be_saved },
 		update_db_values,
 	}
 }
