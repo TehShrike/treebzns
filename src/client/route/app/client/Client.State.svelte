@@ -10,6 +10,7 @@
 	import Checkbox from '#client/component/list_input/Checkbox.svelte'
 	import DeleteButton from '#client/component/list_input/DeleteButton.svelte'
 	import make_client_form, { type ClientForm } from './client_form.svelte.ts'
+	import form_saver from '#client/lib/form_saver.svelte.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import param_validator from '#shared/param_validator.ts'
 	import type { Schema } from '#schema/types.ts'
@@ -139,29 +140,19 @@
 	const form = untrack(() => make_client_form({ client: loaded_client, contacts: loaded_contacts, addresses: loaded_addresses }))
 	const { client, contact_rows, address_rows } = form
 
-	let saving = $state(false)
-	let save_error = $state(``)
-
-	const save = async (event: SubmitEvent) => {
-		event.preventDefault()
-		save_error = ``
-		saving = true
-		try {
-			const sent = form.values_to_save
-			const saved = await server.update_client(sent)
+	const saver = form_saver({
+		form,
+		on_save: async sent => {
+			const saved_ids = await server.update_client(sent)
 			form.update_db_values({
 				...sent,
-				client: { ...sent.client, client_id: saved.client_id },
-				contacts: zip_with(sent.contacts, saved.contact_ids, (contact, client_contact_id) => ({ ...contact, client_contact_id })),
-				addresses: zip_with(sent.addresses, saved.address_ids, (address, client_address_id) => ({ ...address, client_address_id })),
+				client: { ...sent.client, client_id: saved_ids.client_id },
+				contacts: zip_with(sent.contacts, saved_ids.contact_ids, (contact, client_contact_id) => ({ ...contact, client_contact_id })),
+				addresses: zip_with(sent.addresses, saved_ids.address_ids, (address, client_address_id) => ({ ...address, client_address_id })),
 			})
 			client_cache.refresh()
-		} catch (err: any) {
-			save_error = err?.body?.message ?? err?.message ?? `Something went wrong`
-		} finally {
-			saving = false
-		}
-	}
+		},
+	})
 </script>
 
 {#snippet contact_name_cell(contact: ContactRow)}
@@ -219,14 +210,14 @@
 <AppScreen>
 	<div class="header">
 		<h1>{client.db_values?.name ?? ``}</h1>
-		<button type="submit" form="client_form" class="default" disabled={saving}>Save</button>
+		<button type="submit" form="client_form" class="default" disabled={saver.saving}>Save</button>
 	</div>
 
-	{#if save_error}
-		<p class="error">{save_error}</p>
+	{#if saver.save_error}
+		<p class="error">{saver.save_error}</p>
 	{/if}
 
-	<form id="client_form" onsubmit={save}>
+	<form id="client_form" onsubmit={saver.save_cb}>
 		<FormLayout>
 			<label>
 				Name

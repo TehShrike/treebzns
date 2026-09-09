@@ -8,6 +8,7 @@
 	import ContactSelector from './ContactSelector.svelte'
 	import ProjectSelector, { in_estimator_order } from './ProjectSelector.svelte'
 	import make_lead_form from './lead_form.svelte.ts'
+	import form_saver from '#client/lib/form_saver.svelte.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import { map } from '#shared/array.ts'
@@ -75,28 +76,20 @@
 
 	const lead = make_lead_form(untrack(() => in_estimator_order(employees)[0]?.employee_id ?? null))
 
-	let saving = $state(false)
-	let save_error = $state(``)
-
-	const submit = async (event: SubmitEvent) => {
-		event.preventDefault()
-		save_error = ``
-		saving = true
-		try {
-			await server.create_lead(lead.values_to_save)
+	const saver = form_saver({
+		form: lead,
+		on_save: async sent => {
+			await server.create_lead(sent)
 			client_cache.refresh()
 			asr.go(`app.home`)
-		} catch (err: any) {
-			save_error = err?.body?.message ?? err?.message ?? `Something went wrong`
-			saving = false
-		}
-	}
+		},
+	})
 </script>
 
 <AppScreen>
 	<h1>Create a lead</h1>
 
-	<form onsubmit={submit}>
+	<form onsubmit={saver.save_cb}>
 		<ClientSelector {client_cache} {tax_rates} {lead} />
 
 		<AddressSelector
@@ -118,13 +111,13 @@
 
 		<ProjectSelector bind:project={lead.project} bind:availability={lead.availability} {lead_sources} {employees} />
 
-		{#if save_error}
-			<p class="error">{save_error}</p>
+		{#if saver.save_error}
+			<p class="error">{saver.save_error}</p>
 		{/if}
 
 		<div class="footer">
 			<button type="button" onclick={() => asr.go(`app.home`)}>Cancel</button>
-			<button type="submit" class="default" disabled={saving}>Create the lead</button>
+			<button type="submit" class="default" disabled={saver.saving}>Create the lead</button>
 		</div>
 	</form>
 </AppScreen>
