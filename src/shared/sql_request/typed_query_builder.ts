@@ -366,7 +366,7 @@ type State = {
 // in safe_select_query_validator.ts — the validator is the security boundary on the server; this is the
 // same rule enforced early for a clear error at construction time.
 const assert_identifier = (s: string, role: string): string => {
-	assert(/^\w+$/.test(s), `${role} must be a valid SQL identifier (letters, numbers, and underscores only): ${JSON.stringify(s)}`)
+	assert(/^\w+$/.test(s), `${role} must be a valid SQL identifier (letters, numbers, and underscores only): "${s}"`)
 	return s
 }
 
