@@ -1,8 +1,8 @@
-import type { Connection, ResultSetHeader } from 'mysql2/promise'
+import type { Connection } from 'mysql2/promise'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
+import { fns } from '#shared/sql_request/mysql_function.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
-import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import number from '#shared/fnum.ts'
@@ -79,10 +79,9 @@ export const import_invoices = async (
 	if (max_constructed !== null) {
 		let next_power = 10n
 		while (next_power <= max_constructed) next_power *= 10n
-		await connection.query(
-			'UPDATE invoice_number SET next_number = GREATEST(next_number, ?) WHERE company_id = ?',
-			[next_power, context.company_id],
-		)
+		await write_helper.update_company_row('invoice_number', {
+			next_number: fns.greatest_of_column_and('next_number', next_power),
+		})
 	}
 
 	const [company_row] = await context.tenanted_select(connection, q => q
@@ -170,7 +169,7 @@ export const import_invoices = async (
 	await write_helper.bulk_update(
 		'invoice',
 		'invoice_id',
-		map(existing_invoices, invoice => ({ key: correlated.get(invoice.invoice_id)!, set: invoice_fields(invoice) })),
+		map(existing_invoices, invoice => ({ value: correlated.get(invoice.invoice_id)!, set: invoice_fields(invoice) })),
 		ROWS_PER_BATCH,
 	)
 
@@ -191,12 +190,7 @@ export const import_invoices = async (
 	// updated invoices simply get their lines replaced. Lines import as exported — no
 	// reconciliation against the header totals.
 	const updated_invoice_ids = map(existing_invoices, invoice => correlated.get(invoice.invoice_id)!)
-	if (updated_invoice_ids.length > 0) {
-		const id_list = map(updated_invoice_ids, escape_value).join(', ')
-		await connection.query<ResultSetHeader>(
-			`DELETE FROM invoice_line_item WHERE company_id = ${escape_value(context.company_id)} AND invoice_id IN (${id_list})`,
-		)
-	}
+	await write_helper.delete('invoice_line_item', 'invoice_id', updated_invoice_ids, ROWS_PER_BATCH)
 
 	let invoice_lines_without_project_line_item = 0
 	const line_rows = map(

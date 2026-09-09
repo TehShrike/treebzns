@@ -99,7 +99,7 @@ export const import_line_items = async (
 	await write_helper.bulk_update(
 		'project_line_item',
 		'project_line_item_id',
-		map(existing_items, item => ({ key: correlated.get(item.line_item_id)!, set: line_item_fields(item) })),
+		map(existing_items, item => ({ value: correlated.get(item.line_item_id)!, set: line_item_fields(item) })),
 		ROWS_PER_BATCH,
 	)
 	const project_line_item_id_by_arbostar_line_item_id = new Map(correlated)

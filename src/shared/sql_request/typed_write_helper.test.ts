@@ -76,6 +76,7 @@ const test_insertable_schema = {
 const make_write_helper = typed_write_helper<TestSchema, TestRowSchema>({
 	schema_constants: test_schema,
 	insertable_column_names: test_insertable_schema,
+	tables_unique_on_company_id: {},
 })
 
 const make_helper = (connection: Connection, company_id: bigint = 7n) => make_write_helper({ connection, company_id })
@@ -88,7 +89,7 @@ const make_mock_connection = (insert_ids: number[] = []) => {
 		query: (sql: string) => {
 			const insertId = insert_ids[calls.length] ?? 1
 			calls.push({ sql })
-			return Promise.resolve([{ insertId }, []])
+			return Promise.resolve([{ insertId, affectedRows: 1 }, []])
 		},
 	} as unknown as Connection
 	return { connection, calls }
@@ -108,32 +109,39 @@ const make_update_mock_connection = (results: Array<{ affectedRows: number, inse
 	return { connection, calls }
 }
 
-// A schema with both kinds of table: tenanted (has company_id) and global (does not). The
-// company table is the odd one out — its row has company_id (the primary key) but its
-// insertable columns do not, so it is inserted as a global table and updated as a tenanted one.
+// A schema with every kind of table: tenanted (has company_id), global (does not), and unique
+// on company_id (counter, and company itself). The company table is the odd one out — its row
+// has company_id (the primary key) but its insertable columns do not, so it is inserted as a
+// global table and updated as a tenanted one.
 type MixedSchema = {
 	widget: { company_id: bigint, name: string }
 	session: { token: string }
 	company: { name: string }
+	counter: { company_id: bigint, next_number: bigint }
 }
 type MixedRowSchema = {
 	widget: { widget_id: bigint, company_id: bigint, name: string }
 	session: { session_id: bigint, token: string }
 	company: { company_id: bigint, name: string }
+	counter: { counter_id: bigint, company_id: bigint, next_number: bigint }
 }
 const mixed_schema = {
 	widget: { widget_id: 'widget_id', company_id: 'company_id', name: 'name' },
 	session: { session_id: 'session_id', token: 'token' },
 	company: { company_id: 'company_id', name: 'name' },
+	counter: { counter_id: 'counter_id', company_id: 'company_id', next_number: 'next_number' },
 } as const
 const mixed_insertable_schema = {
 	widget: { company_id: 'company_id', name: 'name' },
 	session: { token: 'token' },
 	company: { name: 'name' },
+	counter: { company_id: 'company_id', next_number: 'next_number' },
 } as const
-const make_mixed_write_helper = typed_write_helper<MixedSchema, MixedRowSchema>({
+const mixed_tables_unique_on_company_id = { company: 'company', counter: 'counter' } as const
+const make_mixed_write_helper = typed_write_helper<MixedSchema, MixedRowSchema, keyof typeof mixed_tables_unique_on_company_id>({
 	schema_constants: mixed_schema,
 	insertable_column_names: mixed_insertable_schema,
+	tables_unique_on_company_id: mixed_tables_unique_on_company_id,
 })
 
 test('typed_write_helper: schema constants must cover every table and column of both schemas', () => {
@@ -150,7 +158,7 @@ test('typed_write_helper: schema constants must cover every table and column of 
 		gadget: test_schema.gadget,
 	} as const
 	// @ts-expect-error: widget is missing the required 'name' column
-	typed_write_helper<TestSchema, TestRowSchema>({ schema_constants: missing_name, insertable_column_names: test_insertable_schema })
+	typed_write_helper<TestSchema, TestRowSchema>({ schema_constants: missing_name, insertable_column_names: test_insertable_schema, tables_unique_on_company_id: {} })
 
 	const missing_created_at = {
 		widget: {
@@ -162,13 +170,13 @@ test('typed_write_helper: schema constants must cover every table and column of 
 		gadget: test_schema.gadget,
 	} as const
 	// @ts-expect-error: widget is missing 'created_at', required by the row schema even though it is not insertable
-	typed_write_helper<TestSchema, TestRowSchema>({ schema_constants: missing_created_at, insertable_column_names: test_insertable_schema })
+	typed_write_helper<TestSchema, TestRowSchema>({ schema_constants: missing_created_at, insertable_column_names: test_insertable_schema, tables_unique_on_company_id: {} })
 
 	const widget_only = {
 		widget: test_schema.widget,
 	} as const
 	// @ts-expect-error: missing the entire 'gadget' table
-	typed_write_helper<TestSchema, TestRowSchema>({ schema_constants: widget_only, insertable_column_names: test_insertable_schema })
+	typed_write_helper<TestSchema, TestRowSchema>({ schema_constants: widget_only, insertable_column_names: test_insertable_schema, tables_unique_on_company_id: {} })
 })
 
 test('typed_write_helper: the insertable column-name map must also cover every insertable column', () => {
@@ -180,13 +188,13 @@ test('typed_write_helper: the insertable column-name map must also cover every i
 		gadget: test_insertable_schema.gadget,
 	} as const
 	// @ts-expect-error: the insertable column-name map is missing the required 'name' column
-	typed_write_helper<TestSchema, TestRowSchema>({ schema_constants: test_schema, insertable_column_names: insertable_missing_name })
+	typed_write_helper<TestSchema, TestRowSchema>({ schema_constants: test_schema, insertable_column_names: insertable_missing_name, tables_unique_on_company_id: {} })
 
 	const insertable_widget_only = {
 		widget: test_insertable_schema.widget,
 	} as const
 	// @ts-expect-error: the insertable column-name map is missing the entire 'gadget' table
-	typed_write_helper<TestSchema, TestRowSchema>({ schema_constants: test_schema, insertable_column_names: insertable_widget_only })
+	typed_write_helper<TestSchema, TestRowSchema>({ schema_constants: test_schema, insertable_column_names: insertable_widget_only, tables_unique_on_company_id: {} })
 })
 
 test('typed_write_helper: company_id must be a bigint or an explicit null', () => {
@@ -303,6 +311,7 @@ test('typed_write_helper: serializes Temporal and FinancialNumber values for the
 	const helper = typed_write_helper<EventSchema, EventRowSchema>({
 		schema_constants: event_schema,
 		insertable_column_names: event_insertable_schema,
+		tables_unique_on_company_id: {},
 	})({ connection, company_id: 1n })
 
 	await helper.insert('event', {
@@ -473,10 +482,10 @@ test('typed_write_helper: build_update_sql skips undefined columns and requires 
 
 type UpdateSetSmuggledColumn = { name?: string; description?: string | null }
 
-test('typed_write_helper: build_update_sql enforces table, key column, key type, and set column types', () => {
+test('typed_write_helper: build_update_sql enforces table, column, value type, and set column types', () => {
 	const helper = make_helper(make_mock_connection().connection)
 
-	// created_at is not insertable, but the row schema makes it updatable and usable as a key.
+	// created_at is not insertable, but the row schema makes it updatable and usable as the column.
 	helper.build_update_sql('widget', 'created_at', 'x', { name: 'Sprocket' })
 	helper.build_update_sql('widget', 'widget_id', 5n, { created_at: 'x' })
 
@@ -517,7 +526,7 @@ test('typed_write_helper: updates may not move a row to another company', () => 
 	const smuggled = (): { name: string } => ({ name: 'x', company_id: 8n } as { name: string })
 	assert.throws(() => helper.build_update_sql('widget', 'widget_id', 5n, smuggled()))
 
-	// company_id may still be the key column; the company filter is then redundant but harmless.
+	// company_id may still be the column; the company filter is then redundant but harmless.
 	assert.strictEqual(
 		helper.build_update_sql('widget', 'company_id', 7n, { name: 'x' }),
 		"UPDATE `widget` SET `name` = 'x' WHERE `company_id` = 7 AND `company_id` = 7",
@@ -545,7 +554,7 @@ test('typed_write_helper: updates reject a set whose type has a column not on th
 
 	await assert.rejects(async () => {
 		// @ts-expect-error: 'namez' is not a column on widget
-		await helper.bulk_update('widget', 'widget_id', [{ key: 1n, set: misnamed_fields() }], 10)
+		await helper.bulk_update('widget', 'widget_id', [{ value: 1n, set: misnamed_fields() }], 10)
 	})
 })
 
@@ -570,9 +579,9 @@ test('typed_write_helper: bulk_update sends one UPDATE per row, batched into sin
 
 	// Rows may set different subsets of columns.
 	const { affected_rows } = await helper.bulk_update('widget', 'widget_id', [
-		{ key: 1n, set: { name: 'a' } },
-		{ key: 2n, set: { description: 'b' } },
-		{ key: 3n, set: { name: 'c', description: null } },
+		{ value: 1n, set: { name: 'a' } },
+		{ value: 2n, set: { description: 'b' } },
+		{ value: 3n, set: { name: 'c', description: null } },
 	], 2)
 
 	assert.strictEqual(calls.length, 2)
@@ -592,19 +601,19 @@ test('typed_write_helper: bulk_update enforces row types', async () => {
 	const helper = make_helper(connection)
 
 	// @ts-expect-error: quantity must be a bigint
-	helper.bulk_update('gadget', 'gadget_id', [{ key: 1n, set: { quantity: 'nope' } }], 10)
+	helper.bulk_update('gadget', 'gadget_id', [{ value: 1n, set: { quantity: 'nope' } }], 10)
 
 	await assert.rejects(async () => {
 		// @ts-expect-error: 'sprockets' is not a column on gadget
-		await helper.bulk_update('gadget', 'gadget_id', [{ key: 1n, set: { sprockets: 1n } }], 10)
+		await helper.bulk_update('gadget', 'gadget_id', [{ value: 1n, set: { sprockets: 1n } }], 10)
 	})
 
-	// @ts-expect-error: gadget_id keys are bigints
-	helper.bulk_update('gadget', 'gadget_id', [{ key: 'one', set: { quantity: 2n } }], 10)
+	// @ts-expect-error: gadget_id values are bigints
+	helper.bulk_update('gadget', 'gadget_id', [{ value: 'one', set: { quantity: 2n } }], 10)
 
 	await assert.rejects(async () => {
 		// @ts-expect-error: 'not_a_table' is not a table in TestRowSchema
-		await helper.bulk_update('not_a_table', 'gadget_id', [{ key: 1n, set: {} }], 10)
+		await helper.bulk_update('not_a_table', 'gadget_id', [{ value: 1n, set: {} }], 10)
 	})
 })
 
@@ -621,11 +630,73 @@ test('typed_write_helper: bulk_update makes no query for an empty rows array', a
 test('typed_write_helper: bulk_update rejects a non-positive or fractional rows_per_batch', async () => {
 	const { connection } = make_update_mock_connection()
 	const helper = make_helper(connection)
-	const rows = [{ key: 1n, set: { name: 'a' } }]
+	const rows = [{ value: 1n, set: { name: 'a' } }]
 
 	await assert.rejects(async () => helper.bulk_update('widget', 'widget_id', rows, 0))
 	await assert.rejects(async () => helper.bulk_update('widget', 'widget_id', rows, -5))
 	await assert.rejects(async () => helper.bulk_update('widget', 'widget_id', rows, 1.5))
+})
+
+test('typed_write_helper: delete removes rows matching any of the values, with the company filter', async () => {
+	const { connection, calls } = make_update_mock_connection([{ affectedRows: 2 }])
+	const helper = make_helper(connection, 7n)
+
+	const { affected_rows } = await helper.delete('widget', 'widget_id', [1n, 2n], 10)
+
+	assert.strictEqual(calls.length, 1)
+	assert.strictEqual(calls[0]!.sql, "DELETE FROM `widget` WHERE `widget_id` IN (1, 2) AND `company_id` = 7")
+	assert.strictEqual(affected_rows, 2n)
+
+	// Any column may drive the delete, and values are escaped.
+	await helper.delete('widget', 'name', ["O'Sprocket"], 10)
+	assert.strictEqual(calls[1]!.sql, "DELETE FROM `widget` WHERE `name` IN ('O\\'Sprocket') AND `company_id` = 7")
+})
+
+test('typed_write_helper: delete splits values into batches and sums the affected rows', async () => {
+	const { connection, calls } = make_update_mock_connection([{ affectedRows: 2 }, { affectedRows: 1 }])
+	const helper = make_helper(connection, 7n)
+
+	const { affected_rows } = await helper.delete('widget', 'widget_id', [1n, 2n, 3n], 2)
+
+	assert.strictEqual(calls.length, 2)
+	assert.strictEqual(calls[0]!.sql, "DELETE FROM `widget` WHERE `widget_id` IN (1, 2) AND `company_id` = 7")
+	assert.strictEqual(calls[1]!.sql, "DELETE FROM `widget` WHERE `widget_id` IN (3) AND `company_id` = 7")
+	assert.strictEqual(affected_rows, 3n)
+})
+
+test('typed_write_helper: delete makes no query for an empty values array', async () => {
+	const { connection, calls } = make_update_mock_connection()
+	const helper = make_helper(connection)
+
+	const { affected_rows } = await helper.delete('widget', 'widget_id', [], 10)
+
+	assert.strictEqual(calls.length, 0)
+	assert.strictEqual(affected_rows, 0n)
+})
+
+test('typed_write_helper: delete enforces table, column, value types, and values_per_batch', async () => {
+	const { connection } = make_update_mock_connection()
+	const helper = make_helper(connection)
+
+	// @ts-expect-error: widget_id values are bigints
+	helper.delete('widget', 'widget_id', ['one'], 10)
+
+	// @ts-expect-error: values must be an array
+	helper.delete('widget', 'widget_id', 1n, 10)
+
+	await assert.rejects(async () => {
+		// @ts-expect-error: 'not_a_column' is not a column on widget
+		await helper.delete('widget', 'not_a_column', [1n], 10)
+	})
+
+	await assert.rejects(async () => {
+		// @ts-expect-error: 'not_a_table' is not a table in TestRowSchema
+		await helper.delete('not_a_table', 'widget_id', [1n], 10)
+	})
+
+	await assert.rejects(async () => helper.delete('widget', 'widget_id', [1n], 0))
+	await assert.rejects(async () => helper.delete('widget', 'widget_id', [1n], -5))
+	await assert.rejects(async () => helper.delete('widget', 'widget_id', [1n], 1.5))
 })
 
 test('typed_write_helper: updates set updated_at = UTC_TIMESTAMP() on tables that have the column', async () => {
@@ -662,6 +733,7 @@ test('typed_write_helper: updates set updated_at = UTC_TIMESTAMP() on tables tha
 	const helper = typed_write_helper<TrackedSchema, TrackedRowSchema>({
 		schema_constants: tracked_schema,
 		insertable_column_names: tracked_insertable_schema,
+		tables_unique_on_company_id: {},
 	})({ connection, company_id: 7n })
 
 	assert.strictEqual(
@@ -684,7 +756,7 @@ test('typed_write_helper: updates set updated_at = UTC_TIMESTAMP() on tables tha
 		"UPDATE `tracked` SET `name` = 'Sprocket', `updated_at` = UTC_TIMESTAMP() WHERE `tracked_id` = 5 AND `company_id` = 7",
 	)
 
-	await helper.bulk_update('tracked', 'tracked_id', [{ key: 1n, set: { name: 'a' } }], 10)
+	await helper.bulk_update('tracked', 'tracked_id', [{ value: 1n, set: { name: 'a' } }], 10)
 	assert.strictEqual(
 		calls[0]!.sql,
 		"UPDATE `tracked` SET `name` = 'a', `updated_at` = UTC_TIMESTAMP() WHERE `tracked_id` = 1 AND `company_id` = 7",
@@ -725,7 +797,11 @@ test('typed_write_helper: a company-bound helper only writes tables that have a 
 	})
 	await assert.rejects(async () => {
 		// @ts-expect-error: session has no company_id column
-		await helper.bulk_update('session', 'session_id', [{ key: 1n, set: { token: 'abc' } }], 10)
+		await helper.bulk_update('session', 'session_id', [{ value: 1n, set: { token: 'abc' } }], 10)
+	})
+	await assert.rejects(async () => {
+		// @ts-expect-error: session has no company_id column
+		await helper.delete('session', 'session_id', [1n], 10)
 	})
 
 	// company has no insertable company_id (it is the auto-increment key), so a company-bound
@@ -742,7 +818,7 @@ test('typed_write_helper: a company-bound helper only writes tables that have a 
 })
 
 test('typed_write_helper: a helper bound to no company only writes tables without a company_id column', async () => {
-	const { connection, calls } = make_mock_connection([1, 2])
+	const { connection, calls } = make_mock_connection([1, 2, 3, 1])
 	const helper = make_mixed_write_helper({ connection, company_id: null })
 
 	await helper.insert('session', { token: 'abc' })
@@ -756,9 +832,12 @@ test('typed_write_helper: a helper bound to no company only writes tables withou
 		"UPDATE `session` SET `token` = 'xyz' WHERE `session_id` = 1",
 	)
 
+	await helper.delete('session', 'session_id', [1n, 2n], 10)
+	assert.strictEqual(calls[2]!.sql, "DELETE FROM `session` WHERE `session_id` IN (1, 2)")
+
 	// Creating a company: its insertable columns have no company_id, so it is a global insert.
 	const { insert_id } = await helper.insert('company', { name: 'Acme' })
-	assert.strictEqual(calls[2]!.sql, "INSERT INTO `company` (`name`) VALUES ('Acme')")
+	assert.strictEqual(calls[3]!.sql, "INSERT INTO `company` (`name`) VALUES ('Acme')")
 	assert.strictEqual(insert_id, 1n)
 
 	await assert.rejects(async () => {
@@ -783,9 +862,78 @@ test('typed_write_helper: a helper bound to no company only writes tables withou
 	})
 	await assert.rejects(async () => {
 		// @ts-expect-error: widget has a company_id column
-		await helper.bulk_update('widget', 'widget_id', [{ key: 1n, set: { name: 'Sprocket' } }], 10)
+		await helper.bulk_update('widget', 'widget_id', [{ value: 1n, set: { name: 'Sprocket' } }], 10)
 	})
-	assert.strictEqual(calls.length, 3)
+	await assert.rejects(async () => {
+		// @ts-expect-error: widget has a company_id column
+		await helper.delete('widget', 'widget_id', [1n], 10)
+	})
+	assert.strictEqual(calls.length, 4)
+})
+
+test('typed_write_helper: tables unique on company_id must be tenanted tables in the schema', () => {
+	assert.throws(() =>
+		// @ts-expect-error: session has no company_id column
+		typed_write_helper<MixedSchema, MixedRowSchema, 'session'>({
+			schema_constants: mixed_schema,
+			insertable_column_names: mixed_insertable_schema,
+			tables_unique_on_company_id: { session: 'session' },
+		}))
+
+	assert.throws(() =>
+		// @ts-expect-error: not_a_table is not in the schema
+		typed_write_helper<MixedSchema, MixedRowSchema, 'not_a_table'>({
+			schema_constants: mixed_schema,
+			insertable_column_names: mixed_insertable_schema,
+			tables_unique_on_company_id: { not_a_table: 'not_a_table' },
+		}))
+})
+
+test('typed_write_helper: update_company_row updates the bound company\'s row of a table unique on company_id', async () => {
+	const { connection, calls } = make_update_mock_connection([{ affectedRows: 1, insertId: 42 }])
+	const helper = make_mixed_write_helper({ connection, company_id: 7n })
+
+	const { affected_rows, insert_id } = await helper.update_company_row('counter', {
+		next_number: fns.last_insert_id_increment('next_number', 1n),
+	})
+	assert.strictEqual(calls[0]!.sql, "UPDATE `counter` SET `next_number` = LAST_INSERT_ID(`next_number`) + 1 WHERE `company_id` = 7")
+	assert.strictEqual(affected_rows, 1n)
+	assert.strictEqual(insert_id, 42n)
+
+	await helper.update_company_row('company', { name: 'Acme' })
+	assert.strictEqual(calls[1]!.sql, "UPDATE `company` SET `name` = 'Acme' WHERE `company_id` = 7")
+
+	await assert.rejects(async () => {
+		// @ts-expect-error: widget is not unique on company_id
+		await helper.update_company_row('widget', { name: 'Sprocket' })
+	})
+	await assert.rejects(async () => {
+		// @ts-expect-error: session has no company_id column
+		await helper.update_company_row('session', { token: 'abc' })
+	})
+	// Smuggled past the types, the runtime check still refuses a table that is not unique on company_id.
+	await assert.rejects(async () => {
+		await helper.update_company_row('widget' as 'counter', { next_number: 1n })
+	})
+	await assert.rejects(async () => {
+		// @ts-expect-error: company_id may not be set
+		await helper.update_company_row('counter', { company_id: 8n })
+	})
+	assert.strictEqual(calls.length, 2)
+
+	// @ts-expect-error: next_number is a bigint
+	helper.update_company_row('counter', { next_number: 'one' })
+})
+
+test('typed_write_helper: a helper bound to no company has no update_company_row', async () => {
+	const { connection, calls } = make_update_mock_connection()
+	const helper = make_mixed_write_helper({ connection, company_id: null })
+
+	await assert.rejects(async () => {
+		// @ts-expect-error: update_company_row only exists on a company-bound helper
+		await helper.update_company_row('counter', { next_number: 1n })
+	})
+	assert.strictEqual(calls.length, 0)
 })
 
 test('typed_write_helper: MySQLFunction values render as SQL function calls in writes', async () => {
@@ -824,6 +972,7 @@ test('typed_write_helper: MySQLFunction values render as SQL function calls in w
 	const helper = typed_write_helper<SessionSchema, SessionRowSchema>({
 		schema_constants: session_schema,
 		insertable_column_names: session_insertable_schema,
+		tables_unique_on_company_id: {},
 	})({ connection, company_id: null })
 
 	await helper.insert('session', {

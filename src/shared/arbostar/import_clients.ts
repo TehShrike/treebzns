@@ -113,14 +113,14 @@ export const import_clients = async (
 	await write_helper.bulk_update(
 		'client',
 		'client_id',
-		map(existing_clients, client => ({ key: correlated.get(client.client_id)!, set: client_fields(client) })),
+		map(existing_clients, client => ({ value: correlated.get(client.client_id)!, set: client_fields(client) })),
 		ROWS_PER_BATCH,
 	)
 	await write_helper.bulk_update(
 		'client_address',
 		'client_address_id',
 		map(existing_clients, client => ({
-			key: context.existing.default_project_address_id_by_arbostar_client_id.get(client.client_id)!,
+			value: context.existing.default_project_address_id_by_arbostar_client_id.get(client.client_id)!,
 			set: address_fields(client),
 		})),
 		ROWS_PER_BATCH,
@@ -223,7 +223,7 @@ export const import_clients = async (
 		'client_contact',
 		'client_contact_id',
 		map(existing_contacts, incoming => ({
-			key: correlated_contacts.get(incoming.contact.cc_id)!,
+			value: correlated_contacts.get(incoming.contact.cc_id)!,
 			set: contact_fields(incoming),
 		})),
 		ROWS_PER_BATCH,

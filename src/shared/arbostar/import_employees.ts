@@ -86,7 +86,7 @@ export const import_employees = async (
 			'employee',
 			'employee_id',
 			map(updates, ({ user, employee_id }) => ({
-				key: employee_id,
+				value: employee_id,
 				set: {
 					name: user.full_name,
 					phone: user.emp_phone,

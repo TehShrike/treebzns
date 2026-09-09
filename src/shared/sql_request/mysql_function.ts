@@ -1,6 +1,6 @@
 import { Temporal } from '@js-temporal/polyfill'
 import escape_value from '#shared/sql_request/escape_value.ts'
-import assert from '#shared/assert.ts'
+import escape_identifier from '#shared/sql_request/escape_identifier.ts'
 
 declare const return_type: unique symbol
 const mysql_function = Symbol('mysql function')
@@ -14,7 +14,7 @@ export type MySQLFunction<T> = {
 	readonly [return_type]?: T
 }
 
-const make = <T>(sql: string): MySQLFunction<T> => ({ [mysql_function]: true, sql })
+const make_mysql_function_object = <T>(sql: string): MySQLFunction<T> => ({ [mysql_function]: true, sql })
 
 export const is_mysql_function = (value: unknown): value is MySQLFunction<unknown> =>
 	typeof value === 'object' && value !== null && mysql_function in value
@@ -23,12 +23,12 @@ export const is_mysql_function = (value: unknown): value is MySQLFunction<unknow
 // connection's typeCast maps the function's MySQL type to (DATETIME → Temporal.Instant,
 // BINARY → Buffer, ...). Check that mapping before adding a function here.
 export const fns = {
-	utc_timestamp: () => make<Temporal.Instant>('UTC_TIMESTAMP()'),
-	uuid_to_bin: (uuid: string) => make<Buffer>(`UUID_TO_BIN(${escape_value(uuid)})`),
+	utc_timestamp: () => make_mysql_function_object<Temporal.Instant>('UTC_TIMESTAMP()'),
+	uuid_to_bin: (uuid: string) => make_mysql_function_object<Buffer>(`UUID_TO_BIN(${escape_value(uuid)})`),
 	// This function breaks type checking on the column name.  We need some way to validate column names
 	// passed into these functions.
-	last_insert_id_increment: (column_name: string, increment: bigint) => {
-		assert(/^\w+$/.test(column_name), `column_name must be a valid SQL identifier (letters, numbers, and underscores only): ${JSON.stringify(column_name)}`)
-		return make<bigint>(`LAST_INSERT_ID(\`${column_name}\`) + ${increment}`)
-	},
+	last_insert_id_increment: (column_name: string, increment: bigint) =>
+		make_mysql_function_object<bigint>(`LAST_INSERT_ID(${escape_identifier(column_name)}) + ${increment}`),
+	greatest_of_column_and: (column_name: string, value: bigint) =>
+		make_mysql_function_object<bigint>(`GREATEST(${escape_identifier(column_name)}, ${value})`),
 }

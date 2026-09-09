@@ -177,9 +177,8 @@ export const functions = {
 		validator: update_client_validator,
 		fn: (
 			{ client_id, client, contacts, addresses, remove_contact_ids, remove_address_ids },
-			{ company, transaction },
-		) => transaction(async ({ connection, select_builder, write_helper }) => {
-			const company_id = company.company_id
+			{ transaction },
+		) => transaction(async ({ select_builder, write_helper }) => {
 			const { client_id: client_object_id, ...client_changes } = client
 
 			assert(client_object_id === null || client_object_id === client_id, `client.client_id matches client_id when it is set`)
@@ -196,8 +195,8 @@ export const functions = {
 			const address_ids = await map_async(addresses, address =>
 				upsert_client_address({ client_id, address, select_builder, write_helper }))
 
-			await remove_client_addresses({ client_address_ids: remove_address_ids, company_id, connection, select_builder })
-			await remove_client_contacts({ client_contact_ids: remove_contact_ids, company_id, connection, select_builder })
+			await remove_client_addresses({ client_address_ids: remove_address_ids, select_builder, write_helper })
+			await remove_client_contacts({ client_contact_ids: remove_contact_ids, select_builder, write_helper })
 
 			return { client_id, contact_ids, address_ids }
 		}),

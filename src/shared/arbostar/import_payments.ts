@@ -185,7 +185,7 @@ export const import_payments = async (
 	await write_helper.bulk_update(
 		'payment',
 		'payment_id',
-		map(existing_payments, payment => ({ key: correlated.get(payment.payment_id)!, set: payment_fields(payment) })),
+		map(existing_payments, payment => ({ value: correlated.get(payment.payment_id)!, set: payment_fields(payment) })),
 		ROWS_PER_BATCH,
 	)
 
@@ -263,7 +263,7 @@ export const import_payments = async (
 		'payment_invoice',
 		'payment_invoice_id',
 		map(pi_updates, ({ payment_invoice_key, amount }) => ({
-			key: existing_pi.get(payment_invoice_key)!,
+			value: existing_pi.get(payment_invoice_key)!,
 			set: { amount },
 		})),
 		ROWS_PER_BATCH,

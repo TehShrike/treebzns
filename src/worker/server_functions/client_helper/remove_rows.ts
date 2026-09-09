@@ -1,8 +1,8 @@
-import type { Connection } from 'mysql2/promise'
 import assert from '#shared/assert.ts'
-import type { TransactionConnection } from '#shared/mysql/helpers.ts'
+import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { TransactionTenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
-import delete_rows_by_id from '#worker/lib/db/delete_rows_by_id.ts'
+
+const ROWS_PER_BATCH = 100
 
 const lock_addresses = ({
 	client_address_ids,
@@ -82,14 +82,12 @@ const assert_contacts_unreferenced = async ({
 
 export const remove_client_addresses = async ({
 	client_address_ids,
-	company_id,
-	connection,
 	select_builder,
+	write_helper,
 }: {
 	client_address_ids: readonly bigint[]
-	company_id: bigint
-	connection: TransactionConnection<Connection>
 	select_builder: TransactionTenantedSelectBuilder
+	write_helper: TenantedWriteHelper
 }) => {
 	if (client_address_ids.length === 0) {
 		return
@@ -97,19 +95,18 @@ export const remove_client_addresses = async ({
 
 	await lock_addresses({ client_address_ids, select_builder })
 	await assert_addresses_unreferenced({ client_address_ids, select_builder })
-	await delete_rows_by_id({ connection, table_name: 'client_address', company_id, ids: client_address_ids })
+	const { affected_rows } = await write_helper.delete('client_address', 'client_address_id', client_address_ids, ROWS_PER_BATCH)
+	assert(affected_rows === BigInt(client_address_ids.length), `every removed address id matches one row`)
 }
 
 export const remove_client_contacts = async ({
 	client_contact_ids,
-	company_id,
-	connection,
 	select_builder,
+	write_helper,
 }: {
 	client_contact_ids: readonly bigint[]
-	company_id: bigint
-	connection: TransactionConnection<Connection>
 	select_builder: TransactionTenantedSelectBuilder
+	write_helper: TenantedWriteHelper
 }) => {
 	if (client_contact_ids.length === 0) {
 		return
@@ -117,5 +114,6 @@ export const remove_client_contacts = async ({
 
 	await lock_contacts({ client_contact_ids, select_builder })
 	await assert_contacts_unreferenced({ client_contact_ids, select_builder })
-	await delete_rows_by_id({ connection, table_name: 'client_contact', company_id, ids: client_contact_ids })
+	const { affected_rows } = await write_helper.delete('client_contact', 'client_contact_id', client_contact_ids, ROWS_PER_BATCH)
+	assert(affected_rows === BigInt(client_contact_ids.length), `every removed contact id matches one row`)
 }

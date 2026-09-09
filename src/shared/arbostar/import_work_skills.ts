@@ -47,7 +47,7 @@ export const import_work_skills = async (
 			'work_skill',
 			'work_skill_id',
 			map(updates, skill => ({
-				key: existing.get(normalize_name(skill.name))!,
+				value: existing.get(normalize_name(skill.name))!,
 				set: { hourly_rate: skill.hourly_rate },
 			})),
 			ROWS_PER_BATCH,

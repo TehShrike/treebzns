@@ -5,13 +5,17 @@ import typed_write_helper, {
 } from '#shared/sql_request/typed_write_helper.ts'
 import * as schema from '#schema/all_table_column_names.ts'
 import * as insertable_schema from '#schema/insertable_table_column_names.ts'
+import { tables_unique_on_company_id } from '#schema/tables_unique_on_company_id.ts'
 
-const make_write_helper = typed_write_helper<InsertableSchema, Schema>({
+type TableUniqueOnCompanyId = keyof typeof tables_unique_on_company_id
+
+const make_write_helper = typed_write_helper<InsertableSchema, Schema, TableUniqueOnCompanyId>({
 	schema_constants: schema,
 	insertable_column_names: insertable_schema,
+	tables_unique_on_company_id,
 })
 
-export type TenantedWriteHelper = GenericTenantedWriteHelper<InsertableSchema, Schema>
+export type TenantedWriteHelper = GenericTenantedWriteHelper<InsertableSchema, Schema, TableUniqueOnCompanyId>
 export type GlobalWriteHelper = GenericGlobalWriteHelper<InsertableSchema, Schema>
 
 export default make_write_helper

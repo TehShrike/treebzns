@@ -131,8 +131,6 @@ export const functions = {
 			{ client, billing_address, address, contact, project, availability },
 			{ company, user, transaction }
 		) => transaction(async ({ select_builder, write_helper }) => {
-			const company_id = company.company_id
-
 			await assert_input_ids_valid({ client, address, contact, project, select_builder })
 
 			const creating_new_client = client.client_id === null
@@ -172,7 +170,7 @@ export const functions = {
 
 			const initial_project_document_id = await get_lead_project_document_id({ select_builder })
 
-			const project_number = await get_next_project_number_and_increment({ company_id, write_helper })
+			const project_number = await get_next_project_number_and_increment({ write_helper })
 
 			const { insert_id: project_id } = await write_helper.insert('project', {
 				...all_address_values,

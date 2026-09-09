@@ -3,6 +3,7 @@ import { map, chunk, filter, for_each, some } from '#shared/array.ts'
 import object_keys from '#shared/object_keys.ts'
 import assert from '#shared/assert.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
+import escape_identifier from '#shared/sql_request/escape_identifier.ts'
 import { type MySQLFunction, is_mysql_function } from '#shared/sql_request/mysql_function.ts'
 
 type SchemaShape = {
@@ -50,7 +51,7 @@ type UpdateSet<TableRow> = {
 
 // Excess-property checks only apply to object literals, so a set built elsewhere could smuggle
 // in a column the table doesn't have (or company_id); intersecting with this marks such columns as never.
-type NoUnknownColumns<TableRow, Set> = { [Column in Exclude<keyof Set, Exclude<keyof TableRow, CompanyIdColumn>>]: never }
+type NoUnknownColumns<TableRow, SetClause> = { [Column in Exclude<keyof SetClause, Exclude<keyof TableRow, CompanyIdColumn>>]: never }
 
 export type WriteHelper<
 	Insertable extends SchemaShape,
@@ -58,6 +59,13 @@ export type WriteHelper<
 	InsertTable extends keyof Insertable & string,
 	UpdateTable extends keyof Row & string,
 > = {
+	update_company_row: <
+		Table extends UpdateTable,
+		SetClause extends UpdateSet<Row[Table]>,
+	>(
+		table_name: Table,
+		set: SetClause & NoUnknownColumns<Row[Table], SetClause>,
+	) => Promise<{ affected_rows: bigint, insert_id: bigint }>
 	insert: <Table extends InsertTable>(
 		table_name: Table,
 		row: InsertRow<Insertable[Table]>,
@@ -69,65 +77,93 @@ export type WriteHelper<
 	) => Promise<{ insert_ids: bigint[] }>
 	build_update_sql: <
 		Table extends UpdateTable,
-		Key extends keyof Row[Table] & string,
-		Set extends UpdateSet<Row[Table]>,
+		Column extends keyof Row[Table] & string,
+		SetClause extends UpdateSet<Row[Table]>,
 	>(
 		table_name: Table,
-		key_column: Key,
-		key: ColumnValue<Row[Table][Key]>,
-		set: Set & NoUnknownColumns<Row[Table], Set>,
+		column: Column,
+		value: ColumnValue<Row[Table][Column]>,
+		set: SetClause & NoUnknownColumns<Row[Table], SetClause>,
 	) => string
 	update: <
 		Table extends UpdateTable,
-		Key extends keyof Row[Table] & string,
-		Set extends UpdateSet<Row[Table]>,
+		Column extends keyof Row[Table] & string,
+		SetClause extends UpdateSet<Row[Table]>,
 	>(
 		table_name: Table,
-		key_column: Key,
-		key: ColumnValue<Row[Table][Key]>,
-		set: Set & NoUnknownColumns<Row[Table], Set>,
+		column: Column,
+		value: ColumnValue<Row[Table][Column]>,
+		set: SetClause & NoUnknownColumns<Row[Table], SetClause>,
 	) => Promise<{ affected_rows: bigint, insert_id: bigint }>
 	bulk_update: <
 		Table extends UpdateTable,
-		Key extends keyof Row[Table] & string,
-		Set extends UpdateSet<Row[Table]>,
+		Column extends keyof Row[Table] & string,
+		SetClause extends UpdateSet<Row[Table]>,
 	>(
 		table_name: Table,
-		key_column: Key,
-		rows: Array<{ key: ColumnValue<Row[Table][Key]>; set: Set & NoUnknownColumns<Row[Table], Set> }>,
+		column: Column,
+		rows: Array<{ value: ColumnValue<Row[Table][Column]>; set: SetClause & NoUnknownColumns<Row[Table], SetClause> }>,
 		rows_per_batch: number,
+	) => Promise<{ affected_rows: bigint }>
+	delete: <
+		Table extends UpdateTable,
+		Column extends keyof Row[Table] & string,
+	>(
+		table_name: Table,
+		column: Column,
+		values: readonly ColumnValue<Row[Table][Column]>[],
+		values_per_batch: number,
 	) => Promise<{ affected_rows: bigint }>
 }
 
 // Bound to one company: writes only tables that have a company_id column, supplies company_id
-// on every inserted row, and adds `AND company_id = ?` to every update.
-export type TenantedWriteHelper<Insertable extends SchemaShape, Row extends SchemaShape> =
-	WriteHelper<Insertable, Row, TablesWithCompanyId<Insertable>, TablesWithCompanyId<Row>>
+// on every inserted row, and adds `AND company_id = ?` to every update and delete.
+// update_company_row updates the company's single row in a table unique on company_id.
+export type TenantedWriteHelper<
+	Insertable extends SchemaShape,
+	Row extends SchemaShape,
+	UniqueOnCompanyId extends TablesWithCompanyId<Row> = never,
+> =
+	& Omit<WriteHelper<Insertable, Row, TablesWithCompanyId<Insertable>, TablesWithCompanyId<Row>>, 'update_company_row'>
+	& Pick<WriteHelper<Insertable, Row, TablesWithCompanyId<Insertable>, UniqueOnCompanyId>, 'update_company_row'>
 
 // Bound to no company: writes only tables that have no company_id column.
 export type GlobalWriteHelper<Insertable extends SchemaShape, Row extends SchemaShape> =
-	WriteHelper<Insertable, Row, TablesWithoutCompanyId<Insertable>, TablesWithoutCompanyId<Row>>
+	Omit<WriteHelper<Insertable, Row, TablesWithoutCompanyId<Insertable>, TablesWithoutCompanyId<Row>>, 'update_company_row'>
 
-export type ForConnection<Insertable extends SchemaShape, Row extends SchemaShape> = {
-	(arg: { connection: Connection, company_id: bigint }): TenantedWriteHelper<Insertable, Row>
+export type ForConnection<
+	Insertable extends SchemaShape,
+	Row extends SchemaShape,
+	UniqueOnCompanyId extends TablesWithCompanyId<Row> = never,
+> = {
+	(arg: { connection: Connection, company_id: bigint }): TenantedWriteHelper<Insertable, Row, UniqueOnCompanyId>
 	(arg: { connection: Connection, company_id: null }): GlobalWriteHelper<Insertable, Row>
-}
-
-const escape_identifier = (column_name: string): string => {
-	assert(!column_name.includes('`'), `Column name "${column_name}" must not contain backticks`)
-	return `\`${column_name}\``
 }
 
 const serialize_value = (value: unknown): string =>
 	is_mysql_function(value) ? value.sql : escape_value(value)
 
-const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaShape>({
+const typed_write_helper = <
+	Insertable extends SchemaShape,
+	Row extends SchemaShape,
+	UniqueOnCompanyId extends TablesWithCompanyId<Row> = never,
+>({
 	schema_constants,
 	insertable_column_names,
+	tables_unique_on_company_id,
 }: {
 	schema_constants: SchemaConstantsCovering<Insertable> & SchemaConstantsCovering<Row>,
 	insertable_column_names: SchemaConstantsCovering<Insertable>,
-}): ForConnection<Insertable, Row> => {
+	tables_unique_on_company_id: Record<UniqueOnCompanyId, string>,
+}): ForConnection<Insertable, Row, UniqueOnCompanyId> => {
+	for_each(object_keys(tables_unique_on_company_id), table_name => {
+		assert(table_name in schema_constants, `Table "${table_name}" unique on company_id must exist in schema constants`)
+		assert(
+			company_id_column in (schema_constants[table_name] as Record<string, string>),
+			`Table "${table_name}" unique on company_id must have a company_id column`,
+		)
+	})
+
 	const make_helper = (
 		connection: Connection,
 		company_id: bigint | null,
@@ -153,17 +189,19 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 			)
 		}
 
-		const build_update_sql: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['build_update_sql'] = (
-			table_name,
-			key_column,
-			key,
-			set,
-		) => {
+		const company_filter_sql = company_id === null
+			? ''
+			: ` AND ${escape_identifier(company_id_column)} = ${serialize_value(company_id)}`
+
+		const table_columns_for_write = (table_name: string, column: string): Record<string, string> => {
 			assert(table_name in schema_constants, `Table "${table_name}" must exist in schema constants`)
 			const table_columns = schema_constants[table_name] as Record<string, string>
 			assert_table_matches_company_scope(table_name, table_columns)
-			assert(key_column in table_columns, `Key column "${key_column}" must exist in schema constants for table "${table_name}"`)
+			assert(column in table_columns, `Column "${column}" must exist in schema constants for table "${table_name}"`)
+			return table_columns
+		}
 
+		const build_update_sql_where = (table_name: string, table_columns: Record<string, string>, set: object, where_sql: string): string => {
 			const entries = filter(Object.entries(set), ([, value]) => value !== undefined)
 			assert(entries.length > 0, `An update of table "${table_name}" must set at least one column`)
 			assert_no_company_id_in('set', map(entries, ([column]) => column), table_name)
@@ -176,10 +214,35 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 			}
 			const set_sql = assignments.join(', ')
 
-			const where_sql = `${escape_identifier(key_column)} = ${serialize_value(key)}`
-				+ (company_id === null ? '' : ` AND ${escape_identifier(company_id_column)} = ${serialize_value(company_id)}`)
-
 			return `UPDATE ${escape_identifier(table_name)} SET ${set_sql} WHERE ${where_sql}`
+		}
+
+		const build_update_sql: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['build_update_sql'] = (
+			table_name,
+			column,
+			value,
+			set,
+		) => build_update_sql_where(
+			table_name,
+			table_columns_for_write(table_name, column),
+			set,
+			`${escape_identifier(column)} = ${serialize_value(value)}${company_filter_sql}`,
+		)
+
+		const update_company_row: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['update_company_row'] = async (
+			table_name,
+			set,
+		) => {
+			assert(company_id !== null, `update_company_row needs a write helper bound to a company`)
+			assert(
+				table_name in tables_unique_on_company_id,
+				`Table "${table_name}" must be unique on company_id to update the company's row`,
+			)
+			const table_columns = table_columns_for_write(table_name, company_id_column)
+			const [{ affectedRows, insertId }] = await connection.query<ResultSetHeader>(
+				build_update_sql_where(table_name, table_columns, set, `${escape_identifier(company_id_column)} = ${serialize_value(company_id)}`),
+			)
+			return { affected_rows: BigInt(affectedRows), insert_id: BigInt(insertId) }
 		}
 
 		const insert: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['insert'] = async (table_name, row) => {
@@ -244,12 +307,12 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 
 		const update: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['update'] = async (
 			table_name,
-			key_column,
-			key,
+			column,
+			value,
 			set,
 		) => {
 			const [{ affectedRows, insertId }] = await connection.query<ResultSetHeader>(
-				build_update_sql(table_name, key_column, key, set),
+				build_update_sql(table_name, column, value, set),
 			)
 			return { affected_rows: BigInt(affectedRows), insert_id: BigInt(insertId) }
 		}
@@ -258,7 +321,7 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 		// must have multipleStatements enabled). Rows may each set a different subset of columns.
 		const bulk_update: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['bulk_update'] = async (
 			table_name,
-			key_column,
+			column,
 			rows,
 			rows_per_batch,
 		) => {
@@ -270,7 +333,7 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 
 			let affected_rows = 0n
 			for (const batch of chunk(rows, rows_per_batch)) {
-				const sql = map(batch, ({ key, set }) => build_update_sql(table_name, key_column, key, set)).join(';\n')
+				const sql = map(batch, ({ value, set }) => build_update_sql(table_name, column, value, set)).join(';\n')
 				const [result] = await connection.query<ResultSetHeader | ResultSetHeader[]>(sql)
 				const headers = Array.isArray(result) ? result : [result]
 				for_each(headers, ({ affectedRows }) => {
@@ -281,14 +344,39 @@ const typed_write_helper = <Insertable extends SchemaShape, Row extends SchemaSh
 			return { affected_rows }
 		}
 
-		return { insert, bulk_insert, build_update_sql, update, bulk_update }
+		const delete_rows: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['delete'] = async (
+			table_name,
+			column,
+			values,
+			values_per_batch,
+		) => {
+			table_columns_for_write(table_name, column)
+			assert(
+				Number.isInteger(values_per_batch) && values_per_batch > 0,
+				`values_per_batch must be a positive integer, got ${values_per_batch}`,
+			)
+			if (values.length === 0) return { affected_rows: 0n }
+
+			let affected_rows = 0n
+			for (const batch of chunk(values, values_per_batch)) {
+				const value_list = map(batch, value => serialize_value(value)).join(', ')
+				const [{ affectedRows }] = await connection.query<ResultSetHeader>(
+					`DELETE FROM ${escape_identifier(table_name)} WHERE ${escape_identifier(column)} IN (${value_list})${company_filter_sql}`,
+				)
+				affected_rows += BigInt(affectedRows)
+			}
+
+			return { affected_rows }
+		}
+
+		return { insert, bulk_insert, build_update_sql, update, update_company_row, bulk_update, delete: delete_rows }
 	}
 
-	const for_connection: ForConnection<Insertable, Row> = (
+	const for_connection_and_company: ForConnection<Insertable, Row, UniqueOnCompanyId> = (
 		{ connection, company_id }: { connection: Connection, company_id: bigint | null },
 	) => make_helper(connection, company_id)
 
-	return for_connection
+	return for_connection_and_company
 }
 
 export default typed_write_helper

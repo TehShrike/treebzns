@@ -1,5 +1,6 @@
-import type { Connection, ResultSetHeader } from 'mysql2/promise'
+import type { Connection } from 'mysql2/promise'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
+import { fns } from '#shared/sql_request/mysql_function.ts'
 import { Temporal } from '@js-temporal/polyfill'
 import type { FinancialNumber } from 'financial-number'
 import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
@@ -9,9 +10,8 @@ import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import type { ArbostarDecline } from '#arbostar_export/declines.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
-import { map, filter, filter_map, flat_map, chunk, every, some } from '#shared/array.ts'
+import { map, filter, filter_map, flat_map, every, some } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
-import escape_value from '#shared/sql_request/escape_value.ts'
 import arbostar_number_to_fnum from './arbostar_number_to_fnum.ts'
 import {
 	is_midnight_iso,
@@ -184,10 +184,9 @@ export const import_projects = async (
 	const lead_numbers = map(filter(leads, lead => lead.lead_no !== null), lead_number)
 	const max_arbostar_number = lead_numbers.length === 0 ? null : lead_numbers.reduce((a, b) => (b > a ? b : a))
 	if (max_arbostar_number !== null) {
-		await connection.query(
-			'UPDATE project_number SET next_number = GREATEST(next_number, ?) WHERE company_id = ?',
-			[max_arbostar_number + 1000n, context.company_id],
-		)
+		await write_helper.update_company_row('project_number', {
+			next_number: fns.greatest_of_column_and('next_number', max_arbostar_number + 1000n),
+		})
 	}
 
 	// Each lead's official tax entry (null = not taxable), resolved up front so the needed
@@ -518,7 +517,7 @@ export const import_projects = async (
 	const existing_rows = map(existing_leads, lead => {
 		const { closed, ...set } = project_fields(lead)
 		return {
-			key: context.existing.project_id_by_number.get(Number(lead_number(lead)))!,
+			value: context.existing.project_id_by_number.get(Number(lead_number(lead)))!,
 			set: closed ? { closed, ...set } : set,
 		}
 	})
@@ -551,12 +550,7 @@ export const import_projects = async (
 	// ArboStar is the source of truth for imported projects, so a re-import wipes their whole
 	// history — in-app-authored rows included — and writes the recomputed chains fresh.
 	const history_project_ids = map(lead_chains, ({ lead }) => project_id_by_arbostar_lead_id.get(lead.lead_id)!)
-	for (const batch of chunk(history_project_ids, ROWS_PER_BATCH)) {
-		const id_list = map(batch, escape_value).join(', ')
-		await connection.query<ResultSetHeader>(
-			`DELETE FROM project_document_history WHERE company_id = ${escape_value(context.company_id)} AND project_id IN (${id_list})`,
-		)
-	}
+	await write_helper.delete('project_document_history', 'project_id', history_project_ids, ROWS_PER_BATCH)
 
 	const history_rows = flat_map(lead_chains, ({ lead, chain }) => {
 		const project_id = project_id_by_arbostar_lead_id.get(lead.lead_id)!
