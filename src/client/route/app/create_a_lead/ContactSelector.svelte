@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import type { CachedClientContact } from '#client/lib/client_cache.svelte.ts'
 	import FormLayout from '#client/component/FormLayout.svelte'
-	import FieldsetColumn from './_helpers/FieldsetColumn.svelte'
+	import FieldsetColumn from '#client/component/FieldsetColumn.svelte'
 	import DropdownField from './_helpers/DropdownField.svelte'
 	import type { LeadForm } from './lead_form.svelte.ts'
 	import type { LeadContactValues } from '#shared/type/lead.ts'

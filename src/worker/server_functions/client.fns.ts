@@ -46,17 +46,14 @@ const client_value_validators = {
 	referred_by: jv.is_string,
 }
 
-const address_required_value_validators = {
+const address_value_validators = {
+	client_contact_id: jv.nullable(jv.is_bigint),
 	name: jv.is_string,
 	address_line_1: jv.is_string,
 	address_line_2: jv.is_string,
 	city: jv.is_string,
 	state: jv.is_string,
 	zip: jv.is_string,
-}
-
-const address_nullable_value_validators = {
-	client_contact_id: jv.nullable(jv.is_bigint),
 }
 
 const contact_value_validators = {
@@ -69,22 +66,17 @@ const contact_value_validators = {
 
 const update_client_validator: jv.Validator<UpdateClientArgument> = jv.object({
 	client_id: jv.is_bigint,
-	client: jv.object(jv.optional_shape(client_value_validators)),
+	client: jv.object({
+		client_id: jv.nullable(jv.is_bigint),
+		...jv.optional_shape(client_value_validators),
+	}),
 	contacts: jv.array(jv.one_of(
 		jv.object({ client_contact_id: jv.is_null, ...contact_value_validators }),
 		jv.object({ client_contact_id: jv.is_bigint, ...jv.optional_shape(contact_value_validators) }),
 	)),
 	addresses: jv.array(jv.one_of(
-		jv.object({
-			client_address_id: jv.is_null,
-			...address_required_value_validators,
-			...jv.optional_shape(address_nullable_value_validators),
-		}),
-		jv.object({
-			client_address_id: jv.is_bigint,
-			...jv.optional_shape(address_required_value_validators),
-			...jv.optional_shape(address_nullable_value_validators),
-		}),
+		jv.object({ client_address_id: jv.is_null, ...address_value_validators }),
+		jv.object({ client_address_id: jv.is_bigint, ...jv.optional_shape(address_value_validators) }),
 	)),
 	remove_contact_ids: jv.array(jv.is_bigint),
 	remove_address_ids: jv.array(jv.is_bigint),
@@ -188,12 +180,14 @@ export const functions = {
 			{ company, transaction },
 		) => transaction(async ({ connection, select_builder, write_helper }) => {
 			const company_id = company.company_id
+			const { client_id: client_object_id, ...client_changes } = client
 
-			assert_removed_ids_unused({ client, contacts, addresses, remove_contact_ids, remove_address_ids })
-			await assert_input_ids_valid({ client_id, client, select_builder })
+			assert(client_object_id === null || client_object_id === client_id, `client.client_id matches client_id when it is set`)
+			assert_removed_ids_unused({ client: client_changes, contacts, addresses, remove_contact_ids, remove_address_ids })
+			await assert_input_ids_valid({ client_id, client: client_changes, select_builder })
 
-			if (Object.keys(client).length > 0) {
-				await write_helper.update('client', 'client_id', client_id, client)
+			if (Object.keys(client_changes).length > 0) {
+				await write_helper.update('client', 'client_id', client_id, client_changes)
 			}
 
 			const contact_ids = await map_async(contacts, contact =>

@@ -1,12 +1,13 @@
 <script lang="ts">
-	let { checked = $bindable(false), disabled = false }: {
+	let { checked = $bindable(false), disabled = false, value_needs_to_be_saved = true }: {
 		checked?: boolean
 		disabled?: boolean
+		value_needs_to_be_saved?: boolean
 	} = $props()
 </script>
 
 <label>
-	<input type="checkbox" bind:checked {disabled}>
+	<input type="checkbox" bind:checked {disabled} data-value-needs-to-be-saved={value_needs_to_be_saved}>
 </label>
 
 <style>

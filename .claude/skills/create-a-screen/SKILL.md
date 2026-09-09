@@ -15,6 +15,7 @@ The reference implementation is `src/client/route/app/create_a_lead/`. Read it b
 - The form object: `src/client/route/app/<screen_name>/<form_name>_form.svelte.ts`
 - Child components that own one record or argument: `src/client/route/app/<screen_name>/<Thing>Selector.svelte`
 - Records that may already exist in the database: `#client/lib/tracked_record.svelte.ts`
+- Lists of child records the user can add, edit, and remove: `#client/component/list_input/editable_rows.svelte.ts` for the list, `#client/lib/tracked_record_array.svelte.ts` for what to save
 - Small layout or input helpers used only by this screen: `src/client/route/app/<screen_name>/_helpers/`
 - Components used by more than one screen: `src/client/component/`
 - Argument types shared with the server: `#shared/type/<domain>.ts`
@@ -108,7 +109,9 @@ const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 }
 ```
 
-- **A record that may already exist is a `tracked_record`.** It holds `form_values` (what inputs bind to), `db_values` (the cached row the user picked, or null), `value_needs_to_be_saved(key)`, and `values_to_save`. For a new record `values_to_save` is every field with a null id. For a pre-existing record it is the id plus the fields whose form value differs from the database value. `set_values(row)` picks a row and copies its values into the form. `clear()` returns to a new record.
+- **A record that may already exist is a `tracked_record`.** It holds `form_values` (what inputs bind to), `db_values` (the row from the database, or null), `key` (its db id, or a permanent temporary key for a new record), `value_needs_to_be_saved(key)`, `is_empty`, and `values_to_save`. For a new record `values_to_save` is every field with a null id. For a pre-existing record it is the id plus the fields whose form value differs from the database value. `set_values(row)` picks a row and copies its values into the form. `clear()` returns to a new record. Pass `is_empty` when a blank row means something other than "every value equals `initial`".
+- **A list of child records is an `editable_rows` of `tracked_record`s plus a `tracked_record_array`.** Write one `make_<thing>(db_values)` function that builds a `tracked_record`. Give `editable_rows` the loaded records, `make_empty_row: () => make_<thing>(null)`, `row_is_empty: row => row.is_empty`, and `get_key: row => row.key`. It owns the trailing placeholder row, cleanup, focus, and removal, and the screen binds `ListInput` to it. Give `tracked_record_array` a getter for the live rows and the id key. Its `values_to_save` is every non-empty row that is new or changed, in the same union shape as a single record. Its `removed_ids` is every database id no record in the list carries. The placeholder row is never in either. The client screen (`src/client/route/app/client/`) is the reference.
+- **After the server answers, hand back what was sent.** Snapshot `form.values_to_save` before the await. The server returns one id per sent row, in order. The screen zips those ids into the sent rows with `zip_with` from `#shared/array.ts`, then calls `form.update_db_values` with the result. The form calls `update_db_values(saved_values)` on each single record and `update_db_values(saved_rows, removed_ids)` on each array. Only the sent values become database values, so an edit made while the save was in flight still reads as needing to be saved. A row sent with a null id carries its record's identity on a symbol key that survives spreading and never reaches the server, which is how the array finds the record for a new id.
 - **Always-new arguments are plain `$state` in the closure.** Put them behind a getter and a setter so `bind:project={lead.project}` works from the screen.
 - **The picked cached row lives in the closure** (`selected_client`), so the selectors can read its child rows for their dropdowns. Use `$state.raw` for it. Nothing mutates it.
 - **Picking and clearing are methods on the form.** `select_client` sets the client record, picks the default address and contact, and resets billing. `clear_client` clears all three records. No `$effect` watches the picked row.
@@ -152,7 +155,7 @@ Inside the selector:
 - **Defaults belong to the form object.** `select_client` picks the default address and the matched or primary contact. Selectors do not watch the picked row.
 - **Nullable sub-objects toggle by their own checkbox.** The billing checkbox reads `billing_address !== null`. Checking it builds the object with prefilled values from the client and address. Unchecking it stores the object in a plain `let` draft and sets null, so re-checking restores the draft. The screen renders the child inside `{#if billing_address}`.
 - **Row groups** (availability windows) keep string rows locally and write the converted, complete rows into the bound array from an effect.
-- **Mark inputs whose value is already in the database.** Set `data-value-needs-to-be-saved={client.value_needs_to_be_saved(`name`)}` on each input of a tracked record. The 98.css rule paints an input with `"false"` in the app background. The same test decides which fields go in `values_to_save`, so the style and the payload cannot disagree. A new record has no database row and every input reads as new.
+- **Mark inputs whose value is already in the database.** Set `data-value-needs-to-be-saved={client.value_needs_to_be_saved(`name`)}` on each input of a tracked record. List input cell components take the same test as a `value_needs_to_be_saved` prop. The 98.css rule paints an input with `"false"` in the app background. The same test decides which fields go in `values_to_save`, so the style and the payload cannot disagree. A new record has no database row and every input reads as new.
 
 ### 5. Validate with the browser
 
@@ -168,7 +171,7 @@ The form's submit does not fire until the browser is satisfied. The screen keeps
 ### 6. Markup and styling
 
 - Every form is a flex column with `var(--gap_unit)` from `global_styles.css`. Do not restyle `form`.
-- Fieldsets use `FieldsetColumn` for vertical stacking and `FormLayout` from `#client/component/` for the field grid.
+- Fieldsets use `FieldsetColumn` for vertical stacking, `FormLayout` for the field grid, and `WideTextareaField` for a full-width textarea, all from `#client/component/`.
 - Use the 98.css design system classes that the app loads: `title-bar` with `title-bar-text`, and `title-bar inactive` for a disabled look. The current client header on the lead screen is a title bar.
 - To keep an element's space without showing it, set `data-hide={condition}` and style `[data-hide="true"] { visibility: hidden }`. Do not use `{#if}` for a control whose absence would change the parent's height.
 - Layout is the parent's job. No self-placement on children.

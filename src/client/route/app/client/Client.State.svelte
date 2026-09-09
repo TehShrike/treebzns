@@ -3,16 +3,19 @@
 	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
 	import FormLayout from '#client/component/FormLayout.svelte'
+	import FieldsetColumn from '#client/component/FieldsetColumn.svelte'
+	import WideTextareaField from '#client/component/WideTextareaField.svelte'
 	import ListInput from '#client/component/list_input/ListInput.svelte'
 	import TextInput from '#client/component/list_input/TextInput.svelte'
 	import Checkbox from '#client/component/list_input/Checkbox.svelte'
 	import DeleteButton from '#client/component/list_input/DeleteButton.svelte'
-	import editable_rows from '#client/component/list_input/editable_rows.svelte.ts'
+	import make_client_form, { type ClientForm } from './client_form.svelte.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import param_validator from '#shared/param_validator.ts'
 	import type { Schema } from '#schema/types.ts'
 	import assert from '#shared/assert.ts'
-	import { map } from '#shared/array.ts'
+	import { map, zip_with } from '#shared/array.ts'
+	import { untrack } from 'svelte'
 
 	const fetch_client = async (query: ClientQueryFn, client_id: bigint) => {
 		const rows = await query(
@@ -24,8 +27,15 @@
 					'client.name',
 					'client.is_commercial',
 					'client.default_project_address_id',
+					'client.billing_name',
+					'client.billing_address_line_1',
+					'client.billing_address_line_2',
+					'client.billing_city',
+					'client.billing_state',
+					'client.billing_zip',
 					'client.billing_phone',
 					'client.billing_email',
+					'client.tax_rate_id',
 					'client.notes',
 					'client.referred_by',
 				] as const)
@@ -41,9 +51,11 @@
 			query_builder<Schema>()
 				.from('client_address')
 				.where(q => q.comparison('client_address.client_id', '=', { value: client_id }))
+				.order_by('client_address.sort')
 				.order_by('client_address.client_address_id')
 				.select(() => [
 					'client_address.client_address_id',
+					'client_address.client_contact_id',
 					'client_address.name',
 					'client_address.address_line_1',
 					'client_address.address_line_2',
@@ -76,6 +88,17 @@
 		return map(rows, row => row.client_contact)
 	}
 
+	const fetch_tax_rates = async (query: ClientQueryFn) => map(
+		await query(
+			query_builder<Schema>()
+				.from('tax_rate')
+				.order_by('tax_rate.name', 'ASC')
+				.select(() => ['tax_rate.tax_rate_id', 'tax_rate.name'] as const)
+				.build()
+		),
+		row => row.tax_rate,
+	)
+
 	const validate_params = param_validator({
 		client_id: param_validator.bigint,
 	})
@@ -84,11 +107,12 @@
 		name: `app.client`,
 		route: `/client/:client_id`,
 		param_validator: validate_params,
-		resolve: async ({ query }, { client_id }) => {
-			const [client, addresses, contacts] = await Promise.all([
+		resolve: async ({ query, server, client_cache }, { client_id }) => {
+			const [client, addresses, contacts, tax_rates] = await Promise.all([
 				fetch_client(query, client_id),
 				fetch_addresses(query, client_id),
 				fetch_contacts(query, client_id),
+				fetch_tax_rates(query),
 			])
 
 			assert(client)
@@ -97,127 +121,196 @@
 				client,
 				addresses,
 				contacts,
+				tax_rates,
+				server,
+				client_cache,
 			}
 		},
 	})
 
 	type Resolved = StateResolve<typeof asr_state>
-	type AddressRow = Omit<Resolved['addresses'][number], 'client_address_id'> & { client_address_id: bigint | null }
-	type ContactRow = Omit<Resolved['contacts'][number], 'client_contact_id'> & { client_contact_id: bigint | null }
+	type ContactRow = ClientForm['contact_rows']['rows'][number]
+	type AddressRow = ClientForm['address_rows']['rows'][number]
 </script>
 
 <script lang="ts">
-	const { client, addresses: loaded_addresses, contacts: loaded_contacts }: Resolved = $props()
+	const { client: loaded_client, addresses: loaded_addresses, contacts: loaded_contacts, tax_rates, server, client_cache }: Resolved = $props()
 
-	// svelte-ignore state_referenced_locally
-	const client_form = $state({ ...client })
+	const form = untrack(() => make_client_form({ client: loaded_client, contacts: loaded_contacts, addresses: loaded_addresses }))
+	const { client, contact_rows, address_rows } = form
 
-	// svelte-ignore state_referenced_locally
-	const contacts = editable_rows<ContactRow>({
-		initial: map(loaded_contacts, contact => ({ ...contact })),
-		make_empty_row: () => ({ client_contact_id: null, name: ``, description: ``, phone: ``, email: ``, is_primary: false }),
-		row_is_empty: row => row.name === `` && row.description === `` && row.phone === `` && row.email === ``,
-		get_key: row => row.client_contact_id,
-	})
+	let saving = $state(false)
+	let save_error = $state(``)
 
-	// svelte-ignore state_referenced_locally
-	const addresses = editable_rows<AddressRow>({
-		initial: map(loaded_addresses, address => ({ ...address })),
-		make_empty_row: () => ({ client_address_id: null, name: ``, address_line_1: ``, address_line_2: ``, city: ``, state: ``, zip: `` }),
-		row_is_empty: row => row.name === `` && row.address_line_1 === `` && row.address_line_2 === `` && row.city === `` && row.state === `` && row.zip === ``,
-		get_key: row => row.client_address_id,
-	})
+	const save = async (event: SubmitEvent) => {
+		event.preventDefault()
+		save_error = ``
+		saving = true
+		try {
+			const sent = form.values_to_save
+			const saved = await server.update_client(sent)
+			form.update_db_values({
+				...sent,
+				client: { ...sent.client, client_id: saved.client_id },
+				contacts: zip_with(sent.contacts, saved.contact_ids, (contact, client_contact_id) => ({ ...contact, client_contact_id })),
+				addresses: zip_with(sent.addresses, saved.address_ids, (address, client_address_id) => ({ ...address, client_address_id })),
+			})
+			client_cache.refresh()
+		} catch (err: any) {
+			save_error = err?.body?.message ?? err?.message ?? `Something went wrong`
+		} finally {
+			saving = false
+		}
+	}
 </script>
 
 {#snippet contact_name_cell(contact: ContactRow)}
-	<TextInput bind:value={contact.name} />
+	<TextInput bind:value={contact.form_values.name} value_needs_to_be_saved={contact.value_needs_to_be_saved(`name`)} />
 {/snippet}
 
 {#snippet contact_description_cell(contact: ContactRow)}
-	<TextInput bind:value={contact.description} />
+	<TextInput bind:value={contact.form_values.description} value_needs_to_be_saved={contact.value_needs_to_be_saved(`description`)} />
 {/snippet}
 
 {#snippet contact_phone_cell(contact: ContactRow)}
-	<TextInput bind:value={contact.phone} />
+	<TextInput bind:value={contact.form_values.phone} value_needs_to_be_saved={contact.value_needs_to_be_saved(`phone`)} />
 {/snippet}
 
 {#snippet contact_email_cell(contact: ContactRow)}
-	<TextInput bind:value={contact.email} />
+	<TextInput bind:value={contact.form_values.email} value_needs_to_be_saved={contact.value_needs_to_be_saved(`email`)} />
 {/snippet}
 
 {#snippet contact_primary_cell(contact: ContactRow)}
-	<Checkbox bind:checked={contact.is_primary} />
+	<Checkbox bind:checked={contact.form_values.is_primary} value_needs_to_be_saved={contact.value_needs_to_be_saved(`is_primary`)} />
 {/snippet}
 
 {#snippet contact_delete_cell(contact: ContactRow)}
-	<DeleteButton disabled={contacts.row_is_placeholder(contact)} onclick={() => contacts.remove(contacts.get_key(contact))} />
+	<DeleteButton disabled={contact_rows.row_is_placeholder(contact)} onclick={() => contact_rows.remove(contact.key)} />
 {/snippet}
 
 {#snippet address_name_cell(address: AddressRow)}
-	<TextInput bind:value={address.name} />
+	<TextInput bind:value={address.form_values.name} value_needs_to_be_saved={address.value_needs_to_be_saved(`name`)} />
 {/snippet}
 
 {#snippet line_1_cell(address: AddressRow)}
-	<TextInput bind:value={address.address_line_1} />
+	<TextInput bind:value={address.form_values.address_line_1} value_needs_to_be_saved={address.value_needs_to_be_saved(`address_line_1`)} />
 {/snippet}
 
 {#snippet line_2_cell(address: AddressRow)}
-	<TextInput bind:value={address.address_line_2} />
+	<TextInput bind:value={address.form_values.address_line_2} value_needs_to_be_saved={address.value_needs_to_be_saved(`address_line_2`)} />
 {/snippet}
 
 {#snippet city_cell(address: AddressRow)}
-	<TextInput bind:value={address.city} />
+	<TextInput bind:value={address.form_values.city} value_needs_to_be_saved={address.value_needs_to_be_saved(`city`)} />
 {/snippet}
 
 {#snippet state_cell(address: AddressRow)}
-	<TextInput bind:value={address.state} />
+	<TextInput bind:value={address.form_values.state} value_needs_to_be_saved={address.value_needs_to_be_saved(`state`)} />
 {/snippet}
 
 {#snippet zip_cell(address: AddressRow)}
-	<TextInput bind:value={address.zip} />
+	<TextInput bind:value={address.form_values.zip} value_needs_to_be_saved={address.value_needs_to_be_saved(`zip`)} />
 {/snippet}
 
 {#snippet address_delete_cell(address: AddressRow)}
-	<DeleteButton disabled={addresses.row_is_placeholder(address)} onclick={() => addresses.remove(addresses.get_key(address))} />
+	<DeleteButton disabled={address_rows.row_is_placeholder(address)} onclick={() => address_rows.remove(address.key)} />
 {/snippet}
 
 <AppScreen>
-	<h1>{client.name}</h1>
+	<div class="header">
+		<h1>{client.db_values?.name ?? ``}</h1>
+		<button type="submit" form="client_form" class="default" disabled={saving}>Save</button>
+	</div>
 
-	<FormLayout>
-		<label>
-			Name
-			<input type="text" bind:value={client_form.name}>
-		</label>
-		<label>
-			Phone
-			<input type="tel" bind:value={client_form.billing_phone}>
-		</label>
-		<label>
-			Email
-			<input type="email" bind:value={client_form.billing_email}>
-		</label>
-		<label>
-			Referred by
-			<input type="text" bind:value={client_form.referred_by}>
-		</label>
-		<label>
-			Commercial
-			<input type="checkbox" bind:checked={client_form.is_commercial}>
-		</label>
-		<label>
-			Notes
-			<textarea bind:value={client_form.notes} rows="3"></textarea>
-		</label>
-	</FormLayout>
+	{#if save_error}
+		<p class="error">{save_error}</p>
+	{/if}
+
+	<form id="client_form" onsubmit={save}>
+		<FormLayout>
+			<label>
+				Name
+				<input type="text" autocomplete="off" data-1p-ignore required data-value-needs-to-be-saved={client.value_needs_to_be_saved(`name`)} bind:value={client.form_values.name}>
+			</label>
+			<label>
+				Commercial
+				<input type="checkbox" data-value-needs-to-be-saved={client.value_needs_to_be_saved(`is_commercial`)} bind:checked={client.form_values.is_commercial}>
+			</label>
+		</FormLayout>
+
+		<fieldset>
+			<legend>Billing contact</legend>
+			<FormLayout>
+				<label>
+					Phone
+					<input type="tel" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_phone`)} bind:value={client.form_values.billing_phone}>
+				</label>
+				<label>
+					Email
+					<input type="email" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_email`)} bind:value={client.form_values.billing_email}>
+				</label>
+			</FormLayout>
+		</fieldset>
+
+		<fieldset>
+			<legend>Billing address</legend>
+			<FormLayout>
+				<label>
+					Name
+					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_name`)} bind:value={client.form_values.billing_name}>
+				</label>
+				<label>
+					Address line 1
+					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_address_line_1`)} bind:value={client.form_values.billing_address_line_1}>
+				</label>
+				<label>
+					Address line 2
+					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_address_line_2`)} bind:value={client.form_values.billing_address_line_2}>
+				</label>
+				<label>
+					City
+					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_city`)} bind:value={client.form_values.billing_city}>
+				</label>
+				<label>
+					State
+					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_state`)} bind:value={client.form_values.billing_state}>
+				</label>
+				<label>
+					Zip
+					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_zip`)} bind:value={client.form_values.billing_zip}>
+				</label>
+			</FormLayout>
+		</fieldset>
+
+		<fieldset>
+			<FieldsetColumn>
+				<FormLayout>
+					<label>
+						Tax rate
+						<select data-value-needs-to-be-saved={client.value_needs_to_be_saved(`tax_rate_id`)} bind:value={client.form_values.tax_rate_id}>
+							<option value={null}>No tax</option>
+							{#each tax_rates as tax_rate (tax_rate.tax_rate_id)}
+								<option value={tax_rate.tax_rate_id}>{tax_rate.name}</option>
+							{/each}
+						</select>
+					</label>
+					<label>
+						Referred by
+						<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`referred_by`)} bind:value={client.form_values.referred_by}>
+					</label>
+				</FormLayout>
+				<WideTextareaField id="client_notes" label="Notes" rows={3} value_needs_to_be_saved={client.value_needs_to_be_saved(`notes`)} bind:value={client.form_values.notes} />
+			</FieldsetColumn>
+		</fieldset>
+	</form>
 
 	<h2>Contacts</h2>
 
 	<ListInput
-		rows={contacts.rows}
-		get_key={contacts.get_key}
-		bind:focused_row_key={contacts.focused_row_key}
-		row_is_placeholder={contacts.row_is_placeholder}
+		rows={contact_rows.rows}
+		get_key={contact_rows.get_key}
+		bind:focused_row_key={contact_rows.focused_row_key}
+		row_is_placeholder={contact_rows.row_is_placeholder}
 		columns={[
 			{ header: `Name`, cell: contact_name_cell },
 			{ header: `Description`, cell: contact_description_cell },
@@ -231,10 +324,10 @@
 	<h2>Addresses</h2>
 
 	<ListInput
-		rows={addresses.rows}
-		get_key={addresses.get_key}
-		bind:focused_row_key={addresses.focused_row_key}
-		row_is_placeholder={addresses.row_is_placeholder}
+		rows={address_rows.rows}
+		get_key={address_rows.get_key}
+		bind:focused_row_key={address_rows.focused_row_key}
+		row_is_placeholder={address_rows.row_is_placeholder}
 		columns={[
 			{ header: `Name`, cell: address_name_cell },
 			{ header: `Address line 1`, cell: line_1_cell, width: `2fr` },
@@ -246,3 +339,17 @@
 		]}
 	/>
 </AppScreen>
+
+<style>
+	.header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--gap_half);
+	}
+
+	.error {
+		color: var(--attention_red);
+		margin: 0;
+	}
+</style>

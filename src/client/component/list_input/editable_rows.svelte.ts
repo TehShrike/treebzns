@@ -1,15 +1,13 @@
 import { filter } from '#shared/array.ts'
 import type { RowKey } from './row_key.ts'
-import { plan_cleanup, make_key_assigner } from './editable_rows_logic.ts'
+import { plan_cleanup } from './editable_rows_logic.ts'
 
-const editable_rows = <Row extends object>({ initial, make_empty_row, row_is_empty, get_key: get_key_or_null }: {
+const editable_rows = <Row extends object>({ initial, make_empty_row, row_is_empty, get_key }: {
 	initial: readonly Row[]
 	make_empty_row: () => Row
 	row_is_empty: (row: Row) => boolean
-	get_key: (row: Row) => RowKey | null
+	get_key: (row: Row) => RowKey
 }) => {
-	const get_key = make_key_assigner(get_key_or_null)
-
 	let rows = $state<Row[]>([...initial])
 	let focused_row_key = $state<RowKey | null>(null)
 

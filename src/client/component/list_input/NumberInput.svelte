@@ -3,12 +3,13 @@
 	import number, { type FinancialNumber } from '#shared/fnum.ts'
 	import assert from '#shared/assert.ts'
 
-	let { value = $bindable(), decimal_places, min = 0, max = null, disabled = false }: {
+	let { value = $bindable(), decimal_places, min = 0, max = null, disabled = false, value_needs_to_be_saved = true }: {
 		value: FinancialNumber
 		decimal_places: number
 		min?: number | null
 		max?: number | null
 		disabled?: boolean
+		value_needs_to_be_saved?: boolean
 	} = $props()
 
 	let input_element: HTMLInputElement | undefined = $state()
@@ -71,6 +72,7 @@
 	{max}
 	{step}
 	{disabled}
+	data-value-needs-to-be-saved={value_needs_to_be_saved}
 	bind:this={input_element}
 	bind:value={() => input_value, set_input_value}
 	onfocus={event => event.currentTarget.select()}

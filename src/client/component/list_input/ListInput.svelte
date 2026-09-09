@@ -135,6 +135,10 @@
 		overflow: hidden;
 	}
 
+	[role=cell]:has(:global([data-value-needs-to-be-saved="false"])) {
+		background-color: var(--background);
+	}
+
 	[role=cell] > :global(*) {
 		flex: 1;
 		box-sizing: border-box;

@@ -20,24 +20,3 @@ export const plan_cleanup = <Row>({ rows, row_is_empty, get_key, focused_row_key
 
 	return { rows_to_keep, needs_new_empty_row }
 }
-
-export const make_key_assigner = <Row extends object>(get_key: (row: Row) => RowKey | null) => {
-	const temporary_keys = new WeakMap<Row, string>()
-	let counter = 0
-
-	return (row: Row): RowKey => {
-		const key = get_key(row)
-		if (key !== null) {
-			return key
-		}
-
-		const existing_temporary_key = temporary_keys.get(row)
-		if (existing_temporary_key !== undefined) {
-			return existing_temporary_key
-		}
-
-		const temporary_key = `new_${counter++}`
-		temporary_keys.set(row, temporary_key)
-		return temporary_key
-	}
-}

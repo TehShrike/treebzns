@@ -18,7 +18,7 @@ const insert_client_address = async ({
 
 	const { insert_id: client_address_id } = await write_helper.insert('client_address', {
 		client_id,
-		client_contact_id: address.client_contact_id ?? null,
+		client_contact_id: address.client_contact_id,
 		name: address.name,
 		address_line_1: address.address_line_1,
 		address_line_2: address.address_line_2,

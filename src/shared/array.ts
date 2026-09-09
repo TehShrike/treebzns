@@ -124,6 +124,13 @@ export const flat_map = <T, U>(arr: readonly T[], mapper: (item: T, index: numbe
 }
 
 type PredicateAndMapper<T, K> = (item: T) => K | null
+export const zip_with = <A, B, U>(a: readonly A[], b: readonly B[], zipper: (a: A, b: B, index: number) => U): U[] => {
+	if (a.length !== b.length) {
+		throw new Error(`zip_with requires arrays of equal length, got ${a.length} and ${b.length}`)
+	}
+	return map(a, (item, index) => zipper(item, b[index] as B, index))
+}
+
 export const filter_map = <T, K extends NonNullable<unknown>>(arr: readonly T[], predicate: PredicateAndMapper<T, K>): K[] => {
 	const length = arr.length,
 		res: K[] = []

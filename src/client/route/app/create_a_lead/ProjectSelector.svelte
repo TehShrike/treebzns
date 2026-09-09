@@ -1,8 +1,8 @@
 <script module lang="ts">
 	import FormLayout from '#client/component/FormLayout.svelte'
 	import BetterDataList from '#client/component/dropdown_input/BetterDataList.svelte'
-	import FieldsetColumn from './_helpers/FieldsetColumn.svelte'
-	import WideTextareaField from './_helpers/WideTextareaField.svelte'
+	import FieldsetColumn from '#client/component/FieldsetColumn.svelte'
+	import WideTextareaField from '#client/component/WideTextareaField.svelte'
 	import AvailabilityWindows from './_helpers/AvailabilityWindows.svelte'
 	import type { LeadProject, LeadAvailability } from '#shared/type/lead.ts'
 	import { some } from '#shared/array.ts'

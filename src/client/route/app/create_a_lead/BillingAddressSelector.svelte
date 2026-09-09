@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import FormLayout from '#client/component/FormLayout.svelte'
-	import FieldsetColumn from './_helpers/FieldsetColumn.svelte'
+	import FieldsetColumn from '#client/component/FieldsetColumn.svelte'
 	import type { LeadBilling } from '#shared/type/lead.ts'
 </script>
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert'
-import { plan_cleanup, make_key_assigner } from './editable_rows_logic.ts'
+import { plan_cleanup } from './editable_rows_logic.ts'
 
 type Row = { id: number | null, text: string }
 
@@ -48,23 +48,4 @@ test('plan_cleanup asks for a new empty row when there are no rows', () => {
 
 	assert.deepStrictEqual(rows_to_keep, [], 'nothing to keep')
 	assert.strictEqual(needs_new_empty_row, true, 'a new empty row is needed')
-})
-
-test('make_key_assigner returns the real key when there is one', () => {
-	const assign_key = make_key_assigner((row: Row) => row.id)
-
-	assert.strictEqual(assign_key({ id: 7, text: `` }), 7, 'the id is the key')
-})
-
-test('make_key_assigner hands out a stable temporary key per row object', () => {
-	const assign_key = make_key_assigner((row: Row) => row.id)
-	const first: Row = { id: null, text: `` }
-	const second: Row = { id: null, text: `` }
-
-	const first_key = assign_key(first)
-	const second_key = assign_key(second)
-
-	assert.strictEqual(assign_key(first), first_key, 'the same row gets the same key again')
-	assert.notStrictEqual(first_key, second_key, 'different rows get different keys')
-	assert.strictEqual(typeof first_key, `string`, 'temporary keys are strings')
 })

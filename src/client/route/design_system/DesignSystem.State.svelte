@@ -10,9 +10,11 @@
 	import Checkbox from "#client/component/list_input/Checkbox.svelte";
 	import DeleteButton from "#client/component/list_input/DeleteButton.svelte";
 	import editable_rows from "#client/component/list_input/editable_rows.svelte.ts";
+	import type { RowKey } from "#client/component/list_input/row_key.ts";
 	import number, { type FinancialNumber } from "#shared/fnum.ts";
 
 	type LineItemRow = {
+		key: RowKey;
 		line_item_id: bigint | null;
 		description: string;
 		quantity: FinancialNumber;
@@ -20,7 +22,9 @@
 		taxable: boolean;
 	};
 
+	let new_line_item_count = 0;
 	const make_empty_line_item = (): LineItemRow => ({
+		key: `new_${new_line_item_count++}`,
 		line_item_id: null,
 		description: ``,
 		quantity: number(`1`),
@@ -63,12 +67,12 @@
 
 	const line_items = editable_rows<LineItemRow>({
 		initial: [
-			{ line_item_id: 1n, description: `Remove the oak in the back yard`, quantity: number(`1`), price: number(`1800.00`), taxable: true },
-			{ line_item_id: 2n, description: `Stump grinding`, quantity: number(`2`), price: number(`150.00`), taxable: false },
+			{ key: 1n, line_item_id: 1n, description: `Remove the oak in the back yard`, quantity: number(`1`), price: number(`1800.00`), taxable: true },
+			{ key: 2n, line_item_id: 2n, description: `Stump grinding`, quantity: number(`2`), price: number(`150.00`), taxable: false },
 		],
 		make_empty_row: make_empty_line_item,
 		row_is_empty: line_item_is_empty,
-		get_key: (row) => row.line_item_id,
+		get_key: (row) => row.key,
 	});
 </script>
 
@@ -99,7 +103,7 @@
 {#snippet delete_cell(row: LineItemRow)}
 	<DeleteButton
 		disabled={line_items.row_is_placeholder(row)}
-		onclick={() => line_items.remove(line_items.get_key(row))}
+		onclick={() => line_items.remove(row.key)}
 	/>
 {/snippet}
 
