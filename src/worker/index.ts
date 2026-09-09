@@ -32,17 +32,18 @@ export default {
 
 		try {
 			if (method === 'POST' && pathname === '/api/create_company') {
-				return run_with_connection(env, async mysql => create_company(request, mysql))
+				return await run_with_connection(env, async mysql => create_company(request, mysql))
 			} else if (method === 'POST' && pathname === '/api/log_in') {
-				return run_with_connection(env, async mysql => log_in(request, mysql))
+				return await run_with_connection(env, async mysql => log_in(request, mysql))
 			} else if (method === 'POST' && pathname === '/api/log_out') {
-				return run_with_connection(env, async mysql => log_out(request, mysql))
+				return await run_with_connection(env, async mysql => log_out(request, mysql))
 			} else if (method === 'GET' && pathname === '/api/session') {
-				return run_with_connection(env, async mysql => session(request, mysql))
+				return await run_with_connection(env, async mysql => session(request, mysql))
 			} else if (method === 'POST' && pathname.startsWith(server_function_route_prefix)) {
-				return run_with_connection(env, async mysql => server_functions(server_function_route_prefix, request, mysql))
+				return await run_with_connection(env, async mysql => server_functions(server_function_route_prefix, request, mysql))
 			}
 		} catch (error) {
+			console.error(error)
 			return error_object_response({ error })
 		}
 
