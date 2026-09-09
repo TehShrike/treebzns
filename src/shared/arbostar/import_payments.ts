@@ -1,4 +1,5 @@
 import type { Connection, ResultSetHeader } from 'mysql2/promise'
+import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import { Temporal } from '@js-temporal/polyfill'
 import type { ArbostarPayment } from '#arbostar_export/payments.d.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
@@ -7,7 +8,7 @@ import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
-import { make_write_helper, ROWS_PER_BATCH, group_by, money, normalize_name, string_or_null } from './import_common.ts'
+import { ROWS_PER_BATCH, group_by, money, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 import { date_from_yyyymmdd } from './arbostar_dates.ts'
@@ -72,6 +73,7 @@ const earliest_date = (dates: Array<string | null>): string | null => {
 // ArboStar-side deletion or refund worth investigating by hand.
 export const import_payments = async (
 	connection: Connection,
+	write_helper: TenantedWriteHelper,
 	context: ArbostarImportContext,
 	{ payments, invoices, leads, estimates }: {
 		payments: ArbostarPayment[]
@@ -84,7 +86,6 @@ export const import_payments = async (
 	invoice_id_by_arbostar_invoice_id: Map<number, bigint>,
 	employee_id_by_arbostar_user_id: Map<number, bigint>,
 ): Promise<ImportedPayments> => {
-	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const { client_id_by_arbostar_client_id } = imported_clients
 	const correlated = context.existing.payment_id_by_arbostar_payment_id
 	const with_client = filter(payments, payment => client_id_by_arbostar_client_id.has(payment.client_id))

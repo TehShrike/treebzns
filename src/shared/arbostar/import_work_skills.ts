@@ -1,8 +1,9 @@
 import type { Connection } from 'mysql2/promise'
+import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ArbostarCrewRole } from '#arbostar_export/crew_roles.d.ts'
 import assert from '#shared/assert.ts'
 import { map, filter } from '#shared/array.ts'
-import { make_write_helper, ROWS_PER_BATCH, normalize_name, money } from './import_common.ts'
+import { ROWS_PER_BATCH, normalize_name, money } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedWorkSkills = {
@@ -21,10 +22,10 @@ export type ImportedWorkSkills = {
 // absent from the export are never deleted.
 export const import_work_skills = async (
 	connection: Connection,
+	write_helper: TenantedWriteHelper,
 	context: ArbostarImportContext,
 	crew_roles: ArbostarCrewRole[],
 ): Promise<ImportedWorkSkills> => {
-	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const skills = map(crew_roles, role => {
 		const digits = /(\d+)$/.exec(role.crew_name)?.[1]
 		return {

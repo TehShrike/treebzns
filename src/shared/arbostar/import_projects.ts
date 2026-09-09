@@ -1,4 +1,5 @@
 import type { Connection, ResultSetHeader } from 'mysql2/promise'
+import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import { Temporal } from '@js-temporal/polyfill'
 import type { FinancialNumber } from 'financial-number'
 import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
@@ -21,7 +22,7 @@ import {
 	instant_from_unix_seconds,
 } from './arbostar_dates.ts'
 import { derive_timezone_from_export } from './derive_timezone_from_export.ts'
-import { make_write_helper, ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
+import { ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
@@ -147,6 +148,7 @@ const NOT_TAXABLE: ProjectTax = { taxable: false, tax_rate_id: null, tax_rate: n
 // reopens one that was closed in-app.
 export const import_projects = async (
 	connection: Connection,
+	write_helper: TenantedWriteHelper,
 	context: ArbostarImportContext,
 	{ leads, estimates, workorders, invoices, line_items, declines, taxes }: {
 		leads: ArbostarLead[]
@@ -159,7 +161,6 @@ export const import_projects = async (
 	},
 	imported_clients: ImportedClients,
 ): Promise<ImportedProjects> => {
-	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const { client_id_by_arbostar_client_id, default_project_address_by_arbostar_client_id, primary_client_contact_id_by_arbostar_client_id } = imported_clients
 	const timezone = derive_timezone_from_export({ leads, workorders })
 	const estimates_by_lead_id = group_by(filter(estimates, estimate => estimate.lead_id !== null), estimate => estimate.lead_id!)

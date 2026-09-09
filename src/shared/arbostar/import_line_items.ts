@@ -1,8 +1,9 @@
 import type { Connection, ResultSetHeader } from 'mysql2/promise'
+import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter } from '#shared/array.ts'
-import { make_write_helper, ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
+import { ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedLineItems = {
@@ -35,11 +36,11 @@ const data_score = (item: ArbostarLineItem): number =>
 // project. In-app lines (null arbostar id) are never touched.
 export const import_line_items = async (
 	connection: Connection,
+	write_helper: TenantedWriteHelper,
 	context: ArbostarImportContext,
 	line_items: ArbostarLineItem[],
 	project_id_by_arbostar_lead_id: Map<number, bigint>,
 ): Promise<ImportedLineItems> => {
-	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const with_project = filter(line_items, item => project_id_by_arbostar_lead_id.has(item.lead_id))
 	const best_by_line_item_id = new Map<number, ArbostarLineItem>()
 	for (const item of with_project) {

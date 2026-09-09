@@ -2,7 +2,7 @@
 // own module (import_employees / import_clients / import_projects / import_line_items /
 // import_payments); shared plumbing is in import_common.ts, and arbostar_import_notes.md
 // documents what does and doesn't survive the mapping.
-import type { Connection, Pool } from 'mysql2/promise'
+import type { Connection, Pool, PoolConnection } from 'mysql2/promise'
 import { map, filter } from '#shared/array.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
@@ -17,7 +17,8 @@ import type { ArbostarPayment } from '#arbostar_export/payments.d.ts'
 import type { ArbostarUser } from '#arbostar_export/users.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
 import type { ArbostarCrewRole } from '#arbostar_export/crew_roles.d.ts'
-import { pool_transaction } from '#shared/mysql/helpers.ts'
+import { pool_transaction, type TransactionConnection } from '#shared/mysql/helpers.ts'
+import make_write_helper, { type TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import { identity_key, run_select } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { resolve_context } from './resolve_context.ts'
@@ -67,6 +68,12 @@ const import_arbostar_export = async (
 	data: ArbostarExportData,
 ) => {
 	const context = await resolve_context(pool, company_id)
+	const transaction_with_write_helper = <Result>(
+		fn: (connection: TransactionConnection<PoolConnection>, write_helper: TenantedWriteHelper) => Promise<Result>,
+	) => pool_transaction(
+		pool,
+		connection => fn(connection, make_write_helper({ connection, company_id }))
+	)
 
 	// One transaction per phase (on its own pooled connection) rather than around the whole
 	// run: each phase commits an internally consistent set of rows, lock windows stay short
@@ -80,37 +87,39 @@ const import_arbostar_export = async (
 	// users, not just pre-existing employees. Clients and work skills don't consume it, so
 	// they load alongside.
 	const [imported_employees, imported_clients, imported_work_skills] = await Promise.all([
-		pool_transaction(pool, connection => import_employees(connection, context, data.users, () => load_taken_identity_keys(connection))),
-		pool_transaction(pool, connection => import_clients(connection, context, data.clients)),
-		pool_transaction(pool, connection => import_work_skills(connection, context, data.crew_roles)),
+		transaction_with_write_helper((connection, write_helper) => import_employees(connection, write_helper, context, data.users, () => load_taken_identity_keys(connection))),
+		transaction_with_write_helper((connection, write_helper) => import_clients(connection, write_helper, context, data.clients)),
+		transaction_with_write_helper((connection, write_helper) => import_work_skills(connection, write_helper, context, data.crew_roles)),
 	])
 	const context_with_employees: ArbostarImportContext = {
 		...context,
 		employee_id_by_name: imported_employees.employee_id_by_name,
 	}
 
-	const imported_projects = await pool_transaction(
-		pool,
-		connection => import_projects(connection, context_with_employees, data, imported_clients),
+	const imported_projects = await transaction_with_write_helper(
+		(connection, write_helper) => import_projects(connection, write_helper, context_with_employees, data, imported_clients),
 	)
 	// Line items, invoices, and payments run in sequence: invoice lines need the line-item
 	// correlations, and payment allocations need the invoice ids.
-	const imported_line_items = await pool_transaction(pool, connection => import_line_items(
+	const imported_line_items = await transaction_with_write_helper((connection, write_helper) => import_line_items(
 		connection,
+		write_helper,
 		context_with_employees,
 		data.line_items,
 		imported_projects.project_id_by_arbostar_lead_id,
 	))
-	const imported_invoices = await pool_transaction(pool, connection => import_invoices(
+	const imported_invoices = await transaction_with_write_helper((connection, write_helper) => import_invoices(
 		connection,
+		write_helper,
 		context_with_employees,
 		data,
 		imported_clients,
 		imported_projects.project_id_by_arbostar_lead_id,
 		imported_line_items.project_line_item_id_by_arbostar_line_item_id,
 	))
-	const imported_payments = await pool_transaction(pool, connection => import_payments(
+	const imported_payments = await transaction_with_write_helper((connection, write_helper) => import_payments(
 		connection,
+		write_helper,
 		context_with_employees,
 		data,
 		imported_clients,

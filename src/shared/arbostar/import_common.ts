@@ -10,7 +10,6 @@ import { map, filter } from '#shared/array.ts'
 import arbostar_number_to_fnum from './arbostar_number_to_fnum.ts'
 import type { ExistingCorrelations } from './load_existing_correlations.ts'
 
-export { default as make_write_helper } from '#shared/mysql/write_helper.ts'
 
 export const ROWS_PER_BATCH = 1000
 

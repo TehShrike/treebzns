@@ -1,8 +1,9 @@
 import type { Connection } from 'mysql2/promise'
+import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ArbostarClient, ArbostarContact } from '#arbostar_export/clients.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten, chunk } from '#shared/array.ts'
-import { make_write_helper, ROWS_PER_BATCH, join_lines } from './import_common.ts'
+import { ROWS_PER_BATCH, join_lines } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 type ImportedDefaultProjectAddress = {
@@ -68,10 +69,10 @@ const is_known_client_type = (client_type: string | null): boolean =>
 // convention the schema documents.
 export const import_clients = async (
 	connection: Connection,
+	write_helper: TenantedWriteHelper,
 	context: ArbostarImportContext,
 	clients: ArbostarClient[],
 ): Promise<ImportedClients> => {
-	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const correlated = context.existing.client_id_by_arbostar_client_id
 
 	const baked_contact_fields = (client: ArbostarClient) => {

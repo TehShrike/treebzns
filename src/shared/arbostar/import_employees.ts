@@ -1,8 +1,9 @@
 import type { Connection } from 'mysql2/promise'
+import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ArbostarUser } from '#arbostar_export/users.d.ts'
 import { DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS } from '#worker/lib/employee.ts'
 import { map, filter } from '#shared/array.ts'
-import { make_write_helper, ROWS_PER_BATCH, normalize_name, identity_key, placeholder_email } from './import_common.ts'
+import { ROWS_PER_BATCH, normalize_name, identity_key, placeholder_email } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedEmployees = {
@@ -35,13 +36,13 @@ export type ImportedEmployees = {
 // is_owner is an in-app permission: inserted as false, never updated.
 export const import_employees = async (
 	connection: Connection,
+	write_helper: TenantedWriteHelper,
 	context: ArbostarImportContext,
 	users: ArbostarUser[],
 	// The deliberately non-tenanted identity lookup, injected by the orchestrator (see
 	// load_taken_identity_keys in import_arbostar_export.ts).
 	load_taken_identity_keys: () => Promise<Set<string>>,
 ): Promise<ImportedEmployees> => {
-	const write_helper = make_write_helper({ connection, company_id: context.company_id })
 	const employee_id_by_name = new Map(context.employee_id_by_name)
 	const adoptable_by_identity = new Map(context.employee_id_by_identity)
 	const correlated = context.existing.employee_id_by_arbostar_user_id
