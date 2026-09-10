@@ -2,35 +2,7 @@
 
 ## Create a lead
 
-I suspect that each component should bind to an object that represents the thing that will actually be sent to the server, including all validation, as much as possible.  Let's push towards making that happen, and then we can implement change detection at the top level.  Or maybe even inside each nested component?  Eh, that might be too much complexity near the actual UI.
-
-- For a record that has been saved already, inputs that have not been changed should appear less input-like (background same as the screen background color?)
-	- Need to track state-changed-since-database-version per entity
-- Review components and state management for sanity
 - Due date date picker needs to always be visible, but disabled when not "Has a due date"
-- Build an initial "create a screen" skill
-
-## Client screen
-
-Fieldset groups:
-
-- Ungrouped/no fieldset
-	- Name
-	- Commercial
-- Billing contact
-	- Phone
-	- Email
-- Billing address
-	- Name
-	- Line 1
-	- Line 2
-	- City
-	- State
-	- Zip
-- Unnamed fieldset
-	- Tax rate
-	- Referred by
-	- Notes
 
 ## Deploy to dedicated Cloudflare account
 
