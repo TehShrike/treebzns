@@ -2,6 +2,8 @@
 	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
 	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
+	import ClientSearch from '#client/component/ClientSearch.svelte'
+	import type { SearchSelection } from '#client/component/client_search_selection.ts'
 	import FormLayout from '#client/component/FormLayout.svelte'
 	import FieldsetColumn from '#client/component/FieldsetColumn.svelte'
 	import WideTextareaField from '#client/component/WideTextareaField.svelte'
@@ -140,7 +142,7 @@
 </script>
 
 <script lang="ts">
-	const { client: loaded_client, addresses: loaded_addresses, contacts: loaded_contacts, referenced_address_ids, referenced_contact_ids, tax_rates, server, client_cache }: Resolved = $props()
+	const { client: loaded_client, addresses: loaded_addresses, contacts: loaded_contacts, referenced_address_ids, referenced_contact_ids, tax_rates, server, client_cache, asr }: Resolved & { asr: StateAsr } = $props()
 
 	const form = untrack(() => make_client_form({ client: loaded_client, contacts: loaded_contacts, addresses: loaded_addresses }))
 	const { client, contact_rows, address_rows } = form
@@ -158,6 +160,10 @@
 			client_cache.refresh()
 		},
 	})
+
+	const go_to_client = (selection: SearchSelection) => {
+		asr.go(`app.client`, { client_id: selection.client.client_id })
+	}
 </script>
 
 {#snippet contact_name_cell(contact: ContactRow)}
@@ -223,8 +229,10 @@
 {/snippet}
 
 <AppScreen>
-	<div class="header">
-		<h1>{client.db_values?.name ?? ``}</h1>
+	<ClientSearch {client_cache} on_pick={go_to_client} />
+
+	<div class="title-bar">
+		<span class="title-bar-text">{client.db_values?.name ?? ``}</span>
 		<button type="submit" form="client_form" class="default" disabled={saver.saving || !form.needs_to_be_saved}>Save</button>
 	</div>
 
@@ -347,13 +355,6 @@
 </AppScreen>
 
 <style>
-	.header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--gap_half);
-	}
-
 	.error {
 		color: var(--attention_red);
 		margin: 0;

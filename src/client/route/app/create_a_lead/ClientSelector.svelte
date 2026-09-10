@@ -2,8 +2,7 @@
 	import type { ClientCache } from '#client/lib/client_cache.svelte.ts'
 	import type { SearchSelection } from '#client/component/client_search_selection.ts'
 	import FormLayout from '#client/component/FormLayout.svelte'
-	import ClientNameSearch from '#client/component/ClientNameSearch.svelte'
-	import ClientPhoneSearch from '#client/component/ClientPhoneSearch.svelte'
+	import ClientSearch from '#client/component/ClientSearch.svelte'
 	import FieldsetColumn from '#client/component/FieldsetColumn.svelte'
 	import WideTextareaField from '#client/component/WideTextareaField.svelte'
 	import type { LeadForm } from './lead_form.svelte.ts'
@@ -27,19 +26,7 @@
 	}
 </script>
 
-<fieldset>
-	<legend>Client Search</legend>
-	<FormLayout>
-		<label>
-			Name
-			<ClientNameSearch {client_cache} on_pick={select_client_and_contact} />
-		</label>
-		<label>
-			Phone
-			<ClientPhoneSearch {client_cache} on_pick={select_client_and_contact} />
-		</label>
-	</FormLayout>
-</fieldset>
+<ClientSearch {client_cache} on_pick={select_client_and_contact} />
 
 <div class="title-bar" class:inactive={!lead.client.exists_in_the_database_already()}>
 	<span class="title-bar-text">{lead.client.db_values?.name ?? `New client`}</span>
