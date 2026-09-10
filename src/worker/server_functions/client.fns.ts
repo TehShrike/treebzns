@@ -1,6 +1,7 @@
 import assert from '#shared/assert.ts'
 import * as jv from '#shared/json_validator.ts'
 import { for_each, map_async } from '#shared/array.ts'
+import { pick } from '#shared/pick.ts'
 import { sfn } from '#worker/lib/server_functions_api.ts'
 import assert_db_id_valid from '#worker/lib/db/assert_db_id_valid.ts'
 import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
@@ -134,8 +135,7 @@ export const functions = {
 			const { company, transaction } = context
 			return transaction(async ({ write_helper }) => {
 				const { insert_id: client_id } = await write_helper.insert('client', {
-					name: arg.name,
-					is_commercial: arg.is_commercial,
+					...pick(arg, ['name', 'is_commercial', 'billing_phone', 'billing_email', 'notes', 'referred_by']),
 					default_project_address_id: 0n,
 					billing_name: '',
 					billing_address_line_1: '',
@@ -143,23 +143,14 @@ export const functions = {
 					billing_city: '',
 					billing_state: '',
 					billing_zip: '',
-					billing_phone: arg.billing_phone,
-					billing_email: arg.billing_email,
 					tax_rate_id: arg.tax_rate_id ?? null,
-					notes: arg.notes,
-					referred_by: arg.referred_by,
 				})
 
 				const { primary_address } = arg
 				const { insert_id: client_address_id } = await write_helper.insert('client_address', {
 					client_id,
 					client_contact_id: null,
-					name: primary_address.name,
-					address_line_1: primary_address.address_line_1,
-					address_line_2: primary_address.address_line_2,
-					city: primary_address.city,
-					state: primary_address.state,
-					zip: primary_address.zip,
+					...pick(primary_address, ['name', 'address_line_1', 'address_line_2', 'city', 'state', 'zip']),
 					sort: 0n,
 				})
 

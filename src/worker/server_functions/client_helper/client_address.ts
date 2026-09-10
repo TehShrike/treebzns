@@ -2,6 +2,7 @@ import type { TransactionTenantedSelectBuilder } from '#worker/lib/db/make_tenan
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ClientAddressUpdate } from '#shared/type/client.ts'
 import { get_next_sort } from '#worker/lib/db/sort_column.ts'
+import { pick } from '#shared/pick.ts'
 
 const insert_client_address = async ({
 	client_id,
@@ -18,13 +19,7 @@ const insert_client_address = async ({
 
 	const { insert_id: client_address_id } = await write_helper.insert('client_address', {
 		client_id,
-		client_contact_id: address.client_contact_id,
-		name: address.name,
-		address_line_1: address.address_line_1,
-		address_line_2: address.address_line_2,
-		city: address.city,
-		state: address.state,
-		zip: address.zip,
+		...pick(address, ['client_contact_id', 'name', 'address_line_1', 'address_line_2', 'city', 'state', 'zip']),
 		sort,
 	})
 

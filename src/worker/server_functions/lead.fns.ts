@@ -11,6 +11,7 @@ import { upsert_client_address } from './lead_helper/client_address.ts'
 import { upsert_client_contact } from './lead_helper/client_contact.ts'
 import { insert_lead_source } from './lead_helper/lead_source.ts'
 import { filter_map, for_each_parallel, map } from '#shared/array.ts'
+import { pick } from '#shared/pick.ts'
 import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
 import type { LeadClient, LeadBilling, LeadAddress, LeadAddressValues, LeadContact, LeadProject, LeadAvailability } from '#shared/type/lead.ts'
 
@@ -179,14 +180,9 @@ export const functions = {
 				client_id,
 				client_address_id,
 				client_contact_id,
-				due_date: project.due_date,
-				emergency: project.emergency,
-				lead_details: project.lead_details,
+				...pick(project, ['due_date', 'emergency', 'lead_details', 'assigned_estimator_employee_id', 'notes_for_crew', 'notes_for_office']),
 				lead_source_id,
-				assigned_estimator_employee_id: project.assigned_estimator_employee_id,
 				discount_description: '',
-				notes_for_crew: project.notes_for_crew,
-				notes_for_office: project.notes_for_office,
 				created_by_employee_id: user.employee_id,
 				needs_client_approval: false,
 				sent_for_client_approval: false,

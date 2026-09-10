@@ -7,6 +7,7 @@ import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import all_properties_have_values from '#shared/all_properties_have_values.ts'
 import type { LeadAddress, LeadAddressValues } from '#shared/type/lead.ts'
 import { get_next_sort } from '#worker/lib/db/sort_column.ts'
+import { pick } from '#shared/pick.ts'
 
 
 const select_address_values = async ({ client_address_id, select_builder }: {
@@ -46,11 +47,7 @@ const insert_client_address = async ({
 		client_id,
 		client_contact_id: null,
 		name: '',
-		address_line_1: address.address_line_1,
-		address_line_2: address.address_line_2,
-		city: address.city,
-		state: address.state,
-		zip: address.zip,
+		...pick(address, ['address_line_1', 'address_line_2', 'city', 'state', 'zip']),
 		sort,
 	})
 
