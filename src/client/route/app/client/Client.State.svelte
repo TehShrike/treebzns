@@ -17,6 +17,7 @@
 	import assert from '#shared/assert.ts'
 	import { map, zip_with } from '#shared/array.ts'
 	import { untrack } from 'svelte'
+	import { fetch_client_address_ids_in_use, fetch_client_contact_ids_in_use, ADDRESS_REFERENCED_MESSAGE, CONTACT_REFERENCED_MESSAGE } from '#shared/treebzns_db/client_relationships.ts'
 
 	const fetch_client = async (query: ClientQueryFn, client_id: bigint) => {
 		const rows = await query(
@@ -109,10 +110,12 @@
 		route: `/client/:client_id`,
 		param_validator: validate_params,
 		resolve: async ({ query, server, client_cache }, { client_id }) => {
-			const [client, addresses, contacts, tax_rates] = await Promise.all([
+			const [client, addresses, contacts, referenced_address_ids, referenced_contact_ids, tax_rates] = await Promise.all([
 				fetch_client(query, client_id),
 				fetch_addresses(query, client_id),
 				fetch_contacts(query, client_id),
+				fetch_client_address_ids_in_use({ query_rows: query, client_id }),
+				fetch_client_contact_ids_in_use({ query_rows: query, client_id }),
 				fetch_tax_rates(query),
 			])
 
@@ -122,6 +125,8 @@
 				client,
 				addresses,
 				contacts,
+				referenced_address_ids,
+				referenced_contact_ids,
 				tax_rates,
 				server,
 				client_cache,
@@ -135,7 +140,7 @@
 </script>
 
 <script lang="ts">
-	const { client: loaded_client, addresses: loaded_addresses, contacts: loaded_contacts, tax_rates, server, client_cache }: Resolved = $props()
+	const { client: loaded_client, addresses: loaded_addresses, contacts: loaded_contacts, referenced_address_ids, referenced_contact_ids, tax_rates, server, client_cache }: Resolved = $props()
 
 	const form = untrack(() => make_client_form({ client: loaded_client, contacts: loaded_contacts, addresses: loaded_addresses }))
 	const { client, contact_rows, address_rows } = form
@@ -176,7 +181,12 @@
 {/snippet}
 
 {#snippet contact_delete_cell(contact: ContactRow)}
-	<DeleteButton disabled={contact_rows.row_is_placeholder(contact)} onclick={() => contact_rows.remove(contact.key)} />
+	{@const referenced = contact.db_values !== null && referenced_contact_ids.has(contact.db_values.client_contact_id)}
+	<DeleteButton
+		disabled={referenced || contact_rows.row_is_placeholder(contact)}
+		title={referenced ? CONTACT_REFERENCED_MESSAGE : undefined}
+		onclick={() => contact_rows.remove(contact.key)}
+	/>
 {/snippet}
 
 {#snippet address_name_cell(address: AddressRow)}
@@ -204,7 +214,12 @@
 {/snippet}
 
 {#snippet address_delete_cell(address: AddressRow)}
-	<DeleteButton disabled={address_rows.row_is_placeholder(address)} onclick={() => address_rows.remove(address.key)} />
+	{@const referenced = address.db_values !== null && referenced_address_ids.has(address.db_values.client_address_id)}
+	<DeleteButton
+		disabled={referenced || address_rows.row_is_placeholder(address)}
+		title={referenced ? ADDRESS_REFERENCED_MESSAGE : undefined}
+		onclick={() => address_rows.remove(address.key)}
+	/>
 {/snippet}
 
 <AppScreen>

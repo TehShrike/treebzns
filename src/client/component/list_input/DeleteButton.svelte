@@ -1,12 +1,13 @@
 <script lang="ts">
-	const { onclick, disabled = false, label = `Delete` }: {
+	const { onclick, disabled = false, label = `Delete`, title }: {
 		onclick: () => void
 		disabled?: boolean
 		label?: string
+		title?: string | undefined
 	} = $props()
 </script>
 
-<button type="button" aria-label={label} {onclick} {disabled}>❌</button>
+<button type="button" aria-label={label} {title} {onclick} {disabled}>❌</button>
 
 <style>
 	button {

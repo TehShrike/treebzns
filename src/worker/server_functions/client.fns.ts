@@ -8,6 +8,7 @@ import type { ClientAddressUpdate, ClientContactUpdate, ClientValues, UpdateClie
 import { upsert_client_contact } from './client_helper/client_contact.ts'
 import { upsert_client_address } from './client_helper/client_address.ts'
 import { remove_client_addresses, remove_client_contacts } from './client_helper/remove_rows.ts'
+import { fetch_client_address_ids_in_use, fetch_client_contact_ids_in_use } from '#shared/treebzns_db/client_relationships.ts'
 
 const address_validator = jv.object({
 	name: jv.is_string,
@@ -195,8 +196,12 @@ export const functions = {
 			const address_ids = await map_async(addresses, address =>
 				upsert_client_address({ client_id, address, select_builder, write_helper }))
 
-			await remove_client_addresses({ client_address_ids: remove_address_ids, select_builder, write_helper })
-			await remove_client_contacts({ client_contact_ids: remove_contact_ids, select_builder, write_helper })
+			const [referenced_address_ids, referenced_contact_ids] = await Promise.all([
+				fetch_client_address_ids_in_use({ query_rows: select_builder.get_rows, client_id }),
+				fetch_client_contact_ids_in_use({ query_rows: select_builder.get_rows, client_id }),
+			])
+			await remove_client_addresses({ client_address_ids: remove_address_ids, referenced_address_ids, select_builder, write_helper })
+			await remove_client_contacts({ client_contact_ids: remove_contact_ids, referenced_contact_ids, select_builder, write_helper })
 
 			return { client_id, contact_ids, address_ids }
 		}),
