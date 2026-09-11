@@ -108,7 +108,7 @@
 	})
 
 	export const asr_state = state_type({
-		name: `app.client`,
+		name: `app.menu.client`,
 		route: `/client/:client_id`,
 		param_validator: validate_params,
 		resolve: async ({ query, server, client_cache }, { client_id }) => {
@@ -162,7 +162,7 @@
 	})
 
 	const go_to_client = (selection: SearchSelection) => {
-		asr.go(`app.client`, { client_id: selection.client.client_id })
+		asr.go(`app.menu.client`, { client_id: selection.client.client_id })
 	}
 </script>
 

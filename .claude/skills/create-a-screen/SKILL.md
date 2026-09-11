@@ -7,16 +7,16 @@ description: Create or restructure a client screen (a *.State.svelte route under
 
 A screen is a `*.State.svelte` file under `src/client/route/`. It registers an abstract-state-router state, resolves its data, and renders the page. A form screen holds one form object whose `values_to_save` is the server function argument. The form object lives in a `<form_name>_form.svelte.ts` module next to the screen. Child components own every input and every conversion.
 
-The reference implementation is `src/client/route/app/create_a_lead/`. Read it before starting a new screen.
+The reference implementation is `src/client/route/app/menu/create_a_lead/`. Read it before starting a new screen.
 
 ## Where things live
 
-- Screen: `src/client/route/app/<screen_name>/<ScreenName>.State.svelte`
-- The form object: `src/client/route/app/<screen_name>/<form_name>_form.svelte.ts`
-- Child components that own one record or argument: `src/client/route/app/<screen_name>/<Thing>Selector.svelte`
+- Screen: `src/client/route/app/menu/<screen_name>/<ScreenName>.State.svelte`
+- The form object: `src/client/route/app/menu/<screen_name>/<form_name>_form.svelte.ts`
+- Child components that own one record or argument: `src/client/route/app/menu/<screen_name>/<Thing>Selector.svelte`
 - Records that may already exist in the database: `#client/lib/tracked_record.svelte.ts`
 - Lists of child records the user can add, edit, and remove: `#client/component/list_input/editable_rows.svelte.ts` for the list, `#client/lib/tracked_record_array.svelte.ts` for what to save
-- Small layout or input helpers used only by this screen: `src/client/route/app/<screen_name>/_helpers/`
+- Small layout or input helpers used only by this screen: `src/client/route/app/menu/<screen_name>/_helpers/`
 - Components used by more than one screen: `src/client/component/`
 - Argument types shared with the server: `#shared/type/<domain>.ts`
 - Generated state registry (do not edit): `src/client/globbed_states.generated.ts`
@@ -32,7 +32,7 @@ Put the state definition in the module script. Fetch reference data in `resolve`
 	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
 
 	export const asr_state = state_type({
-		name: `app.create_a_lead`,
+		name: `app.menu.create_a_lead`,
 		route: `/create_a_lead`,
 		resolve: async ({ client_cache, query, server }) => {
 			const [tax_rates, employees] = await Promise.all([
@@ -110,7 +110,7 @@ const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 ```
 
 - **A record that may already exist is a `tracked_record`.** It holds `form_values` (what inputs bind to), `db_values` (the row from the database, or null), `key` (its db id, or a permanent temporary key for a new record), `value_needs_to_be_saved(key)`, `is_empty`, and `values_to_save`. For a new record `values_to_save` is every field with a null id. For a pre-existing record it is the id plus the fields whose form value differs from the database value. `set_values(row)` picks a row and copies its values into the form. `clear()` returns to a new record. Pass `is_empty` when a blank row means something other than "every value equals `initial`".
-- **A list of child records is an `editable_rows` of `tracked_record`s plus a `tracked_record_array`.** Write one `make_<thing>(db_values)` function that builds a `tracked_record`. Give `editable_rows` the loaded records, `make_empty_row: () => make_<thing>(null)`, `row_is_empty: row => row.is_empty`, and `get_key: row => row.key`. It owns the trailing placeholder row, cleanup, focus, and removal, and the screen binds `ListInput` to it. Give `tracked_record_array` a getter for the live rows and the id key. Its `values_to_save` is every non-empty row that is new or changed, in the same union shape as a single record. Its `removed_ids` is every database id no record in the list carries. The placeholder row is never in either. The client screen (`src/client/route/app/client/`) is the reference.
+- **A list of child records is an `editable_rows` of `tracked_record`s plus a `tracked_record_array`.** Write one `make_<thing>(db_values)` function that builds a `tracked_record`. Give `editable_rows` the loaded records, `make_empty_row: () => make_<thing>(null)`, `row_is_empty: row => row.is_empty`, and `get_key: row => row.key`. It owns the trailing placeholder row, cleanup, focus, and removal, and the screen binds `ListInput` to it. Give `tracked_record_array` a getter for the live rows and the id key. Its `values_to_save` is every non-empty row that is new or changed, in the same union shape as a single record. Its `removed_ids` is every database id no record in the list carries. The placeholder row is never in either. The client screen (`src/client/route/app/menu/client/`) is the reference.
 - **After the server answers, hand back what was sent.** Snapshot `form.values_to_save` before the await. The server returns one id per sent row, in order. The screen zips those ids into the sent rows with `zip_with` from `#shared/array.ts`, then calls `form.update_db_values` with the result. The form calls `update_db_values(saved_values)` on each single record and `update_db_values(saved_rows, removed_ids)` on each array. Only the sent values become database values, so an edit made while the save was in flight still reads as needing to be saved. A row sent with a null id carries its record's identity on a symbol key that survives spreading and never reaches the server, which is how the array finds the record for a new id.
 - **Always-new arguments are plain `$state` in the closure.** Put them behind a getter and a setter so `bind:project={lead.project}` works from the screen.
 - **The picked cached row lives in the closure** (`selected_client`), so the selectors can read its child rows for their dropdowns. Use `$state.raw` for it. Nothing mutates it.

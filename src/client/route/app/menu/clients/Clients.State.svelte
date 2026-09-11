@@ -6,7 +6,7 @@
 	import { filter } from '#shared/array.ts'
 
 	export const asr_state = state_type({
-		name: `app.clients`,
+		name: `app.menu.clients`,
 		route: `/clients`,
 		async resolve({ client_cache }) {
 			await client_cache.been_fetched_at_least_once
@@ -28,7 +28,7 @@
 </script>
 
 {#snippet name_cell(client: CachedClient)}
-	<a href={asr.makePath(`app.client`, { client_id: client.client.client_id })}>{client.client.name}</a>
+	<a href={asr.makePath(`app.menu.client`, { client_id: client.client.client_id })}>{client.client.name}</a>
 {/snippet}
 
 {#snippet address_cell(client: CachedClient)}

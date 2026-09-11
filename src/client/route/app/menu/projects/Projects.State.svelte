@@ -24,7 +24,7 @@
 	}
 
 	export const asr_state = state_type({
-		name: `app.projects`,
+		name: `app.menu.projects`,
 		route: `/projects`,
 		default_child: `results`,
 		param_validator: validate_project_search_params,
@@ -47,8 +47,8 @@
 
 	const loading_new_results = $derived(
 		transition_state.currently_transitioning
-		&& (transition_state.state_being_transitioned_to.name === `app.projects`
-			|| transition_state.state_being_transitioned_to.name.startsWith(`app.projects.`))
+		&& (transition_state.state_being_transitioned_to.name === `app.menu.projects`
+			|| transition_state.state_being_transitioned_to.name.startsWith(`app.menu.projects.`))
 	)
 
 	// svelte-ignore state_referenced_locally
@@ -59,7 +59,7 @@
 	let needs_client_approval = $state(initial_search.needs_client_approval)
 
 	$effect(() => {
-		const search_params: StateParamsByName[`app.projects.results`] = {}
+		const search_params: StateParamsByName[`app.menu.projects.results`] = {}
 		if (selected_project_document_ids.length > 0) {
 			search_params.project_document_ids = selected_project_document_ids
 		}
@@ -69,7 +69,7 @@
 		if (needs_client_approval) {
 			search_params.needs_client_approval = true
 		}
-		untrack(() => asr.go(`app.projects.results`, search_params, { replace: true }))
+		untrack(() => asr.go(`app.menu.projects.results`, search_params, { replace: true }))
 	})
 </script>
 

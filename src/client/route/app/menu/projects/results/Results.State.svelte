@@ -41,7 +41,7 @@
 	}
 
 	export const asr_state = state_type({
-		name: `app.projects.results`,
+		name: `app.menu.projects.results`,
 		route: ``,
 		querystring_parameters: [`project_document_ids`, `open_or_closed`, `needs_client_approval`],
 		param_validator: validate_project_search_params,

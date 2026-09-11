@@ -1,5 +1,4 @@
 <script module lang="ts">
-	import AppWrapper from './AppWrapper.svelte'
 	import { state_type } from '#client/lib/client_type.ts'
 	import redirect_resolve_to from '#client/lib/redirect_resolve_to.ts'
 	import type { SessionResponse } from '#client/lib/session_response.ts'
@@ -7,7 +6,7 @@
 	export const asr_state = state_type({
 		name: `app`,
 		route: `/app`,
-		default_child: 'home',
+		default_child: 'menu',
 		resolve: async ({ get_session, client_cache }) => {
 			const session_response = await get_session()
 
@@ -25,15 +24,28 @@
 </script>
 
 <script lang="ts">
-	let { session, asr }: { session: SessionResponse, asr: StateAsr } = $props()
+	import { hex_to_rgb, rgb_to_hex, contrast_color } from '#shared/color.ts'
+
+	let { session }: { session: SessionResponse } = $props()
+
+	const brand_color = $derived(session.company.brand_color)
+	const brand_foreground_color = $derived(rgb_to_hex(contrast_color(hex_to_rgb(brand_color))))
 </script>
 
-<AppWrapper {asr} brand_color={session.company.brand_color}>
+<div class="app" style="--brand-color: {brand_color}; --brand_foreground_color: {brand_foreground_color}">
 	<uiView></uiView>
-</AppWrapper>
+</div>
 
 <style>
+	.app {
+		display: flex;
+		flex-direction: column;
+		min-height: 100vh;
+	}
+
 	uiView {
+		display: flex;
+		flex-direction: column;
 		flex-grow: 1;
 	}
 </style>

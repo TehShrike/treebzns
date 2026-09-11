@@ -51,7 +51,7 @@
 	)
 
 	export const asr_state = state_type({
-		name: `app.home`,
+		name: `app.menu.home`,
 		route: `/`,
 		resolve: async ({ query }) => ({
 			projects: await fetch_pipeline_projects(query),
@@ -101,7 +101,7 @@
 <AppScreen>
 	<div class="centered_column">
 		<h1 style="color: var(--friendly_color)">🦫</h1>
-		<LinkThatLooksLikeAButton href={asr.makePath('app.create_a_lead')} size={2}>Create A Lead</LinkThatLooksLikeAButton>
+		<LinkThatLooksLikeAButton href={asr.makePath('app.menu.create_a_lead')} size={2}>Create A Lead</LinkThatLooksLikeAButton>
 	</div>
 
 	<h2>Pipeline</h2>

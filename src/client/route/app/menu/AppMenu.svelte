@@ -12,10 +12,10 @@
 <nav class="app-menu">
 	<div class="logo">🌳</div>
 	<ul class="menu-items">
-		<li><a class="menu-item" href={asr.makePath('app.home')} data-active={asr.stateIsActive('app.home')}>Home</a></li>
-		<li><a class="menu-item" href={asr.makePath('app.create_a_lead')} data-active={asr.stateIsActive('app.create_a_lead')}>Create A Lead</a></li>
-		<li><a class="menu-item" href={asr.makePath('app.clients')} data-active={asr.stateIsActive('app.clients')}>Clients</a></li>
-		<li><a class="menu-item" href={asr.makePath('app.projects')} data-active={asr.stateIsActive('app.projects')}>Projects</a></li>
+		<li><a class="menu-item" href={asr.makePath('app.menu.home')} data-active={asr.stateIsActive('app.menu.home')}>Home</a></li>
+		<li><a class="menu-item" href={asr.makePath('app.menu.create_a_lead')} data-active={asr.stateIsActive('app.menu.create_a_lead')}>Create A Lead</a></li>
+		<li><a class="menu-item" href={asr.makePath('app.menu.clients')} data-active={asr.stateIsActive('app.menu.clients')}>Clients</a></li>
+		<li><a class="menu-item" href={asr.makePath('app.menu.projects')} data-active={asr.stateIsActive('app.menu.projects')}>Projects</a></li>
 	</ul>
 	<div class="log-out-container">
 		<button type="button" onclick={log_out}>Log out</button>

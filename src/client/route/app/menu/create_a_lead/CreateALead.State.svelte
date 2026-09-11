@@ -48,7 +48,7 @@
 	)
 
 	export const asr_state = state_type({
-		name: `app.create_a_lead`,
+		name: `app.menu.create_a_lead`,
 		route: `/create_a_lead`,
 		resolve: async ({ client_cache, query, server }) => {
 			const [tax_rates, employees, lead_sources] = await Promise.all([
@@ -81,7 +81,7 @@
 		on_save: async sent => {
 			await server.create_lead(sent)
 			client_cache.refresh()
-			asr.go(`app.home`)
+			asr.go(`app.menu.home`)
 		},
 	})
 </script>
@@ -116,7 +116,7 @@
 		{/if}
 
 		<div class="footer">
-			<button type="button" onclick={() => asr.go(`app.home`)}>Cancel</button>
+			<button type="button" onclick={() => asr.go(`app.menu.home`)}>Cancel</button>
 			<button type="submit" class="default" disabled={saver.saving}>Create the lead</button>
 		</div>
 	</form>
