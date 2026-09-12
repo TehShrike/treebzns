@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { state_type } from '#client/lib/client_type.ts'
+	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
 	import redirect_resolve_to from '#client/lib/redirect_resolve_to.ts'
 
 	const redirect_to_state = 'app'
@@ -7,14 +7,14 @@
 	export const asr_state = state_type({
 		name: `login`,
 		route: `/login`,
-		async resolve({ get_session }) {
-			const session = await get_session()
+		async resolve({ session }) {
+			const session_response = await session.get()
 
-			if (session.logged_in) {
+			if (session_response.logged_in) {
 				redirect_resolve_to({ name: redirect_to_state })
 			}
 
-			return {}
+			return { session }
 		}
 	})
 </script>
@@ -23,8 +23,9 @@
 	import f3tch from '#shared/f3tch.ts'
 
 	let {
-		asr
-	}: {
+		asr,
+		session,
+	}: StateResolve<typeof asr_state> & {
 		asr: StateAsr
 	} = $props()
 
@@ -40,6 +41,7 @@
 				body: { email_or_login_name, password },
 			})
 			result = { type: `success`, text: `Logged in!` }
+			session.clear()
 			asr.go(redirect_to_state)
 		} catch (err: any) {
 			const message = err?.body?.message ?? err?.message ?? `Something went wrong`
