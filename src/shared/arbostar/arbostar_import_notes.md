@@ -5,15 +5,17 @@ does and doesn't carry over. The big picture: ArboStar models a lead, its estima
 orders, and its invoices as separate records; this schema models the whole pipeline as **one
 project moving between project documents**. So one project is created per ArboStar lead, the
 related records pick its document stage, and anything without a home is summarized into
-`project.lead_details` text.
+text at the end of `project.notes_for_office`.
 
 ## Mapping decisions
 
 | Decision | Rule |
 | --- | --- |
-| Project document stage | lead has a work order or invoice → **Work Order**; else lead status is No Go → **Void**; else lead has an estimate → **Declined Proposal** when every estimate is dead (status 4/8/9) *and* at least one is Declined, otherwise **Proposal**; else lead status is New/Draft → **Lead (Unqualified)**; else → **Lead (Qualified)** |
+| Project document stage | lead has a work order or invoice → **Work Order**; else lead status is No Go → **Void**; else lead has an estimate → **Declined Proposal** when every estimate is dead (status 4/8/9) *and* at least one is Declined, otherwise **Proposal**; else lead status is Draft → **Lead (Unqualified)**; else → **Lead (Qualified)**. ArboStar has no qualification step: the office assigns an estimator and a visit date on the lead form, so a New lead is already qualified. Draft is the one half-filled state (decided 2026-09-12) |
 | `project.closed` | any work order whose status name is `Finished` (matched by name — row-level `wo_status_id`s don't line up with the readme's status-tab table), or the lead has any invoice (invoicing means the work happened — whether it's *paid* is the billing system's concern, tracked as `payment` rows), **or the deal is dead**: the project landed on Void (No Go) or Declined Proposal, or every estimate carries row-level status 8 Thinking – No Follow Up Needed / 9 Expired (one live estimate keeps it open; a Declined estimate among all-dead moves it to Declined Proposal instead). Expired/Thinking-only deals stay on Proposal — silence stays distinguishable from an active "no" (decided 2026-08-03). Dying before Work Order never counts as a sale — only that document `represents_billable_sale_when_closed`. One-way on re-imports: the import can close a project but never reopens one closed in-app — so a deal revived in ArboStar after it imported dead needs reopening in-app |
 | Decline reason | for projects landing on Declined Proposal only: the most recently created declined estimate's reason (declines.js, joined by `estimate_id`), mapped onto the company's seeded `project_decline_reason` rows by name — Price is too high → Price too high, Preferred the competition → Went with a lower bid, Scheduling delays/conflicts → Scheduling troubles, Client can't be pleased → Weren't pleased; every other ArboStar reason (Not interested in the job anymore, Expired, Unable to reach the client, …) has no natural seed equivalent and imports as null (decided 2026-08-03 — the reason name still shows in the lead_details estimate line). ArboStar-derived, so re-imports overwrite it |
+| Recreated invoices | ArboStar sometimes deletes an invoice and recreates it under the same invoice_no with a new id. The recreated invoice adopts the local row that still holds that customer-facing `invoice_number` (its `arbostar_invoice_id` is rewritten to the new id and the row updates as usual), so the number stays unique and the row keeps its history. The import asserts when the holder is app-created or still in the export. Counted as `invoices_adopted_by_recreated_arbostar_invoice` |
+| Project text columns | `lead_details` is the ArboStar lead description (`lead_body` in lead_notes.js — what the office wrote at intake, the same thing the create-a-lead screen's lead details field holds). `notes_for_crew` is the estimate's crew notes. `notes_for_office` is the distinct non-empty office notes (estimate office notes, then work order office notes, then invoice notes), each separated by a blank line, followed by the generated ArboStar summary (lead number, status, priority, creator, referrer, lead address, one line per estimate / work order / invoice) after another blank line. All three are ArboStar-derived, so re-imports overwrite them (decided 2026-09-12) |
 | `sent_for_client_approval` | any estimate with email delivery tracking (`email_status` non-null — statuses alone undercount, since sent-then-resolved estimates move on to Confirmed/Declined/Expired), or with status 2 (Sent for approval) / 3 (Pending approval) for the few sent without email tracking |
 | `needs_client_approval` | project landed on the Estimate document |
 | Users → employees | only **active** (`active_status = 'yes'`) ArboStar accounts become `employee` rows — suspended/inactive ones are ignored entirely, on first import and re-imports, so their estimator names survive only as lead_details text. An uncorrelated user whose login/emails match an existing employee's `login_name`/`email` (or, failing that, whose name matches, normalized) adopts that row instead of inserting — this is how the account a person created in-app before the first import becomes their ArboStar-linked row. `is_owner` is an in-app permission: inserted as false, never updated |
@@ -30,7 +32,7 @@ related records pick its document stage, and anything without a home is summariz
 
 ## ArboStar values that were NOT imported
 
-“→ lead_details” means the value survives only as text on the project, not as structured data.
+“→ summary” means the value survives only as text in the generated ArboStar summary at the end of `project.notes_for_office`, not as structured data.
 
 ### clients.js
 
@@ -70,46 +72,56 @@ nowhere to go.
 
 | Field | Fate |
 | --- | --- |
-| `lead_no` | integer parsed out (`123-L` → 123) → `project.number` (the user-facing project number and the re-import correlation key); the full string also survives in lead_details. `project_number.next_number` is raised to the max number across all leads in the export + 1000 (GREATEST — never backwards) before any project writes, so in-app numbering can't collide with imported or soon-to-be-imported numbers |
-| `lead_status_id` / `lead_status_name` | picks the document stage; name → lead_details |
+| `lead_no` | integer parsed out (`123-L` → 123) → `project.number` (the user-facing project number and the re-import correlation key); the full string also survives in the summary. `project_number.next_number` is raised to the max number across all leads in the export + 1000 (GREATEST — never backwards) before any project writes, so in-app numbering can't collide with imported or soon-to-be-imported numbers |
+| `lead_status_id` / `lead_status_name` | picks the document stage; name → summary |
 | `lead_reason_status_id` | dropped (No Go reason codes) |
-| `lead_priority` | → lead_details (schema only has an `emergency` bit, which is not inferred) |
-| `lead_date_created` / `lead_created_by` | → lead_details (`created_by_employee_id` is the importing company's owner) |
+| `lead_priority` | → summary (schema only has an `emergency` bit, which is not inferred) |
+| `lead_date_created` / `lead_created_by` | → summary (`created_by_employee_id` is the importing company's owner) |
 | `lead_assigned_date` / `lead_postpone_date` | dropped |
-| `estimator` | → `assigned_estimator_employee_id` on a name match, else lead_details |
-| `lead_address` / `address_line_display` | → lead_details (the project's address columns copy the client's primary address so they agree with `client_address_id`) |
+| `estimator` | → `assigned_estimator_employee_id` on a name match, else summary |
+| `lead_address` / `address_line_display` | → summary (the project's address columns copy the client's primary address so they agree with `client_address_id`) |
 | `referred_by` | the "Referred by" source name (joined from the BI KPI New Leads report by the export) → a `lead_source` row per distinct name (reused by the case-insensitive `(company_id, name)` key) → `project.lead_source_id`. "Not Selected" (ArboStar's no-source placeholder) and leads missing from the report import as null |
 | `lead_source_details` | the free text behind an "Other" source is the real source ("JobsFuel", "Nextdoor", ...), so it replaces "Other" as the lead_source name; a detail-less "Other" stays "Other" |
-| `referred_by_name` | the referring person on Employee/Client referrals → lead_details (`Referred by <name>`); skipped when it just repeats `lead_source_details` (it does on "Other" leads) |
+| `referred_by_name` | the referring person on Employee/Client referrals → summary (`Referred by <name>`); skipped when it just repeats `lead_source_details` (it does on "Other" leads) |
 | `utm_source` / `utm_medium` / `utm_campaign` / `utm_term` / `utm_content` / `utm_referral` / `gclid` / `form_id` | dropped (only `utm_referral` has ever held a value in this account) |
 
-### estimates.js (no estimate entity exists — one line each in lead_details)
+### lead_notes.js
 
 | Field | Fate |
 | --- | --- |
-| `estimate_no`, `status_name`, `total_price` | → lead_details line (with the decline reason from declines.js appended when the estimate was declined, e.g. `(Declined — Price is too high)`) |
+| `lead_body` | → `lead_details` |
+| `estimate_crew_notes` | → `notes_for_crew` |
+| `estimate_office_notes` | → first paragraph of `notes_for_office` |
+
+A lead missing from lead_notes.js (its fetch failed) imports with empty text columns and counts as `projects_without_lead_notes`.
+
+### estimates.js (no estimate entity exists — one line each in the summary)
+
+| Field | Fate |
+| --- | --- |
+| `estimate_no`, `status_name`, `total_price` | → summary line (with the decline reason from declines.js appended when the estimate was declined, e.g. `(Declined — Price is too high)`) |
 | `status_id` | picks document stage / `sent_for_client_approval`, then dropped |
 | `total_price` | **not stored** — a stale snapshot that usually still counts declined lines; `project.subtotal` uses the non-declined line sum instead |
 | `email_status` | non-null drives `sent_for_client_approval`, then dropped |
 | `date_created`, `email_created_at` | dropped |
 
-### workorders.js (no work-order entity — document stage + lead_details)
+### workorders.js (no work-order entity — document stage + summary)
 
 | Field | Fate |
 | --- | --- |
-| `workorder_no`, `status`, `total_price` | → lead_details line; `status` also drives `closed` when `Finished`. `total_price` itself is not stored — it equals the non-declined line sum that `project.subtotal` is computed from (pre-tax) |
+| `workorder_no`, `status`, `total_price` | → summary line; `status` also drives `closed` when `Finished`. `total_price` itself is not stored — it equals the non-declined line sum that `project.subtotal` is computed from (pre-tax) |
 | `wo_status_id` | dropped — row-level ids don't match the status-tab ids (finished rows carry 0, not the tab table's 7), so the status *name* is the reliable signal |
-| `office_notes` | → `notes_for_office` |
+| `office_notes` | → `notes_for_office` (deduplicated against the estimate office notes) |
 | `latest_status_update` | dropped (would have been the only source for `closed_at`/`closed_date`, but its format isn't trustworthy) |
 | `total_done` / `total_completed_not_invoiced` / `total_invoiced` / `total_scheduled` / `total_unscheduled` | dropped |
 | `man_hours_*` (total/done/invoiced/scheduled/unscheduled) | dropped |
 
-### invoices.js (no invoice entity — lead_details only)
+### invoices.js (no invoice entity — summary only)
 
 | Field | Fate |
 | --- | --- |
-| `invoice_no`, `total_including_tax`, `amount_paid` | → lead_details line (payments themselves come from payments.js) |
-| `invoice_notes` | → `notes_for_office` |
+| `invoice_no`, `total_including_tax`, `amount_paid` | → summary line (payments themselves come from payments.js) |
+| `invoice_notes` | → `notes_for_office` (deduplicated against the other office notes) |
 | `date_created` | dropped |
 | `total_for_services` | → summed into `project.subtotal` (it is already discount-adjusted); `total_including_tax` also → summed into `project.total` |
 | `discount` / `deposit_amount` | dropped (`total_for_services` already reflects the discount) |

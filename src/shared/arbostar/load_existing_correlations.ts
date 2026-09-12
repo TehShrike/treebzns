@@ -11,6 +11,9 @@ export type ExistingCorrelations = {
 	default_project_address_id_by_arbostar_client_id: Map<number, bigint>
 	project_id_by_number: Map<number, bigint>
 	invoice_id_by_arbostar_invoice_id: Map<number, bigint>
+	// Keyed by the customer-facing invoice_number, so an ArboStar invoice that was deleted and
+	// recreated under the same number can adopt the row its predecessor left behind.
+	invoice_by_number: Map<bigint, { invoice_id: bigint; arbostar_invoice_id: bigint | null }>
 	payment_id_by_arbostar_payment_id: Map<number, bigint>
 	client_contact_id_by_arbostar_contact_id: Map<number, bigint>
 	// Keyed by the local client_id — covers contacts with no ArboStar correlation, such as
@@ -57,7 +60,7 @@ export const load_existing_correlations = async (
 			.select(() => ['project.project_id', 'project.number'])),
 		tenanted_select(connection, q => q
 			.from('invoice')
-			.select(() => ['invoice.invoice_id', 'invoice.arbostar_invoice_id'])),
+			.select(() => ['invoice.invoice_id', 'invoice.arbostar_invoice_id', 'invoice.invoice_number'])),
 		tenanted_select(connection, q => q
 			.from('payment')
 			.select(() => ['payment.payment_id', 'payment.arbostar_payment_id'])),
@@ -114,6 +117,10 @@ export const load_existing_correlations = async (
 			row => row.invoice.arbostar_invoice_id,
 			row => row.invoice.invoice_id,
 		),
+		invoice_by_number: new Map(map(
+			invoices,
+			row => [row.invoice.invoice_number, { invoice_id: row.invoice.invoice_id, arbostar_invoice_id: row.invoice.arbostar_invoice_id }] as const,
+		)),
 		payment_id_by_arbostar_payment_id: correlation_map(
 			payments,
 			row => row.payment.arbostar_payment_id,

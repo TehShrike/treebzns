@@ -30,6 +30,7 @@ import type { ArbostarClient } from '#arbostar_export/clients.d.ts' // the recor
 | `invoices.js` | 906 | `ArbostarInvoice` | Invoices incl. Paid. `client_id` → clients, `lead_id` → leads. |
 | `workorders.js` | 836 | `ArbostarWorkOrder` | "Projects" / scheduled jobs. `client_id` → clients, `lead_id` → leads. |
 | `line_items.js` | 3592 | `ArbostarLineItem` | Service lines. `estimate_id` → estimates; rows with an `invoice_id` are the invoice's lines; work orders schedule the same rows. |
+| `lead_notes.js` | 2276 | `ArbostarLeadNotes` | Per-lead free text that only the full lead entity carries: the intake lead description (`lead_body`) and the estimate's crew and office notes. `lead_id` → leads. Captured from the per-lead fetch `export_line_items.ts` already makes; only leads without an estimate cost an extra (editor) fetch. |
 | `payments.js` | 1204 | `ArbostarPayment` | Real payment records (amount, date, fee/tips, method label) with ArboStar's payment → estimate/invoice allocations (real split amounts + a per-allocation money breakdown). Leads/work orders are reached by joining estimates.js / invoices.js. One paged pass over the BI Client Payments report. |
 | `users.js` | 6 | `ArbostarUser` | User accounts (estimators, office staff, field workers), all statuses. Merged from the user list + each user's detail page; deliberately excludes SIN/MFA/credential fields. |
 | `declines.js` | 365 | `ArbostarDecline` | One row per declined estimate with its decline reason (id + name), from the Decline Reasons report. `estimate_id` → estimates (which has the `lead_id`). |
@@ -60,7 +61,7 @@ node ../scripts/arbostar/export_leads.ts        # leads.js
 node ../scripts/arbostar/export_estimates.ts    # estimates.js
 node ../scripts/arbostar/export_invoices.ts     # invoices.js
 node ../scripts/arbostar/export_workorders.ts   # workorders.js
-node ../scripts/arbostar/export_line_items.ts   # line_items.js  (reads estimates.js; slowest — ~355 KB/estimate)
+node ../scripts/arbostar/export_line_items.ts   # line_items.js + lead_notes.js  (reads estimates.js + leads.js; slowest — one fetch per lead)
 node ../scripts/arbostar/export_payments.ts     # payments.js
 node ../scripts/arbostar/export_users.ts        # users.js
 node ../scripts/arbostar/export_declines.ts     # declines.js  (run alongside export_estimates.ts so the two agree)

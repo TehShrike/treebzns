@@ -12,12 +12,13 @@ line items only exist behind per-record detail endpoints (fetched one by one).
 | --- | --- |
 | `fetch_datatable.ts` | Generic DataTables fetcher (pagination + the status-union logic below). Engine behind the list exports. |
 | `fetch_record.ts` | Single-record JSON GET + a concurrency-limited mapper. Engine behind the per-record exports (line items). |
+| `lead_notes.ts` | The lead-notes mapper shared by the per-lead fetches, plus the one dedicated editor fetch for leads without an estimate. |
 | `fetch_clients.ts` | Thin typed wrapper over the generic fetcher, pinned to `/clients`. |
 | `.arbostar_session.json` | **Credentials + account base URL. Gitignored — never committed.** Copy `.arbostar_session.example.json` to it and fill in. |
 | `session.ts` | Loads `.arbostar_session.json` and exposes `BASE_URL` / `AUTH_HEADERS` / `BROWSER_COOKIES`. |
 | `output.ts` | Reads/writes the `arbostar_export/` dir at the repo root — writes each dataset as `<name>.js` (`export default [...]`, gitignored). |
 | `export_*.ts` | One run-now script per dataset. |
-| `export_all.ts` | Runs every export script. Independent scripts run in parallel; the two that read `estimates.js` wait for `export_estimates.ts`. |
+| `export_all.ts` | Runs every export script. Independent scripts run in parallel; the two that read `estimates.js` / `leads.js` wait for `export_estimates.ts` and `export_leads.ts`. |
 | `discover_endpoints.ts` / `discover_details.ts` | Puppeteer crawlers that record the app's XHRs (list pages / detail pages). `discover_endpoints.ts` regenerates `arbostar_endpoints.json`. |
 | `arbostar_endpoints.json` | Map of all ~36 list/XHR endpoints, with an example `path_and_query` for each. |
 
@@ -37,7 +38,7 @@ node scripts/arbostar/export_workorders.ts   # -> workorders.js
 node scripts/arbostar/export_leads.ts        # -> leads.js (two passes + the KPI New Leads referral join)
 node scripts/arbostar/export_estimates.ts    # -> estimates.js   (two passes)
 node scripts/arbostar/export_invoices.ts     # -> invoices.js
-node scripts/arbostar/export_line_items.ts   # -> line_items.js  (reads estimates.js; one profileData call per estimate)
+node scripts/arbostar/export_line_items.ts   # -> line_items.js + lead_notes.js  (reads estimates.js + leads.js; one profileData call per estimate, plus one editor call per lead without an estimate)
 node scripts/arbostar/export_payments.ts     # -> payments.js    (BI Client Payments report; see the payments section)
 node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
 node scripts/arbostar/export_taxes.ts        # -> taxes.js       (official tax list, scraped from /settings)
@@ -48,7 +49,7 @@ node scripts/arbostar/export_tree_inventory.ts # -> tree_inventory.js + tree_inv
 
 Each dataset is written to `arbostar_export/<name>.js` as an ESM `export default [...]` (gitignored;
 the committed `arbostar_export/<name>.d.ts` types it). `export_line_items.ts` reads
-`estimates.js`, so run that first. See
+`estimates.js` and `leads.js`, so run those first. See
 [`arbostar_export/readme.md`](../../arbostar_export/readme.md) for the output side.
 
 Approximate volumes (June–August 2026): clients 1435, leads 2181, workorders 836,
@@ -120,6 +121,12 @@ other pass.)
 
 These don't exist on the list endpoints — each is a single-record JSON GET, fetched one per
 record via `fetch_record.ts`.
+
+**Lead notes** — the same two per-lead endpoints as line items below. The `lead` object on
+either carries `lead_body` (the Lead Description box on the lead profile) and, when the lead
+has an estimate, `lead.estimate.estimate_crew_notes` / `estimate_office_notes`. The profile
+endpoint answers 500 for a lead with no estimate, so those get one editor fetch each
+(`lead_notes.ts`), run alongside the line-item pass by `export_line_items.ts`.
 
 **Line items** — `GET /estimates/profile/profileData/{LEAD_id}`, rows at
 `lead.estimate.estimates_service`:

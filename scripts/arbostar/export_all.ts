@@ -2,9 +2,9 @@
 //
 //   node scripts/arbostar/export_all.ts
 //
-// Independent scripts run in parallel. export_line_items.ts and export_work_types.ts
-// read estimates.js, so they start after export_estimates.ts finishes. Each child's
-// output is prefixed with its dataset name.
+// Independent scripts run in parallel. export_line_items.ts (which reads estimates.js and
+// leads.js) and export_work_types.ts (estimates.js) start after export_estimates.ts and
+// export_leads.ts finish. Each child's output is prefixed with its dataset name.
 
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
@@ -17,7 +17,6 @@ const script_dir = dirname(fileURLToPath(import.meta.url))
 
 const INDEPENDENT = [
 	'export_clients.ts',
-	'export_leads.ts',
 	'export_invoices.ts',
 	'export_workorders.ts',
 	'export_payments.ts',
@@ -26,7 +25,8 @@ const INDEPENDENT = [
 	'export_declines.ts',
 	'export_tree_inventory.ts',
 ]
-const READS_ESTIMATES = ['export_line_items.ts', 'export_work_types.ts']
+const PREREQUISITES = ['export_estimates.ts', 'export_leads.ts']
+const READS_PREREQUISITES = ['export_line_items.ts', 'export_work_types.ts']
 
 type Result = { script: string; ok: boolean }
 
@@ -51,17 +51,18 @@ const run = async (script: string): Promise<Result> => {
 	return { script, ok }
 }
 
-const run_estimates_then_dependents = async (): Promise<Result[]> => {
-	const estimates = await run('export_estimates.ts')
-	if (!estimates.ok) {
-		console.error(`export_estimates.ts failed — skipping ${READS_ESTIMATES.join(', ')}`)
-		return [estimates, ...map(READS_ESTIMATES, script => ({ script, ok: false }))]
+const run_prerequisites_then_dependents = async (): Promise<Result[]> => {
+	const prerequisites = await Promise.all(map(PREREQUISITES, run))
+	const failed_prerequisites = filter(prerequisites, result => !result.ok)
+	if (failed_prerequisites.length > 0) {
+		console.error(`${map(failed_prerequisites, result => result.script).join(', ')} failed — skipping ${READS_PREREQUISITES.join(', ')}`)
+		return [...prerequisites, ...map(READS_PREREQUISITES, script => ({ script, ok: false }))]
 	}
-	return [estimates, ...(await Promise.all(map(READS_ESTIMATES, run)))]
+	return [...prerequisites, ...(await Promise.all(map(READS_PREREQUISITES, run)))]
 }
 
 const results = (
-	await Promise.all([run_estimates_then_dependents(), ...map(INDEPENDENT, run)])
+	await Promise.all([run_prerequisites_then_dependents(), ...map(INDEPENDENT, run)])
 ).flat()
 
 const failed = filter(results, result => !result.ok)

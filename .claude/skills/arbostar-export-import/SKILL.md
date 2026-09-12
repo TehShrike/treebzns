@@ -33,14 +33,14 @@ Each child script overwrites its `arbostar_export/<name>.js` file, with output p
 
 Notes:
 
-- The whole run takes as long as `export_line_items.ts` (one ~355 KB editor fetch per estimate, 15+ minutes). Run it in the background and check the output file for progress.
+- The whole run takes as long as `export_line_items.ts` (one fetch per lead, several minutes; it also writes `lead_notes.js`). Run it in the background and check the output file for progress.
 - A stale session fails fast on every child with `request failed: 302`.
 - If a script's mapper changed, update the matching committed `arbostar_export/<name>.d.ts`.
 - The per-dataset `export_*.ts` scripts still run individually if only one dataset is needed.
 
 ## 3. Import into the local database
 
-The import is an update-or-insert keyed on the `arbostar_*_id` unique keys, so re-runs are safe. It needs `line_items.js`, so wait for the background export to finish.
+The import is an update-or-insert keyed on the `arbostar_*_id` unique keys, so re-runs are safe. It needs `line_items.js` and `lead_notes.js`, so wait for the background export to finish.
 
 Find the company id (the company that holds the imported ArboStar data — it has by far the most clients):
 

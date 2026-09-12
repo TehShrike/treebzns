@@ -8,6 +8,7 @@ import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import type { ArbostarWorkOrder } from '#arbostar_export/workorders.d.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
+import type { ArbostarLeadNotes } from '#arbostar_export/lead_notes.d.ts'
 import type { ArbostarDecline } from '#arbostar_export/declines.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
 import { map, filter, filter_map, flat_map, every, some } from '#shared/array.ts'
@@ -22,7 +23,7 @@ import {
 	instant_from_unix_seconds,
 } from './arbostar_dates.ts'
 import { derive_timezone_from_export } from './derive_timezone_from_export.ts'
-import { ROWS_PER_BATCH, group_by, join_lines, money, money_display, normalize_name, string_or_null } from './import_common.ts'
+import { ROWS_PER_BATCH, group_by, join_lines, join_paragraphs, money, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedClients } from './import_clients.ts'
 import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
@@ -38,6 +39,7 @@ export type ImportedProjects = {
 		skipped_leads_without_client: number
 		document_history_inserted: number
 		projects_skipped_null_lead_date: number
+		projects_without_lead_notes: number
 	}
 }
 
@@ -66,7 +68,6 @@ const lead_number = (lead: ArbostarLead): bigint => {
 
 // ArboStar lead statuses (see scripts/arbostar/readme.md): 1 New · 3 No Go · 4 Estimated · 5 Draft.
 const ARBOSTAR_LEAD_STATUS_NO_GO = 3
-const ARBOSTAR_LEAD_STATUS_NEW = 1
 const ARBOSTAR_LEAD_STATUS_DRAFT = 5
 // An estimate was sent to the client if its email has any delivery tracking (email_status) —
 // statuses alone undercount, because sent-then-resolved estimates move on to Confirmed /
@@ -139,10 +140,12 @@ const NOT_TAXABLE: ProjectTax = { taxable: false, tax_rate_id: null, tax_rate: n
 
 // One project per ArboStar lead — this schema models the whole lead → estimate → work order
 // pipeline as a single project moving between project documents, so the related estimates,
-// work orders, and invoices choose the document stage and are summarized into lead_details.
+// work orders, and invoices choose the document stage and are summarized at the end of
+// notes_for_office. The lead description the office wrote at intake becomes lead_details and
+// the estimate's crew notes become notes_for_crew (both from lead_notes.js).
 // Update-or-insert: `project.number` (the parsed lead integer) is the correlation, and updates
 // only touch the ArboStar-derived columns — locally-populated ones (due_date, emergency,
-// notes_for_crew, closed_at/closed_date, created_by_employee_id) are left alone. `closed` means
+// closed_at/closed_date, created_by_employee_id) are left alone. `closed` means
 // "no more work to do" (payment state is the billing system's concern, tracked separately as
 // payment rows) and is a one-way ratchet on updates: the import can close a project but never
 // reopens one that was closed in-app.
@@ -150,12 +153,13 @@ export const import_projects = async (
 	connection: Connection,
 	write_helper: TenantedWriteHelper,
 	context: ArbostarImportContext,
-	{ leads, estimates, workorders, invoices, line_items, declines, taxes }: {
+	{ leads, estimates, workorders, invoices, line_items, lead_notes, declines, taxes }: {
 		leads: ArbostarLead[]
 		estimates: ArbostarEstimate[]
 		workorders: ArbostarWorkOrder[]
 		invoices: ArbostarInvoice[]
 		line_items: ArbostarLineItem[]
+		lead_notes: ArbostarLeadNotes[]
 		declines: ArbostarDecline[]
 		taxes: ArbostarTax[]
 	},
@@ -172,6 +176,7 @@ export const import_projects = async (
 		item => item.invoice_id!,
 	)
 	const decline_by_estimate_id = new Map(map(declines, decline => [decline.estimate_id, decline] as const))
+	const notes_by_lead_id = new Map(map(lead_notes, notes => [notes.lead_id, notes] as const))
 
 	const importable = filter(leads, lead => lead.client_id !== null && client_id_by_arbostar_client_id.has(lead.client_id))
 
@@ -302,9 +307,8 @@ export const import_projects = async (
 			: lead.lead_status_id === ARBOSTAR_LEAD_STATUS_NO_GO ? documents.void
 			: lead_estimates.length > 0
 				? (all_estimates_dead && declined_estimates.length > 0 ? documents.declined_proposal : documents.estimate)
-			: lead.lead_status_id === ARBOSTAR_LEAD_STATUS_NEW || lead.lead_status_id === ARBOSTAR_LEAD_STATUS_DRAFT
-				? documents.lead_unqualified
-				: documents.lead_qualified
+			: lead.lead_status_id === ARBOSTAR_LEAD_STATUS_DRAFT ? documents.lead_unqualified
+			: documents.lead_qualified
 
 		return { lead_estimates, lead_workorders, lead_invoices, all_estimates_dead, declined_estimates, project_document_id }
 	}
@@ -455,7 +459,7 @@ export const import_projects = async (
 			? null
 			: context.employee_id_by_name.get(normalize_name(estimator_name)) ?? null
 
-		const lead_details = join_lines([
+		const arbostar_summary = join_lines([
 			lead.lead_no === null ? null : `ArboStar lead ${lead.lead_no}`,
 			lead.lead_status_name === null ? null : `Status: ${lead.lead_status_name}`,
 			lead.lead_priority === null ? null : `Priority: ${lead.lead_priority}`,
@@ -476,10 +480,19 @@ export const import_projects = async (
 			...map(lead_invoices, describe_invoice),
 		])
 
-		const notes_for_office = join_lines([
-			...map(lead_workorders, workorder => workorder.office_notes),
-			...map(lead_invoices, invoice => invoice.invoice_notes),
-		])
+		const notes = notes_by_lead_id.get(lead.lead_id)
+		const office_notes = new Set(filter(
+			map(
+				[
+					notes?.estimate_office_notes,
+					...map(lead_workorders, workorder => workorder.office_notes),
+					...map(lead_invoices, invoice => invoice.invoice_notes),
+				],
+				note => note?.trim() ?? '',
+			),
+			note => note !== '',
+		))
+		const notes_for_office = join_paragraphs([...office_notes, arbostar_summary])
 
 		return {
 			project_document_id,
@@ -492,7 +505,8 @@ export const import_projects = async (
 			zip: address.zip,
 			client_contact_id: primary_client_contact_id_by_arbostar_client_id.get(lead.client_id!)!,
 			assigned_estimator_employee_id,
-			lead_details,
+			lead_details: notes?.lead_body ?? '',
+			notes_for_crew: notes?.estimate_crew_notes ?? '',
 			needs_client_approval: project_document_id === documents.estimate,
 			sent_for_client_approval: some(
 				lead_estimates,
@@ -534,7 +548,6 @@ export const import_projects = async (
 			due_date: null,
 			emergency: false,
 			created_by_employee_id: context.created_by_employee_id,
-			notes_for_crew: '',
 			closed_at: null,
 			closed_date: null,
 		}))
@@ -587,6 +600,7 @@ export const import_projects = async (
 			skipped_leads_without_client: leads.length - importable.length,
 			document_history_inserted: history_rows.length,
 			projects_skipped_null_lead_date: importable.length - lead_chains.length,
+			projects_without_lead_notes: filter(importable, lead => !notes_by_lead_id.has(lead.lead_id)).length,
 		},
 	}
 }

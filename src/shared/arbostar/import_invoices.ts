@@ -3,7 +3,7 @@ import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import { fns } from '#shared/sql_request/mysql_function.ts'
 import type { ArbostarInvoice } from '#arbostar_export/invoices.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
-import { map, filter } from '#shared/array.ts'
+import { map, filter, filter_map, for_each } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import number from '#shared/fnum.ts'
 import { ROWS_PER_BATCH, group_by, money } from './import_common.ts'
@@ -17,6 +17,7 @@ export type ImportedInvoices = {
 	counts: {
 		invoices_inserted: number
 		invoices_updated: number
+		invoices_adopted_by_recreated_arbostar_invoice: number
 		invoices_no_longer_in_export: number
 		skipped_invoices_without_client: number
 		invoices_without_project: number
@@ -57,7 +58,7 @@ export const import_invoices = async (
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>,
 ): Promise<ImportedInvoices> => {
 	const { client_id_by_arbostar_client_id } = imported_clients
-	const correlated = context.existing.invoice_id_by_arbostar_invoice_id
+	const correlated = new Map(context.existing.invoice_id_by_arbostar_invoice_id)
 	const importable = filter(invoices, invoice => client_id_by_arbostar_client_id.has(invoice.client_id))
 
 	const invoice_id_by_constructed_number = new Map<bigint, number>()
@@ -163,6 +164,34 @@ export const import_invoices = async (
 		}
 	}
 
+	// ArboStar sometimes deletes an invoice and recreates it under the same invoice_no with a
+	// new id. The old row still holds the customer-facing number, so the recreated invoice
+	// adopts that row instead of colliding with it.
+	const incoming_invoice_ids = new Set(map(invoices, invoice => invoice.invoice_id))
+	const adoptions = filter_map(
+		filter(importable, invoice => !correlated.has(invoice.invoice_id)),
+		invoice => {
+			const invoice_number = constructed_number(invoice)
+			const holder = context.existing.invoice_by_number.get(invoice_number)
+			if (holder === undefined) return null
+			assert(
+				holder.arbostar_invoice_id !== null && !incoming_invoice_ids.has(Number(holder.arbostar_invoice_id)),
+				`Invoice number ${invoice_number} for ArboStar invoice ${invoice.invoice_id} must be free, but local invoice ${holder.invoice_id} (ArboStar invoice ${holder.arbostar_invoice_id}) still holds it`,
+			)
+			return { arbostar_invoice_id: invoice.invoice_id, invoice_id: holder.invoice_id }
+		},
+	)
+	await write_helper.bulk_update(
+		'invoice',
+		'invoice_id',
+		map(adoptions, adoption => ({
+			value: adoption.invoice_id,
+			set: { arbostar_invoice_id: BigInt(adoption.arbostar_invoice_id) },
+		})),
+		ROWS_PER_BATCH,
+	)
+	for_each(adoptions, adoption => correlated.set(adoption.arbostar_invoice_id, adoption.invoice_id))
+
 	const existing_invoices = filter(importable, invoice => correlated.has(invoice.invoice_id))
 	const new_invoices = filter(importable, invoice => !correlated.has(invoice.invoice_id))
 
@@ -214,7 +243,6 @@ export const import_invoices = async (
 		await write_helper.bulk_insert('invoice_line_item', line_rows, ROWS_PER_BATCH)
 	}
 
-	const incoming_invoice_ids = new Set(map(invoices, invoice => invoice.invoice_id))
 	const no_longer_in_export = filter([...correlated.keys()], invoice_id => !incoming_invoice_ids.has(invoice_id)).length
 
 	return {
@@ -222,6 +250,7 @@ export const import_invoices = async (
 		counts: {
 			invoices_inserted: new_invoices.length,
 			invoices_updated: existing_invoices.length,
+			invoices_adopted_by_recreated_arbostar_invoice: adoptions.length,
 			invoices_no_longer_in_export: no_longer_in_export,
 			skipped_invoices_without_client: invoices.length - importable.length,
 			invoices_without_project,

@@ -102,6 +102,9 @@ export const group_by = <T, K>(items: readonly T[], key: (item: T) => K): Map<K,
 export const join_lines = (parts: Array<string | null | undefined>): string =>
 	filter(map(parts, part => part ?? ''), part => part !== '').join('\n')
 
+export const join_paragraphs = (parts: Array<string | null | undefined>): string =>
+	filter(map(parts, part => part ?? ''), part => part !== '').join('\n\n')
+
 // Currency columns are 2 decimal places: strip ArboStar's float noise first, then round to
 // the column's scale.
 export const money = (value: number) => arbostar_number_to_fnum(value).changeDecimalPlaces(2)
