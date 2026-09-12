@@ -4,7 +4,7 @@ import * as jv from '#shared/json_validator.ts'
 import { sfn } from '#worker/lib/server_functions_api.ts'
 import { is_temporal_plain_date, is_temporal_plain_time } from '#schema/validator/_helpers.ts'
 import get_next_project_number_and_increment from '#worker/lib/db/get_next_project_number_and_increment.ts'
-import { get_lead_project_document_id } from '#worker/lib/db/project_document.ts'
+import { get_lead_needing_estimate_project_document_id } from '#worker/lib/db/project_document.ts'
 import assert_db_id_valid from '#worker/lib/db/assert_db_id_valid.ts'
 import { upsert_client } from './lead_helper/client.ts'
 import { upsert_client_address } from './lead_helper/client_address.ts'
@@ -169,7 +169,7 @@ export const functions = {
 				})
 				: project.lead_source_id
 
-			const initial_project_document_id = await get_lead_project_document_id({ select_builder })
+			const initial_project_document_id = await get_lead_needing_estimate_project_document_id({ select_builder })
 
 			const project_number = await get_next_project_number_and_increment({ write_helper })
 
