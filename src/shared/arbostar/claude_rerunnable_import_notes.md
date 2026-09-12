@@ -139,9 +139,10 @@ employees can't log in anyway (empty `password_hash`).
    (ArboStar emailid/personal_email/user_email vs the company's employee login_name/email)
    runs before name matching so a pre-created in-app account adopts its ArboStar user.
 4. ~~Other importers~~ **DONE**, per the table above. Only ArboStar-derived columns are
-   updated; locally-populated ones (project due_date/emergency/notes_for_crew/closed
-   dates/created_by, client billing/tax/referred_by, payment method/status) are never
-   touched after insert. (Project taxable/tax_rate_id/tax_rate became ArboStar-derived in
+   updated; locally-populated ones (project due_date/emergency/notes_for_crew/created_by,
+   client billing/tax/referred_by, payment method/status) are never touched after insert.
+   Project closed_at/closed_date are ArboStar-derived (finished work order date, decline
+   instant) but written on re-import only when the row has none yet. (Project taxable/tax_rate_id/tax_rate became ArboStar-derived in
    July 2026 — implied from invoice tax amounts and snapped to the official taxes.js list —
    so re-imports do overwrite them.) `project.closed` is a one-way ratchet on updates: the import can
    set it but never clears it, so a re-run can't reopen a project closed in-app.

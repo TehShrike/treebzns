@@ -24,6 +24,7 @@ export type ArbostarWorkOrder = {
 	/** Estimator display name; an empty array (API quirk) when unassigned. */
 	estimator: string | []
 	office_notes: string
+	/** MM/DD/YYYY local date of the latest status change; on Finished rows, the finish date. */
 	latest_status_update: string
 	client_id: number
 	client_name: string

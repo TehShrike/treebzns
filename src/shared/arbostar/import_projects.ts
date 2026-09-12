@@ -145,10 +145,12 @@ const NOT_TAXABLE: ProjectTax = { taxable: false, tax_rate_id: null, tax_rate: n
 // the estimate's crew notes become notes_for_crew (both from lead_notes.js).
 // Update-or-insert: `project.number` (the parsed lead integer) is the correlation, and updates
 // only touch the ArboStar-derived columns — locally-populated ones (due_date, emergency,
-// closed_at/closed_date, created_by_employee_id) are left alone. `closed` means
-// "no more work to do" (payment state is the billing system's concern, tracked separately as
-// payment rows) and is a one-way ratchet on updates: the import can close a project but never
-// reopens one that was closed in-app.
+// created_by_employee_id) are left alone. `closed` means "no more work to do" (payment state
+// is the billing system's concern, tracked separately as payment rows) and is a one-way
+// ratchet on updates: the import can close a project but never reopens one that was closed
+// in-app. closed_at/closed_date come from the export where it records the closing moment
+// (a finished work order's latest status change, a decline) and are written only when the
+// row has none yet, so a date set in-app survives re-imports.
 export const import_projects = async (
 	connection: Connection,
 	write_helper: TenantedWriteHelper,
@@ -321,6 +323,8 @@ export const import_projects = async (
 		instants.reduce((a, b) => (Temporal.Instant.compare(b, a) < 0 ? b : a))
 	const latest = (instants: Temporal.Instant[]): Temporal.Instant =>
 		instants.reduce((a, b) => (Temporal.Instant.compare(b, a) > 0 ? b : a))
+	const latest_date = (dates: Temporal.PlainDate[]): Temporal.PlainDate =>
+		dates.reduce((a, b) => (Temporal.PlainDate.compare(b, a) > 0 ? b : a))
 
 	// The document chain the project passed through, with `change_datetime` set from the
 	// export's evidence. Date-only evidence becomes local midnight in the derived timezone.
@@ -380,9 +384,10 @@ export const import_projects = async (
 		// Work completed, or the deal is dead: No Go leads (Void), declined proposals, and
 		// leads whose every estimate Expired / went Thinking have no more work to do. Dying
 		// before the Work Order document doesn't count as a sale — only that document has
-		// represents_billable_sale_when_closed.
-		const closed = some(lead_workorders, workorder => workorder.status === ARBOSTAR_WO_STATUS_FINISHED)
-			|| lead_invoices.length > 0
+		// represents_billable_sale_when_closed. An invoice alone doesn't close: ArboStar
+		// invoices unfinished work orders, and so does this schema.
+		const finished_workorders = filter(lead_workorders, workorder => workorder.status === ARBOSTAR_WO_STATUS_FINISHED)
+		const closed = finished_workorders.length > 0
 			|| project_document_id === documents.void
 			|| project_document_id === documents.declined_proposal
 			|| (project_document_id === documents.estimate && all_estimates_dead)
@@ -406,6 +411,18 @@ export const import_projects = async (
 		const project_decline_reason_id = project_document_id === documents.declined_proposal && mapped_seed_reason !== undefined
 			? context.decline_reason_id_by_reason.get(mapped_seed_reason) ?? null
 			: null
+
+		// The closing moment: a finished work order's latest_status_update is the local day the
+		// crew marked it Finished (it matches the lead's first invoice date on most leads and
+		// never precedes it), and a decline carries a real instant. Void and Expired/Thinking
+		// closes have no recorded moment in the export, so their dates stay null.
+		const closed_at =
+			finished_workorders.length > 0
+				? local_midnight(latest_date(map(finished_workorders, workorder => date_from_mmddyyyy(workorder.latest_status_update))))
+			: project_document_id === documents.declined_proposal && latest_decline?.date_created_unix != null
+				? instant_from_unix_seconds(latest_decline.date_created_unix)
+			: null
+		const closed_date = closed_at === null ? null : local_day(closed_at)
 
 		// Invoice totals are authoritative when they exist (they carry the real discounts and
 		// tax, which line items can't reproduce). subtotal is pre-discount (ArboStar's
@@ -515,6 +532,8 @@ export const import_projects = async (
 			),
 			notes_for_office,
 			closed,
+			closed_at,
+			closed_date,
 			project_decline_reason_id,
 			lead_source_id: lead_source_id(lead),
 			discount_description: '',
@@ -527,12 +546,16 @@ export const import_projects = async (
 	const new_leads = filter(importable, lead => !context.existing.project_id_by_number.has(Number(lead_number(lead))))
 
 	// A lead that is no longer closing must not reopen a project, so still-open rows leave
-	// the closed column alone.
+	// the closed column alone, and a close date already on the row wins over the export's.
 	const existing_rows = map(existing_leads, lead => {
-		const { closed, ...set } = project_fields(lead)
+		const { closed, closed_at, closed_date, ...set } = project_fields(lead)
+		const number = Number(lead_number(lead))
+		const close_dates = closed && !context.existing.project_numbers_with_closed_at.has(number)
+			? { closed_at, closed_date }
+			: {}
 		return {
-			value: context.existing.project_id_by_number.get(Number(lead_number(lead)))!,
-			set: closed ? { closed, ...set } : set,
+			value: context.existing.project_id_by_number.get(number)!,
+			set: closed ? { closed, ...close_dates, ...set } : set,
 		}
 	})
 	await write_helper.bulk_update('project', 'project_id', existing_rows, ROWS_PER_BATCH)
@@ -548,8 +571,6 @@ export const import_projects = async (
 			due_date: null,
 			emergency: false,
 			created_by_employee_id: context.created_by_employee_id,
-			closed_at: null,
-			closed_date: null,
 		}))
 		const { insert_ids } = await write_helper.bulk_insert('project', project_rows, ROWS_PER_BATCH)
 		new_leads.forEach((lead, index) => project_id_by_arbostar_lead_id.set(lead.lead_id, insert_ids[index]!))

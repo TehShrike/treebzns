@@ -10,6 +10,8 @@ export type ExistingCorrelations = {
 	client_id_by_arbostar_client_id: Map<number, bigint>
 	default_project_address_id_by_arbostar_client_id: Map<number, bigint>
 	project_id_by_number: Map<number, bigint>
+	// Projects that already carry a close date, whether set in-app or by an earlier import.
+	project_numbers_with_closed_at: Set<number>
 	invoice_id_by_arbostar_invoice_id: Map<number, bigint>
 	// Keyed by the customer-facing invoice_number, so an ArboStar invoice that was deleted and
 	// recreated under the same number can adopt the row its predecessor left behind.
@@ -57,7 +59,7 @@ export const load_existing_correlations = async (
 			.select(() => ['client.client_id', 'client.arbostar_client_id', 'client.default_project_address_id'])),
 		tenanted_select(connection, q => q
 			.from('project')
-			.select(() => ['project.project_id', 'project.number'])),
+			.select(() => ['project.project_id', 'project.number', 'project.closed_at'])),
 		tenanted_select(connection, q => q
 			.from('invoice')
 			.select(() => ['invoice.invoice_id', 'invoice.arbostar_invoice_id', 'invoice.invoice_number'])),
@@ -112,6 +114,10 @@ export const load_existing_correlations = async (
 			row => row.project.number,
 			row => row.project.project_id,
 		),
+		project_numbers_with_closed_at: new Set(map(
+			filter(projects, row => row.project.closed_at !== null),
+			row => Number(row.project.number),
+		)),
 		invoice_id_by_arbostar_invoice_id: correlation_map(
 			invoices,
 			row => row.invoice.arbostar_invoice_id,
