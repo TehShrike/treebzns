@@ -12,7 +12,6 @@
 	--button-face: #dfdfdf;
 	--button-shadow: #808080;
 	--window-frame: #0a0a0a;
-	--dialog-blue-light: #1084d0;
 	--dialog-gray: #808080;
 	--dialog-gray-light: #b5b5b5;
 	--link-blue: #0000ff;
@@ -196,8 +195,8 @@ label:has(input:disabled) {
 .title-bar {
 	background: linear-gradient(
 		90deg,
-		var(--dialog-blue),
-		var(--dialog-blue-light)
+		var(--primary_color_dark),
+		var(--primary_color_light)
 	);
 	padding: 6px 8px;
 	display: flex;
@@ -473,7 +472,7 @@ select {
 
 	&:focus {
 		color: var(--button-highlight);
-		background-color: var(--dialog-blue);
+		background-color: var(--primary_color_dark);
 
 		& option {
 			color: #000;
@@ -510,7 +509,7 @@ ul.tree-view {
 		color: #000;
 
 		&:focus {
-			background-color: var(--dialog-blue);
+			background-color: var(--primary_color_dark);
 			color: var(--button-highlight);
 		}
 	}
@@ -762,7 +761,7 @@ table {
 
 	& > tbody > tr.highlighted {
 		color: #fff;
-		background-color: var(--dialog-blue);
+		background-color: var(--primary_color_dark);
 	}
 
 	& > tbody > tr > * {
@@ -788,7 +787,7 @@ table {
 	& > .progress-indicator-bar {
 		height: 100%;
 		display: block;
-		background-color: var(--dialog-blue);
+		background-color: var(--primary_color_dark);
 	}
 
 	&.segmented > .progress-indicator-bar {
@@ -796,7 +795,7 @@ table {
 		background-color: transparent; /* resets the background color which is set to blue in the non-segmented selector */
 		background-image: linear-gradient(
 			90deg,
-			var(--dialog-blue) 0 16px,
+			var(--primary_color_dark) 0 16px,
 			transparent 0 2px
 		);
 		background-repeat: repeat;

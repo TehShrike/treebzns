@@ -100,7 +100,7 @@
 
 <AppScreen>
 	<div class="centered_column">
-		<h1 style="color: var(--friendly_color)">🦫</h1>
+		<h1 style="color: var(--primary_color_dark)">🦫</h1>
 		<LinkThatLooksLikeAButton href={asr.makePath('app.menu.create_a_lead')} size={2}>Create A Lead</LinkThatLooksLikeAButton>
 	</div>
 

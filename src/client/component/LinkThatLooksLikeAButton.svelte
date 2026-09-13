@@ -11,7 +11,7 @@
 <style>
 	.link-button {
 		display: inline-block;
-		background: var(--friendly_color);
+		background: var(--primary_color_dark);
 		color: var(--white);
 		text-decoration: none;
 		border-radius: var(--gap_half);

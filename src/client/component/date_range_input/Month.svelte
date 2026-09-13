@@ -127,7 +127,7 @@
 	.container {
 		--day-width: calc(var(--gap_unit) * 1.75);
 		--month-width: calc(var(--day-width) * 7);
-		--range-highlight: hsl(var(--hue) 100% 30% / 0.2);
+		--range-highlight: color-mix(in srgb, var(--primary_color_light) 25%, var(--white));
 
 		width: var(--month-width);
 		color: var(--text_color_normal);
@@ -203,7 +203,7 @@
 	}
 
 	button[data-selected=true] {
-		background-color: var(--friendly_color);
+		background-color: var(--primary_color_dark);
 		color: var(--white);
 	}
 

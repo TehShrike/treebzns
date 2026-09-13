@@ -59,7 +59,7 @@
 	}
 
 	.menu-item[data-active='true'] {
-		background: var(--friendly_color);
+		background: var(--primary_color_dark);
 		color: var(--white);
 	}
 
