@@ -203,6 +203,8 @@ label:has(input:disabled) {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	font-weight: bold;
+	color: white;
 }
 
 .title-bar.inactive {
@@ -211,13 +213,6 @@ label:has(input:disabled) {
 		var(--dialog-gray),
 		var(--dialog-gray-light)
 	);
-}
-
-.title-bar-text {
-	font-weight: bold;
-	color: white;
-	letter-spacing: 0;
-	margin-right: 24px;
 }
 
 .status-bar {
@@ -231,6 +226,9 @@ label:has(input:disabled) {
 	flex-grow: 1;
 	padding: 2px 3px;
 	margin: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 fieldset {

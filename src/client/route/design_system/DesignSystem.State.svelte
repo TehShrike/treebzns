@@ -1,6 +1,8 @@
 <script module lang="ts">
 	import { state_type } from "#client/lib/client_type.ts";
 	import AppScreen from "#client/component/AppScreen.svelte";
+	import WindowCard from "#client/component/WindowCard.svelte";
+	import Separator from "#client/component/Separator.svelte";
 	import FormLayout from "#client/component/FormLayout.svelte";
 	import ListInput from "#client/component/list_input/ListInput.svelte";
 	import TextInput from "#client/component/list_input/TextInput.svelte";
@@ -426,15 +428,10 @@
 				<footer>— Microsoft Windows User Experience p. 118</footer>
 			</blockquote>
 
-			<p>
-				You can build a title bar by making use of two classes, <code>title-bar</code> and
-				<code>title-bar-text</code>.
-			</p>
+			<p>You can build a title bar with the <code>title-bar</code> class.</p>
 
 			<div class="example">
-				<div class="title-bar">
-					<div class="title-bar-text">A Title Bar</div>
-				</div>
+				<div class="title-bar">A Title Bar</div>
 			</div>
 
 			<p>
@@ -443,9 +440,7 @@
 			</p>
 
 			<div class="example">
-				<div class="title-bar inactive">
-					<div class="title-bar-text">An inactive title bar</div>
-				</div>
+				<div class="title-bar inactive">An inactive title bar</div>
 			</div>
 		</section>
 
@@ -461,14 +456,14 @@
 
 			<p>
 				You can render a status bar with the <code>status-bar</code> class, and
-				<code>status-bar-field</code> for every child text element.
+				<code>status-bar-field</code> for every child text element. A field never wraps. Text
+				that does not fit is clipped with an ellipsis, so a field that must show everything
+				sets <code>white-space: normal</code> on itself.
 			</p>
 
 			<div class="example">
 				<div class="window" style="width: 320px">
-					<div class="title-bar">
-						<div class="title-bar-text">A Window With A Status Bar</div>
-					</div>
+					<div class="title-bar">A Window With A Status Bar</div>
 					<div class="window-body">
 						<p>There are just so many possibilities:</p>
 						<ul>
@@ -482,6 +477,27 @@
 						<p class="status-bar-field">Slide 1</p>
 						<p class="status-bar-field">CPU Usage: 14%</p>
 					</div>
+				</div>
+			</div>
+
+			<p>
+				The <code>WindowCard</code> component exposes a general usage of these classes. Pass the
+				title bar text as <code>title</code>, the status bar text as <code>status_fields</code>,
+				and the body as children. Pass <code>href</code> to make the whole card a link. The
+				<code>Separator</code> component draws an etched line between body content. Its borders
+				make it read as a horizontal line in a column and a vertical line in a row, so the
+				parent's layout picks the orientation.
+			</p>
+
+			<div class="example">
+				<div class="window_card_example">
+					<WindowCard title="A Linked Card" href="#/design_system" status_fields={[`Created 2026-09-12`]}>
+						<div class="separator_row">
+							<p>This card links to the page you are on.</p>
+							<Separator />
+							<p>Its body is a row.</p>
+						</div>
+					</WindowCard>
 				</div>
 			</div>
 		</section>
@@ -1011,5 +1027,18 @@
 
 	main {
 		gap: 16px;
+	}
+
+	.window_card_example {
+		width: 320px;
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	.separator_row {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
 	}
 </style>

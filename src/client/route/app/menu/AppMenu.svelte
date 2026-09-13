@@ -16,7 +16,7 @@
 		<li><a class="menu-item" href={asr.makePath('app.menu.create_a_lead')} data-active={asr.stateIsActive('app.menu.create_a_lead')}>Create A Lead</a></li>
 		<li><a class="menu-item" href={asr.makePath('app.menu.clients')} data-active={asr.stateIsActive('app.menu.clients')}>Clients</a></li>
 		<li><a class="menu-item" href={asr.makePath('app.menu.projects')} data-active={asr.stateIsActive('app.menu.projects')}>Projects</a></li>
-		<li><a class="menu-item" href={asr.makePath('app.menu.to_estimate_list')} data-active={asr.stateIsActive('app.menu.to_estimate_list')}>Estimate</a></li>
+		<li><a class="menu-item" href={asr.makePath('app.menu.leads_to_estimate')} data-active={asr.stateIsActive('app.menu.leads_to_estimate')}>Leads To Estimate</a></li>
 	</ul>
 	<div class="log-out-container">
 		<button type="button" onclick={log_out}>Log out</button>

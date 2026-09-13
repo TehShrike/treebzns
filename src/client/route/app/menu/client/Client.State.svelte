@@ -232,7 +232,7 @@
 	<ClientSearch {client_cache} on_pick={go_to_client} />
 
 	<div class="title-bar">
-		<span class="title-bar-text">{client.db_values?.name ?? ``}</span>
+		<span>{client.db_values?.name ?? ``}</span>
 		<button type="submit" form="client_form" class="default" disabled={saver.saving || !form.needs_to_be_saved}>Save</button>
 	</div>
 
