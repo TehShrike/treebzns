@@ -16,7 +16,7 @@
 	</div>
 	{#if status_fields.length > 0}
 		<div class="status-bar">
-			{#each status_fields as field (field)}
+			{#each status_fields as field, index (index)}
 				<p class="status-bar-field" title={field}>{field}</p>
 			{/each}
 		</div>

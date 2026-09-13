@@ -6,7 +6,9 @@
 	import Separator from '#client/component/Separator.svelte'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
-	import { filter } from '#shared/array.ts'
+	import type { ClientMetrics } from '#shared/type/client.ts'
+	import type { FinancialNumber } from '#shared/fnum.ts'
+	import { filter, map } from '#shared/array.ts'
 
 	const fetch_projects_needing_estimate = (query: ClientQueryFn) => query(
 		query_builder<Schema>()
@@ -23,6 +25,7 @@
 				`project.city`,
 				`project.lead_details`,
 				`project.created_at`,
+				`client.client_id`,
 				`client.name`,
 				`client_contact.name`,
 			] as const)
@@ -33,24 +36,46 @@
 	export const asr_state = state_type({
 		name: `app.menu.leads_to_estimate`,
 		route: `/leads_to_estimate`,
-		resolve: async ({ query, session }) => {
+		resolve: async ({ query, session, server }) => {
 			const [projects, logged_in_session] = await Promise.all([
 				fetch_projects_needing_estimate(query),
 				session.get_logged_in(),
 			])
-			return { projects, timezone: logged_in_session.company.timezone }
+			return { projects, timezone: logged_in_session.company.timezone, server }
 		},
 	})
 
 	type ProjectRow = StateResolve<typeof asr_state>[`projects`][number]
+
+	const format_thousands = (amount: FinancialNumber) => `${amount.times(`0.001`).changeDecimalPlaces(0).toString()}k`
 </script>
 
 <script lang="ts">
-	const { projects, timezone, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
+	const { projects, timezone, server, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
+
+	let metrics_by_client_id = $state.raw<ReadonlyMap<bigint, ClientMetrics> | null>(null)
+
+	// svelte-ignore state_referenced_locally
+	const client_ids = [...new Set(map(projects, row => row.client.client_id))]
+	// svelte-ignore state_referenced_locally
+	void server.fetch_client_metrics({ client_ids }).then(metrics => {
+		metrics_by_client_id = new Map(map(metrics, client_metrics => [client_metrics.client_id, client_metrics]))
+	})
 
 	const project_path = (row: ProjectRow) => asr.makePath(`app.estimate`, { project_id: row.project.project_id })
 	const format_created_date = (row: ProjectRow) => row.project.created_at.toZonedDateTimeISO(timezone).toPlainDate().toString()
 	const format_address = (row: ProjectRow) => filter([row.project.address_line_1, row.project.address_line_2, row.project.city], Boolean).join(`, `)
+	const format_last_year = (metrics: ClientMetrics) => metrics.latest_job_count === 0n
+		? `Last year: 0`
+		: `Last year: $${format_thousands(metrics.latest_jobs_total)} (${metrics.latest_job_count})`
+	const status_fields = (row: ProjectRow) => {
+		const metrics = metrics_by_client_id?.get(row.client.client_id)
+		return [
+			`Created ${format_created_date(row)}`,
+			metrics ? `Accepted: ${metrics.accepted}/${metrics.proposals}` : ``,
+			metrics ? format_last_year(metrics) : ``,
+		]
+	}
 </script>
 
 <AppScreen>
@@ -61,7 +86,7 @@
 			<WindowCard
 				title={row.client.name}
 				href={project_path(row)}
-				status_fields={[`Created ${format_created_date(row)}`]}
+				status_fields={status_fields(row)}
 			>
 				<div class="body">
 					<div class="half location">
