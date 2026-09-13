@@ -106,6 +106,7 @@
 		--cell_padding: 4px 8px;
 
 		display: grid;
+		grid-template-columns: var(--grid_template_columns);
 		gap: var(--cell_border_width);
 		border-radius: var(--default_border_radius);
 
@@ -114,9 +115,7 @@
 	}
 
 	[role=row] {
-		display: grid;
-		gap: var(--cell_border_width);
-		grid-template-columns: var(--grid_template_columns);
+		display: contents;
 	}
 
 	[role=row][data-placeholder-row=true] {
