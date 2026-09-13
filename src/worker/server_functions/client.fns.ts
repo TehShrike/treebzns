@@ -5,10 +5,11 @@ import { pick } from '#shared/pick.ts'
 import { sfn } from '#worker/lib/server_functions_api.ts'
 import assert_db_id_valid from '#worker/lib/db/assert_db_id_valid.ts'
 import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
-import type { ClientAddressUpdate, ClientContactUpdate, ClientValues, UpdateClientArgument } from '#shared/type/client.ts'
+import type { ClientAddressUpdate, ClientContactUpdate, ClientMetrics, ClientValues, UpdateClientArgument } from '#shared/type/client.ts'
 import { upsert_client_contact } from './client_helper/client_contact.ts'
 import { upsert_client_address } from './client_helper/client_address.ts'
 import { remove_client_addresses, remove_client_contacts } from './client_helper/remove_rows.ts'
+import { fetch_client_metrics } from './client_helper/client_metrics.ts'
 import { fetch_client_address_ids_in_use, fetch_client_contact_ids_in_use } from '#shared/treebzns_db/client_relationships.ts'
 
 const address_validator = jv.object({
@@ -65,6 +66,10 @@ const contact_value_validators = {
 	email: jv.is_string,
 	is_primary: jv.is_boolean,
 }
+
+const fetch_client_metrics_validator = jv.object({
+	client_ids: jv.array(jv.is_bigint),
+})
 
 const update_client_validator: jv.Validator<UpdateClientArgument> = jv.object({
 	client_id: jv.is_bigint,
@@ -196,5 +201,10 @@ export const functions = {
 
 			return { client_id, contact_ids, address_ids }
 		}),
+	}),
+	fetch_client_metrics: sfn({
+		validator: fetch_client_metrics_validator,
+		fn: ({ client_ids }, { company, select_builder }): Promise<ClientMetrics[]> =>
+			fetch_client_metrics({ select_builder, timezone: company.timezone, client_ids }),
 	}),
 }

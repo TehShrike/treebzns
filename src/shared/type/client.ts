@@ -1,3 +1,5 @@
+import type { FinancialNumber } from '#shared/fnum.ts'
+
 export type ClientValues = Pick<DbClient,
 	| 'name'
 	| 'is_commercial'
@@ -38,4 +40,12 @@ export type UpdateClientResult = {
 	client_id: DbClient['client_id']
 	contact_ids: DbClientContact['client_contact_id'][]
 	address_ids: DbClientAddress['client_address_id'][]
+}
+
+export type ClientMetrics = {
+	client_id: DbClient['client_id']
+	proposals: bigint
+	accepted: bigint
+	latest_jobs_total: FinancialNumber
+	latest_job_count: bigint
 }

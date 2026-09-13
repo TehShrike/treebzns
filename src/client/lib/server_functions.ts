@@ -3,7 +3,7 @@ import f3tch from '#shared/f3tch.ts'
 import type { OptionalizeUndefinedKeys } from '#shared/json_validator.ts'
 import type { SafeSelectQuery } from '#shared/sql_request/safe_select_query_validator.ts'
 import type { LeadAddress, LeadAvailability, LeadBilling, LeadClient, LeadContact, LeadProject } from '#shared/type/lead.ts'
-import type { UpdateClientArgument } from '#shared/type/client.ts'
+import type { ClientMetrics, UpdateClientArgument } from '#shared/type/client.ts'
 
 const call_server_function = (function_name: string) => async (arg: unknown) => f3tch(`/api/fn/${function_name}`, {
 	method: 'POST',
@@ -14,6 +14,7 @@ const call_server_function = (function_name: string) => async (arg: unknown) => 
 const server_functions: {
 	create_client: (arg: OptionalizeUndefinedKeys<{ readonly name: string; readonly is_commercial: boolean; readonly billing_phone: string; readonly billing_email: string; readonly tax_rate_id: bigint | null | undefined; readonly notes: string; readonly referred_by: string; readonly primary_address: OptionalizeUndefinedKeys<{ readonly name: string; readonly address_line_1: string; readonly address_line_2: string; readonly city: string; readonly state: string; readonly zip: string; }>; }>) => Promise<Pick<DbClient, "client_id" | "default_project_address_id">>
 	update_client: (arg: UpdateClientArgument) => Promise<{ client_id: bigint; contact_ids: bigint[]; address_ids: bigint[]; }>
+	fetch_client_metrics: (arg: OptionalizeUndefinedKeys<{ readonly client_ids: bigint[]; }>) => Promise<ClientMetrics[]>
 	create_company: (arg: OptionalizeUndefinedKeys<{ name: string; }>) => Promise<Pick<DbCompany, "name" | "company_id">>
 	create_lead: (arg: { client: LeadClient; billing_address: LeadBilling | null; address: LeadAddress; contact: LeadContact; project: LeadProject; availability: LeadAvailability[]; }) => Promise<{ project_id: bigint; client_id: bigint; }>
 	query: (arg: SafeSelectQuery) => Promise<unknown[][]>
@@ -21,6 +22,7 @@ const server_functions: {
 } = {
 	create_client: call_server_function('create_client'),
 	update_client: call_server_function('update_client'),
+	fetch_client_metrics: call_server_function('fetch_client_metrics'),
 	create_company: call_server_function('create_company'),
 	create_lead: call_server_function('create_lead'),
 	query: call_server_function('query'),
