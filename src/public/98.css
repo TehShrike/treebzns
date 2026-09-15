@@ -79,6 +79,7 @@ body {
 }
 
 button,
+.link-button,
 label,
 input,
 legend,
@@ -117,6 +118,7 @@ u {
 }
 
 button,
+.link-button,
 input[type="submit"],
 input[type="reset"] {
 	box-sizing: border-box;
@@ -130,6 +132,13 @@ input[type="reset"] {
 	min-width: 75px;
 	min-height: 23px;
 	padding: 6px 16px;
+
+	&:is(a) {
+		display: inline-block;
+		text-decoration: none;
+		text-align: center;
+		cursor: default;
+	}
 
 	&.default {
 		box-shadow:

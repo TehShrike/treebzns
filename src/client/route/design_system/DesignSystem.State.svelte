@@ -11,6 +11,7 @@
 	import NumberDisplay from "#client/component/list_input/NumberDisplay.svelte";
 	import Checkbox from "#client/component/list_input/Checkbox.svelte";
 	import DeleteButton from "#client/component/list_input/DeleteButton.svelte";
+	import LinkThatLooksLikeAButton from "#client/component/LinkThatLooksLikeAButton.svelte";
 	import editable_rows from "#client/component/list_input/editable_rows.svelte.ts";
 	import type { RowKey } from "#client/component/list_input/row_key.ts";
 	import number, { type FinancialNumber } from "#shared/fnum.ts";
@@ -168,6 +169,17 @@
 
 			<div class="example">
 				<button class="focused">I am focused</button>
+			</div>
+
+			<p>
+				A link that navigates to another screen can look like a button. Use the
+				<code>LinkThatLooksLikeAButton</code> component, or put the class <code>link-button</code>
+				on an <code>a</code> element. The optional <code>size</code> prop scales the font and padding.
+			</p>
+
+			<div class="example">
+				<LinkThatLooksLikeAButton href="#button">I am a link</LinkThatLooksLikeAButton>
+				<LinkThatLooksLikeAButton href="#button" size={2}>I am a big link</LinkThatLooksLikeAButton>
 			</div>
 		</section>
 

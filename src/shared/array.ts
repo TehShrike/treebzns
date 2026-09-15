@@ -53,6 +53,16 @@ export const find = <T>(arr: readonly T[], predicate: Predicate<T>): T | undefin
 	return undefined
 }
 
+export const find_index = <T>(arr: readonly T[], predicate: Predicate<T>): number => {
+	const length = arr.length
+	for (let i = 0; i < length; i++) {
+		if (predicate(arr[i] as T)) {
+			return i
+		}
+	}
+	return -1
+}
+
 export const every = <T>(arr: readonly T[], predicate: Predicate<T>) => {
 	const length = arr.length
 	for (let i = 0; i < length; i++) {

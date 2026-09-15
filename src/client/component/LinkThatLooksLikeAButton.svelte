@@ -10,12 +10,7 @@
 
 <style>
 	.link-button {
-		display: inline-block;
-		background: var(--primary_color_dark);
-		color: var(--white);
-		text-decoration: none;
-		border-radius: var(--gap_half);
-		padding: calc(var(--gap_unit) * var(--size));
-		font-size: calc(var(--font_size_base) * var(--size));
+		font-size: calc(15px * var(--size));
+		padding: calc(6px * var(--size)) calc(16px * var(--size));
 	}
 </style>

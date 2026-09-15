@@ -16,6 +16,7 @@ const server_functions: {
 	update_client: (arg: UpdateClientArgument) => Promise<{ client_id: bigint; contact_ids: bigint[]; address_ids: bigint[]; }>
 	fetch_client_metrics: (arg: OptionalizeUndefinedKeys<{ readonly client_ids: bigint[]; }>) => Promise<ClientMetrics[]>
 	create_company: (arg: OptionalizeUndefinedKeys<{ name: string; }>) => Promise<Pick<DbCompany, "name" | "company_id">>
+	create_line_item: (arg: OptionalizeUndefinedKeys<{ readonly project_id: bigint; }>) => Promise<{ project_line_item_id: bigint; }>
 	create_lead: (arg: { client: LeadClient; billing_address: LeadBilling | null; address: LeadAddress; contact: LeadContact; project: LeadProject; availability: LeadAvailability[]; }) => Promise<{ project_id: bigint; client_id: bigint; }>
 	query: (arg: SafeSelectQuery) => Promise<unknown[][]>
 	ping: (arg: OptionalizeUndefinedKeys<{ readonly timeout: 1000n | 2000n | 3000n; }>) => Promise<{ pong: boolean; user_id: bigint; }>
@@ -24,6 +25,7 @@ const server_functions: {
 	update_client: call_server_function('update_client'),
 	fetch_client_metrics: call_server_function('fetch_client_metrics'),
 	create_company: call_server_function('create_company'),
+	create_line_item: call_server_function('create_line_item'),
 	create_lead: call_server_function('create_lead'),
 	query: call_server_function('query'),
 	ping: call_server_function('ping'),

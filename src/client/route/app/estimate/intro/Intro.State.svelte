@@ -2,6 +2,8 @@
 	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
 	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
 	import Layout from '../Layout.svelte'
+	import EstimateNavBar from '../EstimateNavBar.svelte'
+	import { fetch_line_items } from '../fetch_line_items.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
 	import type { Schema } from '#schema/types.ts'
@@ -49,15 +51,16 @@
 		name: `app.estimate.intro`,
 		route: ``,
 		param_validator: validate_estimate_params,
-		resolve: async ({ query }, { project_id }) => {
-			const [project, availability] = await Promise.all([
+		resolve: async ({ query, server }, { project_id }) => {
+			const [project, availability, line_items] = await Promise.all([
 				fetch_project(query, project_id),
 				fetch_availability(query, project_id),
+				fetch_line_items(query, project_id),
 			])
 
 			assert(project, `project ${project_id} exists`)
 
-			return { project, availability }
+			return { server, project_id, project, availability, line_items }
 		},
 	})
 
@@ -65,7 +68,7 @@
 </script>
 
 <script lang="ts">
-	const { project, availability, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
+	const { server, project_id, project, availability, line_items, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
 
 	const street = $derived(filter([project.project.address_line_1, project.project.address_line_2], Boolean).join(`, `))
 	const city_state_zip = $derived(filter([project.project.city, project.project.state, project.project.zip], Boolean).join(` `))
@@ -73,9 +76,7 @@
 
 <Layout>
 	{#snippet top()}
-		<button type="button" disabled>Previous</button>
-		<button type="button" onclick={() => asr.go(`app.menu.leads_to_estimate`)}>Done</button>
-		<button type="button" disabled>Next</button>
+		<EstimateNavBar {asr} {server} {project_id} {line_items} current_index={null} />
 	{/snippet}
 
 	<fieldset>
