@@ -16,7 +16,7 @@ const make_contact = (db_values: DbValues<ClientContactValues, 'client_contact_i
 	initial: { description: ``, name: ``, phone: ``, email: ``, is_primary: false },
 	id_key: `client_contact_id`,
 	db_values,
-	is_empty: ({ name, description, phone, email }) => name === `` && description === `` && phone === `` && email === ``,
+	is_empty: ({ name, description, phone, email, is_primary }) => name === `` && description === `` && phone === `` && email === `` && is_primary === false,
 })
 
 const make_address = (db_values: DbValues<ClientAddressValues, 'client_address_id'> | null) => tracked_record<ClientAddressValues, 'client_address_id'>({
