@@ -11,13 +11,11 @@
 
 <nav class="app-menu">
 	<div class="logo">🌳</div>
-	<ul class="menu-items">
-		<li><a class="menu-item" href={asr.makePath('app.menu.home')} data-active={asr.stateIsActive('app.menu.home')}>Home</a></li>
-		<li><a class="menu-item" href={asr.makePath('app.menu.create_a_lead')} data-active={asr.stateIsActive('app.menu.create_a_lead')}>Create A Lead</a></li>
-		<li><a class="menu-item" href={asr.makePath('app.menu.clients')} data-active={asr.stateIsActive('app.menu.clients')}>Clients</a></li>
-		<li><a class="menu-item" href={asr.makePath('app.menu.projects')} data-active={asr.stateIsActive('app.menu.projects')}>Projects</a></li>
-		<li><a class="menu-item" href={asr.makePath('app.menu.leads_to_estimate')} data-active={asr.stateIsActive('app.menu.leads_to_estimate')}>Leads To Estimate</a></li>
-	</ul>
+	<a class="menu-item" href={asr.makePath('app.menu.home')} data-active={asr.stateIsActive('app.menu.home')}>Home</a>
+	<a class="menu-item" href={asr.makePath('app.menu.create_a_lead')} data-active={asr.stateIsActive('app.menu.create_a_lead')}>Create A Lead</a>
+	<a class="menu-item" href={asr.makePath('app.menu.clients')} data-active={asr.stateIsActive('app.menu.clients')}>Clients</a>
+	<a class="menu-item" href={asr.makePath('app.menu.projects')} data-active={asr.stateIsActive('app.menu.projects')}>Projects</a>
+	<a class="menu-item" href={asr.makePath('app.menu.leads_to_estimate')} data-active={asr.stateIsActive('app.menu.leads_to_estimate')}>Leads To Estimate</a>
 	<div class="log-out-container">
 		<button type="button" onclick={log_out}>Log out</button>
 	</div>
@@ -37,12 +35,6 @@
 		text-align: center;
 		font-size: 2.5rem;
 		padding: 1rem 0;
-	}
-
-	.menu-items {
-		list-style: none;
-		margin: 0;
-		padding: 0;
 	}
 
 	.menu-item {
@@ -68,5 +60,32 @@
 		display: flex;
 		flex-direction: column;
 		padding: 1rem 1.25rem;
+	}
+
+	@media (max-width: 800px) {
+		.app-menu {
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			width: auto;
+			border-right: none;
+			border-bottom: 1px solid #ddd;
+		}
+
+		.logo {
+			font-size: 1.5rem;
+			padding: 0 0.5rem;
+		}
+
+		.menu-item {
+			padding: 0.375rem 0.625rem;
+			font-size: 0.875rem;
+		}
+
+		.log-out-container {
+			margin-top: 0;
+			margin-left: auto;
+			padding: 0.25rem 0.5rem;
+		}
 	}
 </style>

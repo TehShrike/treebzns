@@ -29,4 +29,10 @@
 	uiView {
 		flex-grow: 1;
 	}
+
+	@media (max-width: 800px) {
+		.menu-layout {
+			flex-direction: column;
+		}
+	}
 </style>
