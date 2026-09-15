@@ -1,4 +1,5 @@
 <script module lang="ts">
+	import type { Temporal } from '@js-temporal/polyfill'
 	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
 	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
@@ -62,13 +63,7 @@
 		metrics_by_client_id = new Map(map(metrics, client_metrics => [client_metrics.client_id, client_metrics]))
 	})
 
-	const project_path = (row: ProjectRow) => asr.makePath(`app.estimate`, { project_id: row.project.project_id })
-	const format_created_date = (row: ProjectRow) => row.project.created_at.toZonedDateTimeISO(timezone).toPlainDate().toString()
-	const format_address = (row: ProjectRow) => filter([row.project.address_line_1, row.project.address_line_2, row.project.city], Boolean).join(`, `)
-	const format_accepted = (metrics: ClientMetrics) => `${metrics.accepted}/${metrics.proposals}`
-	const format_last_year = (metrics: ClientMetrics) => metrics.latest_job_count === 0n
-		? `0`
-		: `$${format_thousands(metrics.latest_jobs_total)} (${metrics.latest_job_count})`
+	const format_date = (instant: Temporal.Instant) => instant.toZonedDateTimeISO(timezone).toPlainDate().toString()
 </script>
 
 {#snippet field(long: string, short: string)}
@@ -83,14 +78,18 @@
 
 	<div class="cards">
 		{#each projects as row (row.project.project_id)}
-			<WindowCard title={row.client.name} href={project_path(row)}>
+			<WindowCard title={row.client.name} href={asr.makePath(`app.estimate`, { project_id: row.project.project_id })}>
 				{#snippet status_bar()}
-					{@const created = format_created_date(row)}
+					{@const created = format_date(row.project.created_at)}
 					{@const metrics = metrics_by_client_id?.get(row.client.client_id)}
 					{@render field(`Created ${created}`, created)}
 					{#if metrics}
-						{@render field(`Accepted: ${format_accepted(metrics)}`, format_accepted(metrics))}
-						{@render field(`Last year: ${format_last_year(metrics)}`, format_last_year(metrics))}
+						{@const accepted = `${metrics.accepted}/${metrics.proposals}`}
+						{@render field(`Accepted: ${accepted}`, accepted)}
+						{@const last_year = metrics.latest_job_count === 0n
+							? `0`
+							: `$${format_thousands(metrics.latest_jobs_total)} (${metrics.latest_job_count})`}
+						{@render field(`Last year: ${last_year}`, last_year)}
 					{:else}
 						{@render field(``, ``)}
 						{@render field(``, ``)}
@@ -99,7 +98,7 @@
 				<div class="body">
 					<div class="half location">
 						<div>{row.client_contact.name}</div>
-						<div>{format_address(row)}</div>
+						<div>{filter([row.project.address_line_1, row.project.address_line_2, row.project.city], Boolean).join(`, `)}</div>
 					</div>
 					{#if row.project.lead_details !== ``}
 						<Separator />
