@@ -49,6 +49,7 @@
 	type ProjectRow = StateResolve<typeof asr_state>[`projects`][number]
 
 	const format_thousands = (amount: FinancialNumber) => `${amount.times(`0.001`).changeDecimalPlaces(0).toString()}k`
+	const loading_status_field = '...'
 </script>
 
 <script lang="ts">
@@ -91,8 +92,8 @@
 							: `$${format_thousands(metrics.latest_jobs_total)} (${metrics.latest_job_count})`}
 						{@render field(`Last year: ${last_year}`, last_year)}
 					{:else}
-						{@render field(``, ``)}
-						{@render field(``, ``)}
+						{@render field(loading_status_field, loading_status_field)}
+						{@render field(loading_status_field, loading_status_field)}
 					{/if}
 				{/snippet}
 				<div class="body">
