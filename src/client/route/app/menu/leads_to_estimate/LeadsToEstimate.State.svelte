@@ -65,29 +65,37 @@
 	const project_path = (row: ProjectRow) => asr.makePath(`app.estimate`, { project_id: row.project.project_id })
 	const format_created_date = (row: ProjectRow) => row.project.created_at.toZonedDateTimeISO(timezone).toPlainDate().toString()
 	const format_address = (row: ProjectRow) => filter([row.project.address_line_1, row.project.address_line_2, row.project.city], Boolean).join(`, `)
+	const format_accepted = (metrics: ClientMetrics) => `${metrics.accepted}/${metrics.proposals}`
 	const format_last_year = (metrics: ClientMetrics) => metrics.latest_job_count === 0n
-		? `Last year: 0`
-		: `Last year: $${format_thousands(metrics.latest_jobs_total)} (${metrics.latest_job_count})`
-	const status_fields = (row: ProjectRow) => {
-		const metrics = metrics_by_client_id?.get(row.client.client_id)
-		return [
-			`Created ${format_created_date(row)}`,
-			metrics ? `Accepted: ${metrics.accepted}/${metrics.proposals}` : ``,
-			metrics ? format_last_year(metrics) : ``,
-		]
-	}
+		? `0`
+		: `$${format_thousands(metrics.latest_jobs_total)} (${metrics.latest_job_count})`
 </script>
+
+{#snippet field(long: string, short: string)}
+	<p class="status-bar-field" title={long}>
+		<span class="long">{long}</span>
+		<span class="short">{short}</span>
+	</p>
+{/snippet}
 
 <AppScreen>
 	<h1>Leads To Estimate</h1>
 
 	<div class="cards">
 		{#each projects as row (row.project.project_id)}
-			<WindowCard
-				title={row.client.name}
-				href={project_path(row)}
-				status_fields={status_fields(row)}
-			>
+			<WindowCard title={row.client.name} href={project_path(row)}>
+				{#snippet status_bar()}
+					{@const created = format_created_date(row)}
+					{@const metrics = metrics_by_client_id?.get(row.client.client_id)}
+					{@render field(`Created ${created}`, created)}
+					{#if metrics}
+						{@render field(`Accepted: ${format_accepted(metrics)}`, format_accepted(metrics))}
+						{@render field(`Last year: ${format_last_year(metrics)}`, format_last_year(metrics))}
+					{:else}
+						{@render field(``, ``)}
+						{@render field(``, ``)}
+					{/if}
+				{/snippet}
 				<div class="body">
 					<div class="half location">
 						<div>{row.client_contact.name}</div>
@@ -134,5 +142,19 @@
 
 	.lead-details {
 		white-space: pre-wrap;
+	}
+
+	.short {
+		display: none;
+	}
+
+	@media (max-width: 400px) {
+		.long {
+			display: none;
+		}
+
+		.short {
+			display: inline;
+		}
 	}
 </style>

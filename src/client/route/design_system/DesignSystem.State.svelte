@@ -482,8 +482,10 @@
 
 			<p>
 				The <code>WindowCard</code> component exposes a general usage of these classes. Pass the
-				title bar text as <code>title</code>, the status bar text as <code>status_fields</code>,
-				and the body as children. Pass <code>href</code> to make the whole card a link. The
+				title bar text as <code>title</code> and the body as children. Pass a
+				<code>status_bar</code> snippet to render a status bar. The snippet renders the
+				<code>status-bar-field</code> elements itself. Pass <code>href</code> to make the whole
+				card a link. The
 				<code>Separator</code> component draws an etched line between body content. Its borders
 				make it read as a horizontal line in a column and a vertical line in a row, so the
 				parent's layout picks the orientation.
@@ -491,7 +493,10 @@
 
 			<div class="example">
 				<div class="window_card_example">
-					<WindowCard title="A Linked Card" href="#/design_system" status_fields={[`Created 2026-09-12`]}>
+					<WindowCard title="A Linked Card" href="#/design_system">
+						{#snippet status_bar()}
+							<p class="status-bar-field">Created 2026-09-12</p>
+						{/snippet}
 						<div class="separator_row">
 							<p>This card links to the page you are on.</p>
 							<Separator />

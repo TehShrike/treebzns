@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
-	const { title, href, status_fields = [], children }: {
+	const { title, href, status_bar, children }: {
 		title: string
 		href?: string
-		status_fields?: readonly string[]
+		status_bar?: Snippet
 		children: Snippet
 	} = $props()
 </script>
@@ -14,11 +14,9 @@
 	<div class="window-body">
 		{@render children()}
 	</div>
-	{#if status_fields.length > 0}
+	{#if status_bar}
 		<div class="status-bar">
-			{#each status_fields as field, index (index)}
-				<p class="status-bar-field" title={field}>{field}</p>
-			{/each}
+			{@render status_bar()}
 		</div>
 	{/if}
 </svelte:element>
