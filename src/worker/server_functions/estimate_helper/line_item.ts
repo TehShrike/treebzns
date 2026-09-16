@@ -3,7 +3,7 @@ import fnum from '#shared/fnum.ts'
 import type { TransactionTenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 
-const fetch_line_item_count_and_max_sort = async ({
+const get_line_item_count_and_max_sort = async ({
 	project_id,
 	select_builder,
 }: {
@@ -36,7 +36,7 @@ export const insert_default_line_item = async ({
 	select_builder: TransactionTenantedSelectBuilder
 	write_helper: TenantedWriteHelper
 }): Promise<bigint> => {
-	const { line_item_count, max_sort } = await fetch_line_item_count_and_max_sort({ project_id, select_builder })
+	const { line_item_count, max_sort } = await get_line_item_count_and_max_sort({ project_id, select_builder })
 
 	const { insert_id } = await write_helper.insert(`project_line_item`, {
 		project_id,

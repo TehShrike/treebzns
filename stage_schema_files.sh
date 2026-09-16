@@ -6,5 +6,6 @@ git add \
 	schema/all_table_column_names.ts \
 	schema/insertable_table_column_names.ts \
 	schema/tables_unique_on_company_id.ts \
+	schema/large_blob_columns.ts \
 	schema/types.ts \
 	schema/type

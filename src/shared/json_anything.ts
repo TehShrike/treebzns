@@ -3,6 +3,7 @@ import { Temporal } from '@js-temporal/polyfill' // Replaced with native Tempora
 import type { FinancialNumber } from 'financial-number'
 import fnum from '#shared/fnum.ts'
 import is_financial_number from '#shared/is_financial_number.ts'
+import { base64_to_uint8array, uint8array_to_base64 } from '#shared/uint8array.ts'
 
 const { serialize, deserialize } = json_anything({
 	unique_key: `2687A5DC-E4E9-4E20-8BE0-B82113E8BA1E`,
@@ -31,6 +32,11 @@ const { serialize, deserialize } = json_anything({
 			can_serialize: is_financial_number,
 			serialize: (number: FinancialNumber) => number.toString(),
 			deserialize: (number_string: string) => fnum(number_string),
+		},
+		uint8array: {
+			can_serialize: (value): value is Uint8Array => value instanceof Uint8Array,
+			serialize: uint8array_to_base64,
+			deserialize: base64_to_uint8array,
 		},
 	},
 })

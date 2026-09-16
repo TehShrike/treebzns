@@ -25,7 +25,7 @@ const default_addresses_on_clients = (client_id: bigint) => query_builder<Schema
 	.select(() => ['client.default_project_address_id'] as const)
 	.build()
 
-export const fetch_client_contact_ids_in_use = async ({ query_rows, client_id }: {
+export const get_client_contact_ids_in_use = async ({ query_rows, client_id }: {
 	query_rows: QueryRows
 	client_id: bigint
 }): Promise<ReadonlySet<bigint>> => {
@@ -40,7 +40,7 @@ export const fetch_client_contact_ids_in_use = async ({ query_rows, client_id }:
 	])
 }
 
-export const fetch_client_address_ids_in_use = async ({ query_rows, client_id }: {
+export const get_client_address_ids_in_use = async ({ query_rows, client_id }: {
 	query_rows: QueryRows
 	client_id: bigint
 }): Promise<ReadonlySet<bigint>> => {

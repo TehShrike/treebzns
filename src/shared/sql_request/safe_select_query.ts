@@ -258,23 +258,28 @@ const select_item_or_grouping_to_chunk = (item: SelectItem): SqlChunk => {
 // A column whitelist restricts which columns may be referenced through this builder's validation.
 // Semantics: if a table appears as a key, ONLY the listed columns may be referenced for that table;
 // every other column of that table is rejected. A table absent from the whitelist is unrestricted
-// (all of its columns remain referenceable). This is the access-control gate for untrusted queries —
-// only validate_table_and_column_names consults it, so trusted internal callers that go straight to
-// to_sql are unaffected.
-type ColumnWhitelist<ThisSchema extends SchemaColumns> = {
+// (all of its columns remain referenceable). A column blacklist has the same shape: any listed
+// column is rejected for its table, even if the whitelist for that table lists it. These are the
+// access-control gate for untrusted queries — only validate_table_and_column_names consults them,
+// so trusted internal callers that go straight to to_sql are unaffected.
+type ColumnList<ThisSchema extends SchemaColumns> = {
 	readonly [Table in keyof ThisSchema]?: ReadonlyArray<keyof ThisSchema[Table] & string>
 }
 
+const columns_by_table = <ThisSchema extends SchemaColumns>(column_list: ColumnList<ThisSchema>) => new Map<string, ReadonlySet<string>>(
+	map(
+		Object.entries(column_list) as Array<[string, ReadonlyArray<string>]>,
+		([table_name, columns]) => [table_name, new Set(columns)],
+	),
+)
+
 export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>(
 	schema: ThisSchema,
-	column_whitelist: ColumnWhitelist<ThisSchema> = {},
+	column_whitelist: ColumnList<ThisSchema> = {},
+	column_blacklist: ColumnList<ThisSchema> = {},
 ) => {
-	const whitelisted_columns_by_table = new Map<string, ReadonlySet<string>>(
-		map(
-			Object.entries(column_whitelist) as Array<[string, ReadonlyArray<string>]>,
-			([table_name, columns]) => [table_name, new Set(columns)],
-		),
-	)
+	const whitelisted_columns_by_table = columns_by_table(column_whitelist)
+	const blacklisted_columns_by_table = columns_by_table(column_blacklist)
 
 	const collect_messages = (query: SafeSelectQuery, messages: string[]): void => {
 		const alias_to_table = new Map<string, { table_name: string | null, columns: ReadonlySet<string> }>()
@@ -311,8 +316,11 @@ export const make_safe_select_query_builder = <ThisSchema extends SchemaColumns>
 				if (!table.columns.has(ref.column)) {
 					messages.push(`Unknown column "${ref.column}" on table identifier "${ref.table_identifier}"`)
 				} else if (table.table_name !== null) {
+					const blacklisted_columns = blacklisted_columns_by_table.get(table.table_name)
 					const whitelisted_columns = whitelisted_columns_by_table.get(table.table_name)
-					if (whitelisted_columns && !whitelisted_columns.has(ref.column)) {
+					if (blacklisted_columns?.has(ref.column)) {
+						messages.push(`"${ref.column}" is a blacklisted column on the "${table.table_name}" table`)
+					} else if (whitelisted_columns && !whitelisted_columns.has(ref.column)) {
 						messages.push(`"${ref.column}" is not one of the whitelisted columns on the "${table.table_name}" table`)
 					}
 				}

@@ -19,7 +19,7 @@
 	import assert from '#shared/assert.ts'
 	import { map, zip_with } from '#shared/array.ts'
 	import { untrack } from 'svelte'
-	import { fetch_client_address_ids_in_use, fetch_client_contact_ids_in_use, ADDRESS_REFERENCED_MESSAGE, CONTACT_REFERENCED_MESSAGE } from '#shared/treebzns_db/client_relationships.ts'
+	import { get_client_address_ids_in_use, get_client_contact_ids_in_use, ADDRESS_REFERENCED_MESSAGE, CONTACT_REFERENCED_MESSAGE } from '#shared/treebzns_db/client_relationships.ts'
 
 	const fetch_client = async (query: ClientQueryFn, client_id: bigint) => {
 		const rows = await query(
@@ -116,8 +116,8 @@
 				fetch_client(query, client_id),
 				fetch_addresses(query, client_id),
 				fetch_contacts(query, client_id),
-				fetch_client_address_ids_in_use({ query_rows: query, client_id }),
-				fetch_client_contact_ids_in_use({ query_rows: query, client_id }),
+				get_client_address_ids_in_use({ query_rows: query, client_id }),
+				get_client_contact_ids_in_use({ query_rows: query, client_id }),
 				fetch_tax_rates(query),
 			])
 

@@ -8,8 +8,10 @@ export const validator_object = {
 	project_id: jv.is_bigint,
 	original_image: is_buffer,
 	display_image: jv.nullable(is_buffer),
+	thumbnail_image: jv.nullable(is_buffer),
 	description: jv.is_string,
 	visible_to_client: jv.is_boolean,
+	uploaded_at: jv.nullable(is_temporal_instant),
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 }

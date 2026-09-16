@@ -1035,3 +1035,100 @@ test('safe_select_query: NOT IN in a join on clause', () => {
 	assert.strictEqual(sql, 'SELECT `p`.`project_id`\nFROM `project` AS `p`\nJOIN `project_line_item` AS `pli` ON `pli`.`project_id` = `p`.`project_id`\n\tAND `pli`.`item_type_id` NOT IN (?)')
 	assert.deepStrictEqual(values, [[3n, 4n]])
 })
+
+const blacklist_test_query = (overrides: Partial<SafeSelectQuery>): SafeSelectQuery => ({
+	select: [{ type: 'column reference', table_identifier: 'project', column: 'project_id' }],
+	from: { table_name: 'project', alias: 'project' },
+	joins: [],
+	where: null,
+	group_by: [],
+	order_by: [],
+	limit: null,
+	having: null,
+	...overrides,
+})
+
+const blacklisted_details_ref = { type: 'column reference' as const, table_identifier: 'project', column: 'details' }
+
+test('safe_select_query: a blacklisted column cannot be selected', () => {
+	const { validate_table_and_column_names } = make_safe_select_query_builder(test_schema, {}, { project: ['details'] })
+	const result = validate_table_and_column_names(blacklist_test_query({
+		select: [blacklisted_details_ref],
+	}))
+
+	assert.strictEqual(result.valid, false)
+	assert.deepStrictEqual(result.messages, ['"details" is a blacklisted column on the "project" table'])
+})
+
+test('safe_select_query: non-blacklisted columns on a table with a blacklist still validate', () => {
+	const { validate_table_and_column_names } = make_safe_select_query_builder(test_schema, {}, { project: ['details'] })
+	const result = validate_table_and_column_names(blacklist_test_query({
+		select: [
+			{ type: 'column reference', table_identifier: 'project', column: 'project_id' },
+			{ type: 'column reference', table_identifier: 'project', column: 'notes_for_crew' },
+		],
+	}))
+
+	assert.strictEqual(result.valid, true)
+})
+
+test('safe_select_query: a blacklisted column cannot be referenced in a WHERE condition', () => {
+	const { validate_table_and_column_names } = make_safe_select_query_builder(test_schema, {}, { project: ['details'] })
+	const result = validate_table_and_column_names(blacklist_test_query({
+		where: {
+			type: 'and',
+			expressions: [{
+				type: 'comparison',
+				left: blacklisted_details_ref,
+				comparator: '=',
+				right: { type: 'user provided value', value: 'secret' },
+			}],
+		},
+	}))
+
+	assert.strictEqual(result.valid, false)
+	assert.deepStrictEqual(result.messages, ['"details" is a blacklisted column on the "project" table'])
+})
+
+test('safe_select_query: a blacklisted column cannot be referenced in a JOIN condition', () => {
+	const { validate_table_and_column_names } = make_safe_select_query_builder(test_schema, {}, { client: ['notes'] })
+	const result = validate_table_and_column_names(blacklist_test_query({
+		joins: [{
+			table_name: 'client',
+			alias: 'client',
+			on_clause: [{
+				type: 'comparison',
+				left: blacklisted_details_ref,
+				comparator: '=',
+				right: { type: 'column reference', table_identifier: 'client', column: 'notes' },
+			}],
+		}],
+	}))
+
+	assert.strictEqual(result.valid, false)
+	assert.deepStrictEqual(result.messages, ['"notes" is a blacklisted column on the "client" table'])
+})
+
+test('safe_select_query: the blacklist wins even when the whitelist lists the column', () => {
+	const { validate_table_and_column_names } = make_safe_select_query_builder(
+		test_schema,
+		{ project: ['project_id', 'details'] },
+		{ project: ['details'] },
+	)
+	const result = validate_table_and_column_names(blacklist_test_query({
+		select: [blacklisted_details_ref],
+	}))
+
+	assert.strictEqual(result.valid, false)
+	assert.deepStrictEqual(result.messages, ['"details" is a blacklisted column on the "project" table'])
+})
+
+test('the column blacklist argument typechecks column names against the table', () => {
+	make_safe_select_query_builder(test_schema, {}, { project: ['details'], client: ['notes'] })
+
+	// @ts-expect-error - "not_a_real_column" is not a column of the project table
+	make_safe_select_query_builder(test_schema, {}, { project: ['not_a_real_column'] })
+
+	// @ts-expect-error - "not_a_real_table" is not a table in the schema
+	make_safe_select_query_builder(test_schema, {}, { not_a_real_table: ['project_id'] })
+})

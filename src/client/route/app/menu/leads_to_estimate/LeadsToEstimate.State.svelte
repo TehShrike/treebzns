@@ -60,7 +60,7 @@
 	// svelte-ignore state_referenced_locally
 	const client_ids = [...new Set(map(projects, row => row.client.client_id))]
 	// svelte-ignore state_referenced_locally
-	void server.fetch_client_metrics({ client_ids }).then(metrics => {
+	void server.get_client_metrics({ client_ids }).then(metrics => {
 		metrics_by_client_id = new Map(map(metrics, client_metrics => [client_metrics.client_id, client_metrics]))
 	})
 

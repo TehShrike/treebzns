@@ -54,7 +54,7 @@ const latest_jobs_query = ({ select_builder, client_ids, closed_on_or_after }: Q
 	])
 	.build()
 
-export const fetch_client_metrics = async ({ select_builder, timezone, client_ids }: QueryArgument & {
+export const get_client_metrics = async ({ select_builder, timezone, client_ids }: QueryArgument & {
 	timezone: string
 }): Promise<ClientMetrics[]> => {
 	if (client_ids.length === 0) return []

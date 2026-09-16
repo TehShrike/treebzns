@@ -1,5 +1,36 @@
 # Catch up
 
+What's the difference between qualified/unqualified lead.  Should both be estimated?
+
+Should both exist?  Does anyone care about the difference?  When does the estimator get sent out?  If nothing else, a lead created by an office worker using the create-a-lead screen should probably count as qualified, eh?
+
+## Review PhotoCamera.svelte and directory, and PhotoMarkup.svelte
+
+I want to get the camera instance/creating out of PhotoCamera, and also eliminate some localstorage.
+
+## Throw error responses
+
+In response_helpers, create an Error subclass that has a status property.  error_object_response should check for that instanceof, and should use that status if it exists.  This can be thrown instead of UploadError.  Then we can eliminate ParsedProjectImageUpload.
+
+Replace await request.formData() with a function that returns the form data and throws one of those error responses if there is an issue.
+
+## Estimation
+
+https://discord.com/channels/@me/256500497706385409/1547412310069346334
+
+> Take pictures, create line item, add photos, mark photos as needed, add work order description.
+
+- Take pictures
+- Separate pictures into line items
+- Pick line item types, hours, description
+- List of photos gets shorter as you allocate photos to line items
+
+Project needs "estimated crew size"
+
+### To-estimate list
+
+
+
 ## Create a lead
 
 - Due date date picker needs to always be visible, but disabled when not "Has a due date"

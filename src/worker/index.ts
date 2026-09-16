@@ -7,6 +7,7 @@ import log_in from './bare_endpoints/log_in.ts'
 import log_out from './bare_endpoints/log_out.ts'
 import session from './bare_endpoints/session.ts'
 import server_functions from './bare_endpoints/server_functions.ts'
+import project_image_upload, { project_image_upload_route } from './bare_endpoints/project_image_upload/project_image_upload.ts'
 import { error_object_response } from './lib/response_helpers.ts'
 
 const server_function_route_prefix = '/api/fn/'
@@ -41,6 +42,8 @@ export default {
 				return await run_with_connection(env, async mysql => session(request, mysql))
 			} else if (method === 'POST' && pathname.startsWith(server_function_route_prefix)) {
 				return await run_with_connection(env, async mysql => server_functions(server_function_route_prefix, request, mysql))
+			} else if (method === 'PUT' && project_image_upload_route.test(pathname)) {
+				return await run_with_connection(env, async mysql => project_image_upload(request, mysql))
 			}
 		} catch (error) {
 			console.error(error)

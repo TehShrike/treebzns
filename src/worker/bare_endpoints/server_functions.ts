@@ -1,16 +1,13 @@
 import { json_anything_response, error_response } from '#worker/lib/response_helpers.ts'
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import validate_session from '#worker/lib/db/validate_session.ts'
-import make_tenanted_select_builder from '#worker/lib/db/make_tenanted_select_builder.ts'
-import make_write_helper from '#shared/mysql/write_helper.ts'
-import { transaction } from '#shared/mysql/helpers.ts'
+import make_context, { type Session } from '#worker/lib/make_context.ts'
 import type { Context } from '#worker/lib/context.ts'
 import type { Validator } from '#shared/json_validator.ts'
 import globbed_server_functions from '../server_functions.generated.ts'
 import { map } from '#shared/array.ts'
 import object_to_entries from '#shared/object_to_entries.ts'
 import { deserialize } from '#shared/json_anything.ts'
-import make_mysql_helpers_object from '#shared/mysql/mysql_helpers_object.ts'
 
 type ServerFunction = {
 	validator: Validator<unknown>
@@ -34,8 +31,6 @@ const functions_by_name = new Map<string, ServerFunction>(
 	)
 )
 
-type Session = NonNullable<Awaited<ReturnType<typeof validate_session>>>
-
 type Argument = {
 	function_name: string
 	arg: unknown
@@ -54,26 +49,7 @@ const call_server_function = async ({ function_name, arg, mysql, session }: Argu
 		return error_response({ message: server_function.validator.get_messages(arg, `${function_name}_arg`).join(', ') })
 	}
 
-	const context: Context = {
-		user: session.employee,
-		company: session.company,
-		select_builder: make_tenanted_select_builder({ company_id: session.company.company_id, mysql }),
-		write_helper: make_write_helper({ connection: mysql.connection, company_id: session.company.company_id }),
-		transaction: fn => transaction(mysql.connection, transaction_connection => {
-			const transaction_mysql = make_mysql_helpers_object(transaction_connection)
-			return fn({
-				connection: transaction_connection,
-				select_builder: make_tenanted_select_builder({
-					company_id: session.company.company_id,
-					mysql: transaction_mysql,
-				}),
-				write_helper: make_write_helper({
-					connection: transaction_connection,
-					company_id: session.company.company_id,
-				}),
-			})
-		}),
-	}
+	const context = make_context({ session, mysql })
 
 	const result = await server_function.fn(arg, context)
 

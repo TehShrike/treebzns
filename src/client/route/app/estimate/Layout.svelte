@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
-	const { top, bottom, children }: { top?: Snippet, bottom?: Snippet, children: Snippet } = $props()
+	const { top, bottom, fill = false, children }: { top?: Snippet, bottom?: Snippet, fill?: boolean, children: Snippet } = $props()
 </script>
 
 <div class="layout">
@@ -10,7 +10,7 @@
 			{@render top()}
 		</div>
 	{/if}
-	<div class="scrollable">
+	<div class="center" data-fill={fill}>
 		{@render children()}
 	</div>
 	{#if bottom}
@@ -41,7 +41,7 @@
 		flex-basis: 0;
 	}
 
-	.scrollable {
+	.center {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -50,5 +50,17 @@
 		flex-grow: 1;
 		min-height: 0;
 		overflow-y: auto;
+	}
+
+	.center[data-fill="true"] {
+		align-items: stretch;
+		gap: 0;
+		padding: 0;
+		overflow: hidden;
+	}
+
+	.center[data-fill="true"] > :global(*) {
+		flex-grow: 1;
+		min-height: 0;
 	}
 </style>

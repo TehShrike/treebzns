@@ -502,8 +502,10 @@ export const project_image = {
 	project_id: 'project_id',
 	original_image: 'original_image',
 	display_image: 'display_image',
+	thumbnail_image: 'thumbnail_image',
 	description: 'description',
 	visible_to_client: 'visible_to_client',
+	uploaded_at: 'uploaded_at',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const
