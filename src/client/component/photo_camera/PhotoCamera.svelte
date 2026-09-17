@@ -1,119 +1,45 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import type { Attachment } from 'svelte/attachments'
-	import { for_each } from '#shared/array.ts'
 	import assert from '#shared/assert.ts'
+	import type { CameraService, RetryOpen, UseResult } from '#client/lib/camera_service/camera_service.svelte.ts'
 	import type { CapturedPhoto } from './captured_photo.ts'
-	import { capture_still, detect_capture_method } from './capture_still.ts'
-	import type { CaptureMethod } from './capture_method_cache.ts'
-	import { rear_device_candidates, type CameraDevice } from './rear_devices.ts'
+	import { capture_still } from './capture_still.ts'
 
-	const storage_key = `photo_camera_device_id`
+	const { camera_service }: { camera_service: CameraService } = $props()
 
 	let video: HTMLVideoElement | null = null
-	let stream = $state.raw<MediaStream | null>(null)
-	let failed = $state(false)
-	let devices = $state.raw<CameraDevice[]>([])
-	let current_device_id = $state<string | null>(null)
+	let retry = $state<RetryOpen | null>(null)
 
-	let open_count = 0
-	let disposed = false
-	let capture_method: Promise<CaptureMethod> | null = null
-
-	const stop_tracks = (target: MediaStream) => {
-		for_each(target.getTracks(), track => track.stop())
-	}
-
-	const stop_stream = () => {
-		if (stream) {
-			stop_tracks(stream)
-			stream = null
-		}
-		capture_method = null
-	}
-
-	const default_constraints = (): MediaTrackConstraints => {
-		const stored = localStorage.getItem(storage_key)
-		return {
-			facingMode: `environment`,
-			width: { ideal: 2560 },
-			height: { ideal: 1920 },
-			...(stored ? { deviceId: { ideal: stored } } : {}),
-		}
-	}
-
-	const constraints_for_device = (device_id: string): MediaTrackConstraints => ({
-		deviceId: { exact: device_id },
-		width: { ideal: 2560 },
-		height: { ideal: 1920 },
-	})
-
-	const current_constraints = () => current_device_id ? constraints_for_device(current_device_id) : default_constraints()
-
-	const open_stream = async (constraints: MediaTrackConstraints) => {
-		stop_stream()
-		failed = false
-		const this_open = ++open_count
-
-		try {
-			assert(navigator.mediaDevices, `the browser exposes navigator.mediaDevices`)
-			const opened = await navigator.mediaDevices.getUserMedia({ video: constraints })
-			if (disposed || this_open !== open_count) {
-				stop_tracks(opened)
-				return
-			}
-			stream = opened
-
-			const track = opened.getVideoTracks()[0]
-			assert(track, `an opened camera stream has a video track`)
-			const settings = track.getSettings()
-			current_device_id = settings.deviceId ?? null
-			capture_method = detect_capture_method(track)
-
-			const all_devices = await navigator.mediaDevices.enumerateDevices()
-			if (this_open === open_count) {
-				devices = rear_device_candidates(all_devices, settings)
-			}
-		} catch {
-			if (this_open === open_count) {
-				failed = true
-			}
-		}
-	}
-
-	const select_device = (device_id: string) => {
-		localStorage.setItem(storage_key, device_id)
-		void open_stream(constraints_for_device(device_id))
-	}
-
-	const on_visibility_change = () => {
-		if (document.visibilityState === `hidden`) {
-			stop_stream()
-		} else {
-			void open_stream(current_constraints())
-		}
+	const note_result = (result: UseResult) => {
+		retry = result.ok ? null : result.retry
 	}
 
 	onMount(() => {
-		void open_stream(default_constraints())
-		document.addEventListener(`visibilitychange`, on_visibility_change)
-		return () => {
-			document.removeEventListener(`visibilitychange`, on_visibility_change)
-			disposed = true
-			stop_stream()
-		}
+		void camera_service.start_using().then(note_result)
+		return () => camera_service.stop_using()
 	})
+
+	const try_again = async () => {
+		assert(retry, `Try again is only shown after a failed open`)
+		note_result(await retry())
+	}
+
+	const select_device = async (device_id: string) => {
+		note_result(await camera_service.select_device(device_id))
+	}
 
 	const attach_video: Attachment<HTMLVideoElement> = node => {
 		video = node
-		node.srcObject = stream
+		node.srcObject = camera_service.stream
 		return () => {
 			video = null
 		}
 	}
 
 	export const capture = async (): Promise<CapturedPhoto> => {
-		const track = stream?.getVideoTracks()[0]
+		const track = camera_service.stream?.getVideoTracks()[0]
+		const capture_method = camera_service.capture_method
 		if (!video || !track || !capture_method) {
 			throw new Error(`The camera is not open.`)
 		}
@@ -135,25 +61,25 @@
 </script>
 
 <div class="camera">
-	{#if failed}
+	{#if retry}
 		<div class="message">
 			<p>The camera could not be opened.</p>
 			<p>If Try again does nothing, allow the camera in the browser's site settings for this site.</p>
-			<button type="button" onclick={() => open_stream(default_constraints())}>Try again</button>
+			<button type="button" onclick={try_again}>Try again</button>
 		</div>
 	{:else}
 		<video {@attach attach_video} autoplay muted playsinline></video>
 	{/if}
 
-	{#if devices.length > 1}
+	{#if camera_service.devices.length > 1}
 		<div class="devices">
-			{#each devices as device (device.device_id)}
+			{#each camera_service.devices as device (device.device_id)}
 				<label>
 					<input
 						type="radio"
 						name="photo_camera_device"
 						value={device.device_id}
-						checked={device.device_id === current_device_id}
+						checked={device.device_id === camera_service.current_device_id}
 						onchange={() => select_device(device.device_id)}
 					/>
 					{device.label}

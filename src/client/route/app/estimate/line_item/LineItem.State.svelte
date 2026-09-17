@@ -14,14 +14,14 @@
 		name: `app.estimate.line_item`,
 		route: `/line_item/:project_line_item_id`,
 		param_validator: validate_line_item_params,
-		resolve: async ({ query, server, photo_upload_queue }, { project_id, project_line_item_id }) => {
+		resolve: async ({ query, server, photo_upload_queue, camera_service }, { project_id, project_line_item_id }) => {
 			const line_items = await fetch_line_items(query, project_id)
 
 			const current_index = find_index(line_items, row => row.project_line_item_id === project_line_item_id)
 			const line_item = line_items[current_index]
 			assert(line_item, `line item ${project_line_item_id} belongs to project ${project_id}`)
 
-			return { server, photo_upload_queue, project_id, line_items, current_index, line_item }
+			return { server, photo_upload_queue, camera_service, project_id, line_items, current_index, line_item }
 		},
 	})
 
@@ -29,7 +29,7 @@
 </script>
 
 <script lang="ts">
-	const { server, photo_upload_queue, project_id, line_items, current_index, line_item, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
+	const { server, photo_upload_queue, camera_service, project_id, line_items, current_index, line_item, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
 
 	let camera: PhotoCamera | undefined = $state()
 	let markup: PhotoMarkup | undefined = $state()
@@ -81,13 +81,13 @@
 
 <Layout fill>
 	{#snippet top()}
-		<EstimateNavBar {asr} {server} {project_id} {line_items} {current_index} />
+		<EstimateNavBar {asr} {server} {project_id} {line_items} {current_index} on_done={camera_service.close} />
 	{/snippet}
 
 	<div class="stage">
 		<h2>{line_item.title}</h2>
 		<div class="camera" hidden={mode !== `live`}>
-			<PhotoCamera bind:this={camera} />
+			<PhotoCamera bind:this={camera} {camera_service} />
 		</div>
 		{#if capture_error !== null && mode === `live`}
 			<div class="capture_error">{capture_error}</div>

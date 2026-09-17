@@ -9,12 +9,14 @@
 		project_id,
 		line_items,
 		current_index,
+		on_done,
 	}: {
 		asr: StateAsr
 		server: Context[`server`]
 		project_id: bigint
 		line_items: LineItemRow[]
 		current_index: number | null
+		on_done?: () => void
 	} = $props()
 
 	let creating = $state(false)
@@ -46,7 +48,10 @@
 	<LinkThatLooksLikeAButton href={line_item_path(previous_line_item)}>Previous</LinkThatLooksLikeAButton>
 {/if}
 
-<button type="button" onclick={() => asr.go(`app.menu.leads_to_estimate`)}>Done</button>
+<button type="button" onclick={() => {
+	on_done?.()
+	asr.go(`app.menu.leads_to_estimate`)
+}}>Done</button>
 
 {#if next_line_item === null}
 	<button type="button" disabled={creating} onclick={create_line_item}>New line</button>
