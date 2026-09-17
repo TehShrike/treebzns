@@ -44,8 +44,16 @@ export const json_anything_response = ({
 		headers: { 'Content-Type': 'application/json_anything', ...headers },
 	})
 
+export class ResponseError extends Error {
+	status: number
+	constructor({ message, status }: { message: string, status: number }) {
+		super(message)
+		this.status = status
+	}
+}
+
 export const error_object_response = ({ error }: { error: unknown }) => {
-	const status = 500
+	const status = error instanceof ResponseError ? error.status : 500
 	if (error instanceof Error) {
 		return json_response({ body: { error: error.message, stack: error.stack }, status })
 	} else if (typeof error === 'object' && error && 'message' in error && typeof error.message === 'string') {

@@ -8,12 +8,6 @@ Should both exist?  Does anyone care about the difference?  When does the estima
 
 I want to get the camera instance/creating out of PhotoCamera, and also eliminate some localstorage.
 
-## Throw error responses
-
-In response_helpers, create an Error subclass that has a status property.  error_object_response should check for that instanceof, and should use that status if it exists.  This can be thrown instead of UploadError.  Then we can eliminate ParsedProjectImageUpload.
-
-Replace await request.formData() with a function that returns the form data and throws one of those error responses if there is an issue.
-
 ## Estimation
 
 https://discord.com/channels/@me/256500497706385409/1547412310069346334
