@@ -34,8 +34,7 @@ import type { ArbostarClient } from '#arbostar_export/clients.d.ts' // the recor
 | `payments.js` | 1204 | `ArbostarPayment` | Real payment records (amount, date, fee/tips, method label) with ArboStar's payment → estimate/invoice allocations (real split amounts + a per-allocation money breakdown). Leads/work orders are reached by joining estimates.js / invoices.js. One paged pass over the BI Client Payments report. |
 | `users.js` | 6 | `ArbostarUser` | User accounts (estimators, office staff, field workers), all statuses. Merged from the user list + each user's detail page; deliberately excludes SIN/MFA/credential fields. |
 | `declines.js` | 365 | `ArbostarDecline` | One row per declined estimate with its decline reason (id + name), from the Decline Reasons report. `estimate_id` → estimates (which has the `lead_id`). |
-| `crew_roles.js` | 13 | `ArbostarCrewRole` | Crew Roles: codes CL0–CL3, GM, ... with cost per hour. `line_items.js` references these by code in its `crews` string. Its export is disabled (the only known source is the estimate editor, which must not be fetched); the file is from the 2026-09-12 run. |
-| `work_types.js` | 17 | `ArbostarWorkType` | Pruning work types (Clean canopy, Crown reduction, ...). They attach to trees (`tree_inventory.js` `work_types[]`), empty on every tree so far. Same disabled export as `crew_roles.js`. |
+| `crew_roles.js` | 13 | `ArbostarCrewRole` | Crew Roles: codes CL0–CL3, GM, ... with cost per hour, scraped from the Crew Roles page (`/employees/crews`). `line_items.js` references these by code in its `crews` string. Work types are no longer exported: nothing consumed `work_types.js`. |
 | `tree_inventory.js` | 15 | `ArbostarTree` | One row per tree on a client property map (species, condition, cost, lat/lng). From the unauthenticated markers microservice. `tis_id` → `tree_inventory_sets.js`. |
 | `tree_inventory_sets.js` | 10 | `ArbostarTreeInventorySet` | One row per property map that has trees (name, address, `markers_count`). `tis_client_id` → clients. |
 | `tree_species.js` | 694 | `ArbostarTreeSpecies` | Global species catalog (name + pin color). A tree's `species_id` → `species_id` here. |
@@ -65,7 +64,7 @@ node ../scripts/arbostar/export_line_items.ts   # line_items.js + lead_notes.js 
 node ../scripts/arbostar/export_payments.ts     # payments.js
 node ../scripts/arbostar/export_users.ts        # users.js
 node ../scripts/arbostar/export_declines.ts     # declines.js  (run alongside export_estimates.ts so the two agree)
-node ../scripts/arbostar/export_work_types.ts   # DISABLED — throws; crew_roles.js + work_types.js stay as last written
+node ../scripts/arbostar/export_crew_roles.ts   # crew_roles.js  (scraped from the Crew Roles page)
 node ../scripts/arbostar/export_tree_inventory.ts # tree_inventory.js + tree_inventory_sets.js  (walks the global tis_id sequence)
 ```
 

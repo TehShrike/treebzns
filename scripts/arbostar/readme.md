@@ -12,13 +12,13 @@ line items only exist behind per-record detail endpoints (fetched one by one).
 | --- | --- |
 | `fetch_datatable.ts` | Generic DataTables fetcher (pagination + the status-union logic below). Engine behind the list exports. |
 | `fetch_record.ts` | Single-record JSON GET + a concurrency-limited mapper. Engine behind the per-record exports (line items). |
-| `lead_notes.ts` | The lead-notes mapper `export_line_items.ts` applies to each estimate profile it fetches. Leads without an estimate have no read-only source yet and are absent from lead_notes.js. **Must not use the estimate editor** — see "Editor pages write on load". |
+| `lead_notes.ts` | The lead-notes mapper `export_line_items.ts` applies to each estimate profile it fetches, and the fetcher for leads without an estimate, which reads the lead profile endpoint (verified 2026-09-22). **Must not use the estimate editor** — see "Editor pages write on load". |
 | `fetch_clients.ts` | Thin typed wrapper over the generic fetcher, pinned to `/clients`. |
 | `.arbostar_session.json` | **Credentials + account base URL. Gitignored — never committed.** Copy `.arbostar_session.example.json` to it and fill in. |
 | `session.ts` | Loads `.arbostar_session.json` and exposes `BASE_URL` / `AUTH_HEADERS` / `BROWSER_COOKIES`. |
 | `output.ts` | Reads/writes the `arbostar_export/` dir at the repo root — writes each dataset as `<name>.js` (`export default [...]`, gitignored). |
 | `export_*.ts` | One run-now script per dataset. |
-| `export_all.ts` | Runs every export script except the disabled `export_work_types.ts`. Independent scripts run in parallel; `export_line_items.ts` (reads `estimates.js` / `leads.js`) waits for `export_estimates.ts` and `export_leads.ts`. |
+| `export_all.ts` | Runs every export script. Independent scripts run in parallel; `export_line_items.ts` (reads `estimates.js` / `leads.js`) waits for `export_estimates.ts` and `export_leads.ts`. |
 | `discover_endpoints.ts` / `discover_details.ts` | Puppeteer crawlers that record the app's XHRs (list pages / detail pages). `discover_endpoints.ts` regenerates `arbostar_endpoints.json`. |
 | `arbostar_endpoints.json` | Map of all ~36 list/XHR endpoints, with an example `path_and_query` for each. |
 
@@ -43,7 +43,7 @@ node scripts/arbostar/export_payments.ts     # -> payments.js    (BI Client Paym
 node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
 node scripts/arbostar/export_taxes.ts        # -> taxes.js       (official tax list, scraped from /settings)
 node scripts/arbostar/export_declines.ts     # -> declines.js    (decline reasons; see the Decline reasons section)
-node scripts/arbostar/export_work_types.ts   # DISABLED — throws on start; crew_roles.js + work_types.js stay as last written (see the labor catalogs section)
+node scripts/arbostar/export_crew_roles.ts   # -> crew_roles.js  (Crew Roles page, scraped from /employees/crews; see the labor catalogs section)
 node scripts/arbostar/export_tree_inventory.ts # -> tree_inventory.js + tree_inventory_sets.js  (see the tree inventory section)
 ```
 
@@ -113,10 +113,21 @@ Rules:
 - Read lead and estimate data from profile endpoints instead: the estimate profile
   `/estimates/profile/profileData/{lead_id}` (estimated leads only; it answers 500 otherwise)
   and the lead profile `/leads/leads/profileData/{lead_id}` (listed in
-  `/assets/js/config/routes.js` as the data source of the `/{lead_no}-L` page; not yet used by
-  an export, verify its shape before relying on it).
+  `/assets/js/config/routes.js` as the data source of the `/{lead_no}-L` page). The lead
+  profile passed the protocol on 2026-09-22, probed by hand with `probe_endpoint.ts` on a No
+  Go lead and a New lead: both `/leads` rows were identical before and after. It is the
+  source for leads without an estimate.
 - Before adding any new per-record endpoint, confirm it backs a view page, not an edit page,
   and check it against a lead that has no estimate.
+
+The rule is enforced in code. `fetch_json` (`fetch_record.ts`) refuses any path that is not
+listed in `verified_endpoints.ts`, and both fetchers refuse `/edit/`, `/create`, and the other
+mutation segments outright. To verify a candidate, run
+`node scripts/arbostar/probe_endpoint.ts --lead_id <n> --path <path>` on a No Go lead with no
+estimate and then on a New lead: it snapshots the lead's `/leads` row, requests the path once,
+re-reads the row, and exits nonzero if anything moved. Only then add the pattern to
+`verified_endpoints.ts`. The full protocol is in
+`src/notes/2026-09-22-safely-read-lost-data.md`.
 
 ### The status-filter gotcha (why estimates/invoices/leads need two passes)
 
@@ -148,12 +159,20 @@ record via `fetch_record.ts`.
 text behind an "Other" lead source), and `lead.estimate.estimate_crew_notes` /
 `estimate_office_notes`. `lead_notes.ts` maps them from the profile `export_line_items.ts`
 fetches for every estimated lead. The profile endpoint answers 500 for a lead with no
-estimate, so those leads are absent from lead_notes.js. They used to get one **editor** fetch
-each, which is what moved 198 leads to Draft (see "Editor pages write on load") — that fetch
-must be replaced by a read-only source such as the lead profile endpoint, never restored.
+estimate. Those leads used to get one **editor** fetch each, which is what moved 198 leads to
+Draft (see "Editor pages write on load"). Their source is the lead profile endpoint,
+`GET /leads/leads/profileData/{lead_id}` (`lead_profile_path` in `lead_notes.ts`), verified
+on 2026-09-22 on a No Go lead and a New lead. It answers 200 with about 20 KB. Top-level keys
+are `lead`, `allTaxes`, `leadStatuses`, `reasons`, `leadPriority`, `reference`, `estimators`,
+`services`, `products`, `bundles`, `groups`, and `title`. The `lead` object carries
+`lead_body` and `lead_source_details` under the same names as the profile, and `lead.estimate`
+is an empty array (not null) for a lead with no estimate, which `to_lead_notes` maps to empty
+estimate notes. `export_line_items.ts` runs that pass while the path is listed in
+`verified_endpoints.ts` and prints a skip line naming the probe command if it is not.
 
 **Line items** — `GET /estimates/profile/profileData/{LEAD_id}`, rows at
-`lead.estimate.estimates_service`:
+`lead.estimate.estimate_services_with_groups` (standalone items and service groups in display
+order, with each group's children nested inside it; see the service groups bullet):
 
 - **Keyed by lead id, NOT estimate id.** `/estimates/profile/profileData/1696` loads the
   estimate for *lead* 1696, which is a different estimate than the one whose DB `estimate_id`
@@ -181,38 +200,61 @@ must be replaced by a read-only source such as the lead profile endpoint, never 
   `invoice_id`; work orders schedule the same rows. So invoices and work orders have **no
   separate line-item JSON endpoint** (the invoice editor renders them into HTML) — filter
   `line_items.js` by `invoice_id` instead.
-- **Service groups hide their line items from the profile.** A group ("Tree Removal Plus")
-  is a row with `type: 'group'` and its own id sequence — group ids collide with line-item
-  ids, which is why the pre-profile export produced duplicate ids with all-null phantom rows
-  (the importer's `data_score` dedupe exists for those old exports). The profile response
-  lists the group under `estimate_groups` but with an **empty** `group_services`; only the
-  editor nests the real child rows (`estimates_service[type=group].group_services`, same
-  shape as items, absent from every other array in the profile payload). The export used to
-  fetch the editor for the few leads whose profile shows `estimate_groups` and take the
-  children from there; those leads all have an estimate, and no side effect was seen on them,
-  but the editor is off limits regardless (see "Editor pages write on load"). Grouped children
-  are not exported until they have another source; the run prints the lead ids of the
-  estimates that have groups. The old editor-only export dropped grouped line items entirely.
+- **Service groups nest their line items under `estimate_services_with_groups`.** A group
+  ("Tree Removal Plus") is a row with `type: 'group'` and its own id sequence — group ids
+  collide with line-item ids, which is why the pre-profile export produced duplicate ids with
+  all-null phantom rows (the importer's `data_score` dedupe exists for those old exports).
+  The profile payload carries the items three ways. `estimates_service` holds the standalone
+  items only. `estimate_groups` holds the group headers with empty children. And
+  `estimate_services_with_groups` (verified 2026-09-22 on lead 1422) is the display-order
+  array the profile page renders: standalone items (`type: 'item'`, same shape as
+  `estimates_service` rows) interleaved with group rows (`type: 'group'`, keys `id`,
+  `estimate_id`, `estimate_group_id`, `name`, `description`, `show_items`,
+  `show_invoice_items`, `sort_order`, `total`, `type`, `sort_index`, `serviceIndex`,
+  `estimates_services`). Each group's `estimates_services` array holds its child line items
+  with the full item shape (own `id`, `estimate_id`, `invoice_id`, `service_price`,
+  `service`, `status`, `service_crews`, `sort_order`, and `estimate_group_id` set to the
+  group's id). Child rows lack `upcoming_event_ids`, `sort_index`, and `bundles_services`
+  and carry an extra `parentIndex`; none of those are exported. On lead 1422
+  `estimates_service` is items 2484 and 2491, while `estimate_services_with_groups` is item
+  2484, group 1 "Tree Removal Plus" with children 2485, 2486, 2487, then item 2491. The
+  export reads `estimate_services_with_groups`, takes item rows directly and group rows'
+  children, never a group row itself, and falls back to `estimates_service` only when the
+  array is absent. The run prints how many estimates had groups and how many exported line
+  items came from inside one. The old editor-only export dropped grouped line items entirely.
 - Line totals won't sum to the estimate total: `optional` lines and discounts are applied on top.
 
-## Labor catalogs: crews + work types
+## Labor catalogs: crew roles
 
-The two labor catalogs have no endpoint of their own. `export_work_types.ts` used to take
-both from one estimate editor payload (`GET /estimates/edit/{lead_id}`, which re-sends them
-on every call). The editor writes on load (see "Editor pages write on load"), so the script
-is **disabled**: it throws on start, and `export_all.ts` skips it, so `crew_roles.js` and
-`work_types.js` stay as last written (2026-09-12). The catalogs are small and rarely change.
-Re-enable it once they have a read-only source. It wrote both files:
+Crew roles have no JSON endpoint. `export_crew_roles.ts` scrapes the server-rendered **Crew
+Roles** page, `GET /employees/crews` with `accept: text/html` and the session headers (the
+same way `export_taxes.ts` reads `/settings`), and writes `crew_roles.js`. Verified
+2026-09-22: the page has exactly one `<table>` with thead columns Crew Name, Crew Role, Crew
+Color, Cost Per Hour, Action. Each data row is `<tr class=" " data-id="7">` with cells
+`<td>CL3</td>`, `<td>Arborist Climber</td>`, a `<td>` holding a `<span>` whose style carries
+`background-color: #1bf26d`, `<td class="text-right"> 180.00 </td>`, and an action cell whose
+`<a class="... deleteCrew" ...>` carries `data-delete_id` and `data-status="1"`. Rows appear
+in priority order (row 1 = priority 1). A fourteenth row with `data-id="0"`, name "Day Off",
+empty role, rate "-", and no `data-status` is a pseudo-row: the script skips any row whose
+id is 0 or whose rate is not a number. The 13 real rows matched the 2026-09-12 editor-based
+file exactly (ids, codes, rates, colors, status, priority).
 
-- **`crews`** → `crew_roles.js` — what the UI calls **Crew Roles** (managed at `/employees/crews`,
-  columns: Crew Name = the code, Crew Role = the full name, Cost Per Hour = `crew_rate`).
-  August 2026: CL0–CL3 (Arborist Climber, $70–$200/hr), BM1/BM2 (Bucket Truck Operator, $80),
-  GM (Groundsman, $130), STU (Stump Grinder Operator, $170), TEC (Technician, $300), ISA
-  (ISA Arborist, $120), AC1/AC2 (Consulting Arborist, $100/$120), REP (Repair, $65).
-- **`work_types`** → `work_types.js` — the pruning work types (`ip_*` fields): Clean canopy,
-  Crown reduction, Deadwood, Remove, and 13 more.
+The script maps the page onto `crew_roles.js`: `crew_id` from `data-id`, `crew_name` = Crew
+Name (the code), `crew_full_name` = Crew Role, `crew_rate` = Cost Per Hour as a number,
+`crew_status` from `data-status`, `crew_color` from the swatch's background-color, and
+`crew_priority` = the 1-based position among the real rows. September 2026: CL0–CL3
+(Arborist Climber, $70–$180/hr), BM1/BM2 (Bucket Truck Operator, $80), GM (Groundsman,
+$160), STU (Stump Grinder Operator, $180), TEC (Technician, $309), ISA (ISA Arborist, $120),
+AC1/AC2 (Consulting Arborist, $309/$120), REP (Repair, $65).
 
-How they map to jobs:
+The pruning work types (the `ip_*` catalog: Clean canopy, Crown reduction, ...) used to be
+exported to `work_types.js` from the estimate editor alongside the crew roles. The editor
+writes on load (see "Editor pages write on load"), nothing consumed the file, and no
+read-only source is known, so work types are no longer exported. They attach to tree
+inventory trees (each tree's `work_types[]`, empty on every tree in this account so far), not
+to line items.
+
+How crew roles map to jobs:
 
 - **Line item → crew roles** is already exported: each row in `line_items.js` carries a
   comma-joined `crews` string (e.g. `'CL3, GM'`) whose codes match `crew_roles.js` `crew_name`.
@@ -220,9 +262,6 @@ How they map to jobs:
   rows (`crew_service_id` = line item id, `crew_user_id` = crew_id) are the join table.
   Since line items carry `estimate_id` and `invoice_id`, this one string covers the
   estimate → skills and work-order → skills mapping.
-- **Work types attach to tree inventory trees**, not to line items. See the tree inventory
-  section — each tree carries a `work_types[]` array (empty on every tree in this account so
-  far, so nothing references `work_types.js` yet).
 - The estimate entity also has per-role requirement flags (`climber`, `groundsmen`,
   `bucket_truck_operator`, ...), each `'yes'`/`'no'` — a coarser signal than the line-item
   `crews` string.

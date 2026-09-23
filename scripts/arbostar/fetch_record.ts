@@ -1,10 +1,14 @@
 // Single-record JSON GET + a small concurrency-limited mapper, for ArboStar's per-record
-// detail endpoints (the estimate editor, the client profile) that aren't DataTables lists.
+// detail endpoints (the estimate profile, the tree inventory set) that aren't DataTables
+// lists. Only paths in verified_endpoints.ts may be fetched: an editor page writes on load.
+
+import { assert_verified_path } from './verified_endpoints.ts'
 
 export async function fetch_json<T = unknown>(
 	path: string,
 	options: { headers?: Record<string, string>; base_url?: string; fetch_impl?: typeof fetch } = {},
 ): Promise<T> {
+	assert_verified_path(path)
 	const base_url = options.base_url
 	const fetch_impl = options.fetch_impl ?? fetch
 	const response = await fetch_impl(`${base_url}${path}`, {

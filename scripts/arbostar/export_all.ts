@@ -4,9 +4,7 @@
 //
 // Independent scripts run in parallel. export_line_items.ts (which reads estimates.js and
 // leads.js) starts after export_estimates.ts and export_leads.ts finish. Each child's output
-// is prefixed with its dataset name. export_work_types.ts is skipped: it is disabled until
-// the labor catalogs have a read-only source, so crew_roles.js and work_types.js stay as
-// they are on disk.
+// is prefixed with its dataset name.
 
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
@@ -24,6 +22,7 @@ const INDEPENDENT = [
 	'export_payments.ts',
 	'export_users.ts',
 	'export_taxes.ts',
+	'export_crew_roles.ts',
 	'export_declines.ts',
 	'export_tree_inventory.ts',
 ]

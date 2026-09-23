@@ -1,9 +1,10 @@
 // Shape of one element in arbostar_export/lead_notes.js (see export_line_items.ts + lead_notes.ts).
-// The free text ArboStar keeps only on the full lead entity, one row per estimated lead.
-// `lead_id` links to leads.js. Leads without an estimate are absent (their only known
-// source is the estimate editor, which must not be fetched). Every field is a string: null
-// and missing values export as '', CRLF line endings become LF, and surrounding whitespace
-// is trimmed.
+// The free text ArboStar keeps only on the full lead entity, one row per lead. `lead_id`
+// links to leads.js. Estimated leads come from the estimate profile. Leads without an
+// estimate come from the lead profile endpoint, and are absent while that endpoint is not
+// yet listed in scripts/arbostar/verified_endpoints.ts (the estimate editor also carries
+// them but must never be fetched). Every field is a string: null and missing values export
+// as '', CRLF line endings become LF, and surrounding whitespace is trimmed.
 export type ArbostarLeadNotes = {
 	lead_id: number
 	/** The "Lead Description" box on the lead profile — what the office writes at intake. */

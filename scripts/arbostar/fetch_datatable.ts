@@ -10,6 +10,8 @@
 // Knows nothing about credentials, so it works in a browser on the arbostar origin (cookies
 // sent automatically) or under node when you pass auth headers explicitly.
 
+import { assert_not_forbidden_path } from './verified_endpoints.ts'
+
 export type DataTableOrder = {
 	/** The column index referenced by `order[0][column]`. */
 	column_index: number
@@ -81,6 +83,7 @@ async function fetch_page<Row>(
 	start: number,
 	draw: number,
 ): Promise<DataTableResponse<Row>> {
+	assert_not_forbidden_path(options.path)
 	const base_url = options.base_url
 	const fetch_impl = options.fetch_impl ?? fetch
 	const params = build_params(options, start, draw)

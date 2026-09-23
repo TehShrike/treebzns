@@ -1,4 +1,4 @@
-// Shape of one element in arbostar_export/crew_roles.js (see export_work_types.ts).
+// Shape of one element in arbostar_export/crew_roles.js (see export_crew_roles.ts).
 // One row per crew role — what the app's UI calls "Crew Roles" (managed at
 // /employees/crews; the API calls them `crews`, hence the field prefix). Line items
 // reference these by code: `ArbostarLineItem.crews` is a comma-joined list of
