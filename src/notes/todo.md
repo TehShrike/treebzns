@@ -1,12 +1,8 @@
 # Catch up
 
-What's the difference between qualified/unqualified lead.  Should both be estimated?
+The difference between qualified/unqualified lead: "qualified" means someone actually has talked to them and they want an estimator to come out.  Unqualified means random contact from Angies or some other source.  Someone should talk to them before driving too far.
 
 Should both exist?  Does anyone care about the difference?  When does the estimator get sent out?  If nothing else, a lead created by an office worker using the create-a-lead screen should probably count as qualified, eh?
-
-## Review PhotoCamera.svelte and directory, and PhotoMarkup.svelte
-
-I want to get the camera instance/creating out of PhotoCamera, and also eliminate some localstorage.
 
 ## Estimation
 
@@ -34,15 +30,16 @@ Project needs "estimated crew size"
 - [x] Create a new email address
 	- treesoftware@joshduff.com?
 - [x] Business card: Chase Ink Business Unlimited
-- [ ] Wait for new credit card to arrive, add it to 1Password
+- [x] Wait for new credit card to arrive, add it to 1Password
 - [x] Create a new Cloudflare account
-- [ ] Subscribe to Workers Paid
-- [ ] Buy domain name treeoperator.com
+- [x] Subscribe to Workers Paid
+- [ ] Buy domain name
 - [ ] Configure the worker
 	- [ ] Configure environment variables
 	- [ ] Hyperdrive
 - [ ] Create new Digital Ocean account with new credit card
 - [ ] Create new managed DO database
+- [ ] Create DO Spaces for S3 storage
 - [ ] Deploy from CI
 
 ## Logs
