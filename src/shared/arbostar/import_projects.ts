@@ -246,13 +246,14 @@ export const import_projects = async (
 	// The lead source codebook: one lead_source row per distinct "Referred by" name in the
 	// export, reusing existing rows by the case-insensitive (company_id, name) unique key.
 	// "Not Selected" is ArboStar's no-source placeholder, not a source. An "Other" lead's
-	// free-text detail is its real source ("JobsFuel", "Nextdoor", sometimes an existing
-	// source the caller didn't pick from the select), so the detail takes over as the name;
-	// only a detail-less "Other" stays "Other".
+	// free-text detail (from lead_notes.js, so only on estimated leads) is its real source
+	// ("JobsFuel", "Nextdoor", sometimes an existing source the caller didn't pick from the
+	// select), so the detail takes over as the name; a detail-less "Other" stays "Other".
+	const lead_source_details = (lead: ArbostarLead): string => notes_by_lead_id.get(lead.lead_id)?.lead_source_details.trim() ?? ''
 	const lead_source_name = (lead: ArbostarLead): string | null => {
 		const name = lead.referred_by?.trim()
 		if (!name || normalize_name(name) === 'not selected') return null
-		const details = lead.lead_source_details?.trim()
+		const details = lead_source_details(lead)
 		return normalize_name(name) === 'other' && details ? details : name
 	}
 	const needed_source_names = new Map<string, string>()
@@ -486,7 +487,7 @@ export const import_projects = async (
 			assigned_estimator_employee_id === null && estimator_name !== null ? `Estimator: ${estimator_name}` : null,
 			// The source itself lives in lead_source_id — only a referring person needs prose.
 			// On "Other" leads referred_by_name just repeats the source detail text.
-			lead.referred_by_name && lead.referred_by_name.trim() !== lead.lead_source_details?.trim()
+			lead.referred_by_name && lead.referred_by_name.trim() !== lead_source_details(lead)
 				? `Referred by ${lead.referred_by_name}`
 				: null,
 			(lead.lead_address ?? lead.address_line_display) === null

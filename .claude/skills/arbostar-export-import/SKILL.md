@@ -35,6 +35,7 @@ Notes:
 
 - The whole run takes as long as `export_line_items.ts` (one fetch per lead, several minutes; it also writes `lead_notes.js`). Run it in the background and check the output file for progress.
 - A stale session fails fast on every child with `request failed: 302`.
+- Never fetch an ArboStar editor page (`/estimates/edit/{lead_id}` or any `/edit/` or `/create` URL), from a script or by hand. Loading the estimate editor creates a draft estimate and moves the lead to Draft in production. See "Editor pages write on load" in `scripts/arbostar/readme.md` before adding or changing any per-record fetch.
 - If a script's mapper changed, update the matching committed `arbostar_export/<name>.d.ts`.
 - The per-dataset `export_*.ts` scripts still run individually if only one dataset is needed.
 

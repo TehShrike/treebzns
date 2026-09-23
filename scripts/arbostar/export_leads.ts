@@ -13,13 +13,17 @@
 // report_date range instead of statuses) joins referred_by / referred_by_name on by lead_id.
 //
 // The free-text detail behind the "Other" source choice (lead_source_details) only exists on
-// the full lead entity, and sampling shows it is null on every non-"Other" lead — so a third
-// pass fetches the (large) editor payload for just the "Other" leads.
+// the full lead entity. It is exported in lead_notes.js by export_line_items.ts, from the
+// estimate profile that script already fetches per lead. Never fetch the estimate editor for
+// it: see "Editor pages write on load" in readme.md.
+//
+// Before writing, the Draft count is compared with the previous leads.js. A rise means some
+// request between the two runs changed lead status in ArboStar.
 
+import { filter } from '#shared/array.ts'
 import { fetch_all_rows, fetch_all_rows_every_status } from './fetch_datatable.ts'
-import { fetch_json, map_with_concurrency } from './fetch_record.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
-import { write_output } from './output.ts'
+import { read_output, write_output } from './output.ts'
 import type { ExportShape } from './output.ts'
 import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
 
@@ -54,11 +58,7 @@ type ArboStarKpiNewLeadsRow = {
 	referred_by_name: string | null
 }
 
-function to_export(
-	lead: ArboStarLead,
-	referral: ArboStarKpiNewLeadsRow | undefined,
-	lead_source_details: string | null,
-): ExportShape<ArbostarLead> {
+function to_export(lead: ArboStarLead, referral: ArboStarKpiNewLeadsRow | undefined): ExportShape<ArbostarLead> {
 	return {
 		lead_id: lead.lead_id,
 		lead_no: lead.lead_no,
@@ -85,9 +85,13 @@ function to_export(
 		form_id: lead.form_id,
 		referred_by: referral?.referred_by ?? null,
 		referred_by_name: referral?.referred_by_name ?? null,
-		lead_source_details,
 	}
 }
+
+const count_drafts = (rows: Array<{ lead_status_name: string | null }>): number =>
+	filter(rows, lead => lead.lead_status_name === 'Draft').length
+
+const previous_draft_count = await read_output<ArbostarLead[]>('leads.js').then(count_drafts, () => null)
 
 const leads = await fetch_all_rows_every_status<ArboStarLead>({
 	path: '/leads',
@@ -113,26 +117,12 @@ const referral_rows = await fetch_all_rows<ArboStarKpiNewLeadsRow>({
 })
 const referral_by_lead_id = new Map(referral_rows.map(row => [row.lead_id, row]))
 
-const other_lead_ids = leads
-	.map(lead => lead.lead_id)
-	.filter(lead_id => referral_by_lead_id.get(lead_id)?.referred_by === 'Other')
-const detail_entries = await map_with_concurrency(
-	other_lead_ids,
-	6,
-	async lead_id => {
-		const data = await fetch_json<{ lead: { lead_source_details: string | null } }>(
-			`/estimates/edit/${lead_id}`,
-			{ base_url: BASE_URL, headers: AUTH_HEADERS },
-		)
-		return [lead_id, data.lead.lead_source_details] as const
-	},
-	(done, total) => console.log(`  fetched ${done} / ${total} lead source details`),
-)
-const details_by_lead_id = new Map(detail_entries)
+const draft_count = count_drafts(leads)
+if (previous_draft_count !== null && draft_count > previous_draft_count) {
+	console.log(
+		`!!! Draft leads rose from ${previous_draft_count} to ${draft_count} since the previous leads.js. Check for a request with side effects (see "Editor pages write on load" in scripts/arbostar/readme.md).`,
+	)
+}
 
-const exported = leads.map(lead => to_export(
-	lead,
-	referral_by_lead_id.get(lead.lead_id),
-	details_by_lead_id.get(lead.lead_id) ?? null,
-))
+const exported = leads.map(lead => to_export(lead, referral_by_lead_id.get(lead.lead_id)))
 console.log(`Wrote ${exported.length} leads -> ${write_output('leads.js', exported)}`)

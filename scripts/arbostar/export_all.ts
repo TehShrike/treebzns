@@ -3,8 +3,10 @@
 //   node scripts/arbostar/export_all.ts
 //
 // Independent scripts run in parallel. export_line_items.ts (which reads estimates.js and
-// leads.js) and export_work_types.ts (estimates.js) start after export_estimates.ts and
-// export_leads.ts finish. Each child's output is prefixed with its dataset name.
+// leads.js) starts after export_estimates.ts and export_leads.ts finish. Each child's output
+// is prefixed with its dataset name. export_work_types.ts is skipped: it is disabled until
+// the labor catalogs have a read-only source, so crew_roles.js and work_types.js stay as
+// they are on disk.
 
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
@@ -26,7 +28,7 @@ const INDEPENDENT = [
 	'export_tree_inventory.ts',
 ]
 const PREREQUISITES = ['export_estimates.ts', 'export_leads.ts']
-const READS_PREREQUISITES = ['export_line_items.ts', 'export_work_types.ts']
+const READS_PREREQUISITES = ['export_line_items.ts']
 
 type Result = { script: string; ok: boolean }
 

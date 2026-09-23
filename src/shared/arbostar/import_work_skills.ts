@@ -7,11 +7,16 @@ import { ROWS_PER_BATCH, normalize_name, money } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
 export type ImportedWorkSkills = {
+	// Crew role code (crew_name, see normalize_crew_code) → work_skill_id, for the line-item
+	// importer to resolve each line's `crews` string.
+	work_skill_id_by_crew_code: Map<string, bigint>
 	counts: {
 		work_skills_inserted: number
 		work_skills_updated: number
 	}
 }
+
+export const normalize_crew_code = (code: string): string => code.trim().toUpperCase()
 
 // crew_roles.js → work_skill, update-or-insert. The name is derived from the role: when the
 // code (crew_name) ends with digits, they're appended to crew_full_name — CL0-CL3 all share
@@ -29,10 +34,15 @@ export const import_work_skills = async (
 	const skills = map(crew_roles, role => {
 		const digits = /(\d+)$/.exec(role.crew_name)?.[1]
 		return {
+			code: normalize_crew_code(role.crew_name),
 			name: digits === undefined ? role.crew_full_name : `${role.crew_full_name} ${digits}`,
 			hourly_rate: money(role.crew_rate),
 		}
 	})
+	assert(
+		new Set(map(skills, skill => skill.code)).size === skills.length,
+		'every crew role has a distinct code',
+	)
 	assert(
 		new Set(map(skills, skill => normalize_name(skill.name))).size === skills.length,
 		'every crew role derives a distinct work skill name',
@@ -41,6 +51,7 @@ export const import_work_skills = async (
 	const existing = context.existing.work_skill_id_by_name
 	const updates = filter(skills, skill => existing.has(normalize_name(skill.name)))
 	const inserts = filter(skills, skill => !existing.has(normalize_name(skill.name)))
+	const work_skill_id_by_crew_code = new Map(map(updates, skill => [skill.code, existing.get(normalize_name(skill.name))!] as const))
 
 	if (updates.length > 0) {
 		await write_helper.bulk_update(
@@ -54,7 +65,7 @@ export const import_work_skills = async (
 		)
 	}
 	if (inserts.length > 0) {
-		await write_helper.bulk_insert(
+		const { insert_ids } = await write_helper.bulk_insert(
 			'work_skill',
 			map(inserts, skill => ({
 				name: skill.name,
@@ -62,9 +73,11 @@ export const import_work_skills = async (
 			})),
 			ROWS_PER_BATCH,
 		)
+		inserts.forEach((skill, index) => work_skill_id_by_crew_code.set(skill.code, insert_ids[index]!))
 	}
 
 	return {
+		work_skill_id_by_crew_code,
 		counts: {
 			work_skills_inserted: inserts.length,
 			work_skills_updated: updates.length,

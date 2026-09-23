@@ -14,10 +14,10 @@ const COOKIES = BROWSER_COOKIES
 
 // Detail/edit URLs to probe, plus the list page to fall back to for harvesting links.
 const TARGETS = [
-	{ name: 'client', list: '/clients', detail: ['/clients/1441', '/clients/view/1441', '/clients/edit/1441'] },
-	{ name: 'estimate', list: '/estimates', detail: ['/estimates/1702', '/estimates/edit/1702', '/estimates/view/1702'] },
-	{ name: 'invoice', list: '/invoices', detail: ['/invoices/859', '/invoices/edit/859', '/invoices/view/859'] },
-	{ name: 'workorder', list: '/workorders', detail: ['/workorders/889', '/workorders/edit/889', '/workorders/view/889'] },
+	{ name: 'client', list: '/clients', detail: ['/clients/1441', '/clients/view/1441'] },
+	{ name: 'estimate', list: '/estimates', detail: ['/estimates/1702', '/estimates/view/1702'] },
+	{ name: 'invoice', list: '/invoices', detail: ['/invoices/859', '/invoices/view/859'] },
+	{ name: 'workorder', list: '/workorders', detail: ['/workorders/889', '/workorders/view/889'] },
 ]
 
 function describe_value(value: unknown): string {

@@ -30,12 +30,12 @@ import type { ArbostarClient } from '#arbostar_export/clients.d.ts' // the recor
 | `invoices.js` | 906 | `ArbostarInvoice` | Invoices incl. Paid. `client_id` → clients, `lead_id` → leads. |
 | `workorders.js` | 836 | `ArbostarWorkOrder` | "Projects" / scheduled jobs. `client_id` → clients, `lead_id` → leads. |
 | `line_items.js` | 3592 | `ArbostarLineItem` | Service lines. `estimate_id` → estimates; rows with an `invoice_id` are the invoice's lines; work orders schedule the same rows. |
-| `lead_notes.js` | 2276 | `ArbostarLeadNotes` | Per-lead free text that only the full lead entity carries: the intake lead description (`lead_body`) and the estimate's crew and office notes. `lead_id` → leads. Captured from the per-lead fetch `export_line_items.ts` already makes; only leads without an estimate cost an extra (editor) fetch. |
+| `lead_notes.js` | 2074 | `ArbostarLeadNotes` | Per-lead free text that only the full lead entity carries: the intake lead description (`lead_body`), the free text behind an "Other" lead source (`lead_source_details`), and the estimate's crew and office notes. `lead_id` → leads. Captured from the estimate profile `export_line_items.ts` fetches per estimated lead; leads without an estimate are absent (their only known source is the estimate editor, which must not be fetched). |
 | `payments.js` | 1204 | `ArbostarPayment` | Real payment records (amount, date, fee/tips, method label) with ArboStar's payment → estimate/invoice allocations (real split amounts + a per-allocation money breakdown). Leads/work orders are reached by joining estimates.js / invoices.js. One paged pass over the BI Client Payments report. |
 | `users.js` | 6 | `ArbostarUser` | User accounts (estimators, office staff, field workers), all statuses. Merged from the user list + each user's detail page; deliberately excludes SIN/MFA/credential fields. |
 | `declines.js` | 365 | `ArbostarDecline` | One row per declined estimate with its decline reason (id + name), from the Decline Reasons report. `estimate_id` → estimates (which has the `lead_id`). |
-| `crew_roles.js` | 13 | `ArbostarCrewRole` | Crew Roles: codes CL0–CL3, GM, ... with cost per hour. `line_items.js` references these by code in its `crews` string. |
-| `work_types.js` | 17 | `ArbostarWorkType` | Pruning work types (Clean canopy, Crown reduction, ...). They attach to trees (`tree_inventory.js` `work_types[]`), empty on every tree so far. |
+| `crew_roles.js` | 13 | `ArbostarCrewRole` | Crew Roles: codes CL0–CL3, GM, ... with cost per hour. `line_items.js` references these by code in its `crews` string. Its export is disabled (the only known source is the estimate editor, which must not be fetched); the file is from the 2026-09-12 run. |
+| `work_types.js` | 17 | `ArbostarWorkType` | Pruning work types (Clean canopy, Crown reduction, ...). They attach to trees (`tree_inventory.js` `work_types[]`), empty on every tree so far. Same disabled export as `crew_roles.js`. |
 | `tree_inventory.js` | 15 | `ArbostarTree` | One row per tree on a client property map (species, condition, cost, lat/lng). From the unauthenticated markers microservice. `tis_id` → `tree_inventory_sets.js`. |
 | `tree_inventory_sets.js` | 10 | `ArbostarTreeInventorySet` | One row per property map that has trees (name, address, `markers_count`). `tis_client_id` → clients. |
 | `tree_species.js` | 694 | `ArbostarTreeSpecies` | Global species catalog (name + pin color). A tree's `species_id` → `species_id` here. |
@@ -61,11 +61,11 @@ node ../scripts/arbostar/export_leads.ts        # leads.js
 node ../scripts/arbostar/export_estimates.ts    # estimates.js
 node ../scripts/arbostar/export_invoices.ts     # invoices.js
 node ../scripts/arbostar/export_workorders.ts   # workorders.js
-node ../scripts/arbostar/export_line_items.ts   # line_items.js + lead_notes.js  (reads estimates.js + leads.js; slowest — one fetch per lead)
+node ../scripts/arbostar/export_line_items.ts   # line_items.js + lead_notes.js  (reads estimates.js + leads.js; slowest — one fetch per estimated lead)
 node ../scripts/arbostar/export_payments.ts     # payments.js
 node ../scripts/arbostar/export_users.ts        # users.js
 node ../scripts/arbostar/export_declines.ts     # declines.js  (run alongside export_estimates.ts so the two agree)
-node ../scripts/arbostar/export_work_types.ts   # crew_roles.js + work_types.js  (reads estimates.js)
+node ../scripts/arbostar/export_work_types.ts   # DISABLED — throws; crew_roles.js + work_types.js stay as last written
 node ../scripts/arbostar/export_tree_inventory.ts # tree_inventory.js + tree_inventory_sets.js  (walks the global tis_id sequence)
 ```
 

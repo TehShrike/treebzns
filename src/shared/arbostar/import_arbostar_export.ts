@@ -109,6 +109,7 @@ const import_arbostar_export = async (
 		context_with_employees,
 		data.line_items,
 		imported_projects.project_id_by_arbostar_lead_id,
+		imported_work_skills.work_skill_id_by_crew_code,
 	))
 	const imported_invoices = await transaction_with_write_helper((connection, write_helper) => import_invoices(
 		connection,

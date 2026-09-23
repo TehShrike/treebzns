@@ -12,13 +12,13 @@ line items only exist behind per-record detail endpoints (fetched one by one).
 | --- | --- |
 | `fetch_datatable.ts` | Generic DataTables fetcher (pagination + the status-union logic below). Engine behind the list exports. |
 | `fetch_record.ts` | Single-record JSON GET + a concurrency-limited mapper. Engine behind the per-record exports (line items). |
-| `lead_notes.ts` | The lead-notes mapper shared by the per-lead fetches, plus the one dedicated editor fetch for leads without an estimate. |
+| `lead_notes.ts` | The lead-notes mapper `export_line_items.ts` applies to each estimate profile it fetches. Leads without an estimate have no read-only source yet and are absent from lead_notes.js. **Must not use the estimate editor** — see "Editor pages write on load". |
 | `fetch_clients.ts` | Thin typed wrapper over the generic fetcher, pinned to `/clients`. |
 | `.arbostar_session.json` | **Credentials + account base URL. Gitignored — never committed.** Copy `.arbostar_session.example.json` to it and fill in. |
 | `session.ts` | Loads `.arbostar_session.json` and exposes `BASE_URL` / `AUTH_HEADERS` / `BROWSER_COOKIES`. |
 | `output.ts` | Reads/writes the `arbostar_export/` dir at the repo root — writes each dataset as `<name>.js` (`export default [...]`, gitignored). |
 | `export_*.ts` | One run-now script per dataset. |
-| `export_all.ts` | Runs every export script. Independent scripts run in parallel; the two that read `estimates.js` / `leads.js` wait for `export_estimates.ts` and `export_leads.ts`. |
+| `export_all.ts` | Runs every export script except the disabled `export_work_types.ts`. Independent scripts run in parallel; `export_line_items.ts` (reads `estimates.js` / `leads.js`) waits for `export_estimates.ts` and `export_leads.ts`. |
 | `discover_endpoints.ts` / `discover_details.ts` | Puppeteer crawlers that record the app's XHRs (list pages / detail pages). `discover_endpoints.ts` regenerates `arbostar_endpoints.json`. |
 | `arbostar_endpoints.json` | Map of all ~36 list/XHR endpoints, with an example `path_and_query` for each. |
 
@@ -38,12 +38,12 @@ node scripts/arbostar/export_workorders.ts   # -> workorders.js
 node scripts/arbostar/export_leads.ts        # -> leads.js (two passes + the KPI New Leads referral join)
 node scripts/arbostar/export_estimates.ts    # -> estimates.js   (two passes)
 node scripts/arbostar/export_invoices.ts     # -> invoices.js
-node scripts/arbostar/export_line_items.ts   # -> line_items.js + lead_notes.js  (reads estimates.js + leads.js; one profileData call per estimate, plus one editor call per lead without an estimate)
+node scripts/arbostar/export_line_items.ts   # -> line_items.js + lead_notes.js  (reads estimates.js + leads.js; one profileData call per estimate)
 node scripts/arbostar/export_payments.ts     # -> payments.js    (BI Client Payments report; see the payments section)
 node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
 node scripts/arbostar/export_taxes.ts        # -> taxes.js       (official tax list, scraped from /settings)
 node scripts/arbostar/export_declines.ts     # -> declines.js    (decline reasons; see the Decline reasons section)
-node scripts/arbostar/export_work_types.ts   # -> crew_roles.js + work_types.js  (reads estimates.js; see the labor catalogs section)
+node scripts/arbostar/export_work_types.ts   # DISABLED — throws on start; crew_roles.js + work_types.js stay as last written (see the labor catalogs section)
 node scripts/arbostar/export_tree_inventory.ts # -> tree_inventory.js + tree_inventory_sets.js  (see the tree inventory section)
 ```
 
@@ -97,6 +97,27 @@ the same DataTables protocol over `GET`:
 - Responses also carry a `statuses` array (the status-tab definitions) — that's where the
   status-number meanings below come from.
 
+### Editor pages write on load (never fetch them)
+
+Loading an ArboStar **editor** page is not a read. The estimate editor,
+`GET /estimates/edit/{lead_id}`, creates a draft estimate for a lead that has none and moves
+the lead to status **Draft** (`lead_status_id` 5). On 2026-09-12 an export fetched it for every
+lead without an estimate and moved 198 production leads (11 New, 187 No Go) to Draft. The
+same GET on a lead that already has an estimate has shown no side effect, but do not rely on
+that either.
+
+Rules:
+
+- Never fetch `/estimates/edit/{lead_id}`, or any other `/edit/` or `/create` page, from an
+  export or a probe. Treat every editor URL as a write.
+- Read lead and estimate data from profile endpoints instead: the estimate profile
+  `/estimates/profile/profileData/{lead_id}` (estimated leads only; it answers 500 otherwise)
+  and the lead profile `/leads/leads/profileData/{lead_id}` (listed in
+  `/assets/js/config/routes.js` as the data source of the `/{lead_no}-L` page; not yet used by
+  an export, verify its shape before relying on it).
+- Before adding any new per-record endpoint, confirm it backs a view page, not an edit page,
+  and check it against a lead that has no estimate.
+
 ### The status-filter gotcha (why estimates/invoices/leads need two passes)
 
 Each list is scoped by a **status tab**, passed as repeated `status_ids[]` params. There's a
@@ -122,11 +143,14 @@ other pass.)
 These don't exist on the list endpoints — each is a single-record JSON GET, fetched one per
 record via `fetch_record.ts`.
 
-**Lead notes** — the same two per-lead endpoints as line items below. The `lead` object on
-either carries `lead_body` (the Lead Description box on the lead profile) and, when the lead
-has an estimate, `lead.estimate.estimate_crew_notes` / `estimate_office_notes`. The profile
-endpoint answers 500 for a lead with no estimate, so those get one editor fetch each
-(`lead_notes.ts`), run alongside the line-item pass by `export_line_items.ts`.
+**Lead notes** — the same profile endpoint as line items below. Its `lead` object carries
+`lead_body` (the Lead Description box on the lead profile), `lead_source_details` (the free
+text behind an "Other" lead source), and `lead.estimate.estimate_crew_notes` /
+`estimate_office_notes`. `lead_notes.ts` maps them from the profile `export_line_items.ts`
+fetches for every estimated lead. The profile endpoint answers 500 for a lead with no
+estimate, so those leads are absent from lead_notes.js. They used to get one **editor** fetch
+each, which is what moved 198 leads to Draft (see "Editor pages write on load") — that fetch
+must be replaced by a read-only source such as the lead profile endpoint, never restored.
 
 **Line items** — `GET /estimates/profile/profileData/{LEAD_id}`, rows at
 `lead.estimate.estimates_service`:
@@ -137,7 +161,8 @@ endpoint answers 500 for a lead with no estimate, so those get one editor fetch 
   line items' `estimate_id` then matches the list's `estimate_id`. The app URL `/{lead_no}-E`
   (the estimate profile page) is what loads this endpoint — it is defined in
   `/assets/js/config/routes.js`, which is also where to look for other per-record endpoints.
-- The **estimate editor** (`GET /estimates/edit/{LEAD_id}`) returns the same
+- The **estimate editor** (`GET /estimates/edit/{LEAD_id}`) **writes on load** (see "Editor
+  pages write on load") and must not be fetched. For the record, it returns the same
   `estimates_service` rows (same fields, including the nested `service`/`status`/`crew`
   joins), but its payload is ~355 KB — it re-sends the whole service catalog (`tree_types`
   alone is ~694 entries) on every call — vs ~50–170 KB for the profile. Measured August 2026:
@@ -162,17 +187,22 @@ endpoint answers 500 for a lead with no estimate, so those get one editor fetch 
   (the importer's `data_score` dedupe exists for those old exports). The profile response
   lists the group under `estimate_groups` but with an **empty** `group_services`; only the
   editor nests the real child rows (`estimates_service[type=group].group_services`, same
-  shape as items, absent from every other array in the profile payload). So the export
-  fetches the editor for the few leads whose profile shows `estimate_groups`, takes the
-  children from there, skips the group rows themselves, and asserts the final ids are
-  unique. The old editor-only export dropped grouped line items entirely.
+  shape as items, absent from every other array in the profile payload). The export used to
+  fetch the editor for the few leads whose profile shows `estimate_groups` and take the
+  children from there; those leads all have an estimate, and no side effect was seen on them,
+  but the editor is off limits regardless (see "Editor pages write on load"). Grouped children
+  are not exported until they have another source; the run prints the lead ids of the
+  estimates that have groups. The old editor-only export dropped grouped line items entirely.
 - Line totals won't sum to the estimate total: `optional` lines and discounts are applied on top.
 
-## Labor catalogs: crews + work types (from the estimate editor)
+## Labor catalogs: crews + work types
 
-The two labor catalogs have no endpoint of their own. The estimate editor payload
-(`GET /estimates/edit/{lead_id}`) re-sends both on every call, so `export_work_types.ts`
-makes one editor fetch (for the first lead id in `estimates.js`) and writes both files:
+The two labor catalogs have no endpoint of their own. `export_work_types.ts` used to take
+both from one estimate editor payload (`GET /estimates/edit/{lead_id}`, which re-sends them
+on every call). The editor writes on load (see "Editor pages write on load"), so the script
+is **disabled**: it throws on start, and `export_all.ts` skips it, so `crew_roles.js` and
+`work_types.js` stay as last written (2026-09-12). The catalogs are small and rarely change.
+Re-enable it once they have a read-only source. It wrote both files:
 
 - **`crews`** → `crew_roles.js` — what the UI calls **Crew Roles** (managed at `/employees/crews`,
   columns: Crew Name = the code, Crew Role = the full name, Cost Per Hour = `crew_rate`).
@@ -493,7 +523,9 @@ Invoices and work orders have **no** full-entity JSON endpoint, so their datatab
 ### Leads
 
 - Datatable: `GET /leads` — 23 columns
-- Full entity: `GET /estimates/edit/{lead_id} → lead` — 81 columns
+- Full entity: `GET /estimates/edit/{lead_id} → lead` — 81 columns. **Do not fetch it**: it
+  writes on load (see "Editor pages write on load"). The same `lead` object is on the
+  estimate profile for estimated leads; the lead profile endpoint is the candidate for the rest.
 - **69 columns are only on the full endpoint** (what you miss with the datatable alone)
 
 The lead source (the lead form's "Referred by" select) is on neither in usable form: the full

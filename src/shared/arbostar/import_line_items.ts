@@ -2,9 +2,11 @@ import type { Connection, ResultSetHeader } from 'mysql2/promise'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
-import { map, filter } from '#shared/array.ts'
+import assert from '#shared/assert.ts'
+import { map, filter, flat_map } from '#shared/array.ts'
 import { ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
+import { normalize_crew_code } from './import_work_skills.ts'
 
 export type ImportedLineItems = {
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
@@ -13,6 +15,8 @@ export type ImportedLineItems = {
 		project_line_items_inserted: number
 		project_line_items_updated: number
 		project_line_items_deleted: number
+		project_line_item_work_skills_inserted: number
+		project_line_item_work_skills_deleted: number
 		skipped_line_items_without_project: number
 		duplicate_line_items_dropped: number
 	}
@@ -34,12 +38,17 @@ const data_score = (item: ArbostarLineItem): number =>
 // totals, which derive from line items — but only within projects present in this run, so a
 // lead missing from a (possibly partial) export keeps its lines just like it keeps its
 // project. In-app lines (null arbostar id) are never touched.
+// Each line's `crews` string (comma-joined crew role codes) becomes its
+// project_line_item_work_skill rows. ArboStar is the source of truth for the set, so the
+// links of every ArboStar line in an imported project are replaced wholesale — including
+// those of lines about to be deleted, which would otherwise be orphaned.
 export const import_line_items = async (
 	connection: Connection,
 	write_helper: TenantedWriteHelper,
 	context: ArbostarImportContext,
 	line_items: ArbostarLineItem[],
 	project_id_by_arbostar_lead_id: Map<number, bigint>,
+	work_skill_id_by_crew_code: Map<string, bigint>,
 ): Promise<ImportedLineItems> => {
 	const with_project = filter(line_items, item => project_id_by_arbostar_lead_id.has(item.lead_id))
 	const best_by_line_item_id = new Map<number, ArbostarLineItem>()
@@ -118,6 +127,33 @@ export const import_line_items = async (
 	const incoming_id_list = map(importable, item => escape_value(item.line_item_id)).join(', ')
 	const imported_project_ids = [...project_id_by_arbostar_lead_id.values()]
 	const imported_project_id_list = map(imported_project_ids, escape_value).join(', ')
+
+	const work_skills_deleted = imported_project_ids.length === 0 ? 0 : await (async () => {
+		const [{ affectedRows }] = await connection.query<ResultSetHeader>(
+			'DELETE project_line_item_work_skill FROM project_line_item_work_skill'
+			+ ' JOIN project_line_item ON project_line_item.project_line_item_id = project_line_item_work_skill.project_line_item_id'
+			+ ` WHERE project_line_item.company_id = ${escape_value(context.company_id)}`
+			+ ' AND project_line_item.arbostar_line_item_id IS NOT NULL'
+			+ ` AND project_line_item.project_id IN (${imported_project_id_list})`,
+		)
+		return affectedRows
+	})()
+	const work_skill_rows = flat_map(importable, item => {
+		if (item.crews === null) return []
+		const codes = [...new Set(map(item.crews.split(','), normalize_crew_code))]
+		return map(filter(codes, code => code !== ''), code => {
+			const work_skill_id = work_skill_id_by_crew_code.get(code)
+			assert(work_skill_id !== undefined, `crew role code "${code}" on ArboStar line item ${item.line_item_id} is in crew_roles.js`)
+			return {
+				project_line_item_id: project_line_item_id_by_arbostar_line_item_id.get(item.line_item_id)!,
+				work_skill_id,
+			}
+		})
+	})
+	if (work_skill_rows.length > 0) {
+		await write_helper.bulk_insert('project_line_item_work_skill', work_skill_rows, ROWS_PER_BATCH)
+	}
+
 	const deleted = imported_project_ids.length === 0 ? 0 : await (async () => {
 		const [{ affectedRows }] = await connection.query<ResultSetHeader>(
 			`DELETE FROM project_line_item WHERE company_id = ${escape_value(context.company_id)}`
@@ -135,6 +171,8 @@ export const import_line_items = async (
 			project_line_items_inserted: new_items.length,
 			project_line_items_updated: existing_items.length,
 			project_line_items_deleted: deleted,
+			project_line_item_work_skills_inserted: work_skill_rows.length,
+			project_line_item_work_skills_deleted: work_skills_deleted,
 			skipped_line_items_without_project: line_items.length - with_project.length,
 			duplicate_line_items_dropped: with_project.length - importable.length,
 		},
