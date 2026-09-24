@@ -28,19 +28,23 @@ Project needs "estimated crew size"
 ## Deploy to dedicated Cloudflare account
 
 - [x] Create a new email address
-	- treesoftware@joshduff.com?
 - [x] Business card: Chase Ink Business Unlimited
 - [x] Wait for new credit card to arrive, add it to 1Password
 - [x] Create a new Cloudflare account
 - [x] Subscribe to Workers Paid
-- [ ] Buy domain name
+- [x] Buy domain name
+- [x] Create new Digital Ocean account with new credit card
+- [x] Create new managed DO database
+- [ ] Create database user for CI
+- [ ] Create database user for prod
 - [ ] Configure the worker
 	- [ ] Configure environment variables
 	- [ ] Hyperdrive
-- [ ] Create new Digital Ocean account with new credit card
-- [ ] Create new managed DO database
-- [ ] Create DO Spaces for S3 storage
 - [ ] Deploy from CI
+- [ ] Set up auto-pay for credit card
+- [ ] Shut down old managed database
+- [ ] Shut down old CFW deploy
+- [ ] Create DO Spaces for S3 storage
 
 ## Logs
 
