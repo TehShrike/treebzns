@@ -2,5 +2,4 @@
 
 // Columns whose DATA_TYPE is mediumblob or longblob: client queries must never select them.
 export const large_blob_columns = {
-	project_image: ['original_image', 'display_image', 'thumbnail_image'],
 } as const

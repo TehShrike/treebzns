@@ -1,0 +1,4 @@
+ALTER TABLE project_image
+	MODIFY COLUMN original_object_key VARCHAR(1024) NOT NULL DEFAULT '',
+	MODIFY COLUMN display_object_key VARCHAR(1024) NOT NULL DEFAULT '',
+	MODIFY COLUMN thumbnail_object_key VARCHAR(1024) NOT NULL DEFAULT '';

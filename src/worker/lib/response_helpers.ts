@@ -52,7 +52,13 @@ export class ResponseError extends Error {
 	}
 }
 
-export const error_object_response = ({ error }: { error: unknown }) => {
+export const bad_request_error = (message: string) => new ResponseError({ message, status: 400 })
+
+export function assert_valid_request(condition: unknown, message: string): asserts condition {
+	if (!condition) throw bad_request_error(message)
+}
+
+export const error_object_response =({ error }: { error: unknown }) => {
 	const status = error instanceof ResponseError ? error.status : 500
 	if (error instanceof Error) {
 		return json_response({ body: { error: error.message, stack: error.stack }, status })

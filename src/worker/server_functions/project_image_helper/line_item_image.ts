@@ -32,9 +32,9 @@ export const insert_line_item_image = async ({
 
 	const { insert_id: project_image_id } = await write_helper.insert(`project_image`, {
 		project_id,
-		original_image: Buffer.alloc(0),
-		display_image: null,
-		thumbnail_image: null,
+		original_object_key: ``,
+		display_object_key: ``,
+		thumbnail_object_key: ``,
 		description: ``,
 		visible_to_client: true,
 		uploaded_at: null,

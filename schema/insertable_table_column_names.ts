@@ -389,9 +389,9 @@ export const project_document_history = {
 export const project_image = {
 	company_id: 'company_id',
 	project_id: 'project_id',
-	original_image: 'original_image',
-	display_image: 'display_image',
-	thumbnail_image: 'thumbnail_image',
+	original_object_key: 'original_object_key',
+	display_object_key: 'display_object_key',
+	thumbnail_object_key: 'thumbnail_object_key',
 	description: 'description',
 	visible_to_client: 'visible_to_client',
 	uploaded_at: 'uploaded_at',

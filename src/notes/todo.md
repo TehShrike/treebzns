@@ -4,11 +4,17 @@ The difference between qualified/unqualified lead: "qualified" means someone act
 
 ## Save images to DO Spaces
 
-- [ ] Create space in new DO team
-- [ ] Generate API key
-- [ ] Figure out S3 client
-- Stream uploads
-- Endpoint to stream downloads, auth company id?  Do I need to go between at all, can I just redirect?
+- [x] Create space in new DO team
+- [x] Generate API key
+- [x] Figure out S3 client
+
+### Next steps
+
+- Upload each image in its own request, rather than 3-in-1
+- some day, we will want to upload straight to Spaces from the browser.  Maybe even today?
+> Presigned PUT URLs, so the browser uploads straight to Spaces. The Worker handles no photo bytes at all. presign_url already supports PUT.
+> - Cost: the bucket needs a CORS rule, and a "finish" call is needed afterward. The JPEG check moves after the upload (a Range GET of the first 3 bytes, then delete the file if it fails). The presigned URL must be requested when the upload queue sends the photo, not when the photo is taken, or it can expire while the device is offline.
+- Image caching needs to be a little more central, a little better-defined than just `browser_response` and `cache_seconds` in project_image_file
 
 ## Estimation
 

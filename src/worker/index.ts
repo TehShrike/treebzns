@@ -1,13 +1,15 @@
 import { create_connection } from '#shared/mysql/connection.ts'
 import make_mysql_helpers_object, { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import wrap_connection_with_query_logger from '#shared/mysql/query_logger.ts'
+import { create_spaces_client } from '#shared/s3/spaces.ts'
 
 import create_company from './bare_endpoints/create_company.ts'
 import log_in from './bare_endpoints/log_in.ts'
 import log_out from './bare_endpoints/log_out.ts'
 import session from './bare_endpoints/session.ts'
 import server_functions from './bare_endpoints/server_functions.ts'
-import project_image_upload, { project_image_upload_route } from './bare_endpoints/project_image_upload/project_image_upload.ts'
+import project_image_upload, { project_image_upload_route } from './bare_endpoints/project_image/project_image_upload.ts'
+import project_image_file, { project_image_file_route } from './bare_endpoints/project_image/project_image_file.ts'
 import { error_object_response } from './lib/response_helpers.ts'
 
 const server_function_route_prefix = '/api/fn/'
@@ -26,7 +28,7 @@ const run_with_connection = async <RESULT>(env: Env, fn: (connection: MysqlHelpe
 }
 
 export default {
-	async fetch(request: Request, env: Env): Promise<Response> {
+	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const { pathname, method } = Object.assign(new URL(request.url), { method: request.method })
 		isolate_request_count++
 		console.log(`[isolate] request ${isolate_request_count}, isolate age ${Math.round((Date.now() - isolate_started_at) / 1000)}s, ${method} ${pathname}`)
@@ -43,7 +45,9 @@ export default {
 			} else if (method === 'POST' && pathname.startsWith(server_function_route_prefix)) {
 				return await run_with_connection(env, async mysql => server_functions(server_function_route_prefix, request, mysql))
 			} else if (method === 'PUT' && project_image_upload_route.test(pathname)) {
-				return await run_with_connection(env, async mysql => project_image_upload(request, mysql))
+				return await run_with_connection(env, async mysql => project_image_upload(request, mysql, create_spaces_client(env)))
+			} else if (method === 'GET' && project_image_file_route.test(pathname)) {
+				return await run_with_connection(env, async mysql => project_image_file(request, mysql, create_spaces_client(env), ctx))
 			}
 		} catch (error) {
 			console.error(error)

@@ -1,14 +1,14 @@
 import * as jv from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
-import { is_buffer, is_temporal_instant } from './_helpers.ts'
+import { is_temporal_instant } from './_helpers.ts'
 
 export const validator_object = {
 	project_image_id: jv.is_bigint,
 	company_id: jv.is_bigint,
 	project_id: jv.is_bigint,
-	original_image: is_buffer,
-	display_image: jv.nullable(is_buffer),
-	thumbnail_image: jv.nullable(is_buffer),
+	original_object_key: jv.is_string,
+	display_object_key: jv.is_string,
+	thumbnail_object_key: jv.is_string,
 	description: jv.is_string,
 	visible_to_client: jv.is_boolean,
 	uploaded_at: jv.nullable(is_temporal_instant),

@@ -10,6 +10,9 @@ routes = [
 	{ pattern = "turbocedar.com", custom_domain = true }
 ]
 
+[vars]
+SPACES_REGION = "nyc3"
+
 [assets]
 directory = "./src/public"
 binding = "ASSETS"
