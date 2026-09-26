@@ -2,7 +2,13 @@
 
 The difference between qualified/unqualified lead: "qualified" means someone actually has talked to them and they want an estimator to come out.  Unqualified means random contact from Angies or some other source.  Someone should talk to them before driving too far.
 
-Should both exist?  Does anyone care about the difference?  When does the estimator get sent out?  If nothing else, a lead created by an office worker using the create-a-lead screen should probably count as qualified, eh?
+## Save images to DO Spaces
+
+- [ ] Create space in new DO team
+- [ ] Generate API key
+- [ ] Figure out S3 client
+- Stream uploads
+- Endpoint to stream downloads, auth company id?  Do I need to go between at all, can I just redirect?
 
 ## Estimation
 
@@ -17,34 +23,9 @@ https://discord.com/channels/@me/256500497706385409/1547412310069346334
 
 Project needs "estimated crew size"
 
-### To-estimate list
-
-
-
 ## Create a lead
 
 - Due date date picker needs to always be visible, but disabled when not "Has a due date"
-
-## Deploy to dedicated Cloudflare account
-
-- [x] Create a new email address
-- [x] Business card: Chase Ink Business Unlimited
-- [x] Wait for new credit card to arrive, add it to 1Password
-- [x] Create a new Cloudflare account
-- [x] Subscribe to Workers Paid
-- [x] Buy domain name
-- [x] Create new Digital Ocean account with new credit card
-- [x] Create new managed DO database
-- [ ] Create database user for CI
-- [ ] Create database user for prod
-- [ ] Configure the worker
-	- [ ] Configure environment variables
-	- [ ] Hyperdrive
-- [ ] Deploy from CI
-- [ ] Set up auto-pay for credit card
-- [ ] Shut down old managed database
-- [ ] Shut down old CFW deploy
-- [ ] Create DO Spaces for S3 storage
 
 ## Logs
 

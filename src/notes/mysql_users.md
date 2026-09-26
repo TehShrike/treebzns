@@ -23,3 +23,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER,
 	CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER
 	ON `turbocedar`.* TO 'treebzns_ci_migrator'@'%';
 ```
+
+# CA Certificate
+
+```sh
+base64 -i ~/Downloads/ca-certificate\ \(2\).crt | pbcopy
+```
+
