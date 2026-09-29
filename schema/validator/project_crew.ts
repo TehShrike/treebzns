@@ -8,6 +8,7 @@ export const validator_object = {
 	project_id: jv.is_bigint,
 	crew_id: jv.is_bigint,
 	work_date: is_temporal_plain_date,
+	arbostar_schedule_event_id: jv.nullable(jv.is_bigint),
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 }

@@ -438,6 +438,7 @@ export const project_crew = {
 	start_time: 'start_time',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
+	arbostar_schedule_event_id: 'arbostar_schedule_event_id',
 } as const
 
 export const project_crew_employee = {

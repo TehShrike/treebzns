@@ -25,7 +25,8 @@
 		"paths": {
 			"#schema/*": ["./schema/*"],
 			"#shared/*": ["./src/shared/*"],
-			"#arbostar_export/*": ["./arbostar_export/*"]
+			"#arbostar_export/*": ["./arbostar_export/*"],
+			"#arbostar_api_export/*": ["./arbostar_api_export/*"]
 		},
 
 		// Other Outputs

@@ -3,6 +3,7 @@ node_modules
 .env
 
 /arbostar_export/*.js
+/arbostar_api_export/*.js
 /scripts/arbostar/.arbostar_session.json
 .wrangler/
 build/

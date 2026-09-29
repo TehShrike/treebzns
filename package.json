@@ -14,6 +14,7 @@
 		"#shared/*": "./src/shared/*",
 		"#schema/*": "./schema/*",
 		"#arbostar_export/*": "./arbostar_export/*",
+		"#arbostar_api_export/*": "./arbostar_api_export/*",
 		"#client/lib/*": "./src/client/lib/*",
 		"#client/component/*": "./src/client/component/*",
 		"#worker/lib/*": "./src/worker/lib/*"
@@ -31,6 +32,10 @@
 		"test:types:svelte": "svelte-check --tsconfig ./src/client/tsconfig.json --fail-on-warnings",
 		"test:unit": "node --test \"src/shared/**/*.test.ts\" \"src/client/**/*.test.ts\" \"src/worker/**/*.test.ts\" \"scripts/**/*.test.ts\"",
 		"smoke:spaces": "dotenv -- node src/shared/s3/spaces_smoke_test.ts",
+		"arbostar:api_export": "dotenv -- node scripts/arbostar_api/export_all.ts",
+		"import:arbostar_web": "dotenv -- node scripts/import_arbostar_export.ts",
+		"import:arbostar_api": "dotenv -- node scripts/import_arbostar_api_export.ts",
+		"import_from_all_sources": "run-s \"import:arbostar_web {@}\" \"import:arbostar_api {@}\" --",
 		"local:db_up": "run-s local:db_migrate local:db_export_schema",
 		"local:db_export_schema": "dotenv -- node scripts/export_schema.ts && ./stage_schema_files.sh",
 		"local:db_migrate": "dotenv -- node scripts/migrate.ts",

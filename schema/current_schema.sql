@@ -535,9 +535,11 @@ CREATE TABLE `project_crew` (
   `start_time` time DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `arbostar_schedule_event_id` bigint unsigned DEFAULT NULL,
   PRIMARY KEY (`project_crew_id`),
   UNIQUE KEY `uq_project_crew_project_crew_work_date` (`project_id`,`crew_id`,`work_date`),
-  UNIQUE KEY `uq_project_crew_crew_work_date_day_order` (`crew_id`,`work_date`,`day_order`)
+  UNIQUE KEY `uq_project_crew_crew_work_date_day_order` (`crew_id`,`work_date`,`day_order`),
+  UNIQUE KEY `uq_project_crew_company_arbostar_schedule_event_id` (`company_id`,`arbostar_schedule_event_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `project_crew_employee` (
