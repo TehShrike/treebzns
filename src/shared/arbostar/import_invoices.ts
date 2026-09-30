@@ -8,7 +8,6 @@ import assert from '#shared/assert.ts'
 import number from '#shared/fnum.ts'
 import { ROWS_PER_BATCH, group_by, money } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
-import type { ImportedClients } from './import_clients.ts'
 import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
 import { date_from_yyyymmdd } from './arbostar_dates.ts'
 
@@ -48,16 +47,25 @@ const constructed_number = (invoice: ArbostarInvoice): bigint => {
 // reconstructing the headers (they don't sum on ~130 invoices). Only rows this importer
 // created are ever overwritten — app-created invoices have a null arbostar_invoice_id and are
 // never touched. Invoices that disappeared from the export are counted, not deleted.
-export const import_invoices = async (
-	connection: Connection,
-	write_helper: TenantedWriteHelper,
-	context: ArbostarImportContext,
-	{ invoices, line_items }: { invoices: ArbostarInvoice[]; line_items: ArbostarLineItem[] },
-	imported_clients: ImportedClients,
-	project_id_by_arbostar_lead_id: Map<number, bigint>,
-	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>,
-): Promise<ImportedInvoices> => {
-	const { client_id_by_arbostar_client_id } = imported_clients
+export const import_invoices = async ({
+	connection,
+	write_helper,
+	context,
+	invoices,
+	line_items,
+	client_id_by_arbostar_client_id,
+	project_id_by_arbostar_lead_id,
+	project_line_item_id_by_arbostar_line_item_id,
+}: {
+	connection: Connection
+	write_helper: TenantedWriteHelper
+	context: ArbostarImportContext
+	invoices: ArbostarInvoice[]
+	line_items: ArbostarLineItem[]
+	client_id_by_arbostar_client_id: Map<number, bigint>
+	project_id_by_arbostar_lead_id: Map<number, bigint>
+	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
+}): Promise<ImportedInvoices> => {
 	const correlated = new Map(context.existing.invoice_id_by_arbostar_invoice_id)
 	const importable = filter(invoices, invoice => client_id_by_arbostar_client_id.has(invoice.client_id))
 

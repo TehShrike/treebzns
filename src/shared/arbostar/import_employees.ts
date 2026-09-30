@@ -34,15 +34,21 @@ export type ImportedEmployees = {
 // identity in the table up front — a collision with another row (any company) downgrades the
 // identity to null / a synthesized placeholder rather than relying on a duplicate-key error.
 // is_owner is an in-app permission: inserted as false, never updated.
-export const import_employees = async (
-	connection: Connection,
-	write_helper: TenantedWriteHelper,
-	context: ArbostarImportContext,
-	users: ArbostarUser[],
+export const import_employees = async ({
+	connection,
+	write_helper,
+	context,
+	users,
+	load_taken_identity_keys,
+}: {
+	connection: Connection
+	write_helper: TenantedWriteHelper
+	context: ArbostarImportContext
+	users: ArbostarUser[]
 	// The deliberately non-tenanted identity lookup, injected by the orchestrator (see
 	// load_taken_identity_keys in import_arbostar_export.ts).
-	load_taken_identity_keys: () => Promise<Set<string>>,
-): Promise<ImportedEmployees> => {
+	load_taken_identity_keys: () => Promise<Set<string>>
+}): Promise<ImportedEmployees> => {
 	const employee_id_by_name = new Map(context.employee_id_by_name)
 	const adoptable_by_identity = new Map(context.employee_id_by_identity)
 	const correlated = context.existing.employee_id_by_arbostar_user_id

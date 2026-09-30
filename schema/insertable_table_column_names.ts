@@ -396,6 +396,8 @@ export const project_image = {
 	description: 'description',
 	visible_to_client: 'visible_to_client',
 	uploaded_at: 'uploaded_at',
+	arbostar_image_id: 'arbostar_image_id',
+	upload_employee_id: 'upload_employee_id',
 } as const
 
 export const project_line_item = {
@@ -424,6 +426,7 @@ export const project_line_item_image = {
 	company_id: 'company_id',
 	project_image_id: 'project_image_id',
 	project_line_item_id: 'project_line_item_id',
+	sort: 'sort',
 } as const
 
 export const project_line_item_work_skill = {

@@ -1,7 +1,7 @@
 // Orchestrates the full ArboStar → current-schema import. Each entity's mapping lives in its
 // own module (import_employees / import_clients / import_projects / import_line_items /
-// import_payments); shared plumbing is in import_common.ts, and arbostar_import_notes.md
-// documents what does and doesn't survive the mapping.
+// import_images / import_payments); shared plumbing is in import_common.ts, and
+// arbostar_import_notes.md documents what does and doesn't survive the mapping.
 import type { Connection, Pool, PoolConnection } from 'mysql2/promise'
 import { map, filter } from '#shared/array.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
@@ -18,6 +18,7 @@ import type { ArbostarPayment } from '#arbostar_export/payments.d.ts'
 import type { ArbostarUser } from '#arbostar_export/users.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
 import type { ArbostarCrewRole } from '#arbostar_export/crew_roles.d.ts'
+import type { ArbostarImage } from '#arbostar_export/images.d.ts'
 import { pool_transaction, type TransactionConnection } from '#shared/mysql/helpers.ts'
 import make_write_helper, { type TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import { identity_key, run_select } from './import_common.ts'
@@ -30,6 +31,8 @@ import { import_line_items } from './import_line_items.ts'
 import { import_invoices } from './import_invoices.ts'
 import { import_payments } from './import_payments.ts'
 import { import_work_skills } from './import_work_skills.ts'
+import { delete_objects, import_images, type ReadArbostarImageFileFromDisk } from './import_images.ts'
+import type { S3Client } from '#shared/s3/s3_client.ts'
 
 export type ArbostarExportData = {
 	clients: ArbostarClient[]
@@ -44,6 +47,7 @@ export type ArbostarExportData = {
 	users: ArbostarUser[]
 	taxes: ArbostarTax[]
 	crew_roles: ArbostarCrewRole[]
+	images: ArbostarImage[]
 }
 
 // Identity columns (email / login_name) are globally unique across companies, so the
@@ -64,11 +68,23 @@ const load_taken_identity_keys = async (connection: Connection): Promise<Set<str
 	))
 }
 
-const import_arbostar_export = async (
-	pool: Pool,
-	company_id: bigint,
-	data: ArbostarExportData,
-) => {
+const import_arbostar_export = async ({
+	pool,
+	company_id,
+	data,
+	s3,
+	read_arbostar_image_file_from_disk,
+	lead_ids_to_download_images_for,
+	log,
+}: {
+	pool: Pool
+	company_id: bigint
+	data: ArbostarExportData
+	s3: S3Client
+	read_arbostar_image_file_from_disk: ReadArbostarImageFileFromDisk
+	lead_ids_to_download_images_for: Set<number>
+	log: (message: string) => void
+}) => {
 	const context = await resolve_context(pool, company_id)
 	const transaction_with_write_helper = <Result>(
 		fn: (connection: TransactionConnection<PoolConnection>, write_helper: TenantedWriteHelper) => Promise<Result>,
@@ -89,47 +105,85 @@ const import_arbostar_export = async (
 	// users, not just pre-existing employees. Clients and work skills don't consume it, so
 	// they load alongside.
 	const [imported_employees, imported_clients, imported_work_skills] = await Promise.all([
-		transaction_with_write_helper((connection, write_helper) => import_employees(connection, write_helper, context, data.users, () => load_taken_identity_keys(connection))),
-		transaction_with_write_helper((connection, write_helper) => import_clients(connection, write_helper, context, data.clients)),
-		transaction_with_write_helper((connection, write_helper) => import_work_skills(connection, write_helper, context, data.crew_roles)),
+		transaction_with_write_helper((connection, write_helper) => import_employees({
+			connection,
+			write_helper,
+			context,
+			users: data.users,
+			load_taken_identity_keys: () => load_taken_identity_keys(connection),
+		})),
+		transaction_with_write_helper((connection, write_helper) => import_clients({ connection, write_helper, context, clients: data.clients })),
+		transaction_with_write_helper((connection, write_helper) => import_work_skills({ connection, write_helper, context, crew_roles: data.crew_roles })),
 	])
 	const context_with_employees: ArbostarImportContext = {
 		...context,
 		employee_id_by_name: imported_employees.employee_id_by_name,
 	}
 
-	const imported_projects = await transaction_with_write_helper(
-		(connection, write_helper) => import_projects(connection, write_helper, context_with_employees, data, imported_clients),
-	)
+	const imported_projects = await transaction_with_write_helper((connection, write_helper) => import_projects({
+		connection,
+		write_helper,
+		context: context_with_employees,
+		leads: data.leads,
+		estimates: data.estimates,
+		workorders: data.workorders,
+		invoices: data.invoices,
+		line_items: data.line_items,
+		lead_notes: data.lead_notes,
+		declines: data.declines,
+		taxes: data.taxes,
+		client_id_by_arbostar_client_id: imported_clients.client_id_by_arbostar_client_id,
+		default_project_address_by_arbostar_client_id: imported_clients.default_project_address_by_arbostar_client_id,
+		primary_client_contact_id_by_arbostar_client_id: imported_clients.primary_client_contact_id_by_arbostar_client_id,
+	}))
 	// Line items, invoices, and payments run in sequence: invoice lines need the line-item
-	// correlations, and payment allocations need the invoice ids.
-	const imported_line_items = await transaction_with_write_helper((connection, write_helper) => import_line_items(
+	// correlations, and payment allocations need the invoice ids. Photos need the line-item
+	// correlations too, and run alongside invoices and payments.
+	const imported_line_items = await transaction_with_write_helper((connection, write_helper) => import_line_items({
 		connection,
 		write_helper,
-		context_with_employees,
-		data.line_items,
-		imported_projects.project_id_by_arbostar_lead_id,
-		imported_work_skills.work_skill_id_by_crew_code,
-	))
-	const imported_invoices = await transaction_with_write_helper((connection, write_helper) => import_invoices(
+		context: context_with_employees,
+		line_items: data.line_items,
+		project_id_by_arbostar_lead_id: imported_projects.project_id_by_arbostar_lead_id,
+		work_skill_id_by_crew_code: imported_work_skills.work_skill_id_by_crew_code,
+	}))
+	await delete_objects(s3, imported_line_items.deleted_object_keys)
+	const images_promise = import_images({
+		run_transaction: transaction_with_write_helper,
+		context: context_with_employees,
+		images: data.images,
+		s3,
+		read_arbostar_image_file_from_disk,
+		lead_ids_to_download_images_for,
+		log,
+		project_id_by_arbostar_lead_id: imported_projects.project_id_by_arbostar_lead_id,
+		project_line_item_id_by_arbostar_line_item_id: imported_line_items.project_line_item_id_by_arbostar_line_item_id,
+		employee_id_by_arbostar_user_id: imported_employees.employee_id_by_arbostar_user_id,
+	})
+	const imported_invoices = await transaction_with_write_helper((connection, write_helper) => import_invoices({
 		connection,
 		write_helper,
-		context_with_employees,
-		data,
-		imported_clients,
-		imported_projects.project_id_by_arbostar_lead_id,
-		imported_line_items.project_line_item_id_by_arbostar_line_item_id,
-	))
-	const imported_payments = await transaction_with_write_helper((connection, write_helper) => import_payments(
+		context: context_with_employees,
+		invoices: data.invoices,
+		line_items: data.line_items,
+		client_id_by_arbostar_client_id: imported_clients.client_id_by_arbostar_client_id,
+		project_id_by_arbostar_lead_id: imported_projects.project_id_by_arbostar_lead_id,
+		project_line_item_id_by_arbostar_line_item_id: imported_line_items.project_line_item_id_by_arbostar_line_item_id,
+	}))
+	const imported_payments = await transaction_with_write_helper((connection, write_helper) => import_payments({
 		connection,
 		write_helper,
-		context_with_employees,
-		data,
-		imported_clients,
-		imported_projects.project_id_by_arbostar_lead_id,
-		imported_invoices.invoice_id_by_arbostar_invoice_id,
-		imported_employees.employee_id_by_arbostar_user_id,
-	))
+		context: context_with_employees,
+		payments: data.payments,
+		invoices: data.invoices,
+		leads: data.leads,
+		estimates: data.estimates,
+		client_id_by_arbostar_client_id: imported_clients.client_id_by_arbostar_client_id,
+		project_id_by_arbostar_lead_id: imported_projects.project_id_by_arbostar_lead_id,
+		invoice_id_by_arbostar_invoice_id: imported_invoices.invoice_id_by_arbostar_invoice_id,
+		employee_id_by_arbostar_user_id: imported_employees.employee_id_by_arbostar_user_id,
+	}))
+	const imported_images = await images_promise
 
 	return {
 		...imported_employees.counts,
@@ -139,6 +193,7 @@ const import_arbostar_export = async (
 		...imported_line_items.counts,
 		...imported_invoices.counts,
 		...imported_payments.counts,
+		...imported_images.counts,
 	}
 }
 

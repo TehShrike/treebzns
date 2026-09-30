@@ -2,14 +2,10 @@
 
 The difference between qualified/unqualified lead: "qualified" means someone actually has talked to them and they want an estimator to come out.  Unqualified means random contact from Angies or some other source.  Someone should talk to them before driving too far.
 
-## Save images to DO Spaces
-
-- [x] Create space in new DO team
-- [x] Generate API key
-- [x] Figure out S3 client
-
 ### Next steps
 
+- I think we need a shared function that works like Promise.all, except that it takes an object with properties that are potentially Promises, and returns an object of the same shape with any promises resolved.  It should be used anywhere that we pass more than 3 elements to Promise.all.  load_existing_correlations is particularly egregious.
+- Can we delete the project_image records wherever line items are deleted during the import process, rather than where that stale_line_item_filter is being used in import_line_items?
 - Upload each image in its own request, rather than 3-in-1
 - some day, we will want to upload straight to Spaces from the browser.  Maybe even today?
 > Presigned PUT URLs, so the browser uploads straight to Spaces. The Worker handles no photo bytes at all. presign_url already supports PUT.

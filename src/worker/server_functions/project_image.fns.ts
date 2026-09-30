@@ -11,9 +11,14 @@ export const functions = {
 		validator: create_line_item_image_validator,
 		fn: (
 			{ project_line_item_id },
-			{ transaction },
+			{ transaction, user },
 		): Promise<{ project_image_id: bigint }> => transaction(async ({ select_builder, write_helper }) => {
-			const project_image_id = await insert_line_item_image({ project_line_item_id, select_builder, write_helper })
+			const project_image_id = await insert_line_item_image({
+				project_line_item_id,
+				upload_employee_id: user.employee_id,
+				select_builder,
+				write_helper,
+			})
 
 			return { project_image_id }
 		}),

@@ -2,6 +2,7 @@
 // migration 0016 plus the natural keys) so the importers can decide update-vs-insert in
 // memory. On a company's first import every map is empty.
 import type { Connection, Pool } from 'mysql2/promise'
+import type { Temporal } from '@js-temporal/polyfill'
 import { map, filter } from '#shared/array.ts'
 import { normalize_name, type TenantedSelect } from './import_common.ts'
 
@@ -22,6 +23,10 @@ export type ExistingCorrelations = {
 	// the fallback contacts a prior import created for clients with no exported contacts.
 	primary_client_contact_id_by_client_id: Map<number, bigint>
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
+	// Every imported photo with its line-item link, so the image importer can retry uploads
+	// that never finished (uploaded_at null), move the link, and delete the objects of photos
+	// gone from ArboStar.
+	project_image_by_arbostar_image_id: Map<number, ExistingProjectImage>
 	// Keyed by normalize_name(name), matching the case-insensitive unique keys on
 	// (company_id, name).
 	item_type_id_by_name: Map<string, bigint>
@@ -33,6 +38,17 @@ export type ExistingCorrelations = {
 	// The rate is kept as its DECIMAL(4,4) string ("0.0550") so importers can check that a
 	// name-matched row still carries the expected rate.
 	tax_rate_by_name: Map<string, { tax_rate_id: bigint; tax_rate: string }>
+}
+
+export type ExistingProjectImage = {
+	project_image_id: bigint
+	project_id: bigint
+	project_line_item_image_id: bigint
+	project_line_item_id: bigint
+	uploaded_at: Temporal.Instant | null
+	original_object_key: string
+	display_object_key: string
+	thumbnail_object_key: string
 }
 
 // The maps are keyed by number because the ArboStar export ids are JSON numbers.
@@ -50,7 +66,7 @@ export const load_existing_correlations = async (
 	connection: Connection | Pool,
 	tenanted_select: TenantedSelect,
 ): Promise<ExistingCorrelations> => {
-	const [employees, clients, projects, invoices, payments, contacts, primary_contacts, line_items, item_types, payment_methods, tax_rates, work_skills, lead_sources] = await Promise.all([
+	const [employees, clients, projects, invoices, payments, contacts, primary_contacts, line_items, project_images, item_types, payment_methods, tax_rates, work_skills, lead_sources] = await Promise.all([
 		tenanted_select(connection, q => q
 			.from('employee')
 			.select(() => ['employee.employee_id', 'employee.arbostar_user_id'])),
@@ -76,6 +92,20 @@ export const load_existing_correlations = async (
 		tenanted_select(connection, q => q
 			.from('project_line_item')
 			.select(() => ['project_line_item.project_line_item_id', 'project_line_item.arbostar_line_item_id'])),
+		tenanted_select(connection, q => q
+			.from('project_image')
+			.join('project_line_item_image', b => b.comparison('project_line_item_image.project_image_id', '=', 'project_image.project_image_id'))
+			.select(() => [
+				'project_image.project_image_id',
+				'project_image.project_id',
+				'project_image.arbostar_image_id',
+				'project_image.uploaded_at',
+				'project_image.original_object_key',
+				'project_image.display_object_key',
+				'project_image.thumbnail_object_key',
+				'project_line_item_image.project_line_item_image_id',
+				'project_line_item_image.project_line_item_id',
+			])),
 		tenanted_select(connection, q => q
 			.from('item_type')
 			.select(() => ['item_type.item_type_id', 'item_type.name'])),
@@ -147,6 +177,19 @@ export const load_existing_correlations = async (
 			row => row.project_line_item.arbostar_line_item_id,
 			row => row.project_line_item.project_line_item_id,
 		),
+		project_image_by_arbostar_image_id: new Map(map(
+			filter(project_images, row => row.project_image.arbostar_image_id !== null),
+			row => [Number(row.project_image.arbostar_image_id), {
+				project_image_id: row.project_image.project_image_id,
+				project_id: row.project_image.project_id,
+				project_line_item_image_id: row.project_line_item_image.project_line_item_image_id,
+				project_line_item_id: row.project_line_item_image.project_line_item_id,
+				uploaded_at: row.project_image.uploaded_at,
+				original_object_key: row.project_image.original_object_key,
+				display_object_key: row.project_image.display_object_key,
+				thumbnail_object_key: row.project_image.thumbnail_object_key,
+			}] as const,
+		)),
 		item_type_id_by_name: new Map(map(
 			item_types,
 			row => [normalize_name(row.item_type.name), row.item_type.item_type_id] as const,

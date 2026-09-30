@@ -1,3 +1,5 @@
+import assert from '#shared/assert.ts'
+
 export const for_each = <T>(arr: readonly T[], fn: (item: T, index: number) => void) => {
 	let i = 0,
 		len = arr.length
@@ -150,5 +152,32 @@ export const filter_map = <T, K extends NonNullable<unknown>>(arr: readonly T[],
 			res.push(result)
 		}
 	}
+	return res
+}
+
+export const map_with_concurrency = async <T extends NonNullable<unknown> | null, U>(
+	arr: readonly T[],
+	max_concurrent: number,
+	mapper: (item: T, index: number) => Promise<U>,
+	on_progress?: (done_jobs: number, total_jobs: number) => void,
+): Promise<U[]> => {
+	const total_jobs = arr.length,
+		res: U[] = new Array(total_jobs)
+	let next_unclaimed_index = 0,
+		done_jobs = 0
+
+	const launch_worker = async (): Promise<void> => {
+		while (next_unclaimed_index < total_jobs) {
+			const claimed_index = next_unclaimed_index++
+			const mapper_input = arr[claimed_index]
+			assert(mapper_input !== undefined, 'array elements are not undefined')
+			res[claimed_index] = await mapper(mapper_input, claimed_index)
+			done_jobs += 1
+			on_progress?.(done_jobs, total_jobs)
+		}
+	}
+
+	const worker_count = Math.min(max_concurrent, total_jobs)
+	await Promise.all(map(Array.from({ length: worker_count }), launch_worker))
 	return res
 }

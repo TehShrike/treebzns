@@ -14,6 +14,8 @@ export const validator_object = {
 	uploaded_at: jv.nullable(is_temporal_instant),
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
+	arbostar_image_id: jv.nullable(jv.is_bigint),
+	upload_employee_id: jv.nullable(jv.is_bigint),
 }
 
 export const project_image_validator: jv.Validator<DbProjectImage> = jv.object(validator_object)

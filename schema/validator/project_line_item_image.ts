@@ -9,6 +9,7 @@ export const validator_object = {
 	project_line_item_id: jv.is_bigint,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
+	sort: jv.is_bigint,
 }
 
 export const project_line_item_image_validator: jv.Validator<DbProjectLineItemImage> = jv.object(validator_object)

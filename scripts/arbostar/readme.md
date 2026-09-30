@@ -20,6 +20,8 @@ line items only exist behind per-record detail endpoints (fetched one by one).
 | `output.ts` | Reads/writes the `arbostar_export/` dir at the repo root — writes each dataset as `<name>.js` (`export default [...]`, gitignored). |
 | `export_*.ts` | One run-now script per dataset. |
 | `estimate_services.ts` | Reads the line items, and each line item's photos (`files`), out of an estimate profile. |
+| `leads_to_download_images_for.ts` | Which leads `export_images.ts` covers: the ones with current work. The import reuses it to scope photo deletes to the leads the export scanned. |
+| `image_files.ts` | For the import: reads an exported photo as a JPEG original (PNGs converted) plus a cached thumbnail (`images/thumbnails/`, made with sharp). The export and thumbnail directories are curried in by `scripts/import_arbostar_export.ts`. |
 | `export_all.ts` | Runs every export script. Independent scripts run in parallel. `export_line_items.ts` (reads `estimates.js` / `leads.js`) and `export_images.ts` (reads `estimates.js` / `workorders.js`) wait for `export_estimates.ts`, `export_leads.ts`, and `export_workorders.ts`. |
 | `discover_endpoints.ts` / `discover_details.ts` | Puppeteer crawlers that record the app's XHRs (list pages / detail pages). `discover_endpoints.ts` regenerates `arbostar_endpoints.json`. |
 | `arbostar_endpoints.json` | Map of all ~36 list/XHR endpoints, with an example `path_and_query` for each. |

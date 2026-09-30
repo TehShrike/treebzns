@@ -20,7 +20,15 @@ const project_number = (event: ArbostarApiScheduleEvent): number => {
 const unique_key = (project_id: bigint, crew_id: bigint, work_date: { toString: () => string }) =>
 	`${project_id}:${crew_id}:${work_date.toString()}`
 
-export const import_schedule_events = async (pool: Pool, company_id: bigint, schedule_events: ArbostarApiScheduleEvent[]) => {
+export const import_schedule_events = async ({
+	pool,
+	company_id,
+	schedule_events,
+}: {
+	pool: Pool
+	company_id: bigint
+	schedule_events: ArbostarApiScheduleEvent[]
+}) => {
 	const tenanted_select = make_tenanted_select(company_id)
 
 	const [company_rows, crew_rows, employee_rows, project_rows, line_item_rows, project_crew_rows] = await Promise.all([

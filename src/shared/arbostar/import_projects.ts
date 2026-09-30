@@ -25,7 +25,7 @@ import {
 import { derive_timezone_from_export } from './derive_timezone_from_export.ts'
 import { ROWS_PER_BATCH, group_by, join_lines, join_paragraphs, money, money_display, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
-import type { ImportedClients } from './import_clients.ts'
+import type { ImportedDefaultProjectAddress } from './import_clients.ts'
 import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
 
 export type ImportedProjects = {
@@ -151,23 +151,37 @@ const NOT_TAXABLE: ProjectTax = { taxable: false, tax_rate_id: null, tax_rate: n
 // in-app. closed_at/closed_date come from the export where it records the closing moment
 // (a finished work order's latest status change, a decline) and are written only when the
 // row has none yet, so a date set in-app survives re-imports.
-export const import_projects = async (
-	connection: Connection,
-	write_helper: TenantedWriteHelper,
-	context: ArbostarImportContext,
-	{ leads, estimates, workorders, invoices, line_items, lead_notes, declines, taxes }: {
-		leads: ArbostarLead[]
-		estimates: ArbostarEstimate[]
-		workorders: ArbostarWorkOrder[]
-		invoices: ArbostarInvoice[]
-		line_items: ArbostarLineItem[]
-		lead_notes: ArbostarLeadNotes[]
-		declines: ArbostarDecline[]
-		taxes: ArbostarTax[]
-	},
-	imported_clients: ImportedClients,
-): Promise<ImportedProjects> => {
-	const { client_id_by_arbostar_client_id, default_project_address_by_arbostar_client_id, primary_client_contact_id_by_arbostar_client_id } = imported_clients
+export const import_projects = async ({
+	connection,
+	write_helper,
+	context,
+	leads,
+	estimates,
+	workorders,
+	invoices,
+	line_items,
+	lead_notes,
+	declines,
+	taxes,
+	client_id_by_arbostar_client_id,
+	default_project_address_by_arbostar_client_id,
+	primary_client_contact_id_by_arbostar_client_id,
+}: {
+	connection: Connection
+	write_helper: TenantedWriteHelper
+	context: ArbostarImportContext
+	leads: ArbostarLead[]
+	estimates: ArbostarEstimate[]
+	workorders: ArbostarWorkOrder[]
+	invoices: ArbostarInvoice[]
+	line_items: ArbostarLineItem[]
+	lead_notes: ArbostarLeadNotes[]
+	declines: ArbostarDecline[]
+	taxes: ArbostarTax[]
+	client_id_by_arbostar_client_id: Map<number, bigint>
+	default_project_address_by_arbostar_client_id: Map<number, ImportedDefaultProjectAddress>
+	primary_client_contact_id_by_arbostar_client_id: Map<number, bigint>
+}): Promise<ImportedProjects> => {
 	const timezone = derive_timezone_from_export({ leads, workorders })
 	const estimates_by_lead_id = group_by(filter(estimates, estimate => estimate.lead_id !== null), estimate => estimate.lead_id!)
 	const workorders_by_lead_id = group_by(filter(workorders, workorder => workorder.lead_id !== null), workorder => workorder.lead_id!)

@@ -10,7 +10,6 @@ import { map, filter, flatten } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import { ROWS_PER_BATCH, group_by, money, normalize_name, string_or_null } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
-import type { ImportedClients } from './import_clients.ts'
 import { date_from_yyyymmdd } from './arbostar_dates.ts'
 
 export type ImportedPayments = {
@@ -71,22 +70,31 @@ const earliest_date = (dates: Array<string | null>): string | null => {
 // In-app rows attached to non-imported payments are never touched. Payments that disappeared
 // from the export are counted, not deleted — a vanished payment usually means an
 // ArboStar-side deletion or refund worth investigating by hand.
-export const import_payments = async (
-	connection: Connection,
-	write_helper: TenantedWriteHelper,
-	context: ArbostarImportContext,
-	{ payments, invoices, leads, estimates }: {
-		payments: ArbostarPayment[]
-		invoices: ArbostarInvoice[]
-		leads: ArbostarLead[]
-		estimates: ArbostarEstimate[]
-	},
-	imported_clients: ImportedClients,
-	project_id_by_arbostar_lead_id: Map<number, bigint>,
-	invoice_id_by_arbostar_invoice_id: Map<number, bigint>,
-	employee_id_by_arbostar_user_id: Map<number, bigint>,
-): Promise<ImportedPayments> => {
-	const { client_id_by_arbostar_client_id } = imported_clients
+export const import_payments = async ({
+	connection,
+	write_helper,
+	context,
+	payments,
+	invoices,
+	leads,
+	estimates,
+	client_id_by_arbostar_client_id,
+	project_id_by_arbostar_lead_id,
+	invoice_id_by_arbostar_invoice_id,
+	employee_id_by_arbostar_user_id,
+}: {
+	connection: Connection
+	write_helper: TenantedWriteHelper
+	context: ArbostarImportContext
+	payments: ArbostarPayment[]
+	invoices: ArbostarInvoice[]
+	leads: ArbostarLead[]
+	estimates: ArbostarEstimate[]
+	client_id_by_arbostar_client_id: Map<number, bigint>
+	project_id_by_arbostar_lead_id: Map<number, bigint>
+	invoice_id_by_arbostar_invoice_id: Map<number, bigint>
+	employee_id_by_arbostar_user_id: Map<number, bigint>
+}): Promise<ImportedPayments> => {
 	const correlated = context.existing.payment_id_by_arbostar_payment_id
 	const with_client = filter(payments, payment => client_id_by_arbostar_client_id.has(payment.client_id))
 

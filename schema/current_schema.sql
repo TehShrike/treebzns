@@ -623,7 +623,10 @@ CREATE TABLE `project_image` (
   `uploaded_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `arbostar_image_id` int unsigned DEFAULT NULL,
+  `upload_employee_id` int unsigned DEFAULT NULL,
   PRIMARY KEY (`project_image_id`),
+  UNIQUE KEY `uq_project_image_company_arbostar_image_id` (`company_id`,`arbostar_image_id`),
   KEY `idx_project_image_project` (`project_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -664,6 +667,7 @@ CREATE TABLE `project_line_item_image` (
   `project_line_item_id` int unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `sort` smallint unsigned NOT NULL,
   PRIMARY KEY (`project_line_item_image_id`),
   UNIQUE KEY `uq_plii_project_image_project_line_item` (`project_image_id`,`project_line_item_id`),
   KEY `idx_plii_line_item` (`project_line_item_id`)

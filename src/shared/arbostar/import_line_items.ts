@@ -1,4 +1,4 @@
-import type { Connection, ResultSetHeader } from 'mysql2/promise'
+import type { Connection, ResultSetHeader, RowDataPacket } from 'mysql2/promise'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
@@ -10,11 +10,15 @@ import { normalize_crew_code } from './import_work_skills.ts'
 
 export type ImportedLineItems = {
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
+	// Object keys of the imported photos that went with the deleted lines. The rows are gone
+	// once the transaction commits; the caller removes the objects afterwards.
+	deleted_object_keys: string[]
 	counts: {
 		item_types_inserted: number
 		project_line_items_inserted: number
 		project_line_items_updated: number
 		project_line_items_deleted: number
+		project_images_deleted_with_line_items: number
 		project_line_item_work_skills_inserted: number
 		project_line_item_work_skills_deleted: number
 		skipped_line_items_without_project: number
@@ -41,15 +45,24 @@ const data_score = (item: ArbostarLineItem): number =>
 // Each line's `crews` string (comma-joined crew role codes) becomes its
 // project_line_item_work_skill rows. ArboStar is the source of truth for the set, so the
 // links of every ArboStar line in an imported project are replaced wholesale — including
-// those of lines about to be deleted, which would otherwise be orphaned.
-export const import_line_items = async (
-	connection: Connection,
-	write_helper: TenantedWriteHelper,
-	context: ArbostarImportContext,
-	line_items: ArbostarLineItem[],
-	project_id_by_arbostar_lead_id: Map<number, bigint>,
-	work_skill_id_by_crew_code: Map<string, bigint>,
-): Promise<ImportedLineItems> => {
+// those of lines about to be deleted, which would otherwise be orphaned. A deleted line also
+// takes its photo links and its imported photos (project_image rows with an arbostar_image_id)
+// with it, in the same statement; in-app photos linked to the line only lose the link.
+export const import_line_items = async ({
+	connection,
+	write_helper,
+	context,
+	line_items,
+	project_id_by_arbostar_lead_id,
+	work_skill_id_by_crew_code,
+}: {
+	connection: Connection
+	write_helper: TenantedWriteHelper
+	context: ArbostarImportContext
+	line_items: ArbostarLineItem[]
+	project_id_by_arbostar_lead_id: Map<number, bigint>
+	work_skill_id_by_crew_code: Map<string, bigint>
+}): Promise<ImportedLineItems> => {
 	const with_project = filter(line_items, item => project_id_by_arbostar_lead_id.has(item.lead_id))
 	const best_by_line_item_id = new Map<number, ArbostarLineItem>()
 	for (const item of with_project) {
@@ -154,23 +167,47 @@ export const import_line_items = async (
 		await write_helper.bulk_insert('project_line_item_work_skill', work_skill_rows, ROWS_PER_BATCH)
 	}
 
-	const deleted = imported_project_ids.length === 0 ? 0 : await (async () => {
-		const [{ affectedRows }] = await connection.query<ResultSetHeader>(
-			`DELETE FROM project_line_item WHERE company_id = ${escape_value(context.company_id)}`
-			+ ' AND arbostar_line_item_id IS NOT NULL'
-			+ ` AND project_id IN (${imported_project_id_list})`
-			+ (importable.length > 0 ? ` AND arbostar_line_item_id NOT IN (${incoming_id_list})` : ''),
-		)
-		return affectedRows
-	})()
+	const stale_line_item_filter = `project_line_item.company_id = ${escape_value(context.company_id)}`
+		+ ' AND project_line_item.arbostar_line_item_id IS NOT NULL'
+		+ ` AND project_line_item.project_id IN (${imported_project_id_list})`
+		+ (importable.length > 0 ? ` AND project_line_item.arbostar_line_item_id NOT IN (${incoming_id_list})` : '')
+	const stale = imported_project_ids.length === 0
+		? { line_items_deleted: 0, images_deleted: 0, object_keys: [] as string[] }
+		: await (async () => {
+			const [stale_rows] = await connection.query<RowDataPacket[]>({
+				sql: 'SELECT project_line_item.project_line_item_id, project_image.original_object_key, project_image.display_object_key, project_image.thumbnail_object_key'
+					+ ' FROM project_line_item'
+					+ ' LEFT JOIN project_line_item_image ON project_line_item_image.project_line_item_id = project_line_item.project_line_item_id'
+					+ ' LEFT JOIN project_image ON project_image.project_image_id = project_line_item_image.project_image_id AND project_image.arbostar_image_id IS NOT NULL'
+					+ ` WHERE ${stale_line_item_filter}`,
+				rowsAsArray: true,
+			})
+			const rows = stale_rows as unknown as [bigint, string | null, string | null, string | null][]
+			const line_item_ids = new Set(map(rows, row => String(row[0])))
+			const image_rows = filter(rows, row => row[1] !== null)
+			const object_keys = filter(
+				flat_map(image_rows, row => [row[1], row[2], row[3]] as string[]),
+				key => key !== '',
+			)
+			await connection.query<ResultSetHeader>(
+				'DELETE project_line_item, project_line_item_image, project_image'
+				+ ' FROM project_line_item'
+				+ ' LEFT JOIN project_line_item_image ON project_line_item_image.project_line_item_id = project_line_item.project_line_item_id'
+				+ ' LEFT JOIN project_image ON project_image.project_image_id = project_line_item_image.project_image_id AND project_image.arbostar_image_id IS NOT NULL'
+				+ ` WHERE ${stale_line_item_filter}`,
+			)
+			return { line_items_deleted: line_item_ids.size, images_deleted: image_rows.length, object_keys }
+		})()
 
 	return {
 		project_line_item_id_by_arbostar_line_item_id,
+		deleted_object_keys: stale.object_keys,
 		counts: {
 			item_types_inserted: new_item_types.length,
 			project_line_items_inserted: new_items.length,
 			project_line_items_updated: existing_items.length,
-			project_line_items_deleted: deleted,
+			project_line_items_deleted: stale.line_items_deleted,
+			project_images_deleted_with_line_items: stale.images_deleted,
 			project_line_item_work_skills_inserted: work_skill_rows.length,
 			project_line_item_work_skills_deleted: work_skills_deleted,
 			skipped_line_items_without_project: line_items.length - with_project.length,

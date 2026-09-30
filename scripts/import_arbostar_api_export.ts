@@ -18,7 +18,7 @@ const company_id = BigInt(args.company_id)
 const pool = create_pool(require_mysql_env(process.env))
 
 try {
-	const summary = await import_schedule_events(pool, company_id, schedule_events)
+	const summary = await import_schedule_events({ pool, company_id, schedule_events })
 	console.log(`Imported ArboStar API export into company ${company_id}:`)
 	for_each(Object.entries(summary), ([key, value]) => console.log(`  ${key}: ${value}`))
 } finally {

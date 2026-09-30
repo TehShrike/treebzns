@@ -1,8 +1,7 @@
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import { fns } from '#shared/sql_request/mysql_function.ts'
 import type { TenantedSelectBuilder, TransactionTenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
-
-export type ProjectImageObjectKeys = Pick<DbProjectImage, 'original_object_key' | 'display_object_key' | 'thumbnail_object_key'>
+import type { ProjectImageObjectKeys } from '#shared/project_image/upload_project_image_files_to_storage.ts'
 
 export const get_project_image = async ({
 	project_image_id,

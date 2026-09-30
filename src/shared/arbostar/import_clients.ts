@@ -6,7 +6,7 @@ import { map, filter, flatten, chunk } from '#shared/array.ts'
 import { ROWS_PER_BATCH, join_lines } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 
-type ImportedDefaultProjectAddress = {
+export type ImportedDefaultProjectAddress = {
 	client_address_id: bigint
 	address_line_1: string
 	address_line_2: string
@@ -67,12 +67,17 @@ const is_known_client_type = (client_type: string | null): boolean =>
 // New clients are inserted with a placeholder default_project_address_id (there are no FK
 // constraints) and fixed up once their address rows exist — the same populate-after-insert
 // convention the schema documents.
-export const import_clients = async (
-	connection: Connection,
-	write_helper: TenantedWriteHelper,
-	context: ArbostarImportContext,
-	clients: ArbostarClient[],
-): Promise<ImportedClients> => {
+export const import_clients = async ({
+	connection,
+	write_helper,
+	context,
+	clients,
+}: {
+	connection: Connection
+	write_helper: TenantedWriteHelper
+	context: ArbostarImportContext
+	clients: ArbostarClient[]
+}): Promise<ImportedClients> => {
 	const correlated = context.existing.client_id_by_arbostar_client_id
 
 	const baked_contact_fields = (client: ArbostarClient) => {

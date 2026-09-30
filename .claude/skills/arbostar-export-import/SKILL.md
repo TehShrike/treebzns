@@ -41,7 +41,7 @@ Notes:
 
 ## 3. Import into the local database
 
-The import is an update-or-insert keyed on the `arbostar_*_id` unique keys, so re-runs are safe. It needs `line_items.js` and `lead_notes.js`, so wait for the background export to finish.
+The import is an update-or-insert keyed on the `arbostar_*_id` unique keys, so re-runs are safe. It needs `line_items.js`, `lead_notes.js`, and `images.js`, so wait for the background export to finish. It also uploads the line item photos to the object store named by the `SPACES_*` env vars in `.env` (the local file points at the test bucket), so the first run moves several hundred MB and takes a few minutes.
 
 Find the company id (the company that holds the imported ArboStar data — it has by far the most clients):
 

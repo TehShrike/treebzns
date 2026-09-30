@@ -25,12 +25,17 @@ export const normalize_crew_code = (code: string): string => code.trim().toUpper
 // column, so the derived name is the natural key (like item_type): a re-run matches by
 // normalized name and overwrites hourly_rate (ArboStar is the source of truth). Skills
 // absent from the export are never deleted.
-export const import_work_skills = async (
-	connection: Connection,
-	write_helper: TenantedWriteHelper,
-	context: ArbostarImportContext,
-	crew_roles: ArbostarCrewRole[],
-): Promise<ImportedWorkSkills> => {
+export const import_work_skills = async ({
+	connection,
+	write_helper,
+	context,
+	crew_roles,
+}: {
+	connection: Connection
+	write_helper: TenantedWriteHelper
+	context: ArbostarImportContext
+	crew_roles: ArbostarCrewRole[]
+}): Promise<ImportedWorkSkills> => {
 	const skills = map(crew_roles, role => {
 		const digits = /(\d+)$/.exec(role.crew_name)?.[1]
 		return {

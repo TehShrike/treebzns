@@ -4,7 +4,7 @@ import validate_session from '#worker/lib/db/validate_session.ts'
 import make_context from '#worker/lib/make_context.ts'
 import { error_response } from '#worker/lib/response_helpers.ts'
 
-import type { ProjectImageVariant } from './project_image_object_key.ts'
+import type { ProjectImageVariant } from '#shared/project_image/project_image_object_key.ts'
 import { get_project_image } from './project_image_queries.ts'
 
 export const project_image_file_route = /^\/api\/project_image\/(\d+)\/(original|display|thumbnail)$/

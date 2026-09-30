@@ -509,6 +509,8 @@ export const project_image = {
 	uploaded_at: 'uploaded_at',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
+	arbostar_image_id: 'arbostar_image_id',
+	upload_employee_id: 'upload_employee_id',
 } as const
 
 export const project_line_item = {
@@ -543,6 +545,7 @@ export const project_line_item_image = {
 	project_line_item_id: 'project_line_item_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
+	sort: 'sort',
 } as const
 
 export const project_line_item_work_skill = {

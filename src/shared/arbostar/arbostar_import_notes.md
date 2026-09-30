@@ -172,7 +172,24 @@ A lead missing from lead_notes.js (it has no estimate, or its fetch failed) impo
 | `project.closed_at` / `project.closed_date` on Void and Expired/Thinking closes | the export has no No Go date (`lead_postpone_date` is set on every lead and usually equals the creation date) and no estimate status-change date |
 
 Whole tables that get nothing: `crew` / `crew_member`, `time_entry`, `estimate_availability`, `project_client_approval`, `project_document` (global
-codebook), `project_line_item_image`.
+codebook).
+
+## Line item photos
+
+`images.js` (line item photos of active leads, see `scripts/arbostar/export_images.ts`) → `project_image` +
+`project_line_item_image`, correlated by `project_image.arbostar_image_id`. The photo bytes upload to the
+same object store the app uses (`SPACES_*` env vars), under the app's own key scheme
+(`company/<id>/project_image/<id>/<variant>.jpg`). The original uploads as-is when it is a JPEG and is
+converted when it is a PNG; the thumbnail is made with sharp (320px long edge, like the in-app one) and
+cached in `arbostar_export/images/thumbnails/`; the display variant stays empty, like an unmarked in-app
+photo. `visible_to_client` comes from `in_estimate_pdf`; `upload_employee_id` from the uploader's
+correlated employee (null when the uploader is not an active ArboStar user); `sort` is the photo's
+position within its line item in the export. Not kept: ArboStar's `created` / `updated`, `original_filename`,
+the PDF flags other than `in_estimate_pdf`.
+
+The rows are written first (`uploaded_at` null), the files upload outside any transaction, and a second
+transaction stores the object keys and `uploaded_at`. A photo whose upload failed keeps its null
+`uploaded_at` and is retried on the next run (`project_images_upload_failed` in the summary).
 
 ## Re-runnable: ArboStar ids are stored as correlations
 
@@ -184,7 +201,10 @@ and inserts only what's new (see `claude_rerunnable_import_notes.md` for the des
 entity phase runs in its own transaction; a crash between phases is recovered by re-running.
 Line items that disappear from the export are deleted, but only within projects present in the
 current run — so a lead missing from a (possibly partial) export keeps its lines just like it
-keeps its project. Contacts are never deleted (decided July 2026: too dangerous against partial
+keeps its project. A deleted line takes its photo links and imported photos (rows and objects) with
+it. Photos that disappear from `images.js` while their line stays are deleted too, but only within
+the leads the image export scanned (`scripts/arbostar/leads_to_download_images_for.ts`), since the export covers
+active leads only. Contacts are never deleted (decided July 2026: too dangerous against partial
 exports; ArboStar-side contact deletions will be reconciled deliberately if ever needed). Rows
 with a null arbostar id — created in-app — are never touched, and top-level entities that
 disappear just linger. All of the above surface as `*_no_longer_in_export` counts in the summary.
