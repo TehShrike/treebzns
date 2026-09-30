@@ -81,6 +81,12 @@ type RawSet = {
 	tis_lat: number
 	tis_lng: number
 	markers_count: number
+	created_at: number | null
+	updated_at: number | null
+	deleted_at: string | null
+	tis_overlay_path: string | null
+	file: unknown
+	tree_inventory_estimates: { estimate_id: number; estimate_no: string }[]
 }
 
 // Both catalogs are select2-style dropdown feeds: { items: [...], total_count }.
@@ -233,6 +239,12 @@ await for_each_async(set_ids_with_trees, async id => {
 		tis_lat: set.tis_lat,
 		tis_lng: set.tis_lng,
 		markers_count: set.markers_count,
+		created_at: set.created_at,
+		updated_at: set.updated_at,
+		deleted_at: set.deleted_at,
+		overlay_path: set.tis_overlay_path,
+		file: set.file,
+		estimates: map(set.tree_inventory_estimates, estimate => ({ estimate_id: estimate.estimate_id, estimate_no: estimate.estimate_no })),
 	})
 })
 

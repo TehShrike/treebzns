@@ -44,6 +44,10 @@ export type ArbostarLead = {
 	referred_by: string | null
 	/** The referring person's display name when referred_by is a referral type ("Employee", "Client"); '' otherwise. */
 	referred_by_name: string | null
+	/** ArboStar user id of the estimator. */
+	estimator_user_id: number | null
+	/** Tag names. */
+	tags: string[]
 }
 
 // leads.js is an ESM module whose default export is the full array of records.

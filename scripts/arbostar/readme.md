@@ -12,6 +12,7 @@ line items only exist behind per-record detail endpoints (fetched one by one).
 | --- | --- |
 | `fetch_datatable.ts` | Generic DataTables fetcher (pagination + the status-union logic below). Engine behind the list exports. |
 | `fetch_record.ts` | Single-record JSON GET + a concurrency-limited mapper. Engine behind the per-record exports (line items). |
+| `lead_profile_details.ts` | Maps the lead, estimate, work order, and invoice fields of each profile `export_line_items.ts` fetches to `lead_profiles.js`, and the id → name lists in those responses to `profile_codebooks.js`. |
 | `lead_notes.ts` | The lead-notes mapper `export_line_items.ts` applies to each estimate profile it fetches, and the fetcher for leads without an estimate, which reads the lead profile endpoint (verified 2026-09-22). **Must not use the estimate editor** — see "Editor pages write on load". |
 | `fetch_clients.ts` | Thin typed wrapper over the generic fetcher, pinned to `/clients`. |
 | `.arbostar_session.json` | **Credentials + account base URL. Gitignored — never committed.** Copy `.arbostar_session.example.json` to it and fill in. |
@@ -35,11 +36,11 @@ Or run one dataset at a time:
 
 ```sh
 node scripts/arbostar/export_clients.ts      # -> clients.js (raw rows; contacts + address_related nested)
-node scripts/arbostar/export_workorders.ts   # -> workorders.js
+node scripts/arbostar/export_workorders.ts   # -> workorders.js (plus the exact latest status change time and the lead coordinates)
 node scripts/arbostar/export_leads.ts        # -> leads.js (two passes + the KPI New Leads referral join)
 node scripts/arbostar/export_estimates.ts    # -> estimates.js   (two passes)
-node scripts/arbostar/export_invoices.ts     # -> invoices.js
-node scripts/arbostar/export_line_items.ts   # -> line_items.js + lead_notes.js  (reads estimates.js + leads.js; one profileData call per estimate)
+node scripts/arbostar/export_invoices.ts     # -> invoices.js (one pass per status tab, to record each invoice's status)
+node scripts/arbostar/export_line_items.ts   # -> line_items.js + lead_notes.js + lead_profiles.js + profile_codebooks.js  (reads estimates.js + leads.js; one profileData call per lead)
 node scripts/arbostar/export_images.ts      # -> images.js + images/  (reads estimates.js + workorders.js; line item photos of active leads, see below)
 node scripts/arbostar/export_payments.ts     # -> payments.js    (BI Client Payments report; see the payments section)
 node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
@@ -225,13 +226,40 @@ order, with each group's children nested inside it; see the service groups bulle
   array is absent. The run prints how many estimates had groups and how many exported line
   items came from inside one. The old editor-only export dropped grouped line items entirely.
 - Line totals won't sum to the estimate total: `optional` lines and discounts are applied on top.
+- **More than the line item basics.** Each row also carries the status id, the time and user
+  of the latest status change (`status_log`), the Completed day (`completed_status_date`),
+  total labor hours (`service_times_with_crew`, which is `service_time` times the crew
+  count), travel time, crew role ids, equipment and tool names, the group id, schedule
+  event ids, and the metadata of every file on the line item. `system_create` and
+  `system_update` are 2026-04-19 on every row that existed when ArboStar moved the account.
+
+**Lead profiles** — the rest of each profile response goes to `lead_profiles.js`, one row per
+lead. From the `lead` object: coordinates, the estimator and creator user ids, the lead
+source id (`lead_reffered_by`), the No Go reason id, `timing`, `preliminary_estimate`,
+priority, the latest status change time, and every file on the lead that is not a line item
+photo (payment receipts, signatures, invoice files). From `lead.estimate`: the exact creation
+time, the decline reason id (`estimate_reason_decline`), the latest status change time (the
+decline time on a declined estimate), deposit and signature settings, discount, totals, the
+service groups, and `emails[]`, which is every time ArboStar emailed the estimate with its
+delivery status. From `lead.estimate.workorder`: office and crew notes, how the client
+confirmed, priority, the latest status change time, and the crew's completion report. From
+`lead.estimate.invoices[]`: the status id, the due, overdue, and paid dates, interest
+charges, and the accounting integration ids. Leads without an estimate get the `lead` part
+from the lead profile.
+
+**Profile codebooks** — every profile response repeats the same id → name lists.
+`profile_codebooks.js` keeps one copy of each: lead sources (`reference`), No Go reasons
+(`reasons`), and lead statuses from the lead profile, and estimate statuses, estimate decline
+reasons (nested in each estimate status as `reason`), work order statuses, and payment
+methods from the estimate profile.
 
 ## Line item photos (`export_images.ts`)
 
-Photos hang off line items, not estimates or work orders. The estimate profile
+This export downloads line item photos only. The estimate profile
 (`/estimates/profile/profileData/{lead_id}`) lists them in each line item's `files` array. A
 work order shows its estimate's line item photos. `estimate_pdf_files` on the estimate only
-repeats the `full_path` of the photos that go in the PDF.
+repeats the `full_path` of the photos that go in the PDF. The lead also has files of its own.
+See "Other files on a lead" below.
 
 Each file has an `id`, `owner_id` (the line item id, which is also the API line item id),
 `original_filename`, `type`, `filesize`, `full_path`, a `thumbnail` path, the uploader's
@@ -247,6 +275,25 @@ photos go to `arbostar_export/images/<id>.<extension>` (gitignored) and the rows
 `images.js`. A photo already on disk is not downloaded again. The profile's `filesize` is
 stale for some photos (a 424309-byte listing downloads as a complete 407725-byte JPEG), so
 the export checks each download against `content-length` and records the size on disk.
+
+### Other files on a lead
+
+The lead's own `files` are in `lead_profiles.js` at `lead.files`, with metadata only. The
+export does not download them, and the importer does not import them. Each file's
+`module_type` says what it is. The counts are from the September 30 2026 export.
+
+| `module_type` | Files | What it is |
+| --- | --- | --- |
+| `estimate` | 365 on 179 leads | Estimate photos. 364 go in the estimate PDF. 4 repeat a line item photo. |
+| `lead` | 338 on 152 leads | Photos on the lead from before the estimate, and a few videos and text files. Paths are under `leads/<lead_id>/` or `leads/<lead_no>/`. |
+| `invoice` | 1435 on 432 leads | Photos with camera file names. 1433 go in the invoice PDF. They are probably the crew's after-work photos, but nobody has checked. None repeat a line item photo. |
+| `signature` | 475 | The client's signature, `signature.png`. |
+| `scheme` | 67 | The site sketch, `pdf_estimate_no_<estimate_no>_scheme.png`. |
+| `workorder` | 1552 | Payment files under `uploads/payment_files/<client_id>/<payment_id>/`: receipt PDFs such as `payment_<payment_id>_1.pdf`, and 708 images, probably photos of checks or receipts. |
+
+The `estimate`, `lead`, and probably the `invoice` files are project photos. They would
+become `project_image` rows with no `project_line_item_image` row. Signatures, sketches, and
+payment files are not project photos.
 
 ## Labor catalogs: crew roles
 
@@ -275,8 +322,8 @@ The pruning work types (the `ip_*` catalog: Clean canopy, Crown reduction, ...) 
 exported to `work_types.js` from the estimate editor alongside the crew roles. The editor
 writes on load (see "Editor pages write on load"), nothing consumed the file, and no
 read-only source is known, so work types are no longer exported. They attach to tree
-inventory trees (each tree's `work_types[]`, empty on every tree in this account so far), not
-to line items.
+inventory trees, not to line items. Each tree's `work_types[]` holds `{ ip_id, text }` pairs,
+e.g. `{ ip_id: 7, text: 'DW:Deadwood' }`. In September 2026, 20 of 45 trees had one or more.
 
 How crew roles map to jobs:
 
@@ -319,11 +366,14 @@ Two files:
 - **`tree_inventory.js`** — one row per tree (flattened GeoJSON feature): `ti_id`, `tis_id`,
   `tree_number`, `species_id`/`species_name`/`species_color`, `priority`/`priority_label`
   (condition: good/fair/poor…), `size`, `cost`, `stump_cost`, `remark`, `lat`/`lng`, and the raw
-  `work_types` / `recommended_services` / `files` arrays (all empty so far). Written **first**,
+  `work_types` / `recommended_services` / `files` arrays. In September 2026, 20 of 45 trees
+  had work types, 33 had files, and none had recommended services. Written **first**,
   before any authed call, so a stale session never costs the tree data.
 - **`tree_inventory_sets.js`** — one row per set that has trees, enriched from
   `POST /treeInventory/show/{tis_id}` (**authed**, ~10 calls, only the non-empty sets):
-  `tis_id`, `tis_name`, `tis_client_id`, address, `tis_lat`/`tis_lng`, `markers_count`.
+  `tis_id`, `tis_name`, `tis_client_id`, address, `tis_lat`/`tis_lng`, `markers_count`,
+  `created_at`/`updated_at` (Unix seconds), `deleted_at`, `overlay_path`, `file`, and
+  `estimates` (the estimates made from the set's map, as `{ estimate_id, estimate_no }`).
 
 Plus two global reference catalogs the same script dumps:
 
@@ -350,6 +400,14 @@ Rows are the **full raw payment records**, richer than the per-client endpoint: 
 `payment_projects` allocation rows (per-allocation amounts, each embedding its estimate's
 `lead_id`), plus the full `payment_method` record, `payment_transaction` (gateway details),
 `users` (the recording user), and QB sync fields.
+
+Besides the money fields, the export keeps the receipt file name and directory
+(`payment_file`, `payment_path_file`), `payment_checked`, `payment_integration_id`,
+`system_create` (when someone recorded the payment, company-local) and `system_update`, the
+allocations' `created_at`/`updated_at`, and the card processor's transaction record as
+`transaction` (processor, reference id, amount, approval, date, response message, auth code).
+It leaves out the card number and the raw gateway log, the recording user's record, the nested
+estimate / invoice / payment copies on each allocation, and the QB sync logs.
 
 The endpoint speaks its own datatable dialect — the generic `fetch_datatable.ts` does not fit:
 
@@ -464,6 +522,12 @@ of it shows up in `arbostar_endpoints.json` (the crawler never visited it). Foun
 
 `export_users.ts` unions the `-1` pass with the named-status pass by id (same belt-and-braces
 approach as the DataTables modules), then enriches each id from its detail page.
+
+Besides the profile fields, the export keeps `employee_id` (the employee record id), `emp_type`,
+the Field Estimator and Field Worker checkboxes, the default estimator flag, `is_appointment`,
+`is_tracked`, the crew leader flag, the crew skill checkboxes (driver, climber, ground,
+technique), `emp_status`, `emp_pay_frequency`, the work day start and end times, the license
+number, and the account's `added_on`, `updated_on`, and `last_login` instants (UTC).
 
 ## Datatable vs. full-endpoint columns
 
@@ -876,6 +940,16 @@ When consuming rows, trust the status *name* on the row over these numbers.
 
 `-1` here is labelled **"All outstanding"** and deliberately excludes Paid invoices — the
 reason the invoice export must enumerate every status id.
+
+The invoice rows have no status field. So `export_invoices.ts` uses
+`fetch_all_rows_with_status()`, which fetches each numbered status tab on its own and records
+the tab that returned each row as `status_id` and `status_name`. It then runs a `-1` pass to
+catch rows that no numbered tab returned. It throws if a row shows up in two numbered tabs.
+The Overdue tab returns no rows when filtered by its own id (`status_ids[]=2`), even though
+its count is 15 (September 2026). "All outstanding" returns the 24 Sent invoices plus exactly
+those 15. So the export labels the invoices that only the `-1` pass returned as Overdue, and
+asserts that their count matches the Overdue tab's `invoices_count`.
+`overpaid` is a filter over Paid invoices, not a status, so the export skips it.
 
 ## Regenerating the endpoint map
 

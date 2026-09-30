@@ -174,3 +174,49 @@ export async function fetch_all_rows_every_status<Row = unknown>(
 
 	return [...by_key.values()]
 }
+
+export type RowWithStatus<Row> = { row: Row; status: Record<string, unknown> | null }
+
+// For modules whose rows do not carry their own status (invoices): one pass per status tab,
+// so each row is tagged with the tab that returned it. A final "All" pass catches rows that
+// no numbered tab returned; their status is null. Also returns the tabs, with their counts.
+export async function fetch_all_rows_with_status<Row = unknown>(
+	options: FetchEveryStatusOptions<Row>,
+): Promise<{ rows: RowWithStatus<Row>[]; statuses: Record<string, unknown>[] }> {
+	const base = { ...options, extra_params: undefined as never }
+	const preflight = await fetch_page<Row>(
+		{ ...base, page_size: 1, extra_params: { ...options.extra_params, 'status_ids[]': ['-1'] } },
+		0,
+		1,
+	)
+	const statuses = (preflight.statuses ?? []).filter(status => {
+		const id = status[options.status_id_field]
+		return typeof id === 'number' && id > 0
+	})
+
+	const by_key = new Map<string | number, RowWithStatus<Row>>()
+	const fetch_pass = async (status_ids: string[], status: Record<string, unknown> | null) => {
+		const seen_before = by_key.size
+		const rows = await fetch_all_rows<Row>({
+			...base,
+			extra_params: { ...options.extra_params, 'status_ids[]': status_ids },
+			on_progress: fetched => options.on_progress?.(seen_before + fetched, seen_before + fetched),
+		})
+		for (const row of rows) {
+			const key = options.primary_key(row)
+			const existing = by_key.get(key)
+			if (existing?.status && status) {
+				throw new Error(
+					`${options.path} row ${key} is in two status tabs: ${String(existing.status[options.status_id_field])} and ${String(status[options.status_id_field])}`,
+				)
+			}
+			if (!existing) by_key.set(key, { row, status })
+		}
+	}
+	for (const status of statuses) {
+		await fetch_pass([String(status[options.status_id_field])], status)
+	}
+	await fetch_pass(['-1'], null)
+
+	return { rows: [...by_key.values()], statuses }
+}

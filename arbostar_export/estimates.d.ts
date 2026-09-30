@@ -4,17 +4,21 @@
 // Union types here (and in the other .d.ts files in this dir) enumerate the values observed
 // in the July 2026 export — a regenerated export can grow new values; update them here.
 
-// The id → name pairing is fixed: 1 Draft / Unsent, 2 Sent for approval, 4 Declined,
-// 6 Confirmed, 7 Contact the client, 8 Thinking- No Follow Up Needed, 9 Expired.
-export type ArbostarEstimateStatusId = 1 | 2 | 4 | 6 | 7 | 8 | 9
+// The id → name pairing is fixed: 1 Draft / Unsent, 2 Sent for approval, 3 Pending approval,
+// 4 Declined, 6 Confirmed, 7 Contact the client, 8 Thinking- No Follow Up Needed, 9 Expired,
+// 10 Credit. No estimate has status 3 or 10 yet. They come from estimate_statuses in
+// profile_codebooks.js.
+export type ArbostarEstimateStatusId = 1 | 2 | 3 | 4 | 6 | 7 | 8 | 9 | 10
 export type ArbostarEstimateStatusName =
 	| 'Draft / Unsent'
 	| 'Sent for approval'
+	| 'Pending approval'
 	| 'Declined'
 	| 'Confirmed'
 	| 'Contact the client'
 	| 'Thinking- No Follow Up Needed'
 	| 'Expired'
+	| 'Credit'
 
 export type ArbostarEstimate = {
 	estimate_id: number

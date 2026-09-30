@@ -23,6 +23,8 @@ type ArboStarWorkOrder = {
 	estimate_office_notes: string | null
 	latest_status_update: string | null
 	lead_id: number | null
+	lead: { lead_estimator: number | null; latitude: number | null; longitude: number | null } | null
+	latest: { status_date: number | null; status_user_id: number | null } | null
 	lead_address: string | null
 	client: { client_id: number; client_name: string | null } | null
 	total_price: number | null
@@ -63,6 +65,11 @@ function to_export(wo: ArboStarWorkOrder): ExportShape<ArbostarWorkOrder> {
 		man_hours_invoiced: wo.mh_total_invoiced,
 		man_hours_scheduled: wo.mh_total_scheduled,
 		man_hours_unscheduled: wo.mh_total_unscheduled,
+		latest_status_changed_at: wo.latest?.status_date == null ? null : new Date(wo.latest.status_date * 1000).toISOString(),
+		latest_status_changed_by_user_id: wo.latest?.status_user_id ?? null,
+		estimator_user_id: wo.lead?.lead_estimator ?? null,
+		latitude: wo.lead?.latitude ?? null,
+		longitude: wo.lead?.longitude ?? null,
 	}
 }
 

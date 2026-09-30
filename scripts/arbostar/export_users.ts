@@ -62,7 +62,31 @@ type UserFormConfig = {
 	user_lng: string
 	internal_employee_id: number
 	emp_custom_id: string
+	employee_id: number
+	emp_type: string
+	emp_field_estimator: string
+	emp_feild_worker: string
+	is_default_estimator: boolean
+	emp_start_time: string
+	emp_end_time: string
+	emp_license_no: string
+	is_appointment: boolean
+	is_tracked: number
+	user_row: {
+		added_on: string | null
+		updated_on: string | null
+		last_login: string | null
+		is_crew_leader: number
+		emp_status: string
+		emp_pay_frequency: string
+		emp_driver: string | number
+		emp_climber: string | number
+		emp_ground: string | number
+		emp_technique: string | number
+	}
 }
+
+const is_one = (value: string | number) => Number(value) === 1
 
 async function fetch_user_list(status_ids: string[]): Promise<UserListResponse> {
 	const params = new URLSearchParams(status_ids.map(status_id => ['users_status_id[]', status_id]))
@@ -148,6 +172,26 @@ function to_user_export(config: UserFormConfig): ExportShape<ArbostarUser> {
 		user_lng: config.user_lng,
 		internal_employee_id: config.internal_employee_id,
 		emp_custom_id: config.emp_custom_id,
+		employee_id: config.employee_id,
+		emp_type: config.emp_type,
+		field_estimator: is_one(config.emp_field_estimator),
+		field_worker: is_one(config.emp_feild_worker),
+		default_estimator: config.is_default_estimator,
+		appointments: config.is_appointment,
+		tracked: is_one(config.is_tracked),
+		crew_leader: is_one(config.user_row.is_crew_leader),
+		driver: is_one(config.user_row.emp_driver),
+		climber: is_one(config.user_row.emp_climber),
+		ground: is_one(config.user_row.emp_ground),
+		technique: is_one(config.user_row.emp_technique),
+		emp_status: config.user_row.emp_status,
+		emp_pay_frequency: config.user_row.emp_pay_frequency,
+		emp_start_time: config.emp_start_time,
+		emp_end_time: config.emp_end_time,
+		emp_license_no: config.emp_license_no,
+		added_on: config.user_row.added_on,
+		updated_on: config.user_row.updated_on,
+		last_login: config.user_row.last_login,
 	}
 }
 

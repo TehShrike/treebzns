@@ -23,6 +23,19 @@ export type ArbostarInvoice = {
 	deposit_amount: number
 	total_due: number
 	amount_paid: number
+	/** The status tab that returned the row. The row itself has no status. */
+	status_id: 1 | 2 | 3 | 4 | 5 | 6
+	status_name: 'Issued' | 'Overdue' | 'Sent' | 'Paid' | 'Hold Backs' | 'Pending Payment'
+	/** ArboStar user id of the estimator. */
+	estimator_user_id: number | null
+	/** Delivery state of the emailed invoice. null when it was never emailed. */
+	email_status: 'accepted' | 'delivered' | 'opened' | 'clicked' | 'bounce' | null
+	/** 'YYYY-MM-DD HH:MM:SS', company-local */
+	email_created_at: string | null
+	total_for_invoice: number
+	/** Late-payment interest charged. */
+	interest: number
+	credit_note: number
 }
 
 // invoices.js is an ESM module whose default export is the full array of records.

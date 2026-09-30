@@ -1,8 +1,10 @@
 // Run-now export: pulls the service line items for every estimate and writes line_items.js
 // into arbostar_export/, and — since the same per-lead payload carries them — the lead notes
 // (intake description, "Other" source detail, estimate crew/office notes) for every
-// estimated lead into lead_notes.js. Run export_estimates.ts and export_leads.ts first
-// (this reads both).
+// estimated lead into lead_notes.js. The rest of each profile (lead, estimate, work order,
+// and invoice fields) goes to lead_profiles.js, and the id → name lists the profiles repeat
+// go to profile_codebooks.js. Run export_estimates.ts and export_leads.ts first (this reads
+// both).
 //
 //   node scripts/arbostar/export_line_items.ts
 //
@@ -20,11 +22,13 @@
 
 import assert from 'node:assert/strict'
 
-import { map, filter } from '#shared/array.ts'
+import { map, filter, filter_map } from '#shared/array.ts'
 import { services_of } from './estimate_services.ts'
-import type { ArboStarService, EstimateServices } from './estimate_services.ts'
+import type { ArboStarService, ArboStarServiceFile, EstimateServices } from './estimate_services.ts'
 import { fetch_json, map_with_concurrency } from './fetch_record.ts'
-import { fetch_notes_for_leads_without_estimates, lead_profile_path, to_lead_notes } from './lead_notes.ts'
+import { fetch_lead_profiles, lead_profile_path, to_lead_notes } from './lead_notes.ts'
+import { iso_from_us_date, to_estimate_codebooks, to_lead_codebooks, to_lead_profile } from './lead_profile_details.ts'
+import type { ProfilePayload } from './lead_profile_details.ts'
 import type { LeadNotesPayload } from './lead_notes.ts'
 import { read_output, write_output } from './output.ts'
 import type { ExportShape } from './output.ts'
@@ -32,19 +36,43 @@ import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { is_verified_path } from './verified_endpoints.ts'
 import type { ArbostarEstimate } from '#arbostar_export/estimates.d.ts'
 import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
-import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
+import type { ArbostarLineItem, ArbostarLineItemFile } from '#arbostar_export/line_items.d.ts'
 import type { ArbostarLeadNotes } from '#arbostar_export/lead_notes.d.ts'
+import type { ArbostarLeadProfile } from '#arbostar_export/lead_profiles.d.ts'
+import type { ArbostarProfileCodebooks } from '#arbostar_export/profile_codebooks.d.ts'
 
-type EstimateData = LeadNotesPayload & {
+type EstimateData = LeadNotesPayload & ProfilePayload & {
 	lead?: {
 		estimate?: EstimateServices | null
 	} | null
 }
 
-type PerLead = { line_items: ExportShape<ArbostarLineItem>[]; notes: ExportShape<ArbostarLeadNotes> | null }
+type PerLead = {
+	line_items: ExportShape<ArbostarLineItem>[]
+	notes: ExportShape<ArbostarLeadNotes> | null
+	profile: ExportShape<ArbostarLeadProfile> | null
+}
 
 const number_or_null = (value: number | string | null | undefined): number | null =>
 	value == null || value === '' ? null : Number(value)
+
+const to_line_item_file = (file: ArboStarServiceFile): ArbostarLineItemFile => ({
+	file_id: file.id,
+	original_filename: file.original_filename,
+	content_type: file.type,
+	filesize: Number(file.filesize),
+	arbostar_path: file.full_path,
+	thumbnail_path: file.thumbnail,
+	uploaded_by_user_id: file.user_id,
+	sort_order: file.sort_order,
+	created: file.system_create,
+	updated: file.system_update,
+	can_be_in_pdf: file.can_be_in_pdf,
+	in_estimate_pdf: file.is_estimate_pdf,
+	in_workorder_pdf: file.is_workorder_pdf,
+	in_invoice_pdf: file.is_invoice_pdf,
+	shared: file.is_shared,
+})
 
 function to_line_item(service: ArboStarService, lead_id: number): ExportShape<ArbostarLineItem> {
 	return {
@@ -69,6 +97,22 @@ function to_line_item(service: ArboStarService, lead_id: number): ExportShape<Ar
 		status: service.status?.services_status_name ?? null,
 		crews: service.service_crews || null,
 		sort_order: service.sort_order,
+		status_id: service.service_status ?? null,
+		status_changed_at: service.status_log?.status_date ? new Date(service.status_log.status_date * 1000).toISOString() : null,
+		status_changed_by_user_id: service.status_log?.status_user_id || null,
+		completed_date: iso_from_us_date(service.completed_status_date),
+		total_man_hours: number_or_null(service.service_times_with_crew),
+		travel_time: number_or_null(service.service_travel_time),
+		crew_role_ids: map(service.crew ?? [], crew => crew.crew_id),
+		equipment: service.service_equipments?.replace(/\s+/g, ' ').trim() || null,
+		tools: service.service_tools?.trim() || null,
+		group_id: service.estimate_group_id || null,
+		schedule_event_ids: [...new Set(map(service.schedule_event_services ?? [], event => event.event_id))],
+		upcoming_schedule_event_ids: service.upcoming_event_ids ?? [],
+		integration_service_date: service.integration_service_date ?? null,
+		created: service.system_create ?? null,
+		updated: service.system_update ?? null,
+		files: map(service.files ?? [], to_line_item_file),
 	}
 }
 
@@ -90,7 +134,8 @@ if (lead_profile_verified) {
 let failures = 0
 let estimates_with_groups = 0
 let grouped_line_items = 0
-const [per_estimate, notes_without_estimates] = await Promise.all([
+const first_estimate_profile: { payload: EstimateData | null } = { payload: null }
+const [per_estimate, profiles_without_estimates] = await Promise.all([
 	map_with_concurrency(
 		lead_ids,
 		6,
@@ -100,11 +145,16 @@ const [per_estimate, notes_without_estimates] = await Promise.all([
 				const { services, group_count, grouped_count } = services_of(profile.lead?.estimate)
 				if (group_count > 0) estimates_with_groups += 1
 				grouped_line_items += grouped_count
-				return { line_items: map(services, service => to_line_item(service, lead_id)), notes: to_lead_notes(lead_id, profile) }
+				first_estimate_profile.payload ??= profile
+				return {
+					line_items: map(services, service => to_line_item(service, lead_id)),
+					notes: to_lead_notes(lead_id, profile),
+					profile: to_lead_profile(lead_id, profile, 'estimate_profile'),
+				}
 			} catch (error) {
 				failures += 1
 				console.log(`  ! lead ${lead_id}: ${(error as Error).message}`)
-				return { line_items: [], notes: null }
+				return { line_items: [], notes: null, profile: null }
 			}
 		},
 		(done, total) => {
@@ -112,7 +162,7 @@ const [per_estimate, notes_without_estimates] = await Promise.all([
 		},
 	),
 	lead_profile_verified
-		? fetch_notes_for_leads_without_estimates(
+		? fetch_lead_profiles<LeadNotesPayload & ProfilePayload>(
 				unestimated_lead_ids,
 				(lead_id, error) => console.log(`  ! lead ${lead_id} (no estimate): ${error.message}`),
 				(done, total) => {
@@ -130,6 +180,28 @@ console.log(`Wrote ${line_items.length} line items from ${lead_ids.length - fail
 console.log(`(${estimates_with_groups} estimates have service groups; ${grouped_line_items} of the line items came from inside a group)`)
 if (failures > 0) console.log(`(${failures} estimates failed to fetch)`)
 
-const lead_notes = filter([...map(per_estimate, result => result.notes), ...notes_without_estimates], notes => notes !== null)
+const fetched_without_estimates = filter_map(profiles_without_estimates, result => result)
+const lead_notes = filter(
+	[...map(per_estimate, result => result.notes), ...map(fetched_without_estimates, ({ lead_id, payload }) => to_lead_notes(lead_id, payload))],
+	notes => notes !== null,
+)
 const notes_path = write_output('lead_notes.js', lead_notes)
 console.log(`Wrote notes for ${lead_notes.length} of ${leads.length} leads -> ${notes_path}`)
+
+const lead_profiles = filter(
+	[
+		...map(per_estimate, result => result.profile),
+		...map(fetched_without_estimates, ({ lead_id, payload }) => to_lead_profile(lead_id, payload, 'lead_profile')),
+	],
+	profile => profile !== null,
+)
+const profiles_path = write_output('lead_profiles.js', lead_profiles)
+console.log(`Wrote profiles for ${lead_profiles.length} of ${leads.length} leads -> ${profiles_path}`)
+
+const first_lead_profile = fetched_without_estimates[0]
+assert(first_estimate_profile.payload !== null, 'at least one estimate profile was fetched')
+const codebooks: ExportShape<ArbostarProfileCodebooks> = {
+	...(first_lead_profile ? to_lead_codebooks(first_lead_profile.payload) : { lead_sources: [], lead_no_go_reasons: [], lead_statuses: [] }),
+	...to_estimate_codebooks(first_estimate_profile.payload),
+}
+console.log(`Wrote profile codebooks -> ${write_output('profile_codebooks.js', codebooks)}`)

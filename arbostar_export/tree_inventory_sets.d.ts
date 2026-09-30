@@ -20,6 +20,18 @@ export type ArbostarTreeInventorySet = {
 	tis_lng: number
 	/** Number of trees on the set (matches the row count in tree_inventory.js for this tis_id). */
 	markers_count: number
+	/** Unix seconds. null on one set. */
+	created_at: number | null
+	/** Unix seconds. */
+	updated_at: number | null
+	/** null on every set so far. */
+	deleted_at: string | null
+	/** The map overlay image path. null on every set so far. */
+	overlay_path: string | null
+	/** null on every set so far. Raw. */
+	file: unknown
+	/** Estimates made from this set's map. Join `estimate_id` to estimates.js. */
+	estimates: { estimate_id: number; estimate_no: string }[]
 }
 
 // tree_inventory_sets.js is an ESM module whose default export is the full array of records.

@@ -41,17 +41,17 @@ export const to_lead_notes = (lead_id: number, payload: LeadNotesPayload): Expor
 	estimate_office_notes: text(estimate_notes(payload)?.estimate_office_notes),
 })
 
-export const fetch_notes_for_leads_without_estimates = (
+export const fetch_lead_profiles = <Payload extends LeadNotesPayload>(
 	lead_ids: number[],
 	on_failure: (lead_id: number, error: Error) => void,
 	on_progress: (done: number, total: number) => void,
-): Promise<Array<ExportShape<ArbostarLeadNotes> | null>> =>
+): Promise<Array<{ lead_id: number; payload: Payload } | null>> =>
 	map_with_concurrency(
 		lead_ids,
 		2,
 		async lead_id => {
 			try {
-				return to_lead_notes(lead_id, await fetch_json<LeadNotesPayload>(lead_profile_path(lead_id), { base_url: BASE_URL, headers: AUTH_HEADERS }))
+				return { lead_id, payload: await fetch_json<Payload>(lead_profile_path(lead_id), { base_url: BASE_URL, headers: AUTH_HEADERS }) }
 			} catch (error) {
 				on_failure(lead_id, error as Error)
 				return null

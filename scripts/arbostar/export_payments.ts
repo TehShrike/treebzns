@@ -32,6 +32,26 @@ type ArboStarPaymentProject = {
 	invoice_id: number | null
 	amount: number | string | null
 	unapplied_amount: number | string | null
+	created_at: string | null
+	updated_at: string | null
+}
+
+type ArboStarPaymentTransaction = {
+	payment_transaction_id: number
+	payment_transaction_status: number | null
+	payment_driver: string | null
+	payment_transaction_remote_id: string | null
+	payment_transaction_amount: number | string | null
+	payment_transaction_approved: boolean | null
+	payment_transaction_date: string | null
+	payment_transaction_message: string | null
+	payment_transaction_auth_code: string | null
+	payment_transaction_type: string | null
+	payment_transaction_remote_status: string | null
+	payment_transaction_remote_reason_code: string | null
+	payment_transaction_remote_reason_description: string | null
+	payment_transaction_settled_amount: number | string | null
+	payment_transaction_ref_id: string | null
 }
 
 type ArboStarProjValuesEntry = {
@@ -65,6 +85,13 @@ type ArboStarBulkPayment = {
 	payment_method: { id: number; title: string | null } | null
 	payment_author: number | null
 	payment_notes: string | null
+	payment_file: string | null
+	payment_path_file: string | null
+	payment_checked: boolean
+	payment_integration_id: string | null
+	system_create: string | null
+	system_update: string | null
+	payment_transaction?: ArboStarPaymentTransaction | null
 	payment_projects?: ArboStarPaymentProject[] | null
 	/** JSON blob: the report's per-allocation money breakdown, keyed by payment_projects id. */
 	proj_values: string | null
@@ -122,6 +149,27 @@ function to_report_values(entry: ArboStarProjValuesEntry | undefined) {
 	}
 }
 
+function to_transaction(transaction: ArboStarPaymentTransaction | null | undefined) {
+	if (transaction == null) return null
+	return {
+		transaction_id: transaction.payment_transaction_id,
+		status: transaction.payment_transaction_status,
+		driver: transaction.payment_driver,
+		remote_id: transaction.payment_transaction_remote_id,
+		amount: number_or_null(transaction.payment_transaction_amount),
+		approved: transaction.payment_transaction_approved,
+		date: transaction.payment_transaction_date,
+		message: transaction.payment_transaction_message,
+		auth_code: transaction.payment_transaction_auth_code,
+		type: transaction.payment_transaction_type,
+		remote_status: transaction.payment_transaction_remote_status,
+		remote_reason_code: transaction.payment_transaction_remote_reason_code,
+		remote_reason_description: transaction.payment_transaction_remote_reason_description,
+		settled_amount: number_or_null(transaction.payment_transaction_settled_amount),
+		ref_id: transaction.payment_transaction_ref_id,
+	}
+}
+
 function to_payment(payment: ArboStarBulkPayment): ExportShape<ArbostarPayment> {
 	const proj_values = (
 		payment.proj_values === null ? {} : JSON.parse(payment.proj_values)
@@ -145,12 +193,21 @@ function to_payment(payment: ArboStarBulkPayment): ExportShape<ArbostarPayment> 
 		pay_method_string: payment.payment_method?.title ?? '-',
 		payment_author: payment.payment_author,
 		payment_notes: payment.payment_notes,
+		payment_file: payment.payment_file,
+		payment_path_file: payment.payment_path_file,
+		payment_checked: payment.payment_checked,
+		payment_integration_id: payment.payment_integration_id,
+		system_create: payment.system_create,
+		system_update: payment.system_update,
+		transaction: to_transaction(payment.payment_transaction),
 		allocations: (payment.payment_projects ?? []).map(allocation => ({
 			payment_project_id: allocation.id,
 			estimate_id: allocation.estimate_id,
 			invoice_id: allocation.invoice_id,
 			amount: number_or_null(allocation.amount),
 			unapplied_amount: number_or_null(allocation.unapplied_amount),
+			created_at: allocation.created_at,
+			updated_at: allocation.updated_at,
 			report_values: to_report_values(proj_values[String(allocation.id)]),
 		})),
 	}

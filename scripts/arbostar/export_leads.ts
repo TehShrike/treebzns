@@ -20,7 +20,7 @@
 // Before writing, the Draft count is compared with the previous leads.js. A rise means some
 // request between the two runs changed lead status in ArboStar.
 
-import { filter } from '#shared/array.ts'
+import { filter, map } from '#shared/array.ts'
 import { fetch_all_rows, fetch_all_rows_every_status } from './fetch_datatable.ts'
 import { AUTH_HEADERS, BASE_URL } from './session.ts'
 import { read_output, write_output } from './output.ts'
@@ -41,7 +41,7 @@ type ArboStarLead = {
 	lead_address: string | null
 	address_line_display: string | null
 	client: { client_id: number; client_name: string | null } | null
-	estimator: { full_name: string | null | [] } | null
+	estimator: { id: number; full_name: string | null | [] } | null
 	utm_source: string | null
 	utm_medium: string | null
 	utm_campaign: string | null
@@ -50,6 +50,7 @@ type ArboStarLead = {
 	utm_referral: string | null
 	gclid: string | null
 	form_id: string | null
+	tags: { name: string }[] | null
 }
 
 type ArboStarKpiNewLeadsRow = {
@@ -85,6 +86,8 @@ function to_export(lead: ArboStarLead, referral: ArboStarKpiNewLeadsRow | undefi
 		form_id: lead.form_id,
 		referred_by: referral?.referred_by ?? null,
 		referred_by_name: referral?.referred_by_name ?? null,
+		estimator_user_id: lead.estimator?.id ?? null,
+		tags: map(lead.tags ?? [], tag => tag.name),
 	}
 }
 

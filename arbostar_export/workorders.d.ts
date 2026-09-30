@@ -43,6 +43,15 @@ export type ArbostarWorkOrder = {
 	man_hours_invoiced: number | null
 	man_hours_scheduled: number | null
 	man_hours_unscheduled: number
+	/** ISO instant of the latest status change. The exact time behind latest_status_update. */
+	latest_status_changed_at: string | null
+	/** ArboStar user id of the user who made the latest status change. 0 on 177 of 1040 rows (September 2026), probably changes that ArboStar made itself. */
+	latest_status_changed_by_user_id: number | null
+	/** ArboStar user id of the lead's estimator. */
+	estimator_user_id: number | null
+	/** The lead's coordinates. */
+	latitude: number | null
+	longitude: number | null
 }
 
 // workorders.js is an ESM module whose default export is the full array of records.

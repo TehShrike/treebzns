@@ -52,6 +52,20 @@ export type ArboStarService = {
 	service_crews: string | null
 	service: { service_name: string | null } | null
 	status: { services_status_name: string | null } | null
+	service_status: number | null
+	status_log: { status_date: number | null; status_user_id: number | null } | null
+	completed_status_date: string | null
+	service_times_with_crew: number | null
+	service_travel_time: number | null
+	crew?: { crew_id: number }[]
+	service_equipments: string | null
+	service_tools: string | null
+	estimate_group_id: number | null
+	schedule_event_services?: { event_id: number }[]
+	upcoming_event_ids?: number[]
+	integration_service_date: string | null
+	system_create: string | null
+	system_update: string | null
 	type: 'item' | 'group'
 	files?: ArboStarServiceFile[]
 	estimates_services?: ArboStarService[]

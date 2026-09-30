@@ -1,7 +1,8 @@
 // Shape of one element in arbostar_export/payments.js (see export_payments.ts — one paged
 // pass over POST /business_intelligence/clientPaymentsDatatable). One row per ArboStar payment.
-// Deliberately not exported: QB/integration sync fields, the gateway transaction record, the
-// recording user's full record, receipt file paths, and UI-permission flags.
+// Deliberately not exported: QB/integration sync logs, the card number and raw gateway log on
+// the transaction record, the recording user's full record, the nested estimate / invoice /
+// payment copies on each allocation, and UI-permission flags.
 //
 // Every value is ArboStar's, passed through as served — the export computes nothing. Fields
 // are tagged with where ArboStar got them:
@@ -59,7 +60,41 @@ export type ArbostarPaymentAllocation = {
 	amount: number
 	/** Original. */
 	unapplied_amount: number
+	/** Original. ISO instant (UTC) the allocation was made. */
+	created_at: string
+	/** Original. ISO instant (UTC). */
+	updated_at: string | null
 	report_values: ArbostarPaymentAllocationReportValues
+}
+
+/**
+ * The card processor's record of a card payment (ArboStar's payment_transactions row).
+ * Only card payments have one. All Original.
+ */
+export type ArbostarPaymentTransaction = {
+	/** Matches the payment's payment_trans_id. */
+	transaction_id: number
+	/** 0 on almost every transaction. The meaning of 1 is not verified. */
+	status: number
+	/** Payment processor, e.g. 'cardpointe'. */
+	driver: string
+	/** The processor's reference for the charge (CardPointe retref), e.g. '273920344624'. */
+	remote_id: string | null
+	amount: number
+	approved: boolean
+	/** 'YYYY-MM-DD HH:MM:SS', company-local. */
+	date: string | null
+	/** The processor's response text, e.g. 'Approval'. */
+	message: string | null
+	auth_code: string | null
+	/** e.g. 'payment'. */
+	type: string | null
+	/** e.g. 'Accepted'. Usually null. */
+	remote_status: string | null
+	remote_reason_code: string | null
+	remote_reason_description: string | null
+	settled_amount: number | null
+	ref_id: string | null
 }
 
 export type ArbostarPayment = {
@@ -104,6 +139,26 @@ export type ArbostarPayment = {
 	payment_author: number | null
 	/** Original. */
 	payment_notes: string | null
+	/**
+	 * Original. The receipt PDF's file name, e.g. '7697290306abd37938fc3d_06aea5b0ff0e8aef.pdf'.
+	 * The receipt path is `${payment_path_file}/${payment_file}`.
+	 */
+	payment_file: string | null
+	/**
+	 * Original. The receipt's directory, 'uploads/payment_files/<client_id>/<payment_id>'.
+	 * null on 16 payments that have a payment_file.
+	 */
+	payment_path_file: string | null
+	/** Original. false in every row. */
+	payment_checked: boolean
+	/** Original. The payment's id in the accounting integration, e.g. '107'. */
+	payment_integration_id: string | null
+	/** Original. 'YYYY-MM-DD HH:MM:SS', company-local: when someone recorded the payment. */
+	system_create: string | null
+	/** Original. 'YYYY-MM-DD HH:MM:SS', company-local. */
+	system_update: string | null
+	/** Card payments only. */
+	transaction: ArbostarPaymentTransaction | null
 	allocations: ArbostarPaymentAllocation[]
 }
 
