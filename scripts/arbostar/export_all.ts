@@ -3,7 +3,8 @@
 //   node scripts/arbostar/export_all.ts
 //
 // Independent scripts run in parallel. export_line_items.ts (which reads estimates.js and
-// leads.js) starts after export_estimates.ts and export_leads.ts finish. Each child's output
+// leads.js) and export_images.ts (which reads estimates.js and workorders.js) start after
+// export_estimates.ts, export_leads.ts, and export_workorders.ts finish. Each child's output
 // is prefixed with its dataset name.
 
 import { spawn } from 'node:child_process'
@@ -18,7 +19,6 @@ const script_dir = dirname(fileURLToPath(import.meta.url))
 const INDEPENDENT = [
 	'export_clients.ts',
 	'export_invoices.ts',
-	'export_workorders.ts',
 	'export_payments.ts',
 	'export_users.ts',
 	'export_taxes.ts',
@@ -26,8 +26,8 @@ const INDEPENDENT = [
 	'export_declines.ts',
 	'export_tree_inventory.ts',
 ]
-const PREREQUISITES = ['export_estimates.ts', 'export_leads.ts']
-const READS_PREREQUISITES = ['export_line_items.ts']
+const DEPENDENCIES = ['export_estimates.ts', 'export_leads.ts', 'export_workorders.ts']
+const DEPENDENTS = ['export_line_items.ts', 'export_images.ts']
 
 type Result = { script: string; ok: boolean }
 
@@ -53,13 +53,13 @@ const run = async (script: string): Promise<Result> => {
 }
 
 const run_prerequisites_then_dependents = async (): Promise<Result[]> => {
-	const prerequisites = await Promise.all(map(PREREQUISITES, run))
+	const prerequisites = await Promise.all(map(DEPENDENCIES, run))
 	const failed_prerequisites = filter(prerequisites, result => !result.ok)
 	if (failed_prerequisites.length > 0) {
-		console.error(`${map(failed_prerequisites, result => result.script).join(', ')} failed — skipping ${READS_PREREQUISITES.join(', ')}`)
-		return [...prerequisites, ...map(READS_PREREQUISITES, script => ({ script, ok: false }))]
+		console.error(`${map(failed_prerequisites, result => result.script).join(', ')} failed — skipping ${DEPENDENTS.join(', ')}`)
+		return [...prerequisites, ...map(DEPENDENTS, script => ({ script, ok: false }))]
 	}
-	return [...prerequisites, ...(await Promise.all(map(READS_PREREQUISITES, run)))]
+	return [...prerequisites, ...(await Promise.all(map(DEPENDENTS, run)))]
 }
 
 const results = (

@@ -7,14 +7,9 @@
 //   node scripts/arbostar/export_line_items.ts
 //
 // Line items come from the estimate PROFILE endpoint, which is keyed by LEAD id (not
-// estimate id): /estimates/profile/profileData/{lead_id}, rows at
-// lead.estimate.estimate_services_with_groups. That array is in display order and holds the
-// standalone items (type 'item') interleaved with service groups (type 'group'), each group
-// nesting its child line items under estimates_services. Group ids are their own sequence
-// and collide with item ids, so group rows never become line items; only their children do.
-// lead.estimate.estimates_service holds the standalone items only and is the fallback when
-// estimate_services_with_groups is absent. Each row carries estimate_id + invoice_id, so
-// this one pass covers quotes, invoices, and work orders.
+// estimate id): /estimates/profile/profileData/{lead_id}. estimate_services.ts reads the
+// rows out of it. Each row carries estimate_id + invoice_id, so this one pass covers
+// quotes, invoices, and work orders.
 //
 // Leads with no estimate have no line items and no profile (the endpoint answers 500);
 // their notes come from the lead profile endpoint (lead_notes.ts), a pass that runs only
@@ -25,7 +20,9 @@
 
 import assert from 'node:assert/strict'
 
-import { map, filter, flat_map } from '#shared/array.ts'
+import { map, filter } from '#shared/array.ts'
+import { services_of } from './estimate_services.ts'
+import type { ArboStarService, EstimateServices } from './estimate_services.ts'
 import { fetch_json, map_with_concurrency } from './fetch_record.ts'
 import { fetch_notes_for_leads_without_estimates, lead_profile_path, to_lead_notes } from './lead_notes.ts'
 import type { LeadNotesPayload } from './lead_notes.ts'
@@ -38,36 +35,6 @@ import type { ArbostarLead } from '#arbostar_export/leads.d.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import type { ArbostarLeadNotes } from '#arbostar_export/lead_notes.d.ts'
 
-type ArboStarService = {
-	id: number
-	estimate_id: number | null
-	invoice_id: number | null
-	service_id: number | null
-	service_description: string | null
-	quantity: number | null
-	service_price: number | string | null
-	cost: number | string | null
-	service_time: number | null
-	service_size: string | null
-	service_species: string | null
-	service_reason: string | null
-	optional: number | null
-	is_fee: number | null
-	is_additional_work: number | null
-	non_taxable: number | null
-	sort_order: number | null
-	service_crews: string | null
-	service: { service_name: string | null } | null
-	status: { services_status_name: string | null } | null
-	type: 'item' | 'group'
-	estimates_services?: ArboStarService[]
-}
-
-type EstimateServices = {
-	estimates_service?: ArboStarService[]
-	estimate_services_with_groups?: ArboStarService[]
-}
-
 type EstimateData = LeadNotesPayload & {
 	lead?: {
 		estimate?: EstimateServices | null
@@ -78,20 +45,6 @@ type PerLead = { line_items: ExportShape<ArbostarLineItem>[]; notes: ExportShape
 
 const number_or_null = (value: number | string | null | undefined): number | null =>
 	value == null || value === '' ? null : Number(value)
-
-const is_item = (row: ArboStarService) => row.type === 'item'
-
-function services_of(estimate: EstimateServices | null | undefined): { services: ArboStarService[]; group_count: number; grouped_count: number } {
-	const rows = estimate?.estimate_services_with_groups
-	if (!Array.isArray(rows)) {
-		assert(Array.isArray(estimate?.estimates_service), 'the estimate profile lists estimate_services_with_groups or estimates_service')
-		return { services: filter(estimate.estimates_service, is_item), group_count: 0, grouped_count: 0 }
-	}
-	const children_of = (row: ArboStarService) => (row.type === 'group' ? (row.estimates_services ?? []) : [row])
-	const services = flat_map(rows, children_of)
-	const group_count = filter(rows, row => row.type === 'group').length
-	return { services, group_count, grouped_count: services.length - filter(rows, is_item).length }
-}
 
 function to_line_item(service: ArboStarService, lead_id: number): ExportShape<ArbostarLineItem> {
 	return {

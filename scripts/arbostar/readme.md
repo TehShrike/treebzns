@@ -18,7 +18,8 @@ line items only exist behind per-record detail endpoints (fetched one by one).
 | `session.ts` | Loads `.arbostar_session.json` and exposes `BASE_URL` / `AUTH_HEADERS` / `BROWSER_COOKIES`. |
 | `output.ts` | Reads/writes the `arbostar_export/` dir at the repo root — writes each dataset as `<name>.js` (`export default [...]`, gitignored). |
 | `export_*.ts` | One run-now script per dataset. |
-| `export_all.ts` | Runs every export script. Independent scripts run in parallel; `export_line_items.ts` (reads `estimates.js` / `leads.js`) waits for `export_estimates.ts` and `export_leads.ts`. |
+| `estimate_services.ts` | Reads the line items, and each line item's photos (`files`), out of an estimate profile. |
+| `export_all.ts` | Runs every export script. Independent scripts run in parallel. `export_line_items.ts` (reads `estimates.js` / `leads.js`) and `export_images.ts` (reads `estimates.js` / `workorders.js`) wait for `export_estimates.ts`, `export_leads.ts`, and `export_workorders.ts`. |
 | `discover_endpoints.ts` / `discover_details.ts` | Puppeteer crawlers that record the app's XHRs (list pages / detail pages). `discover_endpoints.ts` regenerates `arbostar_endpoints.json`. |
 | `arbostar_endpoints.json` | Map of all ~36 list/XHR endpoints, with an example `path_and_query` for each. |
 
@@ -39,6 +40,7 @@ node scripts/arbostar/export_leads.ts        # -> leads.js (two passes + the KPI
 node scripts/arbostar/export_estimates.ts    # -> estimates.js   (two passes)
 node scripts/arbostar/export_invoices.ts     # -> invoices.js
 node scripts/arbostar/export_line_items.ts   # -> line_items.js + lead_notes.js  (reads estimates.js + leads.js; one profileData call per estimate)
+node scripts/arbostar/export_images.ts      # -> images.js + images/  (reads estimates.js + workorders.js; line item photos of active leads, see below)
 node scripts/arbostar/export_payments.ts     # -> payments.js    (BI Client Payments report; see the payments section)
 node scripts/arbostar/export_users.ts        # -> users.js       (user accounts; see the Users section)
 node scripts/arbostar/export_taxes.ts        # -> taxes.js       (official tax list, scraped from /settings)
@@ -223,6 +225,28 @@ order, with each group's children nested inside it; see the service groups bulle
   array is absent. The run prints how many estimates had groups and how many exported line
   items came from inside one. The old editor-only export dropped grouped line items entirely.
 - Line totals won't sum to the estimate total: `optional` lines and discounts are applied on top.
+
+## Line item photos (`export_images.ts`)
+
+Photos hang off line items, not estimates or work orders. The estimate profile
+(`/estimates/profile/profileData/{lead_id}`) lists them in each line item's `files` array. A
+work order shows its estimate's line item photos. `estimate_pdf_files` on the estimate only
+repeats the `full_path` of the photos that go in the PDF.
+
+Each file has an `id`, `owner_id` (the line item id, which is also the API line item id),
+`original_filename`, `type`, `filesize`, `full_path`, a `thumbnail` path, the uploader's
+`user_id`, company-local `system_create` / `system_update` times, and the flags
+`is_estimate_pdf`, `is_workorder_pdf`, `is_invoice_pdf`, and `is_shared`. `full_path` looks
+like `uploads/clients_files/<client_id>/estimates/<estimate_no>/<line_item_id>/<hash>.jpg`.
+It downloads from the account origin with no cookie or token.
+
+The export fetches only active leads: every work order that is not Finished, every estimate
+that is Draft / Unsent or Contact the client, and Sent for approval estimates created in the
+last 30 days. The estimate list has no update date, so the cutoff uses `date_created`. The
+photos go to `arbostar_export/images/<id>.<extension>` (gitignored) and the rows to
+`images.js`. A photo already on disk is not downloaded again. The profile's `filesize` is
+stale for some photos (a 424309-byte listing downloads as a complete 407725-byte JPEG), so
+the export checks each download against `content-length` and records the size on disk.
 
 ## Labor catalogs: crew roles
 

@@ -4,8 +4,8 @@
 // Statuses beyond the built-in first three are tenant-defined scheduling buckets.
 
 // The id → name pairing is fixed: 0 Finished, 1 Confirmed online, 2 Confirmed,
-// 10 On hold, 13 Winter Schedule, 15 Summer PHC, 16 Planting.
-export type ArbostarWorkOrderStatusId = 0 | 1 | 2 | 10 | 13 | 15 | 16
+// 5 Stump Grinding, 10 On hold, 13 Winter Schedule, 15 Summer PHC, 16 Planting, 17 Fall PHC.
+export type ArbostarWorkOrderStatusId = 0 | 1 | 2 | 5 | 10 | 13 | 15 | 16 | 17
 export type ArbostarWorkOrderStatusName =
 	| 'Finished'
 	| 'Confirmed online'
@@ -14,6 +14,8 @@ export type ArbostarWorkOrderStatusName =
 	| 'Winter Schedule'
 	| 'Summer PHC'
 	| 'Planting'
+	| 'Stump Grinding'
+	| 'Fall PHC'
 
 export type ArbostarWorkOrder = {
 	workorder_id: number
