@@ -6,6 +6,7 @@
 import type { Pool } from 'mysql2/promise'
 import assert from '#shared/assert.ts'
 import { map, filter, flatten, every, reduce } from '#shared/array.ts'
+import { promise_all_object } from '#shared/promise_all_object.ts'
 import { normalize_name, identity_key, make_tenanted_select } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { load_existing_correlations } from './load_existing_correlations.ts'
@@ -13,15 +14,15 @@ import { load_existing_correlations } from './load_existing_correlations.ts'
 export const resolve_context = async (pool: Pool, company_id: bigint): Promise<ArbostarImportContext> => {
 	const tenanted_select = make_tenanted_select(company_id)
 
-	const [company_rows, employee_rows, document_rows, decline_reason_rows, existing] = await Promise.all([
-		tenanted_select(pool, q => q
+	const { company_rows, employee_rows, document_rows, decline_reason_rows, existing } = await promise_all_object({
+		company_rows: tenanted_select(pool, q => q
 			.from('company')
 			.select(() => ['company.company_id'])),
-		tenanted_select(pool, q => q
+		employee_rows: tenanted_select(pool, q => q
 			.from('employee')
 			.order_by('employee.is_owner', 'DESC')
 			.select(() => ['employee.employee_id', 'employee.name', 'employee.email', 'employee.login_name', 'employee.estimator_sort'])),
-		tenanted_select(pool, q => q
+		document_rows: tenanted_select(pool, q => q
 			.from('project_document')
 			.select(() => [
 				'project_document.project_document_id',
@@ -34,14 +35,14 @@ export const resolve_context = async (pool: Pool, company_id: bigint): Promise<A
 				'project_document.closed_by_default',
 				'project_document.declined_project_document_id',
 			])),
-		tenanted_select(pool, q => q
+		decline_reason_rows: tenanted_select(pool, q => q
 			.from('project_decline_reason')
 			.select(() => [
 				'project_decline_reason.project_decline_reason_id',
 				'project_decline_reason.reason',
 			])),
-		load_existing_correlations(pool, tenanted_select),
-	])
+		existing: load_existing_correlations(pool, tenanted_select),
+	})
 
 	assert(company_rows.length === 1, `Company ${company_id} does not exist`)
 	assert(employee_rows.length > 0, `Company ${company_id} has no employees — imported projects need a created_by employee`)

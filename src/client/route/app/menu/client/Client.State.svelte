@@ -18,6 +18,7 @@
 	import type { Schema } from '#schema/types.ts'
 	import assert from '#shared/assert.ts'
 	import { map, zip_with } from '#shared/array.ts'
+	import { promise_all_object } from '#shared/promise_all_object.ts'
 	import { untrack } from 'svelte'
 	import { get_client_address_ids_in_use, get_client_contact_ids_in_use, ADDRESS_REFERENCED_MESSAGE, CONTACT_REFERENCED_MESSAGE } from '#shared/treebzns_db/client_relationships.ts'
 
@@ -112,14 +113,14 @@
 		route: `/client/:client_id`,
 		param_validator: validate_params,
 		resolve: async ({ query, server, client_cache }, { client_id }) => {
-			const [client, addresses, contacts, referenced_address_ids, referenced_contact_ids, tax_rates] = await Promise.all([
-				fetch_client(query, client_id),
-				fetch_addresses(query, client_id),
-				fetch_contacts(query, client_id),
-				get_client_address_ids_in_use({ query_rows: query, client_id }),
-				get_client_contact_ids_in_use({ query_rows: query, client_id }),
-				fetch_tax_rates(query),
-			])
+			const { client, addresses, contacts, referenced_address_ids, referenced_contact_ids, tax_rates } = await promise_all_object({
+				client: fetch_client(query, client_id),
+				addresses: fetch_addresses(query, client_id),
+				contacts: fetch_contacts(query, client_id),
+				referenced_address_ids: get_client_address_ids_in_use({ query_rows: query, client_id }),
+				referenced_contact_ids: get_client_contact_ids_in_use({ query_rows: query, client_id }),
+				tax_rates: fetch_tax_rates(query),
+			})
 
 			assert(client)
 

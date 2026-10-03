@@ -4,6 +4,7 @@
 import type { Connection, Pool } from 'mysql2/promise'
 import type { Temporal } from '@js-temporal/polyfill'
 import { map, filter } from '#shared/array.ts'
+import { promise_all_object } from '#shared/promise_all_object.ts'
 import { normalize_name, type TenantedSelect } from './import_common.ts'
 
 export type ExistingCorrelations = {
@@ -66,33 +67,33 @@ export const load_existing_correlations = async (
 	connection: Connection | Pool,
 	tenanted_select: TenantedSelect,
 ): Promise<ExistingCorrelations> => {
-	const [employees, clients, projects, invoices, payments, contacts, primary_contacts, line_items, project_images, item_types, payment_methods, tax_rates, work_skills, lead_sources] = await Promise.all([
-		tenanted_select(connection, q => q
+	const { employees, clients, projects, invoices, payments, contacts, primary_contacts, line_items, project_images, item_types, payment_methods, tax_rates, work_skills, lead_sources } = await promise_all_object({
+		employees: tenanted_select(connection, q => q
 			.from('employee')
 			.select(() => ['employee.employee_id', 'employee.arbostar_user_id'])),
-		tenanted_select(connection, q => q
+		clients: tenanted_select(connection, q => q
 			.from('client')
 			.select(() => ['client.client_id', 'client.arbostar_client_id', 'client.default_project_address_id'])),
-		tenanted_select(connection, q => q
+		projects: tenanted_select(connection, q => q
 			.from('project')
 			.select(() => ['project.project_id', 'project.number', 'project.closed_at'])),
-		tenanted_select(connection, q => q
+		invoices: tenanted_select(connection, q => q
 			.from('invoice')
 			.select(() => ['invoice.invoice_id', 'invoice.arbostar_invoice_id', 'invoice.invoice_number'])),
-		tenanted_select(connection, q => q
+		payments: tenanted_select(connection, q => q
 			.from('payment')
 			.select(() => ['payment.payment_id', 'payment.arbostar_payment_id'])),
-		tenanted_select(connection, q => q
+		contacts: tenanted_select(connection, q => q
 			.from('client_contact')
 			.select(() => ['client_contact.client_contact_id', 'client_contact.arbostar_contact_id'])),
-		tenanted_select(connection, q => q
+		primary_contacts: tenanted_select(connection, q => q
 			.from('client_contact')
 			.where(b => b.comparison('client_contact.is_primary', '=', { value: 1 }))
 			.select(() => ['client_contact.client_contact_id', 'client_contact.client_id'])),
-		tenanted_select(connection, q => q
+		line_items: tenanted_select(connection, q => q
 			.from('project_line_item')
 			.select(() => ['project_line_item.project_line_item_id', 'project_line_item.arbostar_line_item_id'])),
-		tenanted_select(connection, q => q
+		project_images: tenanted_select(connection, q => q
 			.from('project_image')
 			.join('project_line_item_image', b => b.comparison('project_line_item_image.project_image_id', '=', 'project_image.project_image_id'))
 			.select(() => [
@@ -106,22 +107,22 @@ export const load_existing_correlations = async (
 				'project_line_item_image.project_line_item_image_id',
 				'project_line_item_image.project_line_item_id',
 			])),
-		tenanted_select(connection, q => q
+		item_types: tenanted_select(connection, q => q
 			.from('item_type')
 			.select(() => ['item_type.item_type_id', 'item_type.name'])),
-		tenanted_select(connection, q => q
+		payment_methods: tenanted_select(connection, q => q
 			.from('payment_method')
 			.select(() => ['payment_method.payment_method_id', 'payment_method.name'])),
-		tenanted_select(connection, q => q
+		tax_rates: tenanted_select(connection, q => q
 			.from('tax_rate')
 			.select(() => ['tax_rate.tax_rate_id', 'tax_rate.name', 'tax_rate.tax_rate'])),
-		tenanted_select(connection, q => q
+		work_skills: tenanted_select(connection, q => q
 			.from('work_skill')
 			.select(() => ['work_skill.work_skill_id', 'work_skill.name'])),
-		tenanted_select(connection, q => q
+		lead_sources: tenanted_select(connection, q => q
 			.from('lead_source')
 			.select(() => ['lead_source.lead_source_id', 'lead_source.name'])),
-	])
+	})
 
 	return {
 		employee_id_by_arbostar_user_id: correlation_map(

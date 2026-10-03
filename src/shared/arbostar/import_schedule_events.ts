@@ -4,6 +4,7 @@ import { pool_transaction } from '#shared/mysql/helpers.ts'
 import make_write_helper from '#shared/mysql/write_helper.ts'
 import assert from '#shared/assert.ts'
 import { map, filter, filter_map, flat_map, for_each } from '#shared/array.ts'
+import { promise_all_object } from '#shared/promise_all_object.ts'
 import { ROWS_PER_BATCH, make_tenanted_select, normalize_name } from './import_common.ts'
 import { instant_from_unix_seconds } from './arbostar_dates.ts'
 
@@ -31,23 +32,23 @@ export const import_schedule_events = async ({
 }) => {
 	const tenanted_select = make_tenanted_select(company_id)
 
-	const [company_rows, crew_rows, employee_rows, project_rows, line_item_rows, project_crew_rows] = await Promise.all([
-		tenanted_select(pool, q => q
+	const { company_rows, crew_rows, employee_rows, project_rows, line_item_rows, project_crew_rows } = await promise_all_object({
+		company_rows: tenanted_select(pool, q => q
 			.from('company')
 			.select(() => ['company.timezone'])),
-		tenanted_select(pool, q => q
+		crew_rows: tenanted_select(pool, q => q
 			.from('crew')
 			.select(() => ['crew.crew_id', 'crew.name'])),
-		tenanted_select(pool, q => q
+		employee_rows: tenanted_select(pool, q => q
 			.from('employee')
 			.select(() => ['employee.employee_id', 'employee.name'])),
-		tenanted_select(pool, q => q
+		project_rows: tenanted_select(pool, q => q
 			.from('project')
 			.select(() => ['project.project_id', 'project.number'])),
-		tenanted_select(pool, q => q
+		line_item_rows: tenanted_select(pool, q => q
 			.from('project_line_item')
 			.select(() => ['project_line_item.project_line_item_id', 'project_line_item.project_id', 'project_line_item.arbostar_line_item_id'])),
-		tenanted_select(pool, q => q
+		project_crew_rows: tenanted_select(pool, q => q
 			.from('project_crew')
 			.select(() => [
 				'project_crew.project_crew_id',
@@ -56,7 +57,7 @@ export const import_schedule_events = async ({
 				'project_crew.work_date',
 				'project_crew.arbostar_schedule_event_id',
 			])),
-	])
+	})
 
 	assert(company_rows.length === 1, `company ${company_id} exists`)
 	const timezone = company_rows[0]!.company.timezone
