@@ -50,7 +50,7 @@
 
 <button type="button" onclick={() => {
 	on_done?.()
-	asr.go(`app.menu.leads_to_estimate`)
+	asr.go(`app.estimate.line_items`, { project_id })
 }}>Done</button>
 
 {#if next_line_item === null}

@@ -173,10 +173,15 @@ export const functions = {
 
 			const project_number = await get_next_project_number_and_increment({ write_helper })
 
+			const now = Temporal.Now.instant()
+			const change_date = now.toZonedDateTimeISO(company.timezone).toPlainDate()
+
 			const { insert_id: project_id } = await write_helper.insert('project', {
 				...all_address_values,
 				number: project_number,
 				project_document_id: initial_project_document_id,
+				last_project_document_change_date: change_date,
+				last_project_document_change_datetime: now,
 				client_id,
 				client_address_id,
 				client_contact_id,
@@ -190,12 +195,11 @@ export const functions = {
 				closed: false,
 			})
 
-			const now = Temporal.Now.instant()
 			await write_helper.insert('project_document_history', {
 				project_id,
 				project_document_id: initial_project_document_id,
 				changed_by_employee_id: user.employee_id,
-				change_date: now.toZonedDateTimeISO(company.timezone).toPlainDate(),
+				change_date,
 				change_datetime: now,
 			})
 

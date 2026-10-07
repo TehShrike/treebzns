@@ -119,6 +119,7 @@ const type_source_modules = [
 	{ specifier: '#shared/sql_request/safe_select_query_validator.ts', path: ['src', 'shared', 'sql_request', 'safe_select_query_validator.ts'] },
 	{ specifier: '#shared/type/lead.ts', path: ['src', 'shared', 'type', 'lead.ts'] },
 	{ specifier: '#shared/type/client.ts', path: ['src', 'shared', 'type', 'client.ts'] },
+	{ specifier: '#shared/type/estimate.ts', path: ['src', 'shared', 'type', 'estimate.ts'] },
 ]
 
 const validator_import = type_source_modules

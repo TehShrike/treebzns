@@ -464,6 +464,8 @@ CREATE TABLE `project` (
   `project_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
   `project_document_id` int unsigned NOT NULL,
+  `last_project_document_change_date` date DEFAULT NULL,
+  `last_project_document_change_datetime` datetime DEFAULT NULL,
   `number` int unsigned NOT NULL,
   `client_id` int unsigned NOT NULL,
   `client_address_id` int unsigned NOT NULL,
@@ -477,6 +479,7 @@ CREATE TABLE `project` (
   `emergency` bit(1) NOT NULL DEFAULT b'0',
   `assigned_estimator_employee_id` int unsigned DEFAULT NULL,
   `lead_details` text COLLATE utf8mb4_general_ci NOT NULL DEFAULT (_utf8mb4''),
+  `estimated_crew_size` tinyint unsigned DEFAULT NULL,
   `created_by_employee_id` int unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
@@ -508,7 +511,8 @@ CREATE TABLE `project` (
   KEY `idx_project_company_closed` (`company_id`,`closed`,`closed_date`),
   KEY `idx_project_company_estimator` (`company_id`,`assigned_estimator_employee_id`),
   KEY `idx_project_client` (`client_id`),
-  KEY `idx_project_contact` (`client_contact_id`)
+  KEY `idx_project_contact` (`client_contact_id`),
+  KEY `idx_project_company_closed_last_document_change` (`company_id`,`closed`,`last_project_document_change_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `project_client_approval` (

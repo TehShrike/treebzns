@@ -289,6 +289,8 @@ export const permission = {
 export const project = {
 	company_id: 'company_id',
 	project_document_id: 'project_document_id',
+	last_project_document_change_date: 'last_project_document_change_date',
+	last_project_document_change_datetime: 'last_project_document_change_datetime',
 	number: 'number',
 	client_id: 'client_id',
 	client_address_id: 'client_address_id',
@@ -302,6 +304,7 @@ export const project = {
 	emergency: 'emergency',
 	assigned_estimator_employee_id: 'assigned_estimator_employee_id',
 	lead_details: 'lead_details',
+	estimated_crew_size: 'estimated_crew_size',
 	created_by_employee_id: 'created_by_employee_id',
 	needs_client_approval: 'needs_client_approval',
 	sent_for_client_approval: 'sent_for_client_approval',

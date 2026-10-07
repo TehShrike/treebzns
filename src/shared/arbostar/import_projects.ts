@@ -11,7 +11,7 @@ import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import type { ArbostarLeadNotes } from '#arbostar_export/lead_notes.d.ts'
 import type { ArbostarDecline } from '#arbostar_export/declines.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
-import { map, filter, filter_map, flat_map, every, some } from '#shared/array.ts'
+import { map, filter, filter_map, flat_map, every, some, for_each } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import arbostar_number_to_fnum from './arbostar_number_to_fnum.ts'
 import {
@@ -614,6 +614,16 @@ export const import_projects = async ({
 	if (history_rows.length > 0) {
 		await write_helper.bulk_insert('project_document_history', history_rows, ROWS_PER_BATCH)
 	}
+
+	const last_history_row_by_project_id = new Map<bigint, (typeof history_rows)[number]>()
+	for_each(history_rows, row => last_history_row_by_project_id.set(row.project_id, row))
+	await write_helper.bulk_update('project', 'project_id', map([...last_history_row_by_project_id.values()], row => ({
+		value: row.project_id,
+		set: {
+			last_project_document_change_date: row.change_date,
+			last_project_document_change_datetime: row.change_datetime,
+		},
+	})), ROWS_PER_BATCH)
 
 	// Only numbers within ArboStar's issued range can be missing-from-export — anything above
 	// max_arbostar_number is an in-app allocation, not a deleted lead. A pre-import in-app

@@ -1,5 +1,17 @@
 # Catch up
 
+Why does EstimateLineItemUpdate have work_skill_ids optional?  Surely it should be an empty array or have values, depending on the user's selection, the user shouldn't be allowed to not make a choice about work skills.
+
+update_estimate must be able to insert new line items as well.  The UI will soon be altered to allow creating new line items.  It should use the upsert pattern.
+
+PillCheckbox has too much css
+
+LineItemCard, LineItems.
+
+In LineItems.State's resolve, do we really need all those line item queries?  I would like to be able to group by line item id and use aggregate functions to get an array of the unique image ids and work skill ids for each line item.
+
+In estimate_form.svelte.ts, why aren't we using tracked_record_array for line_items?  Why does each line item need its own form?
+
 ## Next steps
 
 - Can we delete the project_image records wherever line items are deleted during the import process, rather than where that stale_line_item_filter is being used in import_line_items?
