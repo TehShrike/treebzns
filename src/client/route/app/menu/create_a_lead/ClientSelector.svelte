@@ -28,9 +28,9 @@
 
 <ClientSearch {client_cache} on_pick={select_client_and_contact} />
 
-<div class="title-bar" class:inactive={!lead.client.exists_in_the_database_already()}>
+<div class="title-bar" class:inactive={!lead.client.saved_in_database}>
 	<span>{lead.client.db_values?.name ?? `New client`}</span>
-	<button type="button" data-hide={!lead.client.exists_in_the_database_already()} onclick={lead.clear_client}>Clear</button>
+	<button type="button" data-hide={!lead.client.saved_in_database} onclick={lead.clear_client}>Clear</button>
 </div>
 
 <fieldset>

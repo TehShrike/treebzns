@@ -17,7 +17,7 @@
 	let project_contact_is_different_from_client = $state(false)
 	let contact_draft: LeadContactValues | null = null
 
-	const inputs_disabled = $derived(!client.exists_in_the_database_already() && !project_contact_is_different_from_client)
+	const inputs_disabled = $derived(!client.saved_in_database && !project_contact_is_different_from_client)
 
 	const select_saved_contact = (row: LeadForm['contact']['db_values']) => {
 		row ? contact.set_values(row) : contact.clear()
@@ -46,7 +46,7 @@
 <fieldset>
 	<legend>Project Contact</legend>
 	<FieldsetColumn>
-		{#if client.exists_in_the_database_already()}
+		{#if client.saved_in_database}
 			<DropdownField>
 				Saved contact
 				<select bind:value={() => contact.db_values, select_saved_contact}>

@@ -43,7 +43,7 @@
 <fieldset>
 	<legend>Project Location</legend>
 	<FieldsetColumn>
-		{#if client.exists_in_the_database_already()}
+		{#if client.saved_in_database}
 			<DropdownField>
 				Saved address
 				<select bind:value={() => address.db_values, select_saved_address}>
@@ -78,7 +78,7 @@
 				<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={address.value_needs_to_be_saved(`zip`)} bind:value={address.form_values.zip}>
 			</label>
 		</FormLayout>
-		{#if !client.exists_in_the_database_already()}
+		{#if !client.saved_in_database}
 			<label class="toggle">
 				<input type="checkbox" bind:checked={() => billing_address !== null, set_billing_is_different}>
 				The billing address is different

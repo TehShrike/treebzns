@@ -2,6 +2,8 @@
 
 Why does EstimateLineItemUpdate have work_skill_ids optional?  Surely it should be an empty array or have values, depending on the user's selection, the user shouldn't be allowed to not make a choice about work skills.
 
+I don't know why work_skill_ids could ever be undefined in estimate_form.svelte.ts.
+
 update_estimate must be able to insert new line items as well.  The UI will soon be altered to allow creating new line items.  It should use the upsert pattern.
 
 PillCheckbox has too much css

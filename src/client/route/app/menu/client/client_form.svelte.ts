@@ -16,15 +16,13 @@ const make_contact = (db_values: DbValues<ClientContactValues, 'client_contact_i
 	initial: { description: ``, name: ``, phone: ``, email: ``, is_primary: false },
 	id_key: `client_contact_id`,
 	db_values,
-	is_empty: ({ name, description, phone, email, is_primary }) => name === `` && description === `` && phone === `` && email === `` && is_primary === false,
 })
 
 const make_address = (db_values: DbValues<ClientAddressValues, 'client_address_id'> | null) => tracked_record<ClientAddressValues, 'client_address_id'>({
 	initial: { client_contact_id: null, name: ``, address_line_1: ``, address_line_2: ``, city: ``, state: ``, zip: `` },
 	id_key: `client_address_id`,
 	db_values,
-	is_empty: ({ name, address_line_1, address_line_2, city, state, zip }) =>
-		name === `` && address_line_1 === `` && address_line_2 === `` && city === `` && state === `` && zip === ``,
+	empty_checks: { client_contact_id: () => true },
 })
 
 const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, addresses: loaded_addresses }: {
@@ -59,7 +57,7 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 		row_is_empty: row => row.is_empty,
 		get_key: row => row.key,
 	})
-	const contacts = tracked_record_array({ records: () => contact_rows.rows, id_key: `client_contact_id` })
+	const contacts = tracked_record_array({ records: () => contact_rows.non_empty_rows, id_key: `client_contact_id` })
 
 	const address_rows = editable_rows({
 		initial: map(loaded_addresses, make_address),
@@ -67,7 +65,7 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 		row_is_empty: row => row.is_empty,
 		get_key: row => row.key,
 	})
-	const addresses = tracked_record_array({ records: () => address_rows.rows, id_key: `client_address_id` })
+	const addresses = tracked_record_array({ records: () => address_rows.non_empty_rows, id_key: `client_address_id` })
 
 	const values_to_save = $derived<UpdateClientArgument>({
 		client_id: loaded_client.client_id,

@@ -43,7 +43,7 @@
 				estimated_hours: line_item.estimated_hours,
 				client_optional: line_item.client_optional,
 				image_ids: image_ids.get(line_item.project_line_item_id) ?? [],
-				work_skill_ids: work_skill_ids.get(line_item.project_line_item_id) ?? [],
+				work_skill_ids: new Set(work_skill_ids.get(line_item.project_line_item_id)),
 			}))
 
 			return { server, project_id, project, loaded_line_items, item_types, work_skills }
@@ -126,7 +126,7 @@
 			<p class="no_line_items">No line items yet. Go back to Photos and add one.</p>
 		{:else}
 			<div class="cards">
-				{#each form.line_items as line_item (line_item.key)}
+				{#each form.line_items as line_item (line_item.record.key)}
 					<LineItemCard {line_item} {item_types} {work_skills} />
 				{/each}
 			</div>

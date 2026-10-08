@@ -1,6 +1,7 @@
 import { every, for_each, reduce, some } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import type { RowKey } from '#client/component/list_input/row_key.ts'
+import type { EqualityCheck } from '#shared/equality_check.ts'
 
 export const unsaved_record_identity = Symbol(`unsaved record identity`)
 
@@ -22,34 +23,44 @@ const value_copier = <VALUES extends object>(keys: readonly (keyof VALUES)[]) =>
 	return values
 })
 
+const strictly_equal = <T>(a: T, b: T) => a === b
+
 const tracked_record = <VALUES extends object, ID_KEY extends string>({
 	initial,
 	id_key,
 	db_values: initial_db_values = null,
-	is_empty: values_are_empty = values => every(Object.keys(initial) as (keyof VALUES)[], key => values[key] === initial[key]),
+	equality_checks = {},
+	empty_checks = {},
 }: {
 	initial: VALUES
 	id_key: ID_KEY
 	db_values?: DbValues<VALUES, ID_KEY> | null
-	is_empty?: (values: VALUES) => boolean
+	equality_checks?: { [K in keyof VALUES]?: EqualityCheck<VALUES[K]> }
+	empty_checks?: { [K in keyof VALUES]?: (value: VALUES[K]) => boolean }
 }) => {
 	const keys = Object.keys(initial) as (keyof VALUES)[]
 	const copy_values = value_copier(keys)
 
-	const key: RowKey = initial_db_values === null ? `unsaved_${unsaved_record_count++}` : initial_db_values[id_key]
+	const values_equal = <K extends keyof VALUES>(key: K, a: VALUES[K], b: VALUES[K]) => (equality_checks[key] ?? strictly_equal)(a, b)
+	const value_is_empty = <K extends keyof VALUES>(key: K, value: VALUES[K]) => {
+		const empty_check = empty_checks[key]
+		return empty_check === undefined ? values_equal(key, value, initial[key]) : empty_check(value)
+	}
+
+	const saved_in_database = (values: DbValues<VALUES, ID_KEY> | null): values is DbValues<VALUES, ID_KEY> => values !== null
+
+	const key: RowKey = saved_in_database(initial_db_values) ? initial_db_values[id_key] : `unsaved_${unsaved_record_count++}`
 
 	let db_values = $state.raw<DbValues<VALUES, ID_KEY> | null>(initial_db_values)
 	let form_values = $state<VALUES>(copy_values(initial_db_values ?? initial))
 
-	const exists_in_the_database_already = () => db_values !== null
+	const value_needs_to_be_saved = (key: keyof VALUES) => !saved_in_database(db_values) || !values_equal(key, form_values[key], db_values[key])
 
-	const value_needs_to_be_saved = (key: keyof VALUES) => db_values === null || form_values[key] !== db_values[key]
+	const needs_to_be_saved = $derived(!saved_in_database(db_values) || some(keys, value_needs_to_be_saved))
 
-	const needs_to_be_saved = $derived(db_values === null || some(keys, value_needs_to_be_saved))
+	const is_empty = $derived(!saved_in_database(db_values) && every(keys, key => value_is_empty(key, form_values[key])))
 
-	const is_empty = $derived(values_are_empty(form_values))
-
-	const values_to_save = $derived(db_values === null
+	const values_to_save = $derived(!saved_in_database(db_values)
 		? { [id_key]: null, [unsaved_record_identity]: key, ...copy_values(form_values) }
 		: {
 			[id_key]: db_values[id_key],
@@ -69,14 +80,14 @@ const tracked_record = <VALUES extends object, ID_KEY extends string>({
 		get needs_to_be_saved() { return needs_to_be_saved },
 		get is_empty() { return is_empty },
 		get values_to_save() { return values_to_save },
-		exists_in_the_database_already,
+		get saved_in_database() { return saved_in_database(db_values) },
 		value_needs_to_be_saved,
 		set_values: (values: DbValues<VALUES, ID_KEY>) => {
 			db_values = values
 			for_each(keys, key => { form_values[key] = values[key] })
 		},
 		update_db_values: (values: SavedValues<VALUES, ID_KEY>) => {
-			if (db_values === null) {
+			if (!saved_in_database(db_values)) {
 				assert(every(keys, key => key in values), `saved values for a record that was not in the database must include every value`)
 			} else {
 				assert(db_values[id_key] === values[id_key], `saved values carry the id of this record`)

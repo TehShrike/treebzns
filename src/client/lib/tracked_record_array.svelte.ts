@@ -18,8 +18,7 @@ const tracked_record_array = <VALUES extends object, ID_KEY extends string>({
 
 	let db_ids = $state.raw(new Set(filter_map(get_records(), get_db_id)))
 
-	const values_to_save = $derived(filter_map(get_records(), record =>
-		!record.is_empty && record.needs_to_be_saved ? record.values_to_save : null))
+	const values_to_save = $derived(filter_map(get_records(), record => record.needs_to_be_saved ? record.values_to_save : null))
 
 	const record_ids = $derived(new Set(filter_map(get_records(), get_db_id)))
 
