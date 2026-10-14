@@ -73,7 +73,6 @@ export const import_images = async ({
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
 	employee_id_by_arbostar_user_id: Map<number, bigint>
 }): Promise<ImportedImages> => {
-	const existing = context.existing.project_image_by_arbostar_image_id
 
 	const position_within_line_item = new Map<number, bigint>()
 	const rows = filter_map(images, (image): ImageRow | null => {
@@ -90,8 +89,8 @@ export const import_images = async ({
 			sort,
 		}
 	})
-	const existing_rows = filter(rows, row => existing.has(row.image.image_id))
-	const new_rows = filter(rows, row => !existing.has(row.image.image_id))
+	const existing_rows = filter(rows, row => context.existing.project_image_by_arbostar_image_id.has(row.image.image_id))
+	const new_rows = filter(rows, row => !context.existing.project_image_by_arbostar_image_id.has(row.image.image_id))
 
 	const incoming_image_ids = new Set(map(rows, row => row.image.image_id))
 	const in_scope_project_ids = new Set(filter_map(
@@ -99,20 +98,20 @@ export const import_images = async ({
 		([lead_id, project_id]) => lead_ids_to_download_images_for.has(lead_id) ? project_id : null,
 	))
 	const stale = filter(
-		[...existing.entries()],
+		[...context.existing.project_image_by_arbostar_image_id.entries()],
 		([arbostar_image_id, row]) => !incoming_image_ids.has(arbostar_image_id) && in_scope_project_ids.has(row.project_id),
 	)
 
 	const { project_image_id_by_arbostar_image_id } = await run_transaction(async (connection, write_helper) => {
 		const project_image_id_by_arbostar_image_id = new Map<number, bigint>(
-			map(existing_rows, row => [row.image.image_id, existing.get(row.image.image_id)!.project_image_id] as const),
+			map(existing_rows, row => [row.image.image_id, context.existing.project_image_by_arbostar_image_id.get(row.image.image_id)!.project_image_id] as const),
 		)
 
 		await write_helper.bulk_update(
 			'project_image',
 			'project_image_id',
 			map(existing_rows, row => ({
-				value: existing.get(row.image.image_id)!.project_image_id,
+				value: context.existing.project_image_by_arbostar_image_id.get(row.image.image_id)!.project_image_id,
 				set: {
 					project_id: row.project_id,
 					visible_to_client: row.image.in_estimate_pdf,
@@ -125,7 +124,7 @@ export const import_images = async ({
 			'project_line_item_image',
 			'project_line_item_image_id',
 			map(existing_rows, row => ({
-				value: existing.get(row.image.image_id)!.project_line_item_image_id,
+				value: context.existing.project_image_by_arbostar_image_id.get(row.image.image_id)!.project_line_item_image_id,
 				set: { project_line_item_id: row.project_line_item_id, sort: row.sort },
 			})),
 			ROWS_PER_BATCH,
@@ -171,7 +170,7 @@ export const import_images = async ({
 	await delete_objects(s3, flat_map(stale, ([, row]) => object_keys_of(row)))
 
 	const pending = filter(rows, row => {
-		const existing_row = existing.get(row.image.image_id)
+		const existing_row = context.existing.project_image_by_arbostar_image_id.get(row.image.image_id)
 		return existing_row === undefined || existing_row.uploaded_at === null
 	})
 	let failed = 0

@@ -95,7 +95,6 @@ export const import_payments = async ({
 	invoice_id_by_arbostar_invoice_id: Map<number, bigint>
 	employee_id_by_arbostar_user_id: Map<number, bigint>
 }): Promise<ImportedPayments> => {
-	const correlated = context.existing.payment_id_by_arbostar_payment_id
 	const with_client = filter(payments, payment => client_id_by_arbostar_client_id.has(payment.client_id))
 
 	// Allocations link to estimates/invoices only — the lead (and through it the project) is
@@ -187,19 +186,19 @@ export const import_payments = async ({
 		recorded_by_employee_id: recorded_by_employee_id(payment),
 	})
 
-	const existing_payments = filter(importable, payment => correlated.has(payment.payment_id))
-	const new_payments = filter(importable, payment => !correlated.has(payment.payment_id))
+	const existing_payments = filter(importable, payment => context.existing.payment_id_by_arbostar_payment_id.has(payment.payment_id))
+	const new_payments = filter(importable, payment => !context.existing.payment_id_by_arbostar_payment_id.has(payment.payment_id))
 
 	await write_helper.bulk_update(
 		'payment',
 		'payment_id',
-		map(existing_payments, payment => ({ value: correlated.get(payment.payment_id)!, set: payment_fields(payment) })),
+		map(existing_payments, payment => ({ value: context.existing.payment_id_by_arbostar_payment_id.get(payment.payment_id)!, set: payment_fields(payment) })),
 		ROWS_PER_BATCH,
 	)
 
 	const payment_id_by_arbostar_payment_id = new Map(map(
 		existing_payments,
-		payment => [payment.payment_id, correlated.get(payment.payment_id)!] as const,
+		payment => [payment.payment_id, context.existing.payment_id_by_arbostar_payment_id.get(payment.payment_id)!] as const,
 	))
 	if (new_payments.length > 0) {
 		const payment_rows = map(new_payments, payment => ({
@@ -236,7 +235,7 @@ export const import_payments = async ({
 
 	// Reconcile against the import-managed payment_invoice rows (those belonging to
 	// already-correlated payments — new payments can't have any yet).
-	const existing_payment_ids = new Set(correlated.values())
+	const existing_payment_ids = new Set(context.existing.payment_id_by_arbostar_payment_id.values())
 	const payment_invoice_rows = existing_payment_ids.size === 0 ? [] : await context.tenanted_select(connection, q => q
 		.from('payment_invoice')
 		.select(() => ['payment_invoice.payment_invoice_id', 'payment_invoice.payment_id', 'payment_invoice.invoice_id']))
@@ -284,7 +283,7 @@ export const import_payments = async ({
 	}
 
 	const incoming_payment_ids = new Set(map(with_client, payment => payment.payment_id))
-	const no_longer_in_export = filter([...correlated.keys()], payment_id => !incoming_payment_ids.has(payment_id)).length
+	const no_longer_in_export = filter([...context.existing.payment_id_by_arbostar_payment_id.keys()], payment_id => !incoming_payment_ids.has(payment_id)).length
 
 	return {
 		counts: {

@@ -114,17 +114,16 @@ export const import_line_items = async ({
 		}
 	}
 
-	const correlated = context.existing.project_line_item_id_by_arbostar_line_item_id
-	const existing_items = filter(importable, item => correlated.has(item.line_item_id))
-	const new_items = filter(importable, item => !correlated.has(item.line_item_id))
+	const existing_items = filter(importable, item => context.existing.project_line_item_id_by_arbostar_line_item_id.has(item.line_item_id))
+	const new_items = filter(importable, item => !context.existing.project_line_item_id_by_arbostar_line_item_id.has(item.line_item_id))
 
 	await write_helper.bulk_update(
 		'project_line_item',
 		'project_line_item_id',
-		map(existing_items, item => ({ value: correlated.get(item.line_item_id)!, set: line_item_fields(item) })),
+		map(existing_items, item => ({ value: context.existing.project_line_item_id_by_arbostar_line_item_id.get(item.line_item_id)!, set: line_item_fields(item) })),
 		ROWS_PER_BATCH,
 	)
-	const project_line_item_id_by_arbostar_line_item_id = new Map(correlated)
+	const project_line_item_id_by_arbostar_line_item_id = new Map(context.existing.project_line_item_id_by_arbostar_line_item_id)
 	if (new_items.length > 0) {
 		const { insert_ids } = await write_helper.bulk_insert(
 			'project_line_item',

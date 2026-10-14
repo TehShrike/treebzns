@@ -24,11 +24,11 @@
 		route: `/line_items`,
 		param_validator: validate_estimate_params,
 		resolve: async ({ query, server }, { project_id }) => {
-			const { project, line_items, image_ids, work_skill_ids, item_types, work_skills } = await promise_all_object({
+			const { project, line_items, image_ids_by_line_item_id, work_skill_ids_by_line_item_id, item_types, work_skills } = await promise_all_object({
 				project: fetch_estimate_project(query, project_id),
 				line_items: fetch_estimate_line_items(query, project_id),
-				image_ids: fetch_line_item_image_ids(query, project_id),
-				work_skill_ids: fetch_line_item_work_skill_ids(query, project_id),
+				image_ids_by_line_item_id: fetch_line_item_image_ids(query, project_id),
+				work_skill_ids_by_line_item_id: fetch_line_item_work_skill_ids(query, project_id),
 				item_types: fetch_item_types(query),
 				work_skills: fetch_work_skills(query),
 			})
@@ -42,8 +42,8 @@
 				work_details: line_item.work_details ?? ``,
 				estimated_hours: line_item.estimated_hours,
 				client_optional: line_item.client_optional,
-				image_ids: image_ids.get(line_item.project_line_item_id) ?? [],
-				work_skill_ids: work_skill_ids.get(line_item.project_line_item_id) ?? [],
+				image_ids: image_ids_by_line_item_id.get(line_item.project_line_item_id) ?? [],
+				work_skill_ids: work_skill_ids_by_line_item_id.get(line_item.project_line_item_id) ?? [],
 			}))
 
 			return { server, project_id, project, loaded_line_items, item_types, work_skills }

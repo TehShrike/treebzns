@@ -51,7 +51,6 @@ export const import_employees = async ({
 }): Promise<ImportedEmployees> => {
 	const employee_id_by_name = new Map(context.employee_id_by_name)
 	const adoptable_by_identity = new Map(context.employee_id_by_identity)
-	const correlated = context.existing.employee_id_by_arbostar_user_id
 
 	const active_users = filter(users, user => user.active_status === 'yes')
 
@@ -70,7 +69,7 @@ export const import_employees = async ({
 	let matched_by_identity = 0
 	let matched_by_name = 0
 	for (const user of active_users) {
-		const correlated_id = correlated.get(user.user_id)
+		const correlated_id = context.existing.employee_id_by_arbostar_user_id.get(user.user_id)
 		const identity_matched_id = correlated_id === undefined ? identity_match(user) : undefined
 		const name_matched_id = employee_id_by_name.get(normalize_name(user.full_name))
 		const adopted_id = identity_matched_id ?? name_matched_id
@@ -160,7 +159,7 @@ export const import_employees = async ({
 	// Counted against the full user list, not just active ones — an ignored inactive user that
 	// was imported before the active filter existed is still in the export, just not importable.
 	const incoming_user_ids = new Set(map(users, user => user.user_id))
-	const no_longer_in_export = filter([...correlated.keys()], user_id => !incoming_user_ids.has(user_id)).length
+	const no_longer_in_export = filter([...context.existing.employee_id_by_arbostar_user_id.keys()], user_id => !incoming_user_ids.has(user_id)).length
 
 	return {
 		employee_id_by_arbostar_user_id,

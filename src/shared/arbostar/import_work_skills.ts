@@ -53,17 +53,16 @@ export const import_work_skills = async ({
 		'every crew role derives a distinct work skill name',
 	)
 
-	const existing = context.existing.work_skill_id_by_name
-	const updates = filter(skills, skill => existing.has(normalize_name(skill.name)))
-	const inserts = filter(skills, skill => !existing.has(normalize_name(skill.name)))
-	const work_skill_id_by_crew_code = new Map(map(updates, skill => [skill.code, existing.get(normalize_name(skill.name))!] as const))
+	const updates = filter(skills, skill => context.existing.work_skill_id_by_name.has(normalize_name(skill.name)))
+	const inserts = filter(skills, skill => !context.existing.work_skill_id_by_name.has(normalize_name(skill.name)))
+	const work_skill_id_by_crew_code = new Map(map(updates, skill => [skill.code, context.existing.work_skill_id_by_name.get(normalize_name(skill.name))!] as const))
 
 	if (updates.length > 0) {
 		await write_helper.bulk_update(
 			'work_skill',
 			'work_skill_id',
 			map(updates, skill => ({
-				value: existing.get(normalize_name(skill.name))!,
+				value: context.existing.work_skill_id_by_name.get(normalize_name(skill.name))!,
 				set: { hourly_rate: skill.hourly_rate },
 			})),
 			ROWS_PER_BATCH,

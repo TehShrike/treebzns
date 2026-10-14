@@ -66,7 +66,7 @@ export const import_invoices = async ({
 	project_id_by_arbostar_lead_id: Map<number, bigint>
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
 }): Promise<ImportedInvoices> => {
-	const correlated = new Map(context.existing.invoice_id_by_arbostar_invoice_id)
+	const existing_invoice_id_by_arbostar_invoice_id = new Map(context.existing.invoice_id_by_arbostar_invoice_id)
 	const importable = filter(invoices, invoice => client_id_by_arbostar_client_id.has(invoice.client_id))
 
 	const invoice_id_by_constructed_number = new Map<bigint, number>()
@@ -177,7 +177,7 @@ export const import_invoices = async ({
 	// adopts that row instead of colliding with it.
 	const incoming_invoice_ids = new Set(map(invoices, invoice => invoice.invoice_id))
 	const adoptions = filter_map(
-		filter(importable, invoice => !correlated.has(invoice.invoice_id)),
+		filter(importable, invoice => !existing_invoice_id_by_arbostar_invoice_id.has(invoice.invoice_id)),
 		invoice => {
 			const invoice_number = constructed_number(invoice)
 			const holder = context.existing.invoice_by_number.get(invoice_number)
@@ -198,21 +198,21 @@ export const import_invoices = async ({
 		})),
 		ROWS_PER_BATCH,
 	)
-	for_each(adoptions, adoption => correlated.set(adoption.arbostar_invoice_id, adoption.invoice_id))
+	for_each(adoptions, adoption => existing_invoice_id_by_arbostar_invoice_id.set(adoption.arbostar_invoice_id, adoption.invoice_id))
 
-	const existing_invoices = filter(importable, invoice => correlated.has(invoice.invoice_id))
-	const new_invoices = filter(importable, invoice => !correlated.has(invoice.invoice_id))
+	const existing_invoices = filter(importable, invoice => existing_invoice_id_by_arbostar_invoice_id.has(invoice.invoice_id))
+	const new_invoices = filter(importable, invoice => !existing_invoice_id_by_arbostar_invoice_id.has(invoice.invoice_id))
 
 	await write_helper.bulk_update(
 		'invoice',
 		'invoice_id',
-		map(existing_invoices, invoice => ({ value: correlated.get(invoice.invoice_id)!, set: invoice_fields(invoice) })),
+		map(existing_invoices, invoice => ({ value: existing_invoice_id_by_arbostar_invoice_id.get(invoice.invoice_id)!, set: invoice_fields(invoice) })),
 		ROWS_PER_BATCH,
 	)
 
 	const invoice_id_by_arbostar_invoice_id = new Map(map(
 		existing_invoices,
-		invoice => [invoice.invoice_id, correlated.get(invoice.invoice_id)!] as const,
+		invoice => [invoice.invoice_id, existing_invoice_id_by_arbostar_invoice_id.get(invoice.invoice_id)!] as const,
 	))
 	if (new_invoices.length > 0) {
 		const invoice_rows = map(new_invoices, invoice => ({
@@ -226,7 +226,7 @@ export const import_invoices = async ({
 	// Imported invoices' lines are wholly import-managed (the app never touches them), so
 	// updated invoices simply get their lines replaced. Lines import as exported — no
 	// reconciliation against the header totals.
-	const updated_invoice_ids = map(existing_invoices, invoice => correlated.get(invoice.invoice_id)!)
+	const updated_invoice_ids = map(existing_invoices, invoice => existing_invoice_id_by_arbostar_invoice_id.get(invoice.invoice_id)!)
 	await write_helper.delete('invoice_line_item', 'invoice_id', updated_invoice_ids, ROWS_PER_BATCH)
 
 	let invoice_lines_without_project_line_item = 0
@@ -251,7 +251,7 @@ export const import_invoices = async ({
 		await write_helper.bulk_insert('invoice_line_item', line_rows, ROWS_PER_BATCH)
 	}
 
-	const no_longer_in_export = filter([...correlated.keys()], invoice_id => !incoming_invoice_ids.has(invoice_id)).length
+	const no_longer_in_export = filter([...existing_invoice_id_by_arbostar_invoice_id.keys()], invoice_id => !incoming_invoice_ids.has(invoice_id)).length
 
 	return {
 		invoice_id_by_arbostar_invoice_id,

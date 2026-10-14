@@ -78,7 +78,6 @@ export const import_clients = async ({
 	context: ArbostarImportContext
 	clients: ArbostarClient[]
 }): Promise<ImportedClients> => {
-	const correlated = context.existing.client_id_by_arbostar_client_id
 
 	const baked_contact_fields = (client: ArbostarClient) => {
 		const client_contacts = client.contacts ?? []
@@ -112,13 +111,13 @@ export const import_clients = async ({
 		zip: client.client_zip ?? '',
 	})
 
-	const existing_clients = filter(clients, client => correlated.has(client.client_id))
-	const new_clients = filter(clients, client => !correlated.has(client.client_id))
+	const existing_clients = filter(clients, client => context.existing.client_id_by_arbostar_client_id.has(client.client_id))
+	const new_clients = filter(clients, client => !context.existing.client_id_by_arbostar_client_id.has(client.client_id))
 
 	await write_helper.bulk_update(
 		'client',
 		'client_id',
-		map(existing_clients, client => ({ value: correlated.get(client.client_id)!, set: client_fields(client) })),
+		map(existing_clients, client => ({ value: context.existing.client_id_by_arbostar_client_id.get(client.client_id)!, set: client_fields(client) })),
 		ROWS_PER_BATCH,
 	)
 	await write_helper.bulk_update(
@@ -133,7 +132,7 @@ export const import_clients = async ({
 
 	const client_id_by_arbostar_client_id = new Map(map(
 		existing_clients,
-		client => [client.client_id, correlated.get(client.client_id)!] as const,
+		client => [client.client_id, context.existing.client_id_by_arbostar_client_id.get(client.client_id)!] as const,
 	))
 	const default_project_address_by_arbostar_client_id = new Map(map(existing_clients, client => [
 		client.client_id,
@@ -202,7 +201,6 @@ export const import_clients = async ({
 		}))
 	}
 
-	const correlated_contacts = context.existing.client_contact_id_by_arbostar_contact_id
 	const incoming_contacts = flatten(map(clients, client =>
 		map(client.contacts ?? [], (contact, index) => ({
 			contact,
@@ -221,21 +219,21 @@ export const import_clients = async ({
 		sort,
 	})
 
-	const existing_contacts = filter(incoming_contacts, ({ contact }) => correlated_contacts.has(contact.cc_id))
-	const new_contacts = filter(incoming_contacts, ({ contact }) => !correlated_contacts.has(contact.cc_id))
+	const existing_contacts = filter(incoming_contacts, ({ contact }) => context.existing.client_contact_id_by_arbostar_contact_id.has(contact.cc_id))
+	const new_contacts = filter(incoming_contacts, ({ contact }) => !context.existing.client_contact_id_by_arbostar_contact_id.has(contact.cc_id))
 
 	await write_helper.bulk_update(
 		'client_contact',
 		'client_contact_id',
 		map(existing_contacts, incoming => ({
-			value: correlated_contacts.get(incoming.contact.cc_id)!,
+			value: context.existing.client_contact_id_by_arbostar_contact_id.get(incoming.contact.cc_id)!,
 			set: contact_fields(incoming),
 		})),
 		ROWS_PER_BATCH,
 	)
 	const contact_id_by_arbostar_contact_id = new Map(map(
 		existing_contacts,
-		({ contact }) => [contact.cc_id, correlated_contacts.get(contact.cc_id)!] as const,
+		({ contact }) => [contact.cc_id, context.existing.client_contact_id_by_arbostar_contact_id.get(contact.cc_id)!] as const,
 	))
 	if (new_contacts.length > 0) {
 		const { insert_ids: contact_ids } = await write_helper.bulk_insert(
@@ -293,12 +291,12 @@ export const import_clients = async ({
 	// will be handled deliberately, not on every re-import.
 	const incoming_contact_ids = new Set(map(incoming_contacts, ({ contact }) => contact.cc_id))
 	const contacts_no_longer_in_export = filter(
-		[...correlated_contacts.keys()],
+		[...context.existing.client_contact_id_by_arbostar_contact_id.keys()],
 		contact_id => !incoming_contact_ids.has(contact_id),
 	).length
 
 	const incoming_client_ids = new Set(map(clients, client => client.client_id))
-	const no_longer_in_export = filter([...correlated.keys()], client_id => !incoming_client_ids.has(client_id)).length
+	const no_longer_in_export = filter([...context.existing.client_id_by_arbostar_client_id.keys()], client_id => !incoming_client_ids.has(client_id)).length
 
 	return {
 		client_id_by_arbostar_client_id,
