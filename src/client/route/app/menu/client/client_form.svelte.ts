@@ -1,13 +1,19 @@
 import tracked_record, { type DbValues, type SavedValues } from '#client/lib/tracked_record.svelte.ts'
-import tracked_record_array, { type SavedRowValues } from '#client/lib/tracked_record_array.svelte.ts'
+import tracked_record_array, { type SavedRow } from '#client/lib/tracked_record_array.ts'
+import type { WithStableRecordIdentifier } from '#client/lib/stable_record_identifier.ts'
 import editable_rows from '#client/component/list_input/editable_rows.svelte.ts'
 import { map } from '#shared/array.ts'
-import type { ClientValues, ClientContactValues, ClientAddressValues, UpdateClientArgument } from '#shared/type/client.ts'
+import type { ClientValues, ClientContactValues, ClientAddressValues, ClientContactUpdate, ClientAddressUpdate, UpdateClientArgument } from '#shared/type/client.ts'
+
+export type ClientValuesToSave = Omit<UpdateClientArgument, 'contacts' | 'addresses'> & {
+	contacts: WithStableRecordIdentifier<ClientContactUpdate>[]
+	addresses: WithStableRecordIdentifier<ClientAddressUpdate>[]
+}
 
 export type SavedClientValues = {
 	client: SavedValues<ClientValues, 'client_id'>
-	contacts: readonly SavedRowValues<ClientContactValues, 'client_contact_id'>[]
-	addresses: readonly SavedRowValues<ClientAddressValues, 'client_address_id'>[]
+	contacts: readonly SavedRow<ContactRecord, 'client_contact_id'>[]
+	addresses: readonly SavedRow<AddressRecord, 'client_address_id'>[]
 	remove_contact_ids: readonly bigint[]
 	remove_address_ids: readonly bigint[]
 }
@@ -18,12 +24,16 @@ const make_contact = (db_values: DbValues<ClientContactValues, 'client_contact_i
 	db_values,
 })
 
+type ContactRecord = ReturnType<typeof make_contact>
+
 const make_address = (db_values: DbValues<ClientAddressValues, 'client_address_id'> | null) => tracked_record<ClientAddressValues, 'client_address_id'>({
 	initial: { client_contact_id: null, name: ``, address_line_1: ``, address_line_2: ``, city: ``, state: ``, zip: `` },
 	id_key: `client_address_id`,
 	db_values,
 	empty_checks: { client_contact_id: () => true },
 })
+
+type AddressRecord = ReturnType<typeof make_address>
 
 const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, addresses: loaded_addresses }: {
 	client: DbValues<ClientValues, 'client_id'>
@@ -55,7 +65,7 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 		initial: map(loaded_contacts, make_contact),
 		make_empty_row: () => make_contact(null),
 		row_is_empty: row => row.is_empty,
-		get_key: row => row.key,
+		get_key: row => row.stable_record_identifier,
 	})
 	const contacts = tracked_record_array({ records: () => contact_rows.non_empty_rows, id_key: `client_contact_id` })
 
@@ -63,15 +73,15 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 		initial: map(loaded_addresses, make_address),
 		make_empty_row: () => make_address(null),
 		row_is_empty: row => row.is_empty,
-		get_key: row => row.key,
+		get_key: row => row.stable_record_identifier,
 	})
 	const addresses = tracked_record_array({ records: () => address_rows.non_empty_rows, id_key: `client_address_id` })
 
-	const values_to_save = $derived<UpdateClientArgument>({
+	const values_to_save = $derived<ClientValuesToSave>({
 		client_id: loaded_client.client_id,
-		client: client.values_to_save,
-		contacts: contacts.values_to_save,
-		addresses: addresses.values_to_save,
+		client: client.changed_values,
+		contacts: [...map(contacts.added, contact => ({ client_contact_id: null, ...contact })), ...contacts.changed],
+		addresses: [...map(addresses.added, address => ({ client_address_id: null, ...address })), ...addresses.changed],
 		remove_contact_ids: contacts.removed_ids,
 		remove_address_ids: addresses.removed_ids,
 	})

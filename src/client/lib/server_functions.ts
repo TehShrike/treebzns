@@ -4,7 +4,7 @@ import type { OptionalizeUndefinedKeys } from '#shared/json_validator.ts'
 import type { SafeSelectQuery } from '#shared/sql_request/safe_select_query_validator.ts'
 import type { LeadAddress, LeadAvailability, LeadBilling, LeadClient, LeadContact, LeadProject } from '#shared/type/lead.ts'
 import type { ClientMetrics, UpdateClientArgument } from '#shared/type/client.ts'
-import type { UpdateEstimateArgument } from '#shared/type/estimate.ts'
+import type { UpdateEstimateArgument, UpdateEstimateResult } from '#shared/type/estimate.ts'
 
 const call_server_function = (function_name: string) => async (arg: unknown) => f3tch(`/api/fn/${function_name}`, {
 	method: 'POST',
@@ -18,7 +18,7 @@ const server_functions: {
 	get_client_metrics: (arg: OptionalizeUndefinedKeys<{ readonly client_ids: bigint[]; }>) => Promise<ClientMetrics[]>
 	create_company: (arg: OptionalizeUndefinedKeys<{ name: string; }>) => Promise<Pick<DbCompany, "name" | "company_id">>
 	create_line_item: (arg: OptionalizeUndefinedKeys<{ readonly project_id: bigint; }>) => Promise<{ project_line_item_id: bigint; }>
-	update_estimate: (arg: UpdateEstimateArgument) => Promise<{ project_id: bigint; }>
+	update_estimate: (arg: UpdateEstimateArgument) => Promise<UpdateEstimateResult>
 	create_lead: (arg: { client: LeadClient; billing_address: LeadBilling | null; address: LeadAddress; contact: LeadContact; project: LeadProject; availability: LeadAvailability[]; }) => Promise<{ project_id: bigint; client_id: bigint; }>
 	create_line_item_image: (arg: OptionalizeUndefinedKeys<{ readonly project_line_item_id: bigint; }>) => Promise<{ project_image_id: bigint; }>
 	query: (arg: SafeSelectQuery) => Promise<unknown[][]>

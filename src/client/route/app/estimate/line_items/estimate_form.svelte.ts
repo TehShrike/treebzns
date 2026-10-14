@@ -1,30 +1,79 @@
-import { SvelteSet } from 'svelte/reactivity'
 import tracked_record, { type DbValues } from '#client/lib/tracked_record.svelte.ts'
-import tracked_record_array from '#client/lib/tracked_record_array.svelte.ts'
-import assert from '#shared/assert.ts'
-import { map } from '#shared/array.ts'
-import { sets_equal } from '#shared/equality_check.ts'
-import type { EstimateLineItemUpdate, EstimateLineItemValues, EstimateProjectValues, UpdateEstimateArgument } from '#shared/type/estimate.ts'
+import tracked_record_array from '#client/lib/tracked_record_array.ts'
+import type { WithStableRecordIdentifier } from '#client/lib/stable_record_identifier.ts'
+import tracked_id_set from '#client/lib/tracked_id_set.ts'
+import { map, zip_with } from '#shared/array.ts'
+import type {
+	AddedEstimateLineItem,
+	ChangedEstimateLineItem,
+	EstimateLineItemValues,
+	EstimateProjectValues,
+	UpdateEstimateArgument,
+	UpdateEstimateResult,
+} from '#shared/type/estimate.ts'
 
-export type LineItemFormValues = EstimateLineItemValues & {
-	work_skill_ids: ReadonlySet<bigint>
+export type EstimateValuesToSave = Omit<UpdateEstimateArgument, 'added_line_items' | 'changed_line_items'> & {
+	added_line_items: WithStableRecordIdentifier<AddedEstimateLineItem>[]
+	changed_line_items: WithStableRecordIdentifier<ChangedEstimateLineItem>[]
 }
 
-export type LoadedLineItem = DbValues<LineItemFormValues, 'project_line_item_id'> & {
+export type LoadedLineItem = DbValues<EstimateLineItemValues, 'project_line_item_id'> & {
 	title: string
 	image_ids: readonly bigint[]
+	work_skill_ids: readonly bigint[]
 }
 
-const make_line_item = (loaded: LoadedLineItem) => ({
-	title: loaded.title,
-	image_ids: loaded.image_ids,
-	record: tracked_record<LineItemFormValues, 'project_line_item_id'>({
-		initial: { item_type_id: null, work_details: ``, estimated_hours: 0n, client_optional: false, work_skill_ids: new Set() },
+export type SavedLineItem = { project_line_item_id: bigint } & (
+	| (EstimateLineItemValues & { work_skill_ids: readonly bigint[] })
+	| (Partial<EstimateLineItemValues> & { added_work_skill_ids: readonly bigint[], removed_work_skill_ids: readonly bigint[] })
+)
+
+const make_line_item = ({ title, image_ids, work_skill_ids, ...db_values }: LoadedLineItem) => {
+	const record = tracked_record<EstimateLineItemValues, 'project_line_item_id'>({
+		initial: { item_type_id: null, work_details: ``, estimated_hours: 0n, client_optional: false },
 		id_key: `project_line_item_id`,
-		db_values: loaded,
-		equality_checks: { work_skill_ids: sets_equal },
-	}),
-})
+		db_values,
+	})
+	const work_skills = tracked_id_set(work_skill_ids)
+
+	const added_values = $derived.by((): WithStableRecordIdentifier<AddedEstimateLineItem> => ({
+		...record.added_values,
+		work_skill_ids: [...work_skills.ids],
+	}))
+
+	const changed_values = $derived.by((): WithStableRecordIdentifier<ChangedEstimateLineItem> => ({
+		...record.changed_values,
+		added_work_skill_ids: work_skills.added_ids,
+		removed_work_skill_ids: work_skills.removed_ids,
+	}))
+
+	const needs_to_be_saved = $derived(record.needs_to_be_saved || work_skills.needs_to_be_saved)
+
+	const update_db_values = (saved: SavedLineItem) => {
+		if (`work_skill_ids` in saved) {
+			const { work_skill_ids: saved_work_skill_ids, ...values } = saved
+			record.update_db_values(values)
+			work_skills.update_db_values({ added_ids: saved_work_skill_ids, removed_ids: [] })
+		} else {
+			const { added_work_skill_ids, removed_work_skill_ids, ...values } = saved
+			record.update_db_values(values)
+			work_skills.update_db_values({ added_ids: added_work_skill_ids, removed_ids: removed_work_skill_ids })
+		}
+	}
+
+	return {
+		title,
+		image_ids,
+		record,
+		work_skills,
+		stable_record_identifier: record.stable_record_identifier,
+		get db_id() { return record.db_id },
+		get needs_to_be_saved() { return needs_to_be_saved },
+		get added_values() { return added_values },
+		get changed_values() { return changed_values },
+		update_db_values,
+	}
+}
 
 export type LineItemForm = ReturnType<typeof make_line_item>
 
@@ -39,30 +88,25 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 	})
 
 	const line_items = map(loaded_line_items, make_line_item)
-	const line_item_records = tracked_record_array({ records: () => map(line_items, line_item => line_item.record), id_key: `project_line_item_id` })
+	const line_item_records = tracked_record_array({ records: () => line_items, id_key: `project_line_item_id` })
 
-	const values_to_save = $derived.by((): UpdateEstimateArgument => {
-		const project_values = project.values_to_save
-		assert(project_values.project_id !== null, `the estimated project is already in the database`)
-		return {
-			project: project_values,
-			line_items: map(line_item_records.values_to_save, ({ project_line_item_id, work_skill_ids, ...values }): EstimateLineItemUpdate => {
-				assert(project_line_item_id !== null, `every line item on the estimate screen is already in the database`)
-				return work_skill_ids === undefined
-					? { project_line_item_id, ...values }
-					: { project_line_item_id, ...values, work_skill_ids: [...work_skill_ids] }
-			}),
-		}
-	})
+	const values_to_save = $derived.by((): EstimateValuesToSave => ({
+		project: project.changed_values,
+		added_line_items: line_item_records.added,
+		changed_line_items: line_item_records.changed,
+		removed_line_item_ids: line_item_records.removed_ids,
+	}))
 
 	const needs_to_be_saved = $derived(project.needs_to_be_saved || line_item_records.needs_to_be_saved)
 
-	const update_db_values = (saved: UpdateEstimateArgument) => {
-		project.update_db_values(saved.project)
+	const update_db_values = (sent: EstimateValuesToSave, result: UpdateEstimateResult) => {
+		project.update_db_values(sent.project)
 		line_item_records.update_db_values(
-			map(saved.line_items, ({ work_skill_ids, ...values }) =>
-				work_skill_ids === undefined ? values : { ...values, work_skill_ids: new SvelteSet(work_skill_ids) }),
-			[],
+			[
+				...zip_with(sent.added_line_items, result.added_line_item_ids, (line_item, project_line_item_id) => ({ ...line_item, project_line_item_id })),
+				...sent.changed_line_items,
+			],
+			sent.removed_line_item_ids,
 		)
 	}
 

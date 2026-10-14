@@ -652,6 +652,22 @@ test('typed_write_helper: delete removes rows matching any of the values, with t
 	assert.strictEqual(calls[1]!.sql, "DELETE FROM `widget` WHERE `name` IN ('O\\'Sprocket') AND `company_id` = 7")
 })
 
+test('typed_write_helper: delete ANDs the where_equal columns with the IN list', async () => {
+	const { connection, calls } = make_update_mock_connection([{ affectedRows: 2 }])
+	const helper = make_helper(connection, 7n)
+
+	const { affected_rows } = await helper.delete('gadget', 'widget_id', [1n, 2n], 10, { quantity: 3n })
+
+	assert.strictEqual(calls.length, 1)
+	assert.strictEqual(calls[0]!.sql, "DELETE FROM `gadget` WHERE `widget_id` IN (1, 2) AND `quantity` = 3 AND `company_id` = 7")
+	assert.strictEqual(affected_rows, 2n)
+
+	// @ts-expect-error company_id is supplied by the helper
+	await assert.rejects(async () => helper.delete('gadget', 'widget_id', [1n], 10, { company_id: 7n }))
+	// @ts-expect-error not_a_column is not a gadget column
+	await assert.rejects(async () => helper.delete('gadget', 'widget_id', [1n], 10, { not_a_column: 1n }))
+})
+
 test('typed_write_helper: delete splits values into batches and sums the affected rows', async () => {
 	const { connection, calls } = make_update_mock_connection([{ affectedRows: 2 }, { affectedRows: 1 }])
 	const helper = make_helper(connection, 7n)

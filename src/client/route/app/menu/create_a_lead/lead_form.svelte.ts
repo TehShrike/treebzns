@@ -32,10 +32,10 @@ const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 	let availability = $state<LeadAvailability[]>([])
 
 	const values_to_save = $derived({
-		client: client.values_to_save,
+		client: client.db_id === null ? { client_id: null, ...client.added_values } : client.changed_values,
 		billing_address,
-		address: address.values_to_save,
-		contact: contact.values_to_save,
+		address: address.db_id === null ? { client_address_id: null, ...address.added_values } : address.changed_values,
+		contact: contact.db_id === null ? { client_contact_id: null, ...contact.added_values } : contact.changed_values,
 		project,
 		availability,
 	})

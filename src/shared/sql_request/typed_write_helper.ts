@@ -49,6 +49,11 @@ type UpdateSet<TableRow> = {
 	[Column in Exclude<Extract<keyof TableRow, string>, CompanyIdColumn>]?: ColumnValue<TableRow[Column]> | undefined
 }
 
+// Extra equality conditions for a delete, ANDed with the IN list and the company filter.
+type WhereEqual<TableRow> = {
+	[Column in Exclude<Extract<keyof TableRow, string>, CompanyIdColumn>]?: ColumnValue<TableRow[Column]>
+}
+
 // Excess-property checks only apply to object literals, so a set built elsewhere could smuggle
 // in a column the table doesn't have (or company_id); intersecting with this marks such columns as never.
 type NoUnknownColumns<TableRow, SetClause> = { [Column in Exclude<keyof SetClause, Exclude<keyof TableRow, CompanyIdColumn>>]: never }
@@ -113,6 +118,7 @@ export type WriteHelper<
 		column: Column,
 		values: readonly ColumnValue<Row[Table][Column]>[],
 		values_per_batch: number,
+		where_equal?: WhereEqual<Row[Table]>,
 	) => Promise<{ affected_rows: bigint }>
 }
 
@@ -349,19 +355,26 @@ const typed_write_helper = <
 			column,
 			values,
 			values_per_batch,
+			where_equal = {},
 		) => {
-			table_columns_for_write(table_name, column)
+			const table_columns = table_columns_for_write(table_name, column)
 			assert(
 				Number.isInteger(values_per_batch) && values_per_batch > 0,
 				`values_per_batch must be a positive integer, got ${values_per_batch}`,
 			)
+			const equal_columns = object_keys(where_equal)
+			assert_no_company_id_in('where_equal', equal_columns, table_name)
+			const equal_sql = map(equal_columns, equal_column => {
+				assert(equal_column in table_columns, `Column "${equal_column}" must exist in schema constants for table "${table_name}"`)
+				return ` AND ${escape_identifier(equal_column)} = ${serialize_value(where_equal[equal_column])}`
+			}).join('')
 			if (values.length === 0) return { affected_rows: 0n }
 
 			let affected_rows = 0n
 			for (const batch of chunk(values, values_per_batch)) {
 				const value_list = map(batch, value => serialize_value(value)).join(', ')
 				const [{ affectedRows }] = await connection.query<ResultSetHeader>(
-					`DELETE FROM ${escape_identifier(table_name)} WHERE ${escape_identifier(column)} IN (${value_list})${company_filter_sql}`,
+					`DELETE FROM ${escape_identifier(table_name)} WHERE ${escape_identifier(column)} IN (${value_list})${equal_sql}${company_filter_sql}`,
 				)
 				affected_rows += BigInt(affectedRows)
 			}

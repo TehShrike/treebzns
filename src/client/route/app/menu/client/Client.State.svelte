@@ -188,11 +188,11 @@
 {/snippet}
 
 {#snippet contact_delete_cell(contact: ContactRow)}
-	{@const referenced = contact.db_values !== null && referenced_contact_ids.has(contact.db_values.client_contact_id)}
+	{@const referenced = contact.db_id !== null && referenced_contact_ids.has(contact.db_id)}
 	<DeleteButton
 		disabled={referenced || contact_rows.row_is_placeholder(contact)}
 		title={referenced ? CONTACT_REFERENCED_MESSAGE : undefined}
-		onclick={() => contact_rows.remove(contact.key)}
+		onclick={() => contact_rows.remove(contact.stable_record_identifier)}
 	/>
 {/snippet}
 
@@ -221,11 +221,11 @@
 {/snippet}
 
 {#snippet address_delete_cell(address: AddressRow)}
-	{@const referenced = address.db_values !== null && referenced_address_ids.has(address.db_values.client_address_id)}
+	{@const referenced = address.db_id !== null && referenced_address_ids.has(address.db_id)}
 	<DeleteButton
 		disabled={referenced || address_rows.row_is_placeholder(address)}
 		title={referenced ? ADDRESS_REFERENCED_MESSAGE : undefined}
-		onclick={() => address_rows.remove(address.key)}
+		onclick={() => address_rows.remove(address.stable_record_identifier)}
 	/>
 {/snippet}
 

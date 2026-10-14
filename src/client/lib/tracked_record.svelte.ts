@@ -1,22 +1,13 @@
 import { every, for_each, reduce, some } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
-import type { RowKey } from '#client/component/list_input/row_key.ts'
 import type { EqualityCheck } from '#shared/equality_check.ts'
-
-export const unsaved_record_identity = Symbol(`unsaved record identity`)
+import { stable_record_identifier, type WithStableRecordIdentifier } from './stable_record_identifier.ts'
 
 export type DbValues<VALUES, ID_KEY extends string> = VALUES & { [K in ID_KEY]: bigint }
 
 export type SavedValues<VALUES, ID_KEY extends string> = { [K in ID_KEY]: bigint } & Partial<VALUES>
 
-export type ValuesToSave<VALUES, ID_KEY extends string> =
-	& (
-		| ({ [K in ID_KEY]: null } & VALUES)
-		| SavedValues<VALUES, ID_KEY>
-	)
-	& { [unsaved_record_identity]?: RowKey }
-
-let unsaved_record_count = 0
+let record_count = 0
 
 const value_copier = <VALUES extends object>(keys: readonly (keyof VALUES)[]) => (source: VALUES) => reduce(keys, {} as VALUES, (values, key) => {
 	values[key] = source[key]
@@ -49,10 +40,12 @@ const tracked_record = <VALUES extends object, ID_KEY extends string>({
 
 	const saved_in_database = (values: DbValues<VALUES, ID_KEY> | null): values is DbValues<VALUES, ID_KEY> => values !== null
 
-	const key: RowKey = saved_in_database(initial_db_values) ? initial_db_values[id_key] : `unsaved_${unsaved_record_count++}`
+	const identifier = `record_${record_count++}`
 
 	let db_values = $state.raw<DbValues<VALUES, ID_KEY> | null>(initial_db_values)
 	let form_values = $state<VALUES>(copy_values(initial_db_values ?? initial))
+
+	const db_id = $derived(saved_in_database(db_values) ? db_values[id_key] : null)
 
 	const value_needs_to_be_saved = (key: keyof VALUES) => !saved_in_database(db_values) || !values_equal(key, form_values[key], db_values[key])
 
@@ -60,9 +53,12 @@ const tracked_record = <VALUES extends object, ID_KEY extends string>({
 
 	const is_empty = $derived(!saved_in_database(db_values) && every(keys, key => value_is_empty(key, form_values[key])))
 
-	const values_to_save = $derived(!saved_in_database(db_values)
-		? { [id_key]: null, [unsaved_record_identity]: key, ...copy_values(form_values) }
+	const added_values = $derived({ [stable_record_identifier]: identifier, ...copy_values(form_values) } as WithStableRecordIdentifier<VALUES>)
+
+	const changed_values = $derived(!saved_in_database(db_values)
+		? null
 		: {
+			[stable_record_identifier]: identifier,
 			[id_key]: db_values[id_key],
 			...reduce(keys, {} as Partial<VALUES>, (changes, key) => {
 				if (value_needs_to_be_saved(key)) {
@@ -70,16 +66,24 @@ const tracked_record = <VALUES extends object, ID_KEY extends string>({
 				}
 				return changes
 			}),
-		}
-	) as ValuesToSave<VALUES, ID_KEY>
+		} as WithStableRecordIdentifier<SavedValues<VALUES, ID_KEY>>
+	)
 
 	return {
-		key,
+		stable_record_identifier: identifier,
 		get form_values() { return form_values },
 		get db_values() { return db_values },
+		get db_id() { return db_id },
 		get needs_to_be_saved() { return needs_to_be_saved },
 		get is_empty() { return is_empty },
-		get values_to_save() { return values_to_save },
+		get added_values() {
+			assert(!saved_in_database(db_values), `added values belong to a record that is not in the database`)
+			return added_values
+		},
+		get changed_values() {
+			assert(changed_values !== null, `changed values belong to a record that is in the database`)
+			return changed_values
+		},
 		get saved_in_database() { return saved_in_database(db_values) },
 		value_needs_to_be_saved,
 		set_values: (values: DbValues<VALUES, ID_KEY>) => {
@@ -92,7 +96,17 @@ const tracked_record = <VALUES extends object, ID_KEY extends string>({
 			} else {
 				assert(db_values[id_key] === values[id_key], `saved values carry the id of this record`)
 			}
-			db_values = { ...db_values, ...values } as DbValues<VALUES, ID_KEY>
+			const saved_values: Partial<VALUES> = values
+			db_values = {
+				...db_values,
+				...reduce(keys, {} as Partial<VALUES>, (picked, key) => {
+					if (key in saved_values) {
+						picked[key] = saved_values[key]
+					}
+					return picked
+				}),
+				[id_key]: values[id_key],
+			} as DbValues<VALUES, ID_KEY>
 		},
 		clear: () => {
 			db_values = null

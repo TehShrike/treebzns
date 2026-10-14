@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { SvelteSet } from 'svelte/reactivity'
 	import WindowCard from '#client/component/WindowCard.svelte'
 	import PillCheckbox from '#client/component/PillCheckbox.svelte'
 	import WideTextareaField from '#client/component/WideTextareaField.svelte'
@@ -20,13 +19,11 @@
 	}
 
 	const set_work_skill = (work_skill_id: bigint, selected: boolean) => {
-		const work_skill_ids = new SvelteSet(line_item.record.form_values.work_skill_ids)
 		if (selected) {
-			work_skill_ids.add(work_skill_id)
+			line_item.work_skills.add(work_skill_id)
 		} else {
-			work_skill_ids.delete(work_skill_id)
+			line_item.work_skills.delete(work_skill_id)
 		}
-		line_item.record.form_values.work_skill_ids = work_skill_ids
 	}
 </script>
 
@@ -58,8 +55,8 @@
 	<div class="scroller">
 		{#each work_skills as work_skill (work_skill.work_skill_id)}
 			<PillCheckbox
-				value_needs_to_be_saved={line_item.record.value_needs_to_be_saved(`work_skill_ids`)}
-				bind:checked={() => line_item.record.form_values.work_skill_ids.has(work_skill.work_skill_id), selected => set_work_skill(work_skill.work_skill_id, selected)}
+				value_needs_to_be_saved={line_item.work_skills.id_needs_to_be_saved(work_skill.work_skill_id)}
+				bind:checked={() => line_item.work_skills.has(work_skill.work_skill_id), selected => set_work_skill(work_skill.work_skill_id, selected)}
 			>
 				{work_skill.name}
 			</PillCheckbox>
@@ -67,7 +64,7 @@
 	</div>
 
 	<WideTextareaField
-		id="work_details_{line_item.record.key}"
+		id="work_details_{line_item.stable_record_identifier}"
 		label="Work details"
 		rows={3}
 		value_needs_to_be_saved={line_item.record.value_needs_to_be_saved(`work_details`)}
