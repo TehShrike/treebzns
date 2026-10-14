@@ -55,7 +55,7 @@
 <fieldset>
 	<legend>The job</legend>
 	<FieldsetColumn>
-		<WideTextareaField id="lead_details" label="Lead details" rows={5} bind:value={project.lead_details} />
+		<WideTextareaField label="Lead details" rows={5} bind:value={project.lead_details} />
 
 		<FormLayout>
 			<label>
@@ -106,8 +106,8 @@
 
 		<AvailabilityWindows bind:availability />
 
-		<WideTextareaField id="notes_for_crew" label="Notes for the crew" rows={2} bind:value={project.notes_for_crew} />
+		<WideTextareaField label="Notes for the crew" rows={2} bind:value={project.notes_for_crew} />
 
-		<WideTextareaField id="notes_for_office" label="Notes for the office" rows={2} bind:value={project.notes_for_office} />
+		<WideTextareaField label="Notes for the office" rows={2} bind:value={project.notes_for_office} />
 	</FieldsetColumn>
 </fieldset>

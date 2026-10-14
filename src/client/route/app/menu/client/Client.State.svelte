@@ -314,7 +314,7 @@
 						<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`referred_by`)} bind:value={client.form_values.referred_by}>
 					</label>
 				</FormLayout>
-				<WideTextareaField id="client_notes" label="Notes" rows={3} value_needs_to_be_saved={client.value_needs_to_be_saved(`notes`)} bind:value={client.form_values.notes} />
+				<WideTextareaField label="Notes" rows={3} value_needs_to_be_saved={client.value_needs_to_be_saved(`notes`)} bind:value={client.form_values.notes} />
 			</FieldsetColumn>
 		</fieldset>
 	</form>

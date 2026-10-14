@@ -1,11 +1,12 @@
 <script lang="ts">
-	let { id, label, rows = 2, value = $bindable(``), value_needs_to_be_saved = true }: {
-		id: string
+	let { label, rows = 2, value = $bindable(``), value_needs_to_be_saved = true }: {
 		label: string
 		rows?: number
 		value?: string
 		value_needs_to_be_saved?: boolean
 	} = $props()
+
+	const id = $props.id()
 </script>
 
 <div class="wide_field">

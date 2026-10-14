@@ -90,11 +90,11 @@
 		<fieldset>
 			<legend>Status</legend>
 			<label>
-				<input type="radio" bind:group={open_or_closed} value="open">
+				<input type="radio" name="open_or_closed" bind:group={open_or_closed} value="open">
 				Open
 			</label>
 			<label>
-				<input type="radio" bind:group={open_or_closed} value="closed">
+				<input type="radio" name="open_or_closed" bind:group={open_or_closed} value="closed">
 				Closed
 			</label>
 		</fieldset>

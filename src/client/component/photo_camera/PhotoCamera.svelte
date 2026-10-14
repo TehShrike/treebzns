@@ -8,6 +8,8 @@
 
 	const { camera_service }: { camera_service: CameraService } = $props()
 
+	const device_group_name = $props.id()
+
 	let video: HTMLVideoElement | null = null
 	let retry = $state<RetryOpen | null>(null)
 
@@ -77,7 +79,7 @@
 				<label>
 					<input
 						type="radio"
-						name="photo_camera_device"
+						name={device_group_name}
 						value={device.device_id}
 						checked={device.device_id === camera_service.current_device_id}
 						onchange={() => select_device(device.device_id)}

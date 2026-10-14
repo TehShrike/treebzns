@@ -64,7 +64,6 @@
 	</div>
 
 	<WideTextareaField
-		id="work_details_{line_item.stable_record_identifier}"
 		label="Work details"
 		rows={3}
 		value_needs_to_be_saved={line_item.record.value_needs_to_be_saved(`work_details`)}

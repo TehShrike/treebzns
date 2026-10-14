@@ -67,7 +67,7 @@
 				<input type="checkbox" data-value-needs-to-be-saved={lead.client.value_needs_to_be_saved(`is_commercial`)} bind:checked={lead.client.form_values.is_commercial}>
 			</label>
 		</FormLayout>
-		<WideTextareaField id="client_notes" label="Notes" rows={2} value_needs_to_be_saved={lead.client.value_needs_to_be_saved(`notes`)} bind:value={lead.client.form_values.notes} />
+		<WideTextareaField label="Notes" rows={2} value_needs_to_be_saved={lead.client.value_needs_to_be_saved(`notes`)} bind:value={lead.client.form_values.notes} />
 	</FieldsetColumn>
 </fieldset>
 
