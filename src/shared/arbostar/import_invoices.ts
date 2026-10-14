@@ -189,26 +189,26 @@ export const import_invoices = async ({
 			return { arbostar_invoice_id: invoice.invoice_id, invoice_id: holder.invoice_id }
 		},
 	)
-	await write_helper.bulk_update(
-		'invoice',
-		'invoice_id',
-		map(adoptions, adoption => ({
+	await write_helper.bulk_update({
+		table_name: 'invoice',
+		column: 'invoice_id',
+		rows: map(adoptions, adoption => ({
 			value: adoption.invoice_id,
 			set: { arbostar_invoice_id: BigInt(adoption.arbostar_invoice_id) },
 		})),
-		ROWS_PER_BATCH,
-	)
+		rows_per_batch: ROWS_PER_BATCH,
+	})
 	for_each(adoptions, adoption => existing_invoice_id_by_arbostar_invoice_id.set(adoption.arbostar_invoice_id, adoption.invoice_id))
 
 	const existing_invoices = filter(importable, invoice => existing_invoice_id_by_arbostar_invoice_id.has(invoice.invoice_id))
 	const new_invoices = filter(importable, invoice => !existing_invoice_id_by_arbostar_invoice_id.has(invoice.invoice_id))
 
-	await write_helper.bulk_update(
-		'invoice',
-		'invoice_id',
-		map(existing_invoices, invoice => ({ value: existing_invoice_id_by_arbostar_invoice_id.get(invoice.invoice_id)!, set: invoice_fields(invoice) })),
-		ROWS_PER_BATCH,
-	)
+	await write_helper.bulk_update({
+		table_name: 'invoice',
+		column: 'invoice_id',
+		rows: map(existing_invoices, invoice => ({ value: existing_invoice_id_by_arbostar_invoice_id.get(invoice.invoice_id)!, set: invoice_fields(invoice) })),
+		rows_per_batch: ROWS_PER_BATCH,
+	})
 
 	const invoice_id_by_arbostar_invoice_id = new Map(map(
 		existing_invoices,
@@ -227,7 +227,7 @@ export const import_invoices = async ({
 	// updated invoices simply get their lines replaced. Lines import as exported — no
 	// reconciliation against the header totals.
 	const updated_invoice_ids = map(existing_invoices, invoice => existing_invoice_id_by_arbostar_invoice_id.get(invoice.invoice_id)!)
-	await write_helper.delete('invoice_line_item', 'invoice_id', updated_invoice_ids, ROWS_PER_BATCH)
+	await write_helper.delete({ table_name: 'invoice_line_item', column: 'invoice_id', values: updated_invoice_ids, values_per_batch: ROWS_PER_BATCH })
 
 	let invoice_lines_without_project_line_item = 0
 	const line_rows = map(

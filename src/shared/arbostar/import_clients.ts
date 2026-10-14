@@ -114,21 +114,21 @@ export const import_clients = async ({
 	const existing_clients = filter(clients, client => context.existing.client_id_by_arbostar_client_id.has(client.client_id))
 	const new_clients = filter(clients, client => !context.existing.client_id_by_arbostar_client_id.has(client.client_id))
 
-	await write_helper.bulk_update(
-		'client',
-		'client_id',
-		map(existing_clients, client => ({ value: context.existing.client_id_by_arbostar_client_id.get(client.client_id)!, set: client_fields(client) })),
-		ROWS_PER_BATCH,
-	)
-	await write_helper.bulk_update(
-		'client_address',
-		'client_address_id',
-		map(existing_clients, client => ({
+	await write_helper.bulk_update({
+		table_name: 'client',
+		column: 'client_id',
+		rows: map(existing_clients, client => ({ value: context.existing.client_id_by_arbostar_client_id.get(client.client_id)!, set: client_fields(client) })),
+		rows_per_batch: ROWS_PER_BATCH,
+	})
+	await write_helper.bulk_update({
+		table_name: 'client_address',
+		column: 'client_address_id',
+		rows: map(existing_clients, client => ({
 			value: context.existing.default_project_address_id_by_arbostar_client_id.get(client.client_id)!,
 			set: address_fields(client),
 		})),
-		ROWS_PER_BATCH,
-	)
+		rows_per_batch: ROWS_PER_BATCH,
+	})
 
 	const client_id_by_arbostar_client_id = new Map(map(
 		existing_clients,
@@ -222,15 +222,15 @@ export const import_clients = async ({
 	const existing_contacts = filter(incoming_contacts, ({ contact }) => context.existing.client_contact_id_by_arbostar_contact_id.has(contact.cc_id))
 	const new_contacts = filter(incoming_contacts, ({ contact }) => !context.existing.client_contact_id_by_arbostar_contact_id.has(contact.cc_id))
 
-	await write_helper.bulk_update(
-		'client_contact',
-		'client_contact_id',
-		map(existing_contacts, incoming => ({
+	await write_helper.bulk_update({
+		table_name: 'client_contact',
+		column: 'client_contact_id',
+		rows: map(existing_contacts, incoming => ({
 			value: context.existing.client_contact_id_by_arbostar_contact_id.get(incoming.contact.cc_id)!,
 			set: contact_fields(incoming),
 		})),
-		ROWS_PER_BATCH,
-	)
+		rows_per_batch: ROWS_PER_BATCH,
+	})
 	const contact_id_by_arbostar_contact_id = new Map(map(
 		existing_contacts,
 		({ contact }) => [contact.cc_id, context.existing.client_contact_id_by_arbostar_contact_id.get(contact.cc_id)!] as const,

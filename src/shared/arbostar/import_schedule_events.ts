@@ -130,9 +130,9 @@ export const import_schedule_events = async ({
 
 		const project_crew_id_by_visit = new Map(map(existing_visits, visit => [visit, adopted_or_correlated_id(visit)!] as const))
 		const child_project_crew_ids = [...project_crew_id_by_visit.values(), ...stale_project_crew_ids]
-		await write_helper.delete('project_crew_employee', 'project_crew_id', child_project_crew_ids, ROWS_PER_BATCH)
-		await write_helper.delete('project_crew_project_line_item', 'project_crew_id', child_project_crew_ids, ROWS_PER_BATCH)
-		await write_helper.delete('project_crew', 'project_crew_id', stale_project_crew_ids, ROWS_PER_BATCH)
+		await write_helper.delete({ table_name: 'project_crew_employee', column: 'project_crew_id', values: child_project_crew_ids, values_per_batch: ROWS_PER_BATCH })
+		await write_helper.delete({ table_name: 'project_crew_project_line_item', column: 'project_crew_id', values: child_project_crew_ids, values_per_batch: ROWS_PER_BATCH })
+		await write_helper.delete({ table_name: 'project_crew', column: 'project_crew_id', values: stale_project_crew_ids, values_per_batch: ROWS_PER_BATCH })
 
 		const visit_fields = (visit: typeof visits[number]) => ({
 			project_id: visit.project_id,
@@ -143,12 +143,12 @@ export const import_schedule_events = async ({
 			arbostar_schedule_event_id: BigInt(visit.event.id),
 		})
 
-		await write_helper.bulk_update(
-			'project_crew',
-			'project_crew_id',
-			map(existing_visits, visit => ({ value: project_crew_id_by_visit.get(visit)!, set: visit_fields(visit) })),
-			ROWS_PER_BATCH,
-		)
+		await write_helper.bulk_update({
+			table_name: 'project_crew',
+			column: 'project_crew_id',
+			rows: map(existing_visits, visit => ({ value: project_crew_id_by_visit.get(visit)!, set: visit_fields(visit) })),
+			rows_per_batch: ROWS_PER_BATCH,
+		})
 		if (new_visits.length > 0) {
 			const { insert_ids } = await write_helper.bulk_insert('project_crew', map(new_visits, visit_fields), ROWS_PER_BATCH)
 			new_visits.forEach((visit, index) => project_crew_id_by_visit.set(visit, insert_ids[index]!))

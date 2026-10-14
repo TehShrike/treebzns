@@ -44,7 +44,7 @@ export const update_line_item = async ({
 	assert_line_item_values_valid(changes)
 
 	if (Object.keys(changes).length > 0) {
-		await write_helper.update(`project_line_item`, `project_line_item_id`, project_line_item_id, changes)
+		await write_helper.update({ table_name: `project_line_item`, column: `project_line_item_id`, value: project_line_item_id, set: changes })
 	}
 
 	await remove_work_skills({ project_line_item_id, work_skill_ids: removed_work_skill_ids, write_helper })
@@ -90,9 +90,9 @@ export const remove_line_items = async ({
 
 	await assert_line_items_not_worked_or_invoiced({ project_line_item_ids, select_builder })
 
-	await write_helper.delete(`project_crew_project_line_item`, `project_line_item_id`, project_line_item_ids, ROWS_PER_BATCH)
-	await write_helper.delete(`project_line_item_image`, `project_line_item_id`, project_line_item_ids, ROWS_PER_BATCH)
-	await write_helper.delete(`project_line_item_work_skill`, `project_line_item_id`, project_line_item_ids, ROWS_PER_BATCH)
-	const { affected_rows } = await write_helper.delete(`project_line_item`, `project_line_item_id`, project_line_item_ids, ROWS_PER_BATCH)
+	await write_helper.delete({ table_name: `project_crew_project_line_item`, column: `project_line_item_id`, values: project_line_item_ids, values_per_batch: ROWS_PER_BATCH })
+	await write_helper.delete({ table_name: `project_line_item_image`, column: `project_line_item_id`, values: project_line_item_ids, values_per_batch: ROWS_PER_BATCH })
+	await write_helper.delete({ table_name: `project_line_item_work_skill`, column: `project_line_item_id`, values: project_line_item_ids, values_per_batch: ROWS_PER_BATCH })
+	const { affected_rows } = await write_helper.delete({ table_name: `project_line_item`, column: `project_line_item_id`, values: project_line_item_ids, values_per_batch: ROWS_PER_BATCH })
 	assert(affected_rows === BigInt(new Set(project_line_item_ids).size), `every removed line item id matches one row`)
 }

@@ -48,7 +48,7 @@ export const remove_client_addresses = async ({
 
 	await lock_addresses({ client_address_ids, select_builder })
 	assert(every(client_address_ids, id => !referenced_address_ids.has(id)), `no removed address is referenced by a project or is the default project address`)
-	const { affected_rows } = await write_helper.delete('client_address', 'client_address_id', client_address_ids, ROWS_PER_BATCH)
+	const { affected_rows } = await write_helper.delete({ table_name: 'client_address', column: 'client_address_id', values: client_address_ids, values_per_batch: ROWS_PER_BATCH })
 	assert(affected_rows === BigInt(client_address_ids.length), `every removed address id matches one row`)
 }
 
@@ -69,6 +69,6 @@ export const remove_client_contacts = async ({
 
 	await lock_contacts({ client_contact_ids, select_builder })
 	assert(every(client_contact_ids, id => !referenced_contact_ids.has(id)), `no removed contact is referenced by a project or an address`)
-	const { affected_rows } = await write_helper.delete('client_contact', 'client_contact_id', client_contact_ids, ROWS_PER_BATCH)
+	const { affected_rows } = await write_helper.delete({ table_name: 'client_contact', column: 'client_contact_id', values: client_contact_ids, values_per_batch: ROWS_PER_BATCH })
 	assert(affected_rows === BigInt(client_contact_ids.length), `every removed contact id matches one row`)
 }

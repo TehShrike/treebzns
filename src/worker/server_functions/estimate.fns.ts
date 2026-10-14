@@ -109,7 +109,7 @@ export const functions = {
 			})
 
 			if (Object.keys(project_changes).length > 0) {
-				await write_helper.update(`project`, `project_id`, project_id, project_changes)
+				await write_helper.update({ table_name: `project`, column: `project_id`, value: project_id, set: project_changes })
 			}
 
 			await for_each_async(changed_line_items, line_item => update_line_item({ line_item, write_helper }))

@@ -573,7 +573,7 @@ export const import_projects = async ({
 			set: closed ? { closed, ...close_dates, ...set } : set,
 		}
 	})
-	await write_helper.bulk_update('project', 'project_id', existing_rows, ROWS_PER_BATCH)
+	await write_helper.bulk_update({ table_name: 'project', column: 'project_id', rows: existing_rows, rows_per_batch: ROWS_PER_BATCH })
 	const project_id_by_arbostar_lead_id = new Map(map(
 		existing_leads,
 		lead => [lead.lead_id, context.existing.project_id_by_number.get(Number(lead_number(lead)))!] as const,
@@ -599,7 +599,7 @@ export const import_projects = async ({
 	// ArboStar is the source of truth for imported projects, so a re-import wipes their whole
 	// history — in-app-authored rows included — and writes the recomputed chains fresh.
 	const history_project_ids = map(lead_chains, ({ lead }) => project_id_by_arbostar_lead_id.get(lead.lead_id)!)
-	await write_helper.delete('project_document_history', 'project_id', history_project_ids, ROWS_PER_BATCH)
+	await write_helper.delete({ table_name: 'project_document_history', column: 'project_id', values: history_project_ids, values_per_batch: ROWS_PER_BATCH })
 
 	const history_rows = flat_map(lead_chains, ({ lead, chain }) => {
 		const project_id = project_id_by_arbostar_lead_id.get(lead.lead_id)!
@@ -617,13 +617,18 @@ export const import_projects = async ({
 
 	const last_history_row_by_project_id = new Map<bigint, (typeof history_rows)[number]>()
 	for_each(history_rows, row => last_history_row_by_project_id.set(row.project_id, row))
-	await write_helper.bulk_update('project', 'project_id', map([...last_history_row_by_project_id.values()], row => ({
-		value: row.project_id,
-		set: {
-			last_project_document_change_date: row.change_date,
-			last_project_document_change_datetime: row.change_datetime,
-		},
-	})), ROWS_PER_BATCH)
+	await write_helper.bulk_update({
+		table_name: 'project',
+		column: 'project_id',
+		rows: map([...last_history_row_by_project_id.values()], row => ({
+			value: row.project_id,
+			set: {
+				last_project_document_change_date: row.change_date,
+				last_project_document_change_datetime: row.change_datetime,
+			},
+		})),
+		rows_per_batch: ROWS_PER_BATCH,
+	})
 
 	// Only numbers within ArboStar's issued range can be missing-from-export — anything above
 	// max_arbostar_number is an in-app allocation, not a deleted lead. A pre-import in-app

@@ -156,7 +156,7 @@ export const functions = {
 			})
 
 			if (creating_new_client) {
-				await write_helper.update('client_address', 'client_address_id', client_address_id, { client_id })
+				await write_helper.update({ table_name: 'client_address', column: 'client_address_id', value: client_address_id, set: { client_id } })
 			}
 
 			const client_contact_id = await upsert_client_contact({ client_id, contact, select_builder, write_helper })

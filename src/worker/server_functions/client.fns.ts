@@ -159,8 +159,13 @@ export const functions = {
 					sort: 0n,
 				})
 
-				await write_helper.update('client', 'client_id', client_id, {
-					default_project_address_id: client_address_id,
+				await write_helper.update({
+					table_name: 'client',
+					column: 'client_id',
+					value: client_id,
+					set: {
+						default_project_address_id: client_address_id,
+					},
 				})
 
 				return {
@@ -183,7 +188,7 @@ export const functions = {
 			await assert_input_ids_valid({ client_id, client: client_changes, select_builder })
 
 			if (Object.keys(client_changes).length > 0) {
-				await write_helper.update('client', 'client_id', client_id, client_changes)
+				await write_helper.update({ table_name: 'client', column: 'client_id', value: client_id, set: client_changes })
 			}
 
 			const contact_ids = await map_async(contacts, contact =>

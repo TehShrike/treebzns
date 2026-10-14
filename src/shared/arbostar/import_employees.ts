@@ -87,10 +87,10 @@ export const import_employees = async ({
 	}
 
 	if (updates.length > 0) {
-		await write_helper.bulk_update(
-			'employee',
-			'employee_id',
-			map(updates, ({ user, employee_id }) => ({
+		await write_helper.bulk_update({
+			table_name: 'employee',
+			column: 'employee_id',
+			rows: map(updates, ({ user, employee_id }) => ({
 				value: employee_id,
 				set: {
 					name: user.full_name,
@@ -98,8 +98,8 @@ export const import_employees = async ({
 					arbostar_user_id: BigInt(user.user_id),
 				},
 			})),
-			ROWS_PER_BATCH,
-		)
+			rows_per_batch: ROWS_PER_BATCH,
+		})
 	}
 
 	let identities_downgraded = 0

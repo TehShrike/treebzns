@@ -21,8 +21,13 @@ export default async (request: Request, mysql: MysqlHelpersObject): Promise<Resp
 
 		if (row) {
 			const { employee_session } = session_query.positional_row_to_named(row)
-			await make_write_helper({ connection: mysql.connection, company_id: null }).update('employee_session', 'employee_session_id', employee_session.employee_session_id, {
-				invalidated: true,
+			await make_write_helper({ connection: mysql.connection, company_id: null }).update({
+				table_name: 'employee_session',
+				column: 'employee_session_id',
+				value: employee_session.employee_session_id,
+				set: {
+					invalidated: true,
+				},
 			})
 		}
 	}

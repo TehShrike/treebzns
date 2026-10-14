@@ -33,6 +33,6 @@ export const remove_work_skills = async ({
 	work_skill_ids: readonly bigint[]
 	write_helper: TenantedWriteHelper
 }) => {
-	const { affected_rows } = await write_helper.delete(`project_line_item_work_skill`, `work_skill_id`, work_skill_ids, ROWS_PER_BATCH, { project_line_item_id })
+	const { affected_rows } = await write_helper.delete({ table_name: `project_line_item_work_skill`, column: `work_skill_id`, values: work_skill_ids, values_per_batch: ROWS_PER_BATCH, where_equal: { project_line_item_id } })
 	assert(affected_rows === BigInt(work_skill_ids.length), `every removed work skill matches one row on the line item`)
 }

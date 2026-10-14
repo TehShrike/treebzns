@@ -107,10 +107,10 @@ export const import_images = async ({
 			map(existing_rows, row => [row.image.image_id, context.existing.project_image_by_arbostar_image_id.get(row.image.image_id)!.project_image_id] as const),
 		)
 
-		await write_helper.bulk_update(
-			'project_image',
-			'project_image_id',
-			map(existing_rows, row => ({
+		await write_helper.bulk_update({
+			table_name: 'project_image',
+			column: 'project_image_id',
+			rows: map(existing_rows, row => ({
 				value: context.existing.project_image_by_arbostar_image_id.get(row.image.image_id)!.project_image_id,
 				set: {
 					project_id: row.project_id,
@@ -118,17 +118,17 @@ export const import_images = async ({
 					upload_employee_id: row.upload_employee_id,
 				},
 			})),
-			ROWS_PER_BATCH,
-		)
-		await write_helper.bulk_update(
-			'project_line_item_image',
-			'project_line_item_image_id',
-			map(existing_rows, row => ({
+			rows_per_batch: ROWS_PER_BATCH,
+		})
+		await write_helper.bulk_update({
+			table_name: 'project_line_item_image',
+			column: 'project_line_item_image_id',
+			rows: map(existing_rows, row => ({
 				value: context.existing.project_image_by_arbostar_image_id.get(row.image.image_id)!.project_line_item_image_id,
 				set: { project_line_item_id: row.project_line_item_id, sort: row.sort },
 			})),
-			ROWS_PER_BATCH,
-		)
+			rows_per_batch: ROWS_PER_BATCH,
+		})
 
 		if (new_rows.length > 0) {
 			const { insert_ids } = await write_helper.bulk_insert(
@@ -160,8 +160,8 @@ export const import_images = async ({
 
 		if (stale.length > 0) {
 			const stale_project_image_ids = map(stale, ([, row]) => row.project_image_id)
-			await write_helper.delete('project_line_item_image', 'project_image_id', stale_project_image_ids, ROWS_PER_BATCH)
-			await write_helper.delete('project_image', 'project_image_id', stale_project_image_ids, ROWS_PER_BATCH)
+			await write_helper.delete({ table_name: 'project_line_item_image', column: 'project_image_id', values: stale_project_image_ids, values_per_batch: ROWS_PER_BATCH })
+			await write_helper.delete({ table_name: 'project_image', column: 'project_image_id', values: stale_project_image_ids, values_per_batch: ROWS_PER_BATCH })
 		}
 
 		return { project_image_id_by_arbostar_image_id }
@@ -204,15 +204,15 @@ export const import_images = async ({
 
 	if (uploaded.length > 0) {
 		await run_transaction(async (_connection, write_helper) => {
-			await write_helper.bulk_update(
-				'project_image',
-				'project_image_id',
-				map(uploaded, ({ project_image_id, original_object_key, thumbnail_object_key }) => ({
+			await write_helper.bulk_update({
+				table_name: 'project_image',
+				column: 'project_image_id',
+				rows: map(uploaded, ({ project_image_id, original_object_key, thumbnail_object_key }) => ({
 					value: project_image_id,
 					set: { original_object_key, thumbnail_object_key, uploaded_at: fns.utc_timestamp() },
 				})),
-				ROWS_PER_BATCH,
-			)
+				rows_per_batch: ROWS_PER_BATCH,
+			})
 		})
 	}
 

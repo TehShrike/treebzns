@@ -58,15 +58,15 @@ export const import_work_skills = async ({
 	const work_skill_id_by_crew_code = new Map(map(updates, skill => [skill.code, context.existing.work_skill_id_by_name.get(normalize_name(skill.name))!] as const))
 
 	if (updates.length > 0) {
-		await write_helper.bulk_update(
-			'work_skill',
-			'work_skill_id',
-			map(updates, skill => ({
+		await write_helper.bulk_update({
+			table_name: 'work_skill',
+			column: 'work_skill_id',
+			rows: map(updates, skill => ({
 				value: context.existing.work_skill_id_by_name.get(normalize_name(skill.name))!,
 				set: { hourly_rate: skill.hourly_rate },
 			})),
-			ROWS_PER_BATCH,
-		)
+			rows_per_batch: ROWS_PER_BATCH,
+		})
 	}
 	if (inserts.length > 0) {
 		const { insert_ids } = await write_helper.bulk_insert(

@@ -50,8 +50,13 @@ export const store_project_image_object_keys = async ({
 	object_keys: ProjectImageObjectKeys
 	write_helper: TenantedWriteHelper
 }): Promise<void> => {
-	await write_helper.update(`project_image`, `project_image_id`, project_image_id, {
-		...object_keys,
-		uploaded_at: fns.utc_timestamp(),
+	await write_helper.update({
+		table_name: `project_image`,
+		column: `project_image_id`,
+		value: project_image_id,
+		set: {
+			...object_keys,
+			uploaded_at: fns.utc_timestamp(),
+		},
 	})
 }

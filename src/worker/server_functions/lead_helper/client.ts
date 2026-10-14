@@ -34,7 +34,7 @@ const update_existing_client = async ({
 	const { client_id, ...changes } = client
 
 	if (Object.keys(changes).length > 0) {
-		await write_helper.update('client', 'client_id', client_id, changes)
+		await write_helper.update({ table_name: 'client', column: 'client_id', value: client_id, set: changes })
 	}
 
 	return client_id

@@ -65,10 +65,10 @@ export const update_password = async (employee_id: bigint, password: string, mys
 
 	const { employee } = employee_query.positional_row_to_named(employee_row)
 
-	await make_write_helper({ connection: mysql.connection, company_id: employee.company_id }).update(
-		'employee',
-		'employee_id',
-		employee_id,
-		await password_hash_column_values(password, employee.company_id),
-	)
+	await make_write_helper({ connection: mysql.connection, company_id: employee.company_id }).update({
+		table_name: 'employee',
+		column: 'employee_id',
+		value: employee_id,
+		set: await password_hash_column_values(password, employee.company_id),
+	})
 }

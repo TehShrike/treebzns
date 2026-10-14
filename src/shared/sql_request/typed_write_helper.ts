@@ -84,42 +84,42 @@ export type WriteHelper<
 		Table extends UpdateTable,
 		Column extends keyof Row[Table] & string,
 		SetClause extends UpdateSet<Row[Table]>,
-	>(
+	>(arg: {
 		table_name: Table,
 		column: Column,
 		value: ColumnValue<Row[Table][Column]>,
 		set: SetClause & NoUnknownColumns<Row[Table], SetClause>,
-	) => string
+	}) => string
 	update: <
 		Table extends UpdateTable,
 		Column extends keyof Row[Table] & string,
 		SetClause extends UpdateSet<Row[Table]>,
-	>(
+	>(arg: {
 		table_name: Table,
 		column: Column,
 		value: ColumnValue<Row[Table][Column]>,
 		set: SetClause & NoUnknownColumns<Row[Table], SetClause>,
-	) => Promise<{ affected_rows: bigint, insert_id: bigint }>
+	}) => Promise<{ affected_rows: bigint, insert_id: bigint }>
 	bulk_update: <
 		Table extends UpdateTable,
 		Column extends keyof Row[Table] & string,
 		SetClause extends UpdateSet<Row[Table]>,
-	>(
+	>(arg: {
 		table_name: Table,
 		column: Column,
 		rows: Array<{ value: ColumnValue<Row[Table][Column]>; set: SetClause & NoUnknownColumns<Row[Table], SetClause> }>,
 		rows_per_batch: number,
-	) => Promise<{ affected_rows: bigint }>
+	}) => Promise<{ affected_rows: bigint }>
 	delete: <
 		Table extends UpdateTable,
 		Column extends keyof Row[Table] & string,
-	>(
+	>(arg: {
 		table_name: Table,
 		column: Column,
 		values: readonly ColumnValue<Row[Table][Column]>[],
 		values_per_batch: number,
 		where_equal?: WhereEqual<Row[Table]>,
-	) => Promise<{ affected_rows: bigint }>
+	}) => Promise<{ affected_rows: bigint }>
 }
 
 // Bound to one company: writes only tables that have a company_id column, supplies company_id
@@ -223,12 +223,12 @@ const typed_write_helper = <
 			return `UPDATE ${escape_identifier(table_name)} SET ${set_sql} WHERE ${where_sql}`
 		}
 
-		const build_update_sql: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['build_update_sql'] = (
+		const build_update_sql: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['build_update_sql'] = ({
 			table_name,
 			column,
 			value,
 			set,
-		) => build_update_sql_where(
+		}) => build_update_sql_where(
 			table_name,
 			table_columns_for_write(table_name, column),
 			set,
@@ -311,26 +311,21 @@ const typed_write_helper = <
 			return { insert_ids }
 		}
 
-		const update: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['update'] = async (
-			table_name,
-			column,
-			value,
-			set,
-		) => {
+		const update: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['update'] = async (arg) => {
 			const [{ affectedRows, insertId }] = await connection.query<ResultSetHeader>(
-				build_update_sql(table_name, column, value, set),
+				build_update_sql(arg),
 			)
 			return { affected_rows: BigInt(affectedRows), insert_id: BigInt(insertId) }
 		}
 
 		// One query round-trip per batch, containing one UPDATE statement per row (the connection
 		// must have multipleStatements enabled). Rows may each set a different subset of columns.
-		const bulk_update: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['bulk_update'] = async (
+		const bulk_update: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['bulk_update'] = async ({
 			table_name,
 			column,
 			rows,
 			rows_per_batch,
-		) => {
+		}) => {
 			assert(
 				Number.isInteger(rows_per_batch) && rows_per_batch > 0,
 				`rows_per_batch must be a positive integer, got ${rows_per_batch}`,
@@ -339,7 +334,7 @@ const typed_write_helper = <
 
 			let affected_rows = 0n
 			for (const batch of chunk(rows, rows_per_batch)) {
-				const sql = map(batch, ({ value, set }) => build_update_sql(table_name, column, value, set)).join(';\n')
+				const sql = map(batch, ({ value, set }) => build_update_sql({ table_name, column, value, set })).join(';\n')
 				const [result] = await connection.query<ResultSetHeader | ResultSetHeader[]>(sql)
 				const headers = Array.isArray(result) ? result : [result]
 				for_each(headers, ({ affectedRows }) => {
@@ -350,13 +345,13 @@ const typed_write_helper = <
 			return { affected_rows }
 		}
 
-		const delete_rows: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['delete'] = async (
+		const delete_rows: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['delete'] = async ({
 			table_name,
 			column,
 			values,
 			values_per_batch,
 			where_equal = {},
-		) => {
+		}) => {
 			const table_columns = table_columns_for_write(table_name, column)
 			assert(
 				Number.isInteger(values_per_batch) && values_per_batch > 0,

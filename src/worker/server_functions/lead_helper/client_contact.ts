@@ -38,7 +38,7 @@ const update_client_contact = async ({
 	const { client_contact_id, ...changes } = contact
 
 	if (Object.keys(changes).length > 0) {
-		await write_helper.update('client_contact', 'client_contact_id', client_contact_id, changes)
+		await write_helper.update({ table_name: 'client_contact', column: 'client_contact_id', value: client_contact_id, set: changes })
 	}
 
 	return client_contact_id

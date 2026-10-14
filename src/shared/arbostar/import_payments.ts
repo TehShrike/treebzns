@@ -189,12 +189,12 @@ export const import_payments = async ({
 	const existing_payments = filter(importable, payment => context.existing.payment_id_by_arbostar_payment_id.has(payment.payment_id))
 	const new_payments = filter(importable, payment => !context.existing.payment_id_by_arbostar_payment_id.has(payment.payment_id))
 
-	await write_helper.bulk_update(
-		'payment',
-		'payment_id',
-		map(existing_payments, payment => ({ value: context.existing.payment_id_by_arbostar_payment_id.get(payment.payment_id)!, set: payment_fields(payment) })),
-		ROWS_PER_BATCH,
-	)
+	await write_helper.bulk_update({
+		table_name: 'payment',
+		column: 'payment_id',
+		rows: map(existing_payments, payment => ({ value: context.existing.payment_id_by_arbostar_payment_id.get(payment.payment_id)!, set: payment_fields(payment) })),
+		rows_per_batch: ROWS_PER_BATCH,
+	})
 
 	const payment_id_by_arbostar_payment_id = new Map(map(
 		existing_payments,
@@ -266,15 +266,15 @@ export const import_payments = async ({
 			ROWS_PER_BATCH,
 		)
 	}
-	await write_helper.bulk_update(
-		'payment_invoice',
-		'payment_invoice_id',
-		map(pi_updates, ({ payment_invoice_key, amount }) => ({
+	await write_helper.bulk_update({
+		table_name: 'payment_invoice',
+		column: 'payment_invoice_id',
+		rows: map(pi_updates, ({ payment_invoice_key, amount }) => ({
 			value: existing_pi.get(payment_invoice_key)!,
 			set: { amount },
 		})),
-		ROWS_PER_BATCH,
-	)
+		rows_per_batch: ROWS_PER_BATCH,
+	})
 	if (pi_delete_ids.length > 0) {
 		const id_list = map(pi_delete_ids, escape_value).join(', ')
 		await connection.query<ResultSetHeader>(
