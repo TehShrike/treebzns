@@ -1,5 +1,33 @@
 # Catch up
 
+## Follow-on work from the tracked_record/tracked_set/form_saver rework
+
+✓ update LineItemCard to use $props.id() where appropriate, and any other places where I was doing something similar.
+
+✓ In LineItem.State, in the resolve I think image_ids should be renamed to line_item_id_to_image_ids and same work work_skill_ids.
+
+✓ Convert the typed_write_helper methods with 4 or more arguments to an object with named properties instead of positional arguments.
+
+✓ notes/pending_saves.md – the save lifecycle needs to be represented in form_saver/tracked_record/etc, with saves being committed after the promise resolves.
+
+✓ tracked_id_set can't expose a cancel function.  Expose a `_values` property for tests if you must.  Or even better, have the tests call the save function and just make assertions about the values on the object it returns.
+
+tracked_record.svelte.ts has a lot of "as" type assertions, is there any way that we could make the original/core types more accurate, or used named variables with types, so that we wouldn't need to use type assertions?  I want to make the types more correct, but ideally not more complex.
+
+client_form needs to change to expose added/changed/removed contacts and addresses.  The update server function should change to take that type.  Look for other server functions that ought to be converted to taking added/changed/removed rather than assuming that an array represents everything that should be in the database.
+
+What is the difference between added_values and changed_values?  Should we just have one changed_values, and the way you know if it is added or not is if saved_in_database?
+
+On the create-a-lead screen, disable the client search, Clear button, and address/contact pickers while saving.
+
+We can't just swallow errors line in LineItems.State's `done`.  We need some pattern for displaying errors, probably right next to the "save" button.  Perhaps we should have a promise in component scope that the saver.save() return gets assigned to, rather than awaiting saver.pending_save_promise, just so that it's clear that we're not swallowing the error.
+
+In the forms that contain multiple tracked records, could there be a helper "tracked forms" that wrapped them all up, taking an object with named properties, and exposed a single save that returned a single values+commit+discard?
+
+...and THEN let's actually poke at the new estimate UI!
+
+## Other notes
+
 Why does EstimateLineItemUpdate have work_skill_ids optional?  Surely it should be an empty array or have values, depending on the user's selection, the user shouldn't be allowed to not make a choice about work skills.
 
 I don't know why work_skill_ids could ever be undefined in estimate_form.svelte.ts.

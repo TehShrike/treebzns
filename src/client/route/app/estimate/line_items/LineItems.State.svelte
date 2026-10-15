@@ -58,18 +58,13 @@
 
 	const form = untrack(() => make_estimate_form({ project: project.project, line_items: loaded_line_items }))
 
-	const saver = form_saver({
-		form,
-		on_save: async sent => {
-			const result = await server.update_estimate(sent)
-			form.update_db_values(sent, result)
-		},
-	})
+	const saver = form_saver({ form, send: values => server.update_estimate(values) })
 
 	const done = async () => {
 		if (form.needs_to_be_saved) {
-			await saver.save()
-			if (saver.save_error !== null) {
+			try {
+				await saver.save()
+			} catch {
 				return
 			}
 		}
@@ -94,7 +89,7 @@
 		<button type="button" disabled={saver.saving} onclick={done}>Done</button>
 	{/snippet}
 
-	<form id="estimate_form" class="estimate" onsubmit={saver.save_cb}>
+	<form id="estimate_form" class="estimate" onsubmit={saver.on_submit}>
 		<header class="heading">
 			<h1>Estimate for {project.client.name}</h1>
 			<div class="lead_details">
@@ -118,9 +113,9 @@
 			>
 		</label>
 
-		{#if saver.save_error}
-			<p class="error">{saver.save_error}</p>
-		{/if}
+		{#await saver.pending_save_promise catch err}
+			<p class="error">{err.message}</p>
+		{/await}
 
 		{#if form.line_items.length === 0}
 			<p class="no_line_items">No line items yet. Go back to Photos and add one.</p>

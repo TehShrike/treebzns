@@ -2,8 +2,8 @@
 import f3tch from '#shared/f3tch.ts'
 import type { OptionalizeUndefinedKeys } from '#shared/json_validator.ts'
 import type { SafeSelectQuery } from '#shared/sql_request/safe_select_query_validator.ts'
-import type { LeadAddress, LeadAvailability, LeadBilling, LeadClient, LeadContact, LeadProject } from '#shared/type/lead.ts'
-import type { ClientMetrics, UpdateClientArgument } from '#shared/type/client.ts'
+import type { CreateLeadArgument, CreateLeadResult } from '#shared/type/lead.ts'
+import type { ClientMetrics, UpdateClientArgument, UpdateClientResult } from '#shared/type/client.ts'
 import type { UpdateEstimateArgument, UpdateEstimateResult } from '#shared/type/estimate.ts'
 
 const call_server_function = (function_name: string) => async (arg: unknown) => f3tch(`/api/fn/${function_name}`, {
@@ -14,12 +14,12 @@ const call_server_function = (function_name: string) => async (arg: unknown) => 
 
 const server_functions: {
 	create_client: (arg: OptionalizeUndefinedKeys<{ readonly name: string; readonly is_commercial: boolean; readonly billing_phone: string; readonly billing_email: string; readonly tax_rate_id: bigint | null | undefined; readonly notes: string; readonly referred_by: string; readonly primary_address: OptionalizeUndefinedKeys<{ readonly name: string; readonly address_line_1: string; readonly address_line_2: string; readonly city: string; readonly state: string; readonly zip: string; }>; }>) => Promise<Pick<DbClient, "client_id" | "default_project_address_id">>
-	update_client: (arg: UpdateClientArgument) => Promise<{ client_id: bigint; contact_ids: bigint[]; address_ids: bigint[]; }>
+	update_client: (arg: UpdateClientArgument) => Promise<UpdateClientResult>
 	get_client_metrics: (arg: OptionalizeUndefinedKeys<{ readonly client_ids: bigint[]; }>) => Promise<ClientMetrics[]>
 	create_company: (arg: OptionalizeUndefinedKeys<{ name: string; }>) => Promise<Pick<DbCompany, "name" | "company_id">>
 	create_line_item: (arg: OptionalizeUndefinedKeys<{ readonly project_id: bigint; }>) => Promise<{ project_line_item_id: bigint; }>
 	update_estimate: (arg: UpdateEstimateArgument) => Promise<UpdateEstimateResult>
-	create_lead: (arg: { client: LeadClient; billing_address: LeadBilling | null; address: LeadAddress; contact: LeadContact; project: LeadProject; availability: LeadAvailability[]; }) => Promise<{ project_id: bigint; client_id: bigint; }>
+	create_lead: (arg: CreateLeadArgument) => Promise<CreateLeadResult>
 	create_line_item_image: (arg: OptionalizeUndefinedKeys<{ readonly project_line_item_id: bigint; }>) => Promise<{ project_image_id: bigint; }>
 	query: (arg: SafeSelectQuery) => Promise<unknown[][]>
 	ping: (arg: OptionalizeUndefinedKeys<{ readonly timeout: 1000n | 2000n | 3000n; }>) => Promise<{ pong: boolean; user_id: bigint; }>

@@ -1,39 +1,22 @@
-import tracked_record, { type DbValues, type SavedValues } from '#client/lib/tracked_record.svelte.ts'
-import tracked_record_array, { type SavedRow } from '#client/lib/tracked_record_array.ts'
-import type { WithStableRecordIdentifier } from '#client/lib/stable_record_identifier.ts'
+import tracked_record, { type DbValues } from '#client/lib/tracked_record.svelte.ts'
+import tracked_record_array from '#client/lib/tracked_record_array.ts'
 import editable_rows from '#client/component/list_input/editable_rows.svelte.ts'
+import assert from '#shared/assert.ts'
 import { map } from '#shared/array.ts'
-import type { ClientValues, ClientContactValues, ClientAddressValues, ClientContactUpdate, ClientAddressUpdate, UpdateClientArgument } from '#shared/type/client.ts'
+import type { ClientValues, ClientContactValues, ClientAddressValues, UpdateClientArgument, UpdateClientResult } from '#shared/type/client.ts'
 
-export type ClientValuesToSave = Omit<UpdateClientArgument, 'contacts' | 'addresses'> & {
-	contacts: WithStableRecordIdentifier<ClientContactUpdate>[]
-	addresses: WithStableRecordIdentifier<ClientAddressUpdate>[]
-}
-
-export type SavedClientValues = {
-	client: SavedValues<ClientValues, 'client_id'>
-	contacts: readonly SavedRow<ContactRecord, 'client_contact_id'>[]
-	addresses: readonly SavedRow<AddressRecord, 'client_address_id'>[]
-	remove_contact_ids: readonly bigint[]
-	remove_address_ids: readonly bigint[]
-}
-
-const make_contact = (db_values: DbValues<ClientContactValues, 'client_contact_id'> | null) => tracked_record<ClientContactValues, 'client_contact_id'>({
+const make_contact = (values_in_db: DbValues<ClientContactValues, 'client_contact_id'> | null) => tracked_record<ClientContactValues, 'client_contact_id'>({
 	initial: { description: ``, name: ``, phone: ``, email: ``, is_primary: false },
 	id_key: `client_contact_id`,
-	db_values,
+	values_in_db,
 })
 
-type ContactRecord = ReturnType<typeof make_contact>
-
-const make_address = (db_values: DbValues<ClientAddressValues, 'client_address_id'> | null) => tracked_record<ClientAddressValues, 'client_address_id'>({
+const make_address = (values_in_db: DbValues<ClientAddressValues, 'client_address_id'> | null) => tracked_record<ClientAddressValues, 'client_address_id'>({
 	initial: { client_contact_id: null, name: ``, address_line_1: ``, address_line_2: ``, city: ``, state: ``, zip: `` },
 	id_key: `client_address_id`,
-	db_values,
+	values_in_db,
 	empty_checks: { client_contact_id: () => true },
 })
-
-type AddressRecord = ReturnType<typeof make_address>
 
 const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, addresses: loaded_addresses }: {
 	client: DbValues<ClientValues, 'client_id'>
@@ -58,7 +41,7 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 			referred_by: ``,
 		},
 		id_key: `client_id`,
-		db_values: loaded_client,
+		values_in_db: loaded_client,
 	})
 
 	const contact_rows = editable_rows({
@@ -67,7 +50,7 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 		row_is_empty: row => row.is_empty,
 		get_key: row => row.stable_record_identifier,
 	})
-	const contacts = tracked_record_array({ records: () => contact_rows.non_empty_rows, id_key: `client_contact_id` })
+	const contacts = tracked_record_array({ records: () => contact_rows.non_empty_rows })
 
 	const address_rows = editable_rows({
 		initial: map(loaded_addresses, make_address),
@@ -75,32 +58,48 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 		row_is_empty: row => row.is_empty,
 		get_key: row => row.stable_record_identifier,
 	})
-	const addresses = tracked_record_array({ records: () => address_rows.non_empty_rows, id_key: `client_address_id` })
-
-	const values_to_save = $derived<ClientValuesToSave>({
-		client_id: loaded_client.client_id,
-		client: client.changed_values,
-		contacts: [...map(contacts.added, contact => ({ client_contact_id: null, ...contact })), ...contacts.changed],
-		addresses: [...map(addresses.added, address => ({ client_address_id: null, ...address })), ...addresses.changed],
-		remove_contact_ids: contacts.removed_ids,
-		remove_address_ids: addresses.removed_ids,
-	})
+	const addresses = tracked_record_array({ records: () => address_rows.non_empty_rows })
 
 	const needs_to_be_saved = $derived(client.needs_to_be_saved || contacts.needs_to_be_saved || addresses.needs_to_be_saved)
 
-	const update_db_values = (saved: SavedClientValues) => {
-		client.update_db_values(saved.client)
-		contacts.update_db_values(saved.contacts, saved.remove_contact_ids)
-		addresses.update_db_values(saved.addresses, saved.remove_address_ids)
+	const start_save = () => {
+		const client_save = client.start_save()
+		assert(!client_save.adding, `the client is in the database`)
+		const contacts_save = contacts.start_save()
+		const addresses_save = addresses.start_save()
+
+		const values: UpdateClientArgument = {
+			client_id: loaded_client.client_id,
+			client: client_save.values,
+			added_contacts: contacts_save.added,
+			changed_contacts: contacts_save.changed,
+			added_addresses: addresses_save.added,
+			changed_addresses: addresses_save.changed,
+			removed_contact_ids: contacts_save.removed_ids,
+			removed_address_ids: addresses_save.removed_ids,
+		}
+
+		return {
+			values,
+			commit: (result: UpdateClientResult) => {
+				client_save.commit(result.client_id)
+				contacts_save.commit(result.added_contact_ids)
+				addresses_save.commit(result.added_address_ids)
+			},
+			discard: () => {
+				client_save.discard()
+				contacts_save.discard()
+				addresses_save.discard()
+			},
+		}
 	}
 
 	return {
 		client,
 		contact_rows,
 		address_rows,
-		get values_to_save() { return values_to_save },
 		get needs_to_be_saved() { return needs_to_be_saved },
-		update_db_values,
+		start_save,
 	}
 }
 

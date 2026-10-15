@@ -13,7 +13,7 @@ import { insert_lead_source } from './lead_helper/lead_source.ts'
 import { filter_map, for_each_parallel, map } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
 import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
-import type { LeadClient, LeadBilling, LeadAddress, LeadAddressValues, LeadContact, LeadProject, LeadAvailability } from '#shared/type/lead.ts'
+import type { LeadClient, LeadBilling, LeadAddress, LeadAddressValues, LeadContact, CreateLeadArgument, CreateLeadResult } from '#shared/type/lead.ts'
 
 const project_field_validators = {
 	due_date: jv.nullable(is_temporal_plain_date),
@@ -48,14 +48,7 @@ const contact_value_validators = {
 	email: jv.is_string,
 }
 
-const create_lead_validator: jv.Validator<{
-	client: LeadClient
-	billing_address: LeadBilling | null
-	address: LeadAddress
-	contact: LeadContact
-	project: LeadProject
-	availability: LeadAvailability[]
-}> = jv.object({
+const create_lead_validator: jv.Validator<CreateLeadArgument> = jv.object({
 	client: jv.one_of(
 		jv.object({ client_id: jv.is_null, ...client_value_validators }),
 		jv.object({ client_id: jv.is_bigint, ...jv.optional_shape(client_value_validators) }),
@@ -131,7 +124,7 @@ export const functions = {
 		fn: (
 			{ client, billing_address, address, contact, project, availability },
 			{ company, user, transaction }
-		) => transaction(async ({ select_builder, write_helper }) => {
+		): Promise<CreateLeadResult> => transaction(async ({ select_builder, write_helper }) => {
 			await assert_input_ids_valid({ client, address, contact, project, select_builder })
 
 			const creating_new_client = client.client_id === null
@@ -216,7 +209,7 @@ export const functions = {
 				})), 100)
 			}
 
-			return { project_id, client_id }
+			return { project_id, client_id, client_address_id, client_contact_id }
 		}),
 	}),
 }

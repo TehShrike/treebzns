@@ -35,6 +35,7 @@ const update_estimate_validator: jv.Validator<UpdateEstimateArgument> = jv.objec
 		}),
 	}),
 	added_line_items: jv.array(jv.object({
+		project_line_item_id: jv.is_null,
 		...line_item_value_validators,
 		work_skill_ids: work_skill_ids_validator,
 	})),

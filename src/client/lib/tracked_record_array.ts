@@ -1,55 +1,59 @@
 import { SvelteSet } from 'svelte/reactivity'
-import { filter_map, for_each, map, some } from '#shared/array.ts'
-import { stable_record_identifier } from './stable_record_identifier.ts'
+import { filter_map, for_each, map, some, zip_with } from '#shared/array.ts'
+import assert from '#shared/assert.ts'
+import type { PendingSave } from './pending_save.ts'
 
 export type Trackable = {
-	readonly stable_record_identifier: string
 	readonly db_id: bigint | null
 	readonly needs_to_be_saved: boolean
-	readonly added_values: object
-	readonly changed_values: object
-	update_db_values: (saved: never) => void
+	start_save: () => PendingSave<object, object>
 }
 
-export type SavedRow<RECORD extends Trackable, ID_KEY extends string> =
-	& Parameters<RECORD['update_db_values']>[0]
-	& { [K in ID_KEY]: bigint }
-	& { [stable_record_identifier]: string }
+type AddedValues<RECORD extends Trackable> = Extract<ReturnType<RECORD['start_save']>, { adding: true }>['values']
+type ChangedValues<RECORD extends Trackable> = Extract<ReturnType<RECORD['start_save']>, { adding: false }>['values']
 
-const tracked_record_array = <RECORD extends Trackable, ID_KEY extends string>({
-	records: get_records,
-	id_key,
-}: {
-	records: () => readonly RECORD[]
-	id_key: ID_KEY
-}) => {
-	const db_ids = new SvelteSet(filter_map(get_records(), record => record.db_id))
+const tracked_record_array = <RECORD extends Trackable>({ records: get_records }: { records: () => readonly RECORD[] }) => {
+	const ids_in_db = new SvelteSet(filter_map(get_records(), record => record.db_id))
+	let saving = false
 
-	const removed_ids = () => [...db_ids.difference(new Set(filter_map(get_records(), record => record.db_id)))]
+	const removed_ids = () => [...ids_in_db.difference(new Set(filter_map(get_records(), record => record.db_id)))]
 
-	const update_db_values = (saved: readonly SavedRow<RECORD, ID_KEY>[], removed_db_ids: readonly bigint[]) => {
-		const saved_rows_by_identifier = new Map<string, SavedRow<RECORD, ID_KEY>>(map(saved, row => [row[stable_record_identifier], row]))
+	const start_save = () => {
+		assert(!saving, `a record array has at most one save running`)
+		saving = true
 
-		for_each(get_records(), record => {
-			const saved_row = saved_rows_by_identifier.get(record.stable_record_identifier)
-			if (saved_row !== undefined) {
-				record.update_db_values(saved_row as never)
-			}
-		})
+		const saves = filter_map(get_records(), record => record.db_id === null || record.needs_to_be_saved ? record.start_save() : null)
+		const added = filter_map(saves, save => save.adding ? save : null)
+		const changed = filter_map(saves, save => !save.adding ? save : null)
+		const removed = removed_ids()
 
-		for_each(saved, row => { db_ids.add(row[id_key]) })
-		for_each(removed_db_ids, id => { db_ids.delete(id) })
+		return {
+			added: map(added, save => save.values as AddedValues<RECORD>),
+			changed: map(changed, save => save.values as ChangedValues<RECORD>),
+			removed_ids: removed,
+			commit: (added_db_ids: readonly bigint[]) => {
+				assert(added_db_ids.length === added.length, `the server returns one id per added record`)
+				for_each(zip_with(added, added_db_ids, (save, db_id) => ({ save, db_id })), ({ save, db_id }) => {
+					save.commit(db_id)
+					ids_in_db.add(db_id)
+				})
+				for_each(changed, save => save.commit())
+				for_each(removed, id => { ids_in_db.delete(id) })
+				saving = false
+			},
+			discard: () => {
+				for_each(saves, save => save.discard())
+				saving = false
+			},
+		}
 	}
 
 	return {
-		get added() { return filter_map(get_records(), record => record.db_id === null ? record.added_values as RECORD['added_values'] : null) },
-		get changed() { return filter_map(get_records(), record => record.db_id !== null && record.needs_to_be_saved ? record.changed_values as RECORD['changed_values'] : null) },
-		get removed_ids() { return removed_ids() },
 		get needs_to_be_saved() { return some(get_records(), record => record.db_id === null || record.needs_to_be_saved) || removed_ids().length > 0 },
-		update_db_values,
+		start_save,
 	}
 }
 
-export type TrackedRecordArray<RECORD extends Trackable, ID_KEY extends string> = ReturnType<typeof tracked_record_array<RECORD, ID_KEY>>
+export type TrackedRecordArray<RECORD extends Trackable> = ReturnType<typeof tracked_record_array<RECORD>>
 
 export default tracked_record_array

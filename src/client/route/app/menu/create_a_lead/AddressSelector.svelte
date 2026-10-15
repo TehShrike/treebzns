@@ -19,7 +19,7 @@
 
 	let billing_draft: LeadBilling | null = null
 
-	const select_saved_address = (row: LeadForm['address']['db_values']) => {
+	const select_saved_address = (row: LeadForm['address']['values_in_db']) => {
 		row ? address.set_values(row) : address.clear()
 	}
 
@@ -46,7 +46,7 @@
 		{#if client.saved_in_database}
 			<DropdownField>
 				Saved address
-				<select bind:value={() => address.db_values, select_saved_address}>
+				<select bind:value={() => address.values_in_db, select_saved_address}>
 					{#each client_addresses as row (row.client_address_id)}
 						<option value={row}>
 							{row.address_line_1}{row.name ? ` (${row.name})` : ``}

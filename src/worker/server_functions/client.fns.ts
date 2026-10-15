@@ -1,13 +1,13 @@
 import assert from '#shared/assert.ts'
 import * as jv from '#shared/json_validator.ts'
-import { for_each, map_async } from '#shared/array.ts'
+import { for_each, for_each_async, map_async } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
 import { sfn } from '#worker/lib/server_functions_api.ts'
 import assert_db_id_valid from '#worker/lib/db/assert_db_id_valid.ts'
 import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
-import type { ClientAddressUpdate, ClientContactUpdate, ClientMetrics, ClientValues, UpdateClientArgument } from '#shared/type/client.ts'
-import { upsert_client_contact } from './client_helper/client_contact.ts'
-import { upsert_client_address } from './client_helper/client_address.ts'
+import type { AddedClientAddress, ChangedClientAddress, ChangedClientContact, ClientMetrics, ClientValues, UpdateClientArgument, UpdateClientResult } from '#shared/type/client.ts'
+import { insert_client_contact, update_client_contact } from './client_helper/client_contact.ts'
+import { insert_client_address, update_client_address } from './client_helper/client_address.ts'
 import { remove_client_addresses, remove_client_contacts } from './client_helper/remove_rows.ts'
 import { get_client_metrics } from './client_helper/client_metrics.ts'
 import { get_client_address_ids_in_use, get_client_contact_ids_in_use } from '#shared/treebzns_db/client_relationships.ts'
@@ -77,16 +77,12 @@ const update_client_validator: jv.Validator<UpdateClientArgument> = jv.object({
 		client_id: jv.nullable(jv.is_bigint),
 		...jv.optional_shape(client_value_validators),
 	}),
-	contacts: jv.array(jv.one_of(
-		jv.object({ client_contact_id: jv.is_null, ...contact_value_validators }),
-		jv.object({ client_contact_id: jv.is_bigint, ...jv.optional_shape(contact_value_validators) }),
-	)),
-	addresses: jv.array(jv.one_of(
-		jv.object({ client_address_id: jv.is_null, ...address_value_validators }),
-		jv.object({ client_address_id: jv.is_bigint, ...jv.optional_shape(address_value_validators) }),
-	)),
-	remove_contact_ids: jv.array(jv.is_bigint),
-	remove_address_ids: jv.array(jv.is_bigint),
+	added_contacts: jv.array(jv.object({ client_contact_id: jv.is_null, ...contact_value_validators })),
+	changed_contacts: jv.array(jv.object({ client_contact_id: jv.is_bigint, ...jv.optional_shape(contact_value_validators) })),
+	added_addresses: jv.array(jv.object({ client_address_id: jv.is_null, ...address_value_validators })),
+	changed_addresses: jv.array(jv.object({ client_address_id: jv.is_bigint, ...jv.optional_shape(address_value_validators) })),
+	removed_contact_ids: jv.array(jv.is_bigint),
+	removed_address_ids: jv.array(jv.is_bigint),
 })
 
 const assert_input_ids_valid = async ({
@@ -104,31 +100,36 @@ const assert_input_ids_valid = async ({
 
 const assert_removed_ids_unused = ({
 	client,
-	contacts,
-	addresses,
-	remove_contact_ids,
-	remove_address_ids,
+	changed_contacts,
+	added_addresses,
+	changed_addresses,
+	removed_contact_ids,
+	removed_address_ids,
 }: {
 	client: Partial<ClientValues>
-	contacts: ClientContactUpdate[]
-	addresses: ClientAddressUpdate[]
-	remove_contact_ids: bigint[]
-	remove_address_ids: bigint[]
+	changed_contacts: ChangedClientContact[]
+	added_addresses: AddedClientAddress[]
+	changed_addresses: ChangedClientAddress[]
+	removed_contact_ids: bigint[]
+	removed_address_ids: bigint[]
 }) => {
-	const removed_contact_ids = new Set(remove_contact_ids)
-	const removed_address_ids = new Set(remove_address_ids)
+	const removed_contact_id_set = new Set(removed_contact_ids)
+	const removed_address_id_set = new Set(removed_address_ids)
 
-	for_each(contacts, ({ client_contact_id }) => {
-		assert(client_contact_id === null || !removed_contact_ids.has(client_contact_id), `an updated contact is not also removed`)
+	for_each(changed_contacts, ({ client_contact_id }) => {
+		assert(!removed_contact_id_set.has(client_contact_id), `a changed contact is not also removed`)
 	})
 
-	for_each(addresses, ({ client_address_id, client_contact_id }) => {
-		assert(client_address_id === null || !removed_address_ids.has(client_address_id), `an updated address is not also removed`)
-		assert(client_contact_id == null || !removed_contact_ids.has(client_contact_id), `the contact of an address is not removed`)
+	for_each(changed_addresses, ({ client_address_id }) => {
+		assert(!removed_address_id_set.has(client_address_id), `a changed address is not also removed`)
+	})
+
+	for_each([...added_addresses, ...changed_addresses], ({ client_contact_id }) => {
+		assert(client_contact_id == null || !removed_contact_id_set.has(client_contact_id), `the contact of an address is not removed`)
 	})
 
 	assert(
-		client.default_project_address_id === undefined || !removed_address_ids.has(client.default_project_address_id),
+		client.default_project_address_id === undefined || !removed_address_id_set.has(client.default_project_address_id),
 		`the default project address is not removed`,
 	)
 }
@@ -178,33 +179,35 @@ export const functions = {
 	update_client: sfn({
 		validator: update_client_validator,
 		fn: (
-			{ client_id, client, contacts, addresses, remove_contact_ids, remove_address_ids },
+			{ client_id, client, added_contacts, changed_contacts, added_addresses, changed_addresses, removed_contact_ids, removed_address_ids },
 			{ transaction },
-		) => transaction(async ({ select_builder, write_helper }) => {
+		): Promise<UpdateClientResult> => transaction(async ({ select_builder, write_helper }) => {
 			const { client_id: client_object_id, ...client_changes } = client
 
 			assert(client_object_id === null || client_object_id === client_id, `client.client_id matches client_id when it is set`)
-			assert_removed_ids_unused({ client: client_changes, contacts, addresses, remove_contact_ids, remove_address_ids })
+			assert_removed_ids_unused({ client: client_changes, changed_contacts, added_addresses, changed_addresses, removed_contact_ids, removed_address_ids })
 			await assert_input_ids_valid({ client_id, client: client_changes, select_builder })
 
 			if (Object.keys(client_changes).length > 0) {
 				await write_helper.update({ table_name: 'client', column: 'client_id', value: client_id, set: client_changes })
 			}
 
-			const contact_ids = await map_async(contacts, contact =>
-				upsert_client_contact({ client_id, contact, select_builder, write_helper }))
+			const added_contact_ids = await map_async(added_contacts, contact =>
+				insert_client_contact({ client_id, contact, select_builder, write_helper }))
+			await for_each_async(changed_contacts, contact => update_client_contact({ contact, write_helper }))
 
-			const address_ids = await map_async(addresses, address =>
-				upsert_client_address({ client_id, address, select_builder, write_helper }))
+			const added_address_ids = await map_async(added_addresses, address =>
+				insert_client_address({ client_id, address, select_builder, write_helper }))
+			await for_each_async(changed_addresses, address => update_client_address({ address, write_helper }))
 
 			const [referenced_address_ids, referenced_contact_ids] = await Promise.all([
 				get_client_address_ids_in_use({ query_rows: select_builder.get_rows, client_id }),
 				get_client_contact_ids_in_use({ query_rows: select_builder.get_rows, client_id }),
 			])
-			await remove_client_addresses({ client_address_ids: remove_address_ids, referenced_address_ids, select_builder, write_helper })
-			await remove_client_contacts({ client_contact_ids: remove_contact_ids, referenced_contact_ids, select_builder, write_helper })
+			await remove_client_addresses({ client_address_ids: removed_address_ids, referenced_address_ids, select_builder, write_helper })
+			await remove_client_contacts({ client_contact_ids: removed_contact_ids, referenced_contact_ids, select_builder, write_helper })
 
-			return { client_id, contact_ids, address_ids }
+			return { client_id, added_contact_ids, added_address_ids }
 		}),
 	}),
 	get_client_metrics: sfn({

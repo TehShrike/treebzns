@@ -18,28 +18,28 @@ export type ClientValues = Pick<DbClient,
 >
 
 export type ClientAddressValues = Pick<DbClientAddress, 'client_contact_id' | 'name' | 'address_line_1' | 'address_line_2' | 'city' | 'state' | 'zip'>
-export type ClientAddressUpdate =
-	| ({ client_address_id: null } & ClientAddressValues)
-	| ({ client_address_id: DbClientAddress['client_address_id'] } & Partial<ClientAddressValues>)
+export type AddedClientAddress = { client_address_id: null } & ClientAddressValues
+export type ChangedClientAddress = { client_address_id: DbClientAddress['client_address_id'] } & Partial<ClientAddressValues>
 
 export type ClientContactValues = Pick<DbClientContact, 'description' | 'name' | 'phone' | 'email' | 'is_primary'>
-export type ClientContactUpdate =
-	| ({ client_contact_id: null } & ClientContactValues)
-	| ({ client_contact_id: DbClientContact['client_contact_id'] } & Partial<ClientContactValues>)
+export type AddedClientContact = { client_contact_id: null } & ClientContactValues
+export type ChangedClientContact = { client_contact_id: DbClientContact['client_contact_id'] } & Partial<ClientContactValues>
 
 export type UpdateClientArgument = {
 	client_id: DbClient['client_id']
 	client: Partial<ClientValues> & { client_id: DbClient['client_id'] | null }
-	contacts: ClientContactUpdate[]
-	addresses: ClientAddressUpdate[]
-	remove_contact_ids: DbClientContact['client_contact_id'][]
-	remove_address_ids: DbClientAddress['client_address_id'][]
+	added_contacts: AddedClientContact[]
+	changed_contacts: ChangedClientContact[]
+	added_addresses: AddedClientAddress[]
+	changed_addresses: ChangedClientAddress[]
+	removed_contact_ids: DbClientContact['client_contact_id'][]
+	removed_address_ids: DbClientAddress['client_address_id'][]
 }
 
 export type UpdateClientResult = {
 	client_id: DbClient['client_id']
-	contact_ids: DbClientContact['client_contact_id'][]
-	address_ids: DbClientAddress['client_address_id'][]
+	added_contact_ids: DbClientContact['client_contact_id'][]
+	added_address_ids: DbClientAddress['client_address_id'][]
 }
 
 export type ClientMetrics = {

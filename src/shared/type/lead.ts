@@ -16,3 +16,19 @@ export type LeadProject = Pick<DbProject, 'due_date' | 'emergency' | 'lead_detai
 	| { lead_source_id: null, lead_source_name: string | null }
 )
 export type LeadAvailability = Pick<DbEstimateAvailability, 'availability_date' | 'start_time' | 'end_time'>
+
+export type CreateLeadArgument = {
+	client: LeadClient
+	billing_address: LeadBilling | null
+	address: LeadAddress
+	contact: LeadContact
+	project: LeadProject
+	availability: LeadAvailability[]
+}
+
+export type CreateLeadResult = {
+	project_id: DbProject['project_id']
+	client_id: DbClient['client_id']
+	client_address_id: DbClientAddress['client_address_id']
+	client_contact_id: DbClientContact['client_contact_id']
+}

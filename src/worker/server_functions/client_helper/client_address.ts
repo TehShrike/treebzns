@@ -1,17 +1,17 @@
 import type { TransactionTenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
-import type { ClientAddressUpdate } from '#shared/type/client.ts'
+import type { AddedClientAddress, ChangedClientAddress } from '#shared/type/client.ts'
 import { get_next_sort } from '#worker/lib/db/sort_column.ts'
 import { pick } from '#shared/pick.ts'
 
-const insert_client_address = async ({
+export const insert_client_address = async ({
 	client_id,
 	address,
 	select_builder,
 	write_helper,
 }: {
 	client_id: bigint
-	address: Extract<ClientAddressUpdate, { client_address_id: null }>
+	address: AddedClientAddress
 	select_builder: TransactionTenantedSelectBuilder
 	write_helper: TenantedWriteHelper
 }) => {
@@ -26,11 +26,11 @@ const insert_client_address = async ({
 	return client_address_id
 }
 
-const update_client_address = async ({
+export const update_client_address = async ({
 	address,
 	write_helper,
 }: {
-	address: Extract<ClientAddressUpdate, { client_address_id: bigint }>
+	address: ChangedClientAddress
 	write_helper: TenantedWriteHelper
 }) => {
 	const { client_address_id, ...changes } = address
@@ -38,20 +38,4 @@ const update_client_address = async ({
 	if (Object.keys(changes).length > 0) {
 		await write_helper.update({ table_name: 'client_address', column: 'client_address_id', value: client_address_id, set: changes })
 	}
-
-	return client_address_id
 }
-
-export const upsert_client_address = ({
-	client_id,
-	address,
-	select_builder,
-	write_helper,
-}: {
-	client_id: bigint
-	address: ClientAddressUpdate
-	select_builder: TransactionTenantedSelectBuilder
-	write_helper: TenantedWriteHelper
-}) => address.client_address_id === null
-	? insert_client_address({ client_id, address, select_builder, write_helper })
-	: update_client_address({ address, write_helper })

@@ -1,34 +1,37 @@
 const error_message = (err: any): string => err?.body?.message ?? err?.message ?? `Something went wrong`
 
-const form_saver = <VALUES_TO_SAVE>({ form, on_save }: {
-	form: { readonly values_to_save: VALUES_TO_SAVE }
-	on_save: (sent: VALUES_TO_SAVE) => Promise<void>
+const form_saver = <VALUES, RESULT>({ form, send }: {
+	form: { start_save: () => { values: VALUES, commit: (result: RESULT) => void, discard: () => void } }
+	send: (values: VALUES) => Promise<RESULT>
 }) => {
+	let pending_save_promise = $state.raw<Promise<void> | null>(null)
 	let saving = $state(false)
-	let save_error = $state<string | null>(null)
 
-	const save = async () => {
-		save_error = null
+	const save = () => {
+		const pending = form.start_save()
+		const sent = send(pending.values)
+			.catch((err: unknown) => {
+				pending.discard()
+				throw new Error(error_message(err), { cause: err })
+			})
+			.then(result => { pending.commit(result) })
+		pending_save_promise = sent
 		saving = true
-		try {
-			await on_save(form.values_to_save)
-		} catch (err) {
-			save_error = error_message(err)
-		} finally {
-			saving = false
-		}
+		const settle = () => { saving = false }
+		sent.then(settle, settle)
+		return sent
 	}
 
-	const save_cb = (event: SubmitEvent) => {
+	const on_submit = (event: SubmitEvent) => {
 		event.preventDefault()
 		void save()
 	}
 
 	return {
+		get pending_save_promise() { return pending_save_promise },
 		get saving() { return saving },
-		get save_error() { return save_error },
 		save,
-		save_cb,
+		on_submit,
 	}
 }
 

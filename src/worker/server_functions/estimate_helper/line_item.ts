@@ -4,8 +4,10 @@ import type { TransactionTenantedSelectBuilder } from '#worker/lib/db/make_tenan
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { AddedEstimateLineItem, EstimateLineItemValues } from '#shared/type/estimate.ts'
 import { add_work_skills } from './work_skill.ts'
+import { pick } from '#shared/pick.ts'
 
 export const default_line_item: AddedEstimateLineItem = {
+	project_line_item_id: null,
 	item_type_id: null,
 	work_details: ``,
 	estimated_hours: 0n,
@@ -52,7 +54,8 @@ export const insert_line_item = async ({
 	select_builder: TransactionTenantedSelectBuilder
 	write_helper: TenantedWriteHelper
 }): Promise<bigint> => {
-	const { work_skill_ids, ...values } = line_item
+	assert(line_item.project_line_item_id === null, `a line item is inserted only when it is not in the database`)
+	const values = pick(line_item, ['item_type_id', 'work_details', 'estimated_hours', 'client_optional'])
 	assert_line_item_values_valid(values)
 
 	const { line_item_count, max_sort } = await get_line_item_count_and_max_sort({ project_id, select_builder })
@@ -75,7 +78,7 @@ export const insert_line_item = async ({
 		arbostar_line_item_id: null,
 	})
 
-	await add_work_skills({ project_line_item_id, work_skill_ids, write_helper })
+	await add_work_skills({ project_line_item_id, work_skill_ids: line_item.work_skill_ids, write_helper })
 
 	return project_line_item_id
 }

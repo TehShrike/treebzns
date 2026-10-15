@@ -19,7 +19,7 @@
 
 	const inputs_disabled = $derived(!client.saved_in_database && !project_contact_is_different_from_client)
 
-	const select_saved_contact = (row: LeadForm['contact']['db_values']) => {
+	const select_saved_contact = (row: LeadForm['contact']['values_in_db']) => {
 		row ? contact.set_values(row) : contact.clear()
 	}
 
@@ -49,7 +49,7 @@
 		{#if client.saved_in_database}
 			<DropdownField>
 				Saved contact
-				<select bind:value={() => contact.db_values, select_saved_contact}>
+				<select bind:value={() => contact.values_in_db, select_saved_contact}>
 					{#each client_contacts as row (row.client_contact_id)}
 						<option value={row}>
 							{row.name}{row.description ? ` (${row.description})` : ``}

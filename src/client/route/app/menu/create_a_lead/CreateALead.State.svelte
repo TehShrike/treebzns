@@ -78,10 +78,11 @@
 
 	const saver = form_saver({
 		form: lead,
-		on_save: async sent => {
-			await server.create_lead(sent)
+		send: async values => {
+			const result = await server.create_lead(values)
 			client_cache.refresh()
 			asr.go(`app.menu.home`)
+			return result
 		},
 	})
 </script>
@@ -89,7 +90,7 @@
 <AppScreen>
 	<h1>Create a lead</h1>
 
-	<form onsubmit={saver.save_cb}>
+	<form onsubmit={saver.on_submit}>
 		<ClientSelector {client_cache} {tax_rates} {lead} />
 
 		<AddressSelector
@@ -111,9 +112,9 @@
 
 		<ProjectSelector bind:project={lead.project} bind:availability={lead.availability} {lead_sources} {employees} />
 
-		{#if saver.save_error}
-			<p class="error">{saver.save_error}</p>
-		{/if}
+		{#await saver.pending_save_promise catch err}
+			<p class="error">{err.message}</p>
+		{/await}
 
 		<div class="footer">
 			<button type="button" onclick={() => asr.go(`app.menu.home`)}>Cancel</button>

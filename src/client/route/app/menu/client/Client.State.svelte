@@ -17,7 +17,7 @@
 	import param_validator from '#shared/param_validator.ts'
 	import type { Schema } from '#schema/types.ts'
 	import assert from '#shared/assert.ts'
-	import { map, zip_with } from '#shared/array.ts'
+	import { map } from '#shared/array.ts'
 	import { promise_all_object } from '#shared/promise_all_object.ts'
 	import { untrack } from 'svelte'
 	import { get_client_address_ids_in_use, get_client_contact_ids_in_use, ADDRESS_REFERENCED_MESSAGE, CONTACT_REFERENCED_MESSAGE } from '#shared/treebzns_db/client_relationships.ts'
@@ -150,15 +150,10 @@
 
 	const saver = form_saver({
 		form,
-		on_save: async sent => {
-			const saved_ids = await server.update_client(sent)
-			form.update_db_values({
-				...sent,
-				client: { ...sent.client, client_id: saved_ids.client_id },
-				contacts: zip_with(sent.contacts, saved_ids.contact_ids, (contact, client_contact_id) => ({ ...contact, client_contact_id })),
-				addresses: zip_with(sent.addresses, saved_ids.address_ids, (address, client_address_id) => ({ ...address, client_address_id })),
-			})
+		send: async values => {
+			const result = await server.update_client(values)
 			client_cache.refresh()
+			return result
 		},
 	})
 
@@ -233,15 +228,15 @@
 	<ClientSearch {client_cache} on_pick={go_to_client} />
 
 	<div class="title-bar">
-		<span>{client.db_values?.name ?? ``}</span>
+		<span>{client.values_in_db?.name ?? ``}</span>
 		<button type="submit" form="client_form" class="default" disabled={saver.saving || !form.needs_to_be_saved}>Save</button>
 	</div>
 
-	{#if saver.save_error}
-		<p class="error">{saver.save_error}</p>
-	{/if}
+	{#await saver.pending_save_promise catch err}
+		<p class="error">{err.message}</p>
+	{/await}
 
-	<form id="client_form" onsubmit={saver.save_cb}>
+	<form id="client_form" onsubmit={saver.on_submit}>
 		<FormLayout>
 			<label>
 				Name

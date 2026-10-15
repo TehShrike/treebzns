@@ -1,6 +1,6 @@
 import tracked_record from '#client/lib/tracked_record.svelte.ts'
 import type { CachedClient, CachedClientContact } from '#client/lib/client_cache.svelte.ts'
-import type { LeadClientValues, LeadAddressValues, LeadContactValues, LeadBilling, LeadProject, LeadAvailability } from '#shared/type/lead.ts'
+import type { LeadClientValues, LeadAddressValues, LeadContactValues, LeadBilling, LeadProject, LeadAvailability, CreateLeadArgument, CreateLeadResult } from '#shared/type/lead.ts'
 import { find } from '#shared/array.ts'
 
 const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
@@ -31,14 +31,34 @@ const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 	})
 	let availability = $state<LeadAvailability[]>([])
 
-	const values_to_save = $derived({
-		client: client.db_id === null ? { client_id: null, ...client.added_values } : client.changed_values,
-		billing_address,
-		address: address.db_id === null ? { client_address_id: null, ...address.added_values } : address.changed_values,
-		contact: contact.db_id === null ? { client_contact_id: null, ...contact.added_values } : contact.changed_values,
-		project,
-		availability,
-	})
+	const start_save = () => {
+		const client_save = client.start_save()
+		const address_save = address.start_save()
+		const contact_save = contact.start_save()
+
+		const values: CreateLeadArgument = {
+			client: client_save.values,
+			billing_address,
+			address: address_save.values,
+			contact: contact_save.values,
+			project,
+			availability,
+		}
+
+		return {
+			values,
+			commit: (result: CreateLeadResult) => {
+				client_save.commit(result.client_id)
+				address_save.commit(result.client_address_id)
+				contact_save.commit(result.client_contact_id)
+			},
+			discard: () => {
+				client_save.discard()
+				address_save.discard()
+				contact_save.discard()
+			},
+		}
+	}
 
 	const select_client = (cached_client: CachedClient, matched_contact: CachedClientContact | null) => {
 		selected_client = cached_client
@@ -73,7 +93,7 @@ const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 		set project(value) { project = value },
 		get availability() { return availability },
 		set availability(value) { availability = value },
-		get values_to_save() { return values_to_save },
+		start_save,
 		select_client,
 		clear_client,
 	}

@@ -29,7 +29,7 @@
 <ClientSearch {client_cache} on_pick={select_client_and_contact} />
 
 <div class="title-bar" class:inactive={!lead.client.saved_in_database}>
-	<span>{lead.client.db_values?.name ?? `New client`}</span>
+	<span>{lead.client.values_in_db?.name ?? `New client`}</span>
 	<button type="button" data-hide={!lead.client.saved_in_database} onclick={lead.clear_client}>Clear</button>
 </div>
 

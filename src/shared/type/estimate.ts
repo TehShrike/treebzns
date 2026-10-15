@@ -4,7 +4,7 @@ export type EstimateLineItemValues = Pick<DbProjectLineItem, 'item_type_id' | 'e
 	work_details: string
 }
 
-export type AddedEstimateLineItem = EstimateLineItemValues & {
+export type AddedEstimateLineItem = { project_line_item_id: null } & EstimateLineItemValues & {
 	work_skill_ids: DbWorkSkill['work_skill_id'][]
 }
 
