@@ -3,16 +3,13 @@ import { filter_map, for_each, map, some, zip_with } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
 import type { PendingSave } from './pending_save.ts'
 
-export type Trackable = {
+export type Trackable<ADDED, CHANGED> = {
 	readonly db_id: bigint | null
 	readonly needs_to_be_saved: boolean
-	start_save: () => PendingSave<object, object>
+	start_save: () => PendingSave<ADDED, CHANGED>
 }
 
-type AddedValues<RECORD extends Trackable> = Extract<ReturnType<RECORD['start_save']>, { adding: true }>['values']
-type ChangedValues<RECORD extends Trackable> = Extract<ReturnType<RECORD['start_save']>, { adding: false }>['values']
-
-const tracked_record_array = <RECORD extends Trackable>({ records: get_records }: { records: () => readonly RECORD[] }) => {
+const tracked_record_array = <ADDED, CHANGED>({ records: get_records }: { records: () => readonly Trackable<ADDED, CHANGED>[] }) => {
 	const ids_in_db = new SvelteSet(filter_map(get_records(), record => record.db_id))
 	let saving = false
 
@@ -28,8 +25,8 @@ const tracked_record_array = <RECORD extends Trackable>({ records: get_records }
 		const removed = removed_ids()
 
 		return {
-			added: map(added, save => save.values as AddedValues<RECORD>),
-			changed: map(changed, save => save.values as ChangedValues<RECORD>),
+			added: map(added, save => save.values),
+			changed: map(changed, save => save.values),
 			removed_ids: removed,
 			commit: (added_db_ids: readonly bigint[]) => {
 				assert(added_db_ids.length === added.length, `the server returns one id per added record`)
@@ -54,6 +51,6 @@ const tracked_record_array = <RECORD extends Trackable>({ records: get_records }
 	}
 }
 
-export type TrackedRecordArray<RECORD extends Trackable> = ReturnType<typeof tracked_record_array<RECORD>>
+export type TrackedRecordArray<ADDED, CHANGED> = ReturnType<typeof tracked_record_array<ADDED, CHANGED>>
 
 export default tracked_record_array
