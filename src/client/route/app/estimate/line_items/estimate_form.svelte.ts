@@ -19,70 +19,70 @@ export type LoadedLineItem = DbValues<EstimateLineItemValues, 'project_line_item
 	work_skill_ids: readonly bigint[]
 }
 
-type WorkSkillsSave = ReturnType<TrackedIdSet['start_save']>
+type WorkSkillIdsSave = ReturnType<TrackedIdSet['start_save']>
 
-const start_add = ({ record_save, work_skills_save, commit, discard }: {
+const start_add = ({ record_save, work_skill_ids_save, commit, discard }: {
 	record_save: PendingAdd<AddedValues<EstimateLineItemValues, 'project_line_item_id'>>
-	work_skills_save: WorkSkillsSave
+	work_skill_ids_save: WorkSkillIdsSave
 	commit: (db_id: bigint) => void
 	discard: () => void
 }): PendingAdd<AddedEstimateLineItem> => {
-	assert(work_skills_save.values.removed_ids.length === 0, `a line item that is not in the database has no work skills in the database`)
+	assert(work_skill_ids_save.values.removed_ids.length === 0, `a line item that is not in the database has no work skills in the database`)
 	return {
 		adding: true,
-		values: { ...record_save.values, work_skill_ids: work_skills_save.values.added_ids },
+		values: { ...record_save.values, work_skill_ids: work_skill_ids_save.values.added_ids },
 		commit,
 		discard,
 	}
 }
 
-const start_change = ({ record_save, work_skills_save, commit, discard }: {
+const start_change = ({ record_save, work_skill_ids_save, commit, discard }: {
 	record_save: PendingChange<SavedValues<EstimateLineItemValues, 'project_line_item_id'>>
-	work_skills_save: WorkSkillsSave
+	work_skill_ids_save: WorkSkillIdsSave
 	commit: (db_id: bigint) => void
 	discard: () => void
 }): PendingChange<ChangedEstimateLineItem> => ({
 	adding: false,
 	values: {
 		...record_save.values,
-		added_work_skill_ids: work_skills_save.values.added_ids,
-		removed_work_skill_ids: work_skills_save.values.removed_ids,
+		added_work_skill_ids: work_skill_ids_save.values.added_ids,
+		removed_work_skill_ids: work_skill_ids_save.values.removed_ids,
 	},
 	commit: (db_id = record_save.values.project_line_item_id) => { commit(db_id) },
 	discard,
 })
 
-const make_line_item = ({ title, image_ids, work_skill_ids, ...values_in_db }: LoadedLineItem) => {
+const make_line_item = ({ title, image_ids, work_skill_ids: loaded_work_skill_ids, ...values_in_db }: LoadedLineItem) => {
 	const record = tracked_record<EstimateLineItemValues, 'project_line_item_id'>({
 		initial: { item_type_id: null, work_details: ``, estimated_hours: 0n, client_optional: false },
 		id_key: `project_line_item_id`,
 		values_in_db,
 	})
-	const work_skills = tracked_id_set(work_skill_ids)
+	const work_skill_ids = tracked_id_set(loaded_work_skill_ids)
 
-	const needs_to_be_saved = $derived(record.needs_to_be_saved || work_skills.needs_to_be_saved)
+	const needs_to_be_saved = $derived(record.needs_to_be_saved || work_skill_ids.needs_to_be_saved)
 
 	const start_save = () => {
 		const record_save = record.start_save()
-		const work_skills_save = work_skills.start_save()
+		const work_skill_ids_save = work_skill_ids.start_save()
 		const commit = (db_id: bigint) => {
 			record_save.commit(db_id)
-			work_skills_save.commit()
+			work_skill_ids_save.commit()
 		}
 		const discard = () => {
 			record_save.discard()
-			work_skills_save.discard()
+			work_skill_ids_save.discard()
 		}
 		return record_save.adding
-			? start_add({ record_save, work_skills_save, commit, discard })
-			: start_change({ record_save, work_skills_save, commit, discard })
+			? start_add({ record_save, work_skill_ids_save, commit, discard })
+			: start_change({ record_save, work_skill_ids_save, commit, discard })
 	}
 
 	return {
 		title,
 		image_ids,
 		record,
-		work_skills,
+		work_skill_ids,
 		stable_record_identifier: record.stable_record_identifier,
 		get db_id() { return record.db_id },
 		get needs_to_be_saved() { return needs_to_be_saved },

@@ -20,9 +20,9 @@
 
 	const set_work_skill = (work_skill_id: bigint, selected: boolean) => {
 		if (selected) {
-			line_item.work_skills.add(work_skill_id)
+			line_item.work_skill_ids.add(work_skill_id)
 		} else {
-			line_item.work_skills.delete(work_skill_id)
+			line_item.work_skill_ids.delete(work_skill_id)
 		}
 	}
 </script>
@@ -55,8 +55,8 @@
 	<div class="scroller">
 		{#each work_skills as work_skill (work_skill.work_skill_id)}
 			<PillCheckbox
-				value_needs_to_be_saved={line_item.work_skills.id_needs_to_be_saved(work_skill.work_skill_id)}
-				bind:checked={() => line_item.work_skills.has(work_skill.work_skill_id), selected => set_work_skill(work_skill.work_skill_id, selected)}
+				value_needs_to_be_saved={line_item.work_skill_ids.id_needs_to_be_saved(work_skill.work_skill_id)}
+				bind:checked={() => line_item.work_skill_ids.has(work_skill.work_skill_id), selected => set_work_skill(work_skill.work_skill_id, selected)}
 			>
 				{work_skill.name}
 			</PillCheckbox>
