@@ -12,7 +12,9 @@
 
 ✓ tracked_id_set can't expose a cancel function.  Expose a `_values` property for tests if you must.  Or even better, have the tests call the save function and just make assertions about the values on the object it returns.
 
-tracked_record.svelte.ts has a lot of "as" type assertions, is there any way that we could make the original/core types more accurate, or used named variables with types, so that we wouldn't need to use type assertions?  I want to make the types more correct, but ideally not more complex.
+✓ tracked_record.svelte.ts has a lot of "as" type assertions, is there any way that we could make the original/core types more accurate, or used named variables with types, so that we wouldn't need to use type assertions?  I want to make the types more correct, but ideally not more complex.
+
+⏳ Same for tracked_record_array
 
 client_form needs to change to expose added/changed/removed contacts and addresses.  The update server function should change to take that type.  Look for other server functions that ought to be converted to taking added/changed/removed rather than assuming that an array represents everything that should be in the database.
 

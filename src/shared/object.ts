@@ -25,3 +25,20 @@ export const object_filter_map = <T extends object, U>(
 	})
 	return res
 }
+
+export const object_filter = <T extends object>(
+	obj: T,
+	keep: <K extends keyof T & string>(key: K, value: T[K]) => boolean,
+): Partial<T> => {
+	const res: Partial<T> = {}
+	for_each(object_keys(obj), key => {
+		if (keep(key, obj[key])) {
+			res[key] = obj[key]
+		}
+	})
+	return res
+}
+
+export const with_key = <OBJ extends object, KEY extends string, VALUE>(obj: OBJ, key: KEY, value: VALUE): OBJ & { [K in KEY]: VALUE } =>
+	// TypeScript types a computed property with a generic key as a string index signature, so the result needs an assertion
+	({ ...obj, [key]: value }) as OBJ & { [K in KEY]: VALUE }
