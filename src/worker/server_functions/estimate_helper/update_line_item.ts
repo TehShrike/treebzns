@@ -1,6 +1,6 @@
 import assert from '#shared/assert.ts'
 import { every } from '#shared/array.ts'
-import type { TransactionTenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
+import type { TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ChangedEstimateLineItem } from '#shared/type/estimate.ts'
 import { assert_line_item_values_valid } from './line_item.ts'

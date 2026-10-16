@@ -1,6 +1,6 @@
 import assert from '#shared/assert.ts'
 import is_duplicate_key_error from '#shared/mysql/is_duplicate_key_error.ts'
-import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
+import type { TenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 
 export const insert_lead_source = async ({

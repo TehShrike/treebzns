@@ -1,6 +1,6 @@
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import type validate_session from '#worker/lib/db/validate_session.ts'
-import make_tenanted_select_builder from '#worker/lib/db/make_tenanted_select_builder.ts'
+import make_tenanted_select_builder from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import make_write_helper from '#shared/mysql/write_helper.ts'
 import { transaction } from '#shared/mysql/helpers.ts'
 import make_mysql_helpers_object from '#shared/mysql/mysql_helpers_object.ts'

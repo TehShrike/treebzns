@@ -1,5 +1,5 @@
 import assert from '#shared/assert.ts'
-import type { TransactionTenantedSelectBuilder } from './make_tenanted_select_builder.ts'
+import type { TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 
 type SortableClientTable = 'client_address' | 'client_contact'
 

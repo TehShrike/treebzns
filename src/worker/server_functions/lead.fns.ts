@@ -12,7 +12,7 @@ import { upsert_client_contact } from './lead_helper/client_contact.ts'
 import { insert_lead_source } from './lead_helper/lead_source.ts'
 import { filter_map, for_each_parallel, map } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
-import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
+import type { TenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { LeadClient, LeadBilling, LeadAddress, LeadAddressValues, LeadContact, CreateLeadArgument, CreateLeadResult } from '#shared/type/lead.ts'
 
 const project_field_validators = {

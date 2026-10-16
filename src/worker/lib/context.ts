@@ -3,7 +3,7 @@ import type { TransactionConnection } from '#shared/mysql/helpers.ts'
 import type {
 	TenantedSelectBuilder,
 	TransactionTenantedSelectBuilder,
-} from '#worker/lib/db/make_tenanted_select_builder.ts'
+} from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 
 export type TransactionContext = {

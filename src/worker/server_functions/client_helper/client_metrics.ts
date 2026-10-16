@@ -3,7 +3,7 @@ import assert from '#shared/assert.ts'
 import { map } from '#shared/array.ts'
 import is_financial_number from '#shared/is_financial_number.ts'
 import type { ClientMetrics } from '#shared/type/client.ts'
-import type { TenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
+import type { TenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 
 type QueryArgument = {
 	select_builder: TenantedSelectBuilder

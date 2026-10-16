@@ -1,6 +1,6 @@
 import assert from '#shared/assert.ts'
 import fnum from '#shared/fnum.ts'
-import type { TransactionTenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
+import type { TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { AddedEstimateLineItem, EstimateLineItemValues } from '#shared/type/estimate.ts'
 import { add_work_skills } from './work_skill.ts'

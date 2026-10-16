@@ -1,7 +1,7 @@
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import assert from '#shared/assert.ts'
 import type { Schema } from '#schema/types.ts'
-import type { TenantedSelectBuilder } from "#worker/lib/db/make_tenanted_select_builder.ts";
+import type { TenantedSelectBuilder } from "#shared/treebzns_db/make_tenanted_select_builder.ts";
 
 type TableWithOwnIdColumn = {
 	[Table in keyof Schema & string]: `${Table}_id` extends keyof Schema[Table] ? Table : never

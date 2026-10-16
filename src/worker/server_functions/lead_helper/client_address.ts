@@ -2,7 +2,7 @@ import assert from '#shared/assert.ts'
 import type {
 	TenantedSelectBuilder,
 	TransactionTenantedSelectBuilder,
-} from '#worker/lib/db/make_tenanted_select_builder.ts'
+} from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import all_properties_have_values from '#shared/all_properties_have_values.ts'
 import type { LeadAddress, LeadAddressValues } from '#shared/type/lead.ts'

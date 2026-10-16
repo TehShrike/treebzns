@@ -1,7 +1,7 @@
 import assert from '#shared/assert.ts'
 import { every } from '#shared/array.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
-import type { TransactionTenantedSelectBuilder } from '#worker/lib/db/make_tenanted_select_builder.ts'
+import type { TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 
 const ROWS_PER_BATCH = 100
 
