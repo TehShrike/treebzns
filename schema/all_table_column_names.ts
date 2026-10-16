@@ -597,6 +597,7 @@ export const work_skill = {
 	work_skill_id: 'work_skill_id',
 	company_id: 'company_id',
 	name: 'name',
+	short_name: 'short_name',
 	hourly_rate: 'hourly_rate',
 	created_at: 'created_at',
 	updated_at: 'updated_at',

@@ -6,6 +6,7 @@ export const validator_object = {
 	work_skill_id: jv.is_bigint,
 	company_id: jv.is_bigint,
 	name: jv.is_string,
+	short_name: jv.is_string,
 	hourly_rate: is_financial_number,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,

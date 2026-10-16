@@ -463,5 +463,6 @@ export const tax_rate = {
 export const work_skill = {
 	company_id: 'company_id',
 	name: 'name',
+	short_name: 'short_name',
 	hourly_rate: 'hourly_rate',
 } as const

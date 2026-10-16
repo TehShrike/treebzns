@@ -733,7 +733,8 @@ CREATE TABLE `tax_rate` (
 CREATE TABLE `work_skill` (
   `work_skill_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `name` varchar(200) COLLATE utf8mb4_general_ci NOT NULL,
+  `short_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `hourly_rate` decimal(10,2) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),

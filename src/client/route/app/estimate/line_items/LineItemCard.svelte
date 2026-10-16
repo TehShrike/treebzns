@@ -58,7 +58,7 @@
 				value_needs_to_be_saved={line_item.work_skill_ids.id_needs_to_be_saved(work_skill.work_skill_id)}
 				bind:checked={() => line_item.work_skill_ids.has(work_skill.work_skill_id), selected => set_work_skill(work_skill.work_skill_id, selected)}
 			>
-				{work_skill.name}
+				{work_skill.short_name}
 			</PillCheckbox>
 		{/each}
 	</div>

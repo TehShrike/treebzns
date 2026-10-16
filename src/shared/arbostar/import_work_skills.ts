@@ -41,6 +41,7 @@ export const import_work_skills = async ({
 		return {
 			code: normalize_crew_code(role.crew_name),
 			name: digits === undefined ? role.crew_full_name : `${role.crew_full_name} ${digits}`,
+			short_name: role.crew_name.trim(),
 			hourly_rate: money(role.crew_rate),
 		}
 	})
@@ -63,7 +64,7 @@ export const import_work_skills = async ({
 			column: 'work_skill_id',
 			rows: map(updates, skill => ({
 				value: context.existing.work_skill_id_by_name.get(normalize_name(skill.name))!,
-				set: { hourly_rate: skill.hourly_rate },
+				set: { short_name: skill.short_name, hourly_rate: skill.hourly_rate },
 			})),
 			rows_per_batch: ROWS_PER_BATCH,
 		})
@@ -73,6 +74,7 @@ export const import_work_skills = async ({
 			'work_skill',
 			map(inserts, skill => ({
 				name: skill.name,
+				short_name: skill.short_name,
 				hourly_rate: skill.hourly_rate,
 			})),
 			ROWS_PER_BATCH,

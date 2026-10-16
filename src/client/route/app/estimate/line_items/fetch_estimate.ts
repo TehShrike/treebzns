@@ -88,7 +88,7 @@ export const fetch_item_types = (query: ClientQueryFn) => query(
 export const fetch_work_skills = (query: ClientQueryFn) => query(
 	query_builder<Schema>()
 		.from(`work_skill`)
-		.select(() => [`work_skill.work_skill_id`, `work_skill.name`] as const)
+		.select(() => [`work_skill.work_skill_id`, `work_skill.short_name`] as const)
 		.order_by(`work_skill.name`, `ASC`)
 		.build()
 ).get_table_identifier_rows(`work_skill`)
