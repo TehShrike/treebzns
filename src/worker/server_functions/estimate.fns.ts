@@ -13,6 +13,7 @@ import type {
 import { filter_map, flat_map, for_each_async, map, map_async } from '#shared/array.ts'
 import { default_line_item, insert_line_item } from './estimate_helper/line_item.ts'
 import { assert_line_items_belong_to_project, remove_line_items, update_line_item } from './estimate_helper/update_line_item.ts'
+import { update_project_document } from '#shared/treebzns_db/changes_with_history/project_document_history.ts'
 
 const create_line_item_validator = jv.object({
 	project_id: jv.is_bigint,
@@ -32,6 +33,7 @@ const update_estimate_validator: jv.Validator<UpdateEstimateArgument> = jv.objec
 		project_id: jv.is_bigint,
 		...jv.optional_shape({
 			estimated_crew_size: jv.nullable(jv.is_bigint),
+			project_document_id: jv.is_bigint,
 		}),
 	}),
 	added_line_items: jv.array(jv.object({
@@ -50,11 +52,13 @@ const update_estimate_validator: jv.Validator<UpdateEstimateArgument> = jv.objec
 
 const assert_input_ids_valid = async ({
 	project_id,
+	project_document_id,
 	added_line_items,
 	changed_line_items,
 	select_builder,
 }: {
 	project_id: bigint
+	project_document_id: bigint | undefined
 	added_line_items: readonly AddedEstimateLineItem[]
 	changed_line_items: readonly ChangedEstimateLineItem[]
 	select_builder: TenantedSelectBuilder
@@ -67,6 +71,7 @@ const assert_input_ids_valid = async ({
 
 	await Promise.all([
 		assert_db_id_valid({ select_builder, table_name: `project`, id: project_id }),
+		...(project_document_id === undefined ? [] : [assert_db_id_valid({ select_builder, table_name: `project_document`, id: project_document_id })]),
 		...map([...item_type_ids], id => assert_db_id_valid({ select_builder, table_name: `item_type`, id })),
 		...map([...work_skill_ids], id => assert_db_id_valid({ select_builder, table_name: `work_skill`, id })),
 	])
@@ -97,12 +102,12 @@ export const functions = {
 		validator: update_estimate_validator,
 		fn: (
 			{ project, added_line_items, changed_line_items, removed_line_item_ids },
-			{ transaction },
+			{ company, user, transaction },
 		): Promise<UpdateEstimateResult> => transaction(async ({ select_builder, write_helper }) => {
-			const { project_id, ...project_changes } = project
+			const { project_id, project_document_id, ...project_changes } = project
 
 			assert_project_values_valid(project_changes)
-			await assert_input_ids_valid({ project_id, added_line_items, changed_line_items, select_builder })
+			await assert_input_ids_valid({ project_id, project_document_id, added_line_items, changed_line_items, select_builder })
 			await assert_line_items_belong_to_project({
 				project_id,
 				project_line_item_ids: [...map(changed_line_items, line_item => line_item.project_line_item_id), ...removed_line_item_ids],
@@ -116,6 +121,17 @@ export const functions = {
 			await for_each_async(changed_line_items, line_item => update_line_item({ line_item, write_helper }))
 			await remove_line_items({ project_line_item_ids: removed_line_item_ids, select_builder, write_helper })
 			const added_line_item_ids = await map_async(added_line_items, line_item => insert_line_item({ project_id, line_item, select_builder, write_helper }))
+
+			if (project_document_id !== undefined) {
+				await update_project_document({
+					project_id,
+					project_document_id,
+					changed_by_employee_id: user.employee_id,
+					timezone: company.timezone,
+					select_builder,
+					write_helper,
+				})
+			}
 
 			return { project_id, added_line_item_ids }
 		}),

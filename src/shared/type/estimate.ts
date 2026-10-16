@@ -1,4 +1,4 @@
-export type EstimateProjectValues = Pick<DbProject, 'estimated_crew_size'>
+export type EstimateProjectValues = Pick<DbProject, 'estimated_crew_size' | 'project_document_id'>
 
 export type EstimateLineItemValues = Pick<DbProjectLineItem, 'item_type_id' | 'estimated_hours' | 'client_optional'> & {
 	work_details: string
