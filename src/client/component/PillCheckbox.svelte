@@ -31,10 +31,6 @@
 		user-select: none;
 	}
 
-	.pill[data-value-needs-to-be-saved="false"] {
-		background: var(--background);
-	}
-
 	.pill[data-checked="true"] {
 		background: var(--primary_color_dark);
 		color: var(--white);
