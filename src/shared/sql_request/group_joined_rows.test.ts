@@ -151,6 +151,50 @@ test('nested children group under their own parent', () => {
 	])
 })
 
+test('a one_to_one table rides along beside the level table', () => {
+	type RowWithCompany = ExampleRow & {
+		company: { company_id: bigint; name: string }
+	}
+	const company = { company_id: 5n, name: 'Trees Inc' }
+	const rows: RowWithCompany[] = [
+		{ client: client(1n, 'Ann'), company, client_address: address(10n, 1n, 'Reno'), client_contact: no_contact },
+		{ client: client(1n, 'Ann'), company, client_address: address(11n, 1n, 'Sparks'), client_contact: no_contact },
+	]
+
+	const grouped = group_joined_rows(rows, {
+		table: 'client',
+		key: 'client_id',
+		one_to_one: ['company'],
+		children: {
+			client_addresses: { table: 'client_address', key: 'client_address_id' },
+		},
+	})
+
+	type Result = (typeof grouped)[number]
+	const has_client_company_and_addresses: AssertEqual<keyof Result, 'client' | 'company' | 'client_addresses'> = true
+	const company_keeps_its_row_type: AssertEqual<Result['company'], { company_id: bigint; name: string }> = true
+	assert.ok(has_client_company_and_addresses && company_keeps_its_row_type)
+
+	assert.deepStrictEqual(grouped, [
+		{
+			client: client(1n, 'Ann'),
+			company,
+			client_addresses: [address(10n, 1n, 'Reno'), address(11n, 1n, 'Sparks')],
+		},
+	])
+})
+
+test('a one_to_one table without children still wraps the level table', () => {
+	const rows: ExampleRow[] = [
+		{ client: client(1n, 'Ann'), client_address: address(10n, 1n, 'Reno'), client_contact: no_contact },
+		{ client: client(1n, 'Ann'), client_address: address(10n, 1n, 'Reno'), client_contact: no_contact },
+	]
+
+	const grouped = group_joined_rows(rows, { table: 'client_address', key: 'client_address_id', one_to_one: ['client'] })
+
+	assert.deepStrictEqual(grouped, [{ client_address: address(10n, 1n, 'Reno'), client: client(1n, 'Ann') }])
+})
+
 test('a spec without children deduplicates the parent rows', () => {
 	const rows: ExampleRow[] = [
 		{ client: client(1n, 'Ann'), client_address: address(10n, 1n, 'Reno'), client_contact: no_contact },

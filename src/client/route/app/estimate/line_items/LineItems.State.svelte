@@ -6,14 +6,7 @@
 	import make_estimate_form, { type LoadedLineItem } from './estimate_form.svelte.ts'
 	import form_saver from '#client/lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
-	import {
-		fetch_estimate_project,
-		fetch_estimate_line_items,
-		fetch_line_item_image_ids,
-		fetch_line_item_work_skill_ids,
-		fetch_item_types,
-		fetch_work_skills,
-	} from './fetch_estimate.ts'
+	import { fetch_estimate, fetch_item_types, fetch_work_skills } from './fetch_estimate.ts'
 	import { promise_all_object } from '#shared/promise_all_object.ts'
 	import assert from '#shared/assert.ts'
 	import { filter, map } from '#shared/array.ts'
@@ -24,29 +17,26 @@
 		route: `/line_items`,
 		param_validator: validate_estimate_params,
 		resolve: async ({ query, server }, { project_id }) => {
-			const { project, line_items, image_ids_by_line_item_id, work_skill_ids_by_line_item_id, item_types, work_skills } = await promise_all_object({
-				project: fetch_estimate_project(query, project_id),
-				line_items: fetch_estimate_line_items(query, project_id),
-				image_ids_by_line_item_id: fetch_line_item_image_ids(query, project_id),
-				work_skill_ids_by_line_item_id: fetch_line_item_work_skill_ids(query, project_id),
+			const { estimate, item_types, work_skills } = await promise_all_object({
+				estimate: fetch_estimate(query, project_id),
 				item_types: fetch_item_types(query),
 				work_skills: fetch_work_skills(query),
 			})
 
-			assert(project, `project ${project_id} exists`)
+			assert(estimate, `project ${project_id} exists`)
 
-			const loaded_line_items: LoadedLineItem[] = map(line_items, line_item => ({
-				project_line_item_id: line_item.project_line_item_id,
-				title: line_item.title,
-				item_type_id: line_item.item_type_id,
-				work_details: line_item.work_details ?? ``,
-				estimated_hours: line_item.estimated_hours,
-				client_optional: line_item.client_optional,
-				image_ids: image_ids_by_line_item_id.get(line_item.project_line_item_id) ?? [],
-				work_skill_ids: work_skill_ids_by_line_item_id.get(line_item.project_line_item_id) ?? [],
+			const loaded_line_items: LoadedLineItem[] = map(estimate.line_items, ({ project_line_item, images, work_skills }) => ({
+				project_line_item_id: project_line_item.project_line_item_id,
+				title: project_line_item.title,
+				item_type_id: project_line_item.item_type_id,
+				work_details: project_line_item.work_details ?? ``,
+				estimated_hours: project_line_item.estimated_hours,
+				client_optional: project_line_item.client_optional,
+				image_ids: map(images, image => image.project_image_id),
+				work_skill_ids: map(work_skills, work_skill => work_skill.work_skill_id),
 			}))
 
-			return { server, project_id, project, loaded_line_items, item_types, work_skills }
+			return { server, project_id, project: estimate.project, client: estimate.client, loaded_line_items, item_types, work_skills }
 		},
 	})
 
@@ -54,9 +44,9 @@
 </script>
 
 <script lang="ts">
-	const { server, project_id, project, loaded_line_items, item_types, work_skills, asr }: Resolved & { asr: StateAsr } = $props()
+	const { server, project_id, project, client, loaded_line_items, item_types, work_skills, asr }: Resolved & { asr: StateAsr } = $props()
 
-	const form = untrack(() => make_estimate_form({ project: project.project, line_items: loaded_line_items }))
+	const form = untrack(() => make_estimate_form({ project, line_items: loaded_line_items }))
 
 	const saver = form_saver({ form, send: values => server.update_estimate(values) })
 
@@ -71,8 +61,8 @@
 		asr.go(`app.menu.leads_to_estimate`)
 	}
 
-	const street = $derived(filter([project.project.address_line_1, project.project.address_line_2], Boolean).join(`, `))
-	const city_state_zip = $derived(filter([project.project.city, project.project.state, project.project.zip], Boolean).join(` `))
+	const street = $derived(filter([project.address_line_1, project.address_line_2], Boolean).join(`, `))
+	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
 
 	const crew_size_text = $derived(form.project.form_values.estimated_crew_size?.toString() ?? ``)
 
@@ -91,12 +81,12 @@
 
 	<form id="estimate_form" class="estimate" onsubmit={saver.on_submit}>
 		<header class="heading">
-			<h1>Estimate for {project.client.name}</h1>
+			<h1>Estimate for {client.name}</h1>
 			<div class="lead_details">
 				<div>{street}</div>
 				<div>{city_state_zip}</div>
-				{#if project.project.lead_details !== ``}
-					<p class="lead_text">{project.project.lead_details}</p>
+				{#if project.lead_details !== ``}
+					<p class="lead_text">{project.lead_details}</p>
 				{/if}
 			</div>
 		</header>

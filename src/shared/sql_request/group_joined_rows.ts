@@ -8,6 +8,7 @@ export type GroupingSpec<Row> = {
 	[Table in keyof Row & string]: {
 		table: Table
 		key: keyof Row[Table] & string
+		one_to_one?: readonly Exclude<keyof Row & string, Table>[]
 		children?: { [property_name: string]: GroupingSpec<Row> }
 	}
 }[keyof Row & string]
@@ -17,16 +18,32 @@ export type GroupingSpec<Row> = {
 // dropped and every column keeps its schema nullability.
 type MatchedRow<Table, Key> = Table extends { [_ in Key & PropertyKey]: null } ? never : Table
 
+type LevelRow<Row, Spec> =
+	Spec extends { table: infer Table extends keyof Row; key: infer Key }
+		? MatchedRow<Row[Table], Key>
+		: never
+
+type OneToOneRows<Row, Spec> =
+	Spec extends { one_to_one: infer Tables extends readonly (keyof Row)[] }
+		? { [Table in Tables[number]]: Row[Table] }
+		: unknown
+
+type ChildRows<Row, Spec> =
+	Spec extends { children: infer Children }
+		? { [Name in keyof Children]: GroupedRow<Row, Children[Name]>[] }
+		: unknown
+
 export type GroupedRow<Row, Spec> =
-	Spec extends { table: infer Table extends keyof Row; key: infer Key; children: infer Children }
-		? { [_ in Table]: MatchedRow<Row[Table], Key> } & { [Name in keyof Children]: GroupedRow<Row, Children[Name]>[] }
-		: Spec extends { table: infer Table extends keyof Row; key: infer Key }
-			? MatchedRow<Row[Table], Key>
+	Spec extends { one_to_one: readonly unknown[] } | { children: object }
+		? Spec extends { table: infer Table extends keyof Row }
+			? { [_ in Table]: LevelRow<Row, Spec> } & OneToOneRows<Row, Spec> & ChildRows<Row, Spec>
 			: never
+		: LevelRow<Row, Spec>
 
 type RuntimeSpec = {
 	table: string
 	key: string
+	one_to_one?: readonly string[]
 	children?: { [property_name: string]: RuntimeSpec }
 }
 
@@ -49,16 +66,21 @@ const group_level = (rows: readonly JoinedRow[], spec: RuntimeSpec): unknown[] =
 	})
 
 	const groups = [...rows_by_key.values()]
-	const children = spec.children
-	if (!children) {
+	const { one_to_one, children } = spec
+	if (!one_to_one && !children) {
 		return map(groups, rows_for_key => rows_for_key[0]![spec.table])
 	}
 
-	const child_names = Object.keys(children)
+	const child_names = children ? Object.keys(children) : []
 	return map(groups, rows_for_key => {
-		const result: { [property_name: string]: unknown } = { [spec.table]: rows_for_key[0]![spec.table] }
+		const first_row = rows_for_key[0]!
+		const result: { [property_name: string]: unknown } = { [spec.table]: first_row[spec.table] }
+		for_each(one_to_one ?? [], table => {
+			assert(first_row[table], `the row has an object for table identifier "${table}"`)
+			result[table] = first_row[table]
+		})
 		for_each(child_names, name => {
-			result[name] = group_level(rows_for_key, children[name]!)
+			result[name] = group_level(rows_for_key, children![name]!)
 		})
 		return result
 	})
@@ -67,6 +89,6 @@ const group_level = (rows: readonly JoinedRow[], spec: RuntimeSpec): unknown[] =
 const group_joined_rows = <Row extends JoinedRow, const Spec extends GroupingSpec<Row>>(
 	rows: readonly Row[],
 	spec: Spec,
-): GroupedRow<Row, Spec>[] => group_level(rows, spec as RuntimeSpec) as GroupedRow<Row, Spec>[]
+): GroupedRow<Row, Spec>[] => group_level(rows, spec) as GroupedRow<Row, Spec>[]
 
 export default group_joined_rows
