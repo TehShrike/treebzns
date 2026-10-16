@@ -97,7 +97,7 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 	line_items: readonly LoadedLineItem[]
 }) => {
 	const project = tracked_record<EstimateProjectValues, 'project_id'>({
-		initial: { estimated_crew_size: null },
+		initial: { estimated_crew_size: null, project_document_id: loaded_project.project_document_id },
 		id_key: `project_id`,
 		values_in_db: loaded_project,
 	})

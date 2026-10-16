@@ -16,6 +16,7 @@ export const fetch_estimate = async (query: ClientQueryFn, project_id: bigint) =
 			.order_by(`project_line_item_image.sort`, `ASC`)
 			.select(() => [
 				`project.project_id`,
+				`project.project_document_id`,
 				`project.address_line_1`,
 				`project.address_line_2`,
 				`project.city`,
@@ -70,6 +71,18 @@ export const fetch_work_skills = (query: ClientQueryFn) => query(
 		.order_by(`work_skill.name`, `ASC`)
 		.build()
 ).get_table_identifier_rows(`work_skill`)
+
+export const fetch_project_documents = (query: ClientQueryFn) => query(
+	query_builder<Schema>()
+		.from(`project_document`)
+		.select(() => [
+			`project_document.project_document_id`,
+			`project_document.name`,
+			`project_document.needs_estimate_to_move_on`,
+			`project_document.next_project_document_id`,
+		] as const)
+		.build()
+).get_table_identifier_rows(`project_document`)
 
 export type ItemTypeRow = Awaited<ReturnType<typeof fetch_item_types>>[number]
 export type WorkSkillRow = Awaited<ReturnType<typeof fetch_work_skills>>[number]

@@ -5,8 +5,9 @@
 	import type { LineItemForm } from './estimate_form.svelte.ts'
 	import type { ItemTypeRow, WorkSkillRow } from './fetch_estimate.ts'
 
-	const { line_item, item_types, work_skills }: {
+	const { line_item, first_time_estimating, item_types, work_skills }: {
 		line_item: LineItemForm
+		first_time_estimating: boolean
 		item_types: readonly ItemTypeRow[]
 		work_skills: readonly WorkSkillRow[]
 	} = $props()
@@ -32,7 +33,7 @@
 		<span class="title">{line_item.title}</span>
 		<select
 			aria-label="Line type"
-			data-value-needs-to-be-saved={line_item.record.value_needs_to_be_saved(`item_type_id`)}
+			data-value-needs-to-be-saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`item_type_id`)}
 			bind:value={line_item.record.form_values.item_type_id}
 		>
 			<option value={null}>No type</option>
@@ -55,7 +56,7 @@
 	<div class="scroller">
 		{#each work_skills as work_skill (work_skill.work_skill_id)}
 			<PillCheckbox
-				value_needs_to_be_saved={line_item.work_skill_ids.id_needs_to_be_saved(work_skill.work_skill_id)}
+				value_needs_to_be_saved={first_time_estimating || line_item.work_skill_ids.id_needs_to_be_saved(work_skill.work_skill_id)}
 				bind:checked={() => line_item.work_skill_ids.has(work_skill.work_skill_id), selected => set_work_skill(work_skill.work_skill_id, selected)}
 			>
 				{work_skill.short_name}
@@ -66,7 +67,7 @@
 	<WideTextareaField
 		label="Work details"
 		rows={3}
-		value_needs_to_be_saved={line_item.record.value_needs_to_be_saved(`work_details`)}
+		value_needs_to_be_saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`work_details`)}
 		bind:value={line_item.record.form_values.work_details}
 	/>
 
@@ -78,14 +79,14 @@
 				inputmode="numeric"
 				pattern="[0-9]*"
 				autocomplete="off"
-				data-value-needs-to-be-saved={line_item.record.value_needs_to_be_saved(`estimated_hours`)}
+				data-value-needs-to-be-saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`estimated_hours`)}
 				bind:value={() => hours_text, set_hours}
 			>
 		</label>
 		<label>
 			<input
 				type="checkbox"
-				data-value-needs-to-be-saved={line_item.record.value_needs_to_be_saved(`client_optional`)}
+				data-value-needs-to-be-saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`client_optional`)}
 				bind:checked={line_item.record.form_values.client_optional}
 			>
 			Optional

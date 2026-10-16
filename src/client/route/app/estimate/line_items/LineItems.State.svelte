@@ -6,10 +6,10 @@
 	import make_estimate_form, { type LoadedLineItem } from './estimate_form.svelte.ts'
 	import form_saver from '#client/lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
-	import { fetch_estimate, fetch_item_types, fetch_work_skills } from './fetch_estimate.ts'
+	import { fetch_estimate, fetch_item_types, fetch_project_documents, fetch_work_skills } from './fetch_estimate.ts'
 	import { promise_all_object } from '#shared/promise_all_object.ts'
 	import assert from '#shared/assert.ts'
-	import { filter, map } from '#shared/array.ts'
+	import { every, filter, find, map } from '#shared/array.ts'
 	import { untrack } from 'svelte'
 
 	export const asr_state = state_type({
@@ -17,13 +17,24 @@
 		route: `/line_items`,
 		param_validator: validate_estimate_params,
 		resolve: async ({ query, server }, { project_id }) => {
-			const { estimate, item_types, work_skills } = await promise_all_object({
+			const { estimate, item_types, work_skills, project_documents } = await promise_all_object({
 				estimate: fetch_estimate(query, project_id),
 				item_types: fetch_item_types(query),
 				work_skills: fetch_work_skills(query),
+				project_documents: fetch_project_documents(query),
 			})
 
 			assert(estimate, `project ${project_id} exists`)
+
+			const current_project_document = find(project_documents, document => document.project_document_id === estimate.project.project_document_id)
+			assert(current_project_document, `project ${project_id} has a project document`)
+			const next_project_document = current_project_document.needs_estimate_to_move_on
+				? find(project_documents, document => document.project_document_id === current_project_document.next_project_document_id) ?? null
+				: null
+			assert(
+				next_project_document !== null || !current_project_document.needs_estimate_to_move_on,
+				`a document that needs an estimate to move on has a next document`,
+			)
 
 			const loaded_line_items: LoadedLineItem[] = map(estimate.line_items, ({ project_line_item, images, work_skills }) => ({
 				project_line_item_id: project_line_item.project_line_item_id,
@@ -36,7 +47,25 @@
 				work_skill_ids: map(work_skills, work_skill => work_skill.work_skill_id),
 			}))
 
-			return { server, project_id, project: estimate.project, client: estimate.client, loaded_line_items, item_types, work_skills }
+			const first_time_estimating = every(loaded_line_items, line_item => (
+				line_item.item_type_id === null
+				&& line_item.work_details === ``
+				&& line_item.estimated_hours === 0n
+				&& !line_item.client_optional
+				&& line_item.work_skill_ids.length === 0
+			))
+
+			return {
+				server,
+				project_id,
+				project: estimate.project,
+				client: estimate.client,
+				loaded_line_items,
+				first_time_estimating,
+				item_types,
+				work_skills,
+				next_project_document,
+			}
 		},
 	})
 
@@ -44,13 +73,26 @@
 </script>
 
 <script lang="ts">
-	const { server, project_id, project, client, loaded_line_items, item_types, work_skills, asr }: Resolved & { asr: StateAsr } = $props()
+	const {
+		server,
+		project_id,
+		project,
+		client,
+		loaded_line_items,
+		first_time_estimating,
+		item_types,
+		work_skills,
+		next_project_document,
+		asr,
+	}: Resolved & { asr: StateAsr } = $props()
 
 	const form = untrack(() => make_estimate_form({ project, line_items: loaded_line_items }))
 
 	const saver = form_saver({ form, send: values => server.update_estimate(values) })
 
-	const done = async () => {
+	const go_back_to_leads = () => { asr.go(`app.menu.leads_to_estimate`) }
+
+	const save_and_close = async () => {
 		if (form.needs_to_be_saved) {
 			try {
 				await saver.save()
@@ -58,7 +100,13 @@
 				return
 			}
 		}
-		asr.go(`app.menu.leads_to_estimate`)
+		go_back_to_leads()
+	}
+
+	const save_as_next_project_document = async () => {
+		assert(next_project_document, `the save as button shows only when there is a next project document`)
+		form.project.form_values.project_document_id = next_project_document.project_document_id
+		await save_and_close()
 	}
 
 	const street = $derived(filter([project.address_line_1, project.address_line_2], Boolean).join(`, `))
@@ -76,7 +124,17 @@
 	{#snippet top()}
 		<LinkThatLooksLikeAButton href={asr.makePath(`app.estimate.intro`, { project_id })}>Photos</LinkThatLooksLikeAButton>
 		<button type="submit" form="estimate_form" class="default" disabled={saver.saving || !form.needs_to_be_saved}>Save</button>
-		<button type="button" disabled={saver.saving} onclick={done}>Done</button>
+		{#if next_project_document === null}
+			<button type="button" disabled={saver.saving} onclick={save_and_close}>
+				{#if form.needs_to_be_saved}
+					Save & Close
+				{:else}
+					Close
+				{/if}
+			</button>
+		{:else}
+			<button type="button" disabled={saver.saving} onclick={save_as_next_project_document}>Save as {next_project_document.name}</button>
+		{/if}
 	{/snippet}
 
 	<form id="estimate_form" class="estimate" onsubmit={saver.on_submit}>
@@ -98,7 +156,7 @@
 				inputmode="numeric"
 				pattern="[0-9]*"
 				autocomplete="off"
-				data-value-needs-to-be-saved={form.project.value_needs_to_be_saved(`estimated_crew_size`)}
+				data-value-needs-to-be-saved={first_time_estimating || form.project.value_needs_to_be_saved(`estimated_crew_size`)}
 				bind:value={() => crew_size_text, set_crew_size}
 			>
 		</label>
@@ -112,7 +170,7 @@
 		{:else}
 			<div class="cards">
 				{#each form.line_items as line_item (line_item.stable_record_identifier)}
-					<LineItemCard {line_item} {item_types} {work_skills} />
+					<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills} />
 				{/each}
 			</div>
 		{/if}
