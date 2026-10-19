@@ -54,7 +54,7 @@ const start_change = ({ record_save, work_skill_ids_save, commit, discard }: {
 
 const make_line_item = ({ title, image_ids, work_skill_ids: loaded_work_skill_ids, ...values_in_db }: LoadedLineItem) => {
 	const record = tracked_record<EstimateLineItemValues, 'project_line_item_id'>({
-		initial: { item_type_id: null, work_details: ``, estimated_hours: 0n, client_optional: false },
+		default_values: { item_type_id: null, work_details: ``, estimated_hours: 0n, client_optional: false },
 		id_key: `project_line_item_id`,
 		values_in_db,
 	})
@@ -97,7 +97,7 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 	line_items: readonly LoadedLineItem[]
 }) => {
 	const project = tracked_record<EstimateProjectValues, 'project_id'>({
-		initial: { estimated_crew_size: null, project_document_id: loaded_project.project_document_id },
+		default_values: { estimated_crew_size: null, project_document_id: loaded_project.project_document_id },
 		id_key: `project_id`,
 		values_in_db: loaded_project,
 	})

@@ -65,28 +65,28 @@ const start_change = <VALUES extends object, ID_KEY extends string>({
 }
 
 const tracked_record = <VALUES extends object, ID_KEY extends string>({
-	initial,
+	default_values,
 	id_key,
 	values_in_db: initial_values_in_db = null,
 	equality_checks = {},
 }: {
-	initial: VALUES
+	default_values: VALUES
 	id_key: ID_KEY
 	values_in_db?: DbValues<VALUES, ID_KEY> | null
 	equality_checks?: { [K in keyof VALUES]?: EqualityCheck<VALUES[K]> }
 }) => {
-	const keys: (keyof VALUES)[] = object_keys(initial)
+	const keys: (keyof VALUES)[] = object_keys(default_values)
 	const copy_values = (source: VALUES): VALUES => pick(source, keys)
 
 	const values_equal = <K extends keyof VALUES>(key: K, a: VALUES[K], b: VALUES[K]) => (equality_checks[key] ?? strictly_equal)(a, b)
-	const value_is_empty = <K extends keyof VALUES>(key: K, value: VALUES[K]) => values_equal(key, value, initial[key])
+	const value_is_default = <K extends keyof VALUES>(key: K, value: VALUES[K]) => values_equal(key, value, default_values[key])
 
 	const saved_in_database = (values: DbValues<VALUES, ID_KEY> | null): values is DbValues<VALUES, ID_KEY> => values !== null
 
 	const identifier = `record_${record_count++}`
 
 	let values_in_db = $state.raw<DbValues<VALUES, ID_KEY> | null>(initial_values_in_db)
-	let form_values = $state<VALUES>(copy_values(initial_values_in_db ?? initial))
+	let form_values = $state<VALUES>(copy_values(initial_values_in_db ?? default_values))
 	let saving = false
 
 	const db_id = $derived(saved_in_database(values_in_db) ? values_in_db[id_key] : null)
@@ -95,7 +95,7 @@ const tracked_record = <VALUES extends object, ID_KEY extends string>({
 
 	const needs_to_be_saved = $derived(!saved_in_database(values_in_db) || some(keys, value_needs_to_be_saved))
 
-	const is_empty = $derived(!saved_in_database(values_in_db) && every(keys, key => value_is_empty(key, form_values[key])))
+	const is_empty = $derived(!saved_in_database(values_in_db) && every(keys, key => value_is_default(key, form_values[key])))
 
 	const commit = (next: DbValues<VALUES, ID_KEY>) => {
 		values_in_db = next
@@ -129,7 +129,7 @@ const tracked_record = <VALUES extends object, ID_KEY extends string>({
 		clear: () => {
 			assert(!saving, `a record is cleared only while no save is running`)
 			values_in_db = null
-			form_values = copy_values(initial)
+			form_values = copy_values(default_values)
 		},
 	}
 }

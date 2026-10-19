@@ -5,15 +5,15 @@ import { find } from '#shared/array.ts'
 
 const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 	const client = tracked_record<LeadClientValues, 'client_id'>({
-		initial: { name: ``, billing_phone: ``, billing_email: ``, referred_by: ``, tax_rate_id: null, is_commercial: false, notes: `` },
+		default_values: { name: ``, billing_phone: ``, billing_email: ``, referred_by: ``, tax_rate_id: null, is_commercial: false, notes: `` },
 		id_key: `client_id`,
 	})
 	const address = tracked_record<LeadAddressValues, 'client_address_id'>({
-		initial: { address_line_1: ``, address_line_2: ``, city: ``, state: ``, zip: `` },
+		default_values: { address_line_1: ``, address_line_2: ``, city: ``, state: ``, zip: `` },
 		id_key: `client_address_id`,
 	})
 	const contact = tracked_record<LeadContactValues, 'client_contact_id'>({
-		initial: { name: ``, phone: ``, email: `` },
+		default_values: { name: ``, phone: ``, email: `` },
 		id_key: `client_contact_id`,
 	})
 

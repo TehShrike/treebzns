@@ -1,7 +1,5 @@
 # Catch up
 
-tracked_record's `initial` should be renamed to `empty_values` (or maybe `clear_values`, but I'd actually rename towards renaming the `clear` function to `empty`).
-
 ## What project list screens do we need?
 
 - Leads to estimate

@@ -6,13 +6,13 @@ import { map } from '#shared/array.ts'
 import type { ClientValues, ClientContactValues, ClientAddressValues, UpdateClientArgument, UpdateClientResult } from '#shared/type/client.ts'
 
 const make_contact = (values_in_db: DbValues<ClientContactValues, 'client_contact_id'> | null) => tracked_record<ClientContactValues, 'client_contact_id'>({
-	initial: { description: ``, name: ``, phone: ``, email: ``, is_primary: false },
+	default_values: { description: ``, name: ``, phone: ``, email: ``, is_primary: false },
 	id_key: `client_contact_id`,
 	values_in_db,
 })
 
 const make_address = (values_in_db: DbValues<ClientAddressValues, 'client_address_id'> | null) => tracked_record<ClientAddressValues, 'client_address_id'>({
-	initial: { client_contact_id: null, name: ``, address_line_1: ``, address_line_2: ``, city: ``, state: ``, zip: `` },
+	default_values: { client_contact_id: null, name: ``, address_line_1: ``, address_line_2: ``, city: ``, state: ``, zip: `` },
 	id_key: `client_address_id`,
 	values_in_db,
 })
@@ -23,7 +23,7 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 	addresses: readonly DbValues<ClientAddressValues, 'client_address_id'>[]
 }) => {
 	const client = tracked_record<ClientValues, 'client_id'>({
-		initial: {
+		default_values: {
 			name: ``,
 			is_commercial: false,
 			default_project_address_id: 0n,
