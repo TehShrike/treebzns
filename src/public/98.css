@@ -685,17 +685,18 @@ menu[role="tablist"] {
 	padding-left: 3px;
 
 	& > li {
+		position: relative;
 		border-top-left-radius: 3px;
 		border-top-right-radius: 3px;
 		box-shadow: var(--border-tab);
 		z-index: 1;
 		background-color: var(--surface);
+		padding: 6px 16px;
 
 		&[aria-selected="true"] {
-			padding-bottom: 2px;
+			padding-bottom: 8px;
 			margin-top: -2px;
 			background-color: var(--surface);
-			position: relative;
 			z-index: 8;
 			margin-left: -3px;
 		}
@@ -703,8 +704,13 @@ menu[role="tablist"] {
 		& > a {
 			display: block;
 			color: #222;
-			margin: 6px;
 			text-decoration: none;
+
+			&::after {
+				content: "";
+				position: absolute;
+				inset: 0;
+			}
 
 			&:focus {
 				outline: 1px dotted #222;
