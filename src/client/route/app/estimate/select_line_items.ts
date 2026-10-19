@@ -3,7 +3,7 @@ import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
 import { map } from '#shared/array.ts'
 
-export const fetch_line_items = (query: ClientQueryFn, project_id: bigint) => query(
+export const select_line_items = (query: ClientQueryFn, project_id: bigint) => query(
 	query_builder<Schema>()
 		.from(`project_line_item`)
 		.where(q => q.comparison(`project_line_item.project_id`, `=`, { value: project_id }))
@@ -16,4 +16,4 @@ export const fetch_line_items = (query: ClientQueryFn, project_id: bigint) => qu
 		.build()
 ).then(rows => map(rows, row => row.project_line_item))
 
-export type LineItemRow = Awaited<ReturnType<typeof fetch_line_items>>[number]
+export type LineItemRow = Awaited<ReturnType<typeof select_line_items>>[number]

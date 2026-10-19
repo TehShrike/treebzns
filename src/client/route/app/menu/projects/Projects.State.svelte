@@ -1,27 +1,10 @@
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
-	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
 	import type { StateParamsByName } from '#client/lib/state_names.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
-	import query_builder from '#shared/sql_request/typed_query_builder.ts'
-	import type { Schema } from '#schema/types.ts'
-	import { map } from '#shared/array.ts'
+	import { select_project_documents } from '#client/lib/generic_queries/project_document.ts'
 	import { untrack } from 'svelte'
 	import { validate_project_search_params } from './project_search_params.ts'
-
-	const fetch_project_documents = async (query: ClientQueryFn) => {
-		const rows = await query(
-			query_builder<Schema>()
-				.from(`project_document`)
-				.order_by(`project_document.name`)
-				.select(() => [
-					`project_document.project_document_id`,
-					`project_document.name`,
-				] as const)
-				.build()
-		)
-		return map(rows, row => row.project_document)
-	}
 
 	export const asr_state = state_type({
 		name: `app.menu.projects`,
@@ -31,7 +14,7 @@
 		resolve: async ({ query, transition_state }, params) => {
 			return {
 				transition_state,
-				project_documents: await fetch_project_documents(query),
+				project_documents: await select_project_documents(query),
 				initial_search: {
 					project_document_ids: params.project_document_ids ?? [],
 					open_or_closed: params.open_or_closed ?? `open`,

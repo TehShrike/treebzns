@@ -6,7 +6,7 @@
 	import PhotoMarkup from '#client/component/photo_markup/PhotoMarkup.svelte'
 	import type { CapturedPhoto } from '#client/component/photo_camera/captured_photo.ts'
 	import { validate_line_item_params } from '../line_item_params.ts'
-	import { fetch_line_items } from '../fetch_line_items.ts'
+	import { select_line_items } from '../select_line_items.ts'
 	import assert from '#shared/assert.ts'
 	import { find_index } from '#shared/array.ts'
 
@@ -15,7 +15,7 @@
 		route: `/line_item/:project_line_item_id`,
 		param_validator: validate_line_item_params,
 		resolve: async ({ query, server, photo_upload_queue, camera_service }, { project_id, project_line_item_id }) => {
-			const line_items = await fetch_line_items(query, project_id)
+			const line_items = await select_line_items(query, project_id)
 
 			const current_index = find_index(line_items, row => row.project_line_item_id === project_line_item_id)
 			const line_item = line_items[current_index]

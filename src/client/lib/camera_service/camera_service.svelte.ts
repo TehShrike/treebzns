@@ -130,7 +130,7 @@ export const create_camera_service = () => {
 		if (active && consumers === 0) idle_timer = setTimeout(close, idle_close_ms)
 	}
 
-	const select_device = (device_id: string): Promise<UseResult> => {
+	const set_device = (device_id: string): Promise<UseResult> => {
 		current_device_id = device_id
 		return use_result(open())
 	}
@@ -151,7 +151,7 @@ export const create_camera_service = () => {
 		start_using,
 		stop_using,
 		close,
-		select_device,
+		set_device,
 	}
 }
 

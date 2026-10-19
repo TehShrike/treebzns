@@ -1,7 +1,7 @@
 <script lang="ts">
 	import LinkThatLooksLikeAButton from '#client/component/LinkThatLooksLikeAButton.svelte'
 	import type { Context } from '#client/lib/client_context.ts'
-	import type { LineItemRow } from './fetch_line_items.ts'
+	import type { LineItemRow } from './select_line_items.ts'
 
 	const {
 		asr,

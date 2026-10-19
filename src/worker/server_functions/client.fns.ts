@@ -10,7 +10,7 @@ import { insert_client_contact, update_client_contact } from './client_helper/cl
 import { insert_client_address, update_client_address } from './client_helper/client_address.ts'
 import { remove_client_addresses, remove_client_contacts } from './client_helper/remove_rows.ts'
 import { get_client_metrics } from './client_helper/client_metrics.ts'
-import { get_client_address_ids_in_use, get_client_contact_ids_in_use } from '#shared/treebzns_db/client_relationships.ts'
+import { select_client_address_ids_in_use, select_client_contact_ids_in_use } from '#shared/treebzns_db/client_relationships.ts'
 
 const address_validator = jv.object({
 	name: jv.is_string,
@@ -201,8 +201,8 @@ export const functions = {
 			await for_each_async(changed_addresses, address => update_client_address({ address, write_helper }))
 
 			const [referenced_address_ids, referenced_contact_ids] = await Promise.all([
-				get_client_address_ids_in_use({ query_rows: select_builder.get_rows, client_id }),
-				get_client_contact_ids_in_use({ query_rows: select_builder.get_rows, client_id }),
+				select_client_address_ids_in_use({ query_rows: select_builder.get_rows, client_id }),
+				select_client_contact_ids_in_use({ query_rows: select_builder.get_rows, client_id }),
 			])
 			await remove_client_addresses({ client_address_ids: removed_address_ids, referenced_address_ids, select_builder, write_helper })
 			await remove_client_contacts({ client_contact_ids: removed_contact_ids, referenced_contact_ids, select_builder, write_helper })

@@ -13,6 +13,8 @@
 	import DeleteButton from '#client/component/list_input/DeleteButton.svelte'
 	import make_client_form, { type ClientForm } from './client_form.svelte.ts'
 	import form_saver from '#client/lib/form_saver.svelte.ts'
+	import { select_client } from '#client/lib/generic_queries/client.ts'
+	import { select_tax_rates } from '#client/lib/generic_queries/tax_rate.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import param_validator from '#shared/param_validator.ts'
 	import type { Schema } from '#schema/types.ts'
@@ -20,38 +22,9 @@
 	import { map } from '#shared/array.ts'
 	import { promise_all_object } from '#shared/promise_all_object.ts'
 	import { untrack } from 'svelte'
-	import { get_client_address_ids_in_use, get_client_contact_ids_in_use, ADDRESS_REFERENCED_MESSAGE, CONTACT_REFERENCED_MESSAGE } from '#shared/treebzns_db/client_relationships.ts'
+	import { select_client_address_ids_in_use, select_client_contact_ids_in_use, ADDRESS_REFERENCED_MESSAGE, CONTACT_REFERENCED_MESSAGE } from '#shared/treebzns_db/client_relationships.ts'
 
-	const fetch_client = async (query: ClientQueryFn, client_id: bigint) => {
-		const rows = await query(
-			query_builder<Schema>()
-				.from('client')
-				.where(q => q.comparison('client.client_id', '=', { value: client_id }))
-				.select(() => [
-					'client.client_id',
-					'client.name',
-					'client.is_commercial',
-					'client.default_project_address_id',
-					'client.billing_name',
-					'client.billing_address_line_1',
-					'client.billing_address_line_2',
-					'client.billing_city',
-					'client.billing_state',
-					'client.billing_zip',
-					'client.billing_phone',
-					'client.billing_email',
-					'client.tax_rate_id',
-					'client.notes',
-					'client.referred_by',
-				] as const)
-				.build()
-		)
-		const row = rows[0]
-
-		return row ? row.client : null
-	}
-
-	const fetch_addresses = async (query: ClientQueryFn, client_id: bigint) => {
+	const select_addresses = async (query: ClientQueryFn, client_id: bigint) => {
 		const rows = await query(
 			query_builder<Schema>()
 				.from('client_address')
@@ -73,7 +46,7 @@
 		return map(rows, row => row.client_address)
 	}
 
-	const fetch_contacts = async (query: ClientQueryFn, client_id: bigint) => {
+	const select_contacts = async (query: ClientQueryFn, client_id: bigint) => {
 		const rows = await query(
 			query_builder<Schema>()
 				.from('client_contact')
@@ -93,17 +66,6 @@
 		return map(rows, row => row.client_contact)
 	}
 
-	const fetch_tax_rates = async (query: ClientQueryFn) => map(
-		await query(
-			query_builder<Schema>()
-				.from('tax_rate')
-				.order_by('tax_rate.name', 'ASC')
-				.select(() => ['tax_rate.tax_rate_id', 'tax_rate.name'] as const)
-				.build()
-		),
-		row => row.tax_rate,
-	)
-
 	const validate_params = param_validator({
 		client_id: param_validator.bigint,
 	})
@@ -114,12 +76,12 @@
 		param_validator: validate_params,
 		resolve: async ({ query, server, client_cache }, { client_id }) => {
 			const { client, addresses, contacts, referenced_address_ids, referenced_contact_ids, tax_rates } = await promise_all_object({
-				client: fetch_client(query, client_id),
-				addresses: fetch_addresses(query, client_id),
-				contacts: fetch_contacts(query, client_id),
-				referenced_address_ids: get_client_address_ids_in_use({ query_rows: query, client_id }),
-				referenced_contact_ids: get_client_contact_ids_in_use({ query_rows: query, client_id }),
-				tax_rates: fetch_tax_rates(query),
+				client: select_client(query, client_id),
+				addresses: select_addresses(query, client_id),
+				contacts: select_contacts(query, client_id),
+				referenced_address_ids: select_client_address_ids_in_use({ query_rows: query, client_id }),
+				referenced_contact_ids: select_client_contact_ids_in_use({ query_rows: query, client_id }),
+				tax_rates: select_tax_rates(query),
 			})
 
 			assert(client)

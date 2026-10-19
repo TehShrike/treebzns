@@ -6,7 +6,10 @@
 	import make_estimate_form, { type LoadedLineItem } from './estimate_form.svelte.ts'
 	import form_saver from '#client/lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
-	import { fetch_estimate, fetch_item_types, fetch_project_documents, fetch_work_skills } from './fetch_estimate.ts'
+	import { select_estimate } from './select_estimate.ts'
+	import { select_item_types } from '#client/lib/generic_queries/item_type.ts'
+	import { select_work_skills } from '#client/lib/generic_queries/work_skill.ts'
+	import { select_project_documents } from '#client/lib/generic_queries/project_document.ts'
 	import { promise_all_object } from '#shared/promise_all_object.ts'
 	import assert from '#shared/assert.ts'
 	import { every, filter, find, map } from '#shared/array.ts'
@@ -18,10 +21,10 @@
 		param_validator: validate_estimate_params,
 		resolve: async ({ query, server }, { project_id }) => {
 			const { estimate, item_types, work_skills, project_documents } = await promise_all_object({
-				estimate: fetch_estimate(query, project_id),
-				item_types: fetch_item_types(query),
-				work_skills: fetch_work_skills(query),
-				project_documents: fetch_project_documents(query),
+				estimate: select_estimate(query, project_id),
+				item_types: select_item_types(query),
+				work_skills: select_work_skills(query),
+				project_documents: select_project_documents(query),
 			})
 
 			assert(estimate, `project ${project_id} exists`)

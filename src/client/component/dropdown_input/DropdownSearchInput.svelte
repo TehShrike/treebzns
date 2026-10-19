@@ -54,7 +54,7 @@
 		}
 	}
 
-	const select_item_by_index = (index: number) => {
+	const set_item_by_index = (index: number) => {
 		selected_option = options[index] ?? null
 		search_text = ``
 		show_dropdown = false
@@ -63,7 +63,7 @@
 
 	const click_list_item = (index: number) => {
 		input_element?.focus()
-		select_item_by_index(index)
+		set_item_by_index(index)
 	}
 
 	const on_keypress = (event: KeyboardEvent) => {
@@ -114,7 +114,7 @@
 				})
 			}
 		} else if (event.code === `Enter`) {
-			select_item_by_index(active_option_index)
+			set_item_by_index(active_option_index)
 		} else if (event.code === `Escape`) {
 			show_dropdown = false
 			search_text = ``

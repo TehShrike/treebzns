@@ -3,7 +3,8 @@
 	import PillCheckbox from '#client/component/PillCheckbox.svelte'
 	import WideTextareaField from '#client/component/WideTextareaField.svelte'
 	import type { LineItemForm } from './estimate_form.svelte.ts'
-	import type { ItemTypeRow, WorkSkillRow } from './fetch_estimate.ts'
+	import type { ItemTypeRow } from '#client/lib/generic_queries/item_type.ts'
+	import type { WorkSkillRow } from '#client/lib/generic_queries/work_skill.ts'
 
 	const { line_item, first_time_estimating, item_types, work_skills }: {
 		line_item: LineItemForm

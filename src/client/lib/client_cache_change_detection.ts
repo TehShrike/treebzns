@@ -47,7 +47,7 @@ export const make_update_snapshot = (values: UpdateSnapshotValues) => ({
 
 export type UpdateSnapshot = ReturnType<typeof make_update_snapshot>
 
-export const get_latest_database_update = async (query: ClientQueryFn): Promise<UpdateSnapshot> => {
+export const select_latest_database_update = async (query: ClientQueryFn): Promise<UpdateSnapshot> => {
 	const [client_rows, client_contact_rows, client_address_rows] = await Promise.all([
 		query(client_update_query),
 		query(client_contact_update_query),

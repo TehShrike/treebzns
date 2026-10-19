@@ -3,7 +3,7 @@ import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import group_joined_rows from '#shared/sql_request/group_joined_rows.ts'
 import type { Schema } from '#schema/types.ts'
 
-export const fetch_estimate = async (query: ClientQueryFn, project_id: bigint) => {
+export const select_estimate = async (query: ClientQueryFn, project_id: bigint) => {
 	const rows = await query(
 		query_builder<Schema>()
 			.from(`project`)
@@ -55,34 +55,3 @@ export const fetch_estimate = async (query: ClientQueryFn, project_id: bigint) =
 
 	return estimate ?? null
 }
-
-export const fetch_item_types = (query: ClientQueryFn) => query(
-	query_builder<Schema>()
-		.from(`item_type`)
-		.select(() => [`item_type.item_type_id`, `item_type.name`] as const)
-		.order_by(`item_type.name`, `ASC`)
-		.build()
-).get_table_identifier_rows(`item_type`)
-
-export const fetch_work_skills = (query: ClientQueryFn) => query(
-	query_builder<Schema>()
-		.from(`work_skill`)
-		.select(() => [`work_skill.work_skill_id`, `work_skill.short_name`] as const)
-		.order_by(`work_skill.name`, `ASC`)
-		.build()
-).get_table_identifier_rows(`work_skill`)
-
-export const fetch_project_documents = (query: ClientQueryFn) => query(
-	query_builder<Schema>()
-		.from(`project_document`)
-		.select(() => [
-			`project_document.project_document_id`,
-			`project_document.name`,
-			`project_document.needs_estimate_to_move_on`,
-			`project_document.next_project_document_id`,
-		] as const)
-		.build()
-).get_table_identifier_rows(`project_document`)
-
-export type ItemTypeRow = Awaited<ReturnType<typeof fetch_item_types>>[number]
-export type WorkSkillRow = Awaited<ReturnType<typeof fetch_work_skills>>[number]

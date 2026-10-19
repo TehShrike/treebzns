@@ -16,6 +16,7 @@ The reference implementation is `src/client/route/app/menu/create_a_lead/`. Read
 - Child components that own one record or argument: `src/client/route/app/menu/<screen_name>/<Thing>Selector.svelte`
 - Records that may already exist in the database: `#client/lib/tracked_record.svelte.ts`
 - Lists of child records the user can add, edit, and remove: `#client/component/list_input/editable_rows.svelte.ts` for the list, `#client/lib/tracked_record_array.svelte.ts` for what to save
+- Select functions that list a whole table or get one record by its primary key: `src/client/lib/generic_queries/<table_name>.ts`, imported as `#client/lib/generic_queries/<table_name>.ts`. Look there before writing a new one.
 - Small layout or input helpers used only by this screen: `src/client/route/app/menu/<screen_name>/_helpers/`
 - Components used by more than one screen: `src/client/component/`
 - Argument types shared with the server: `#shared/type/<domain>.ts`
@@ -25,19 +26,21 @@ The reference implementation is `src/client/route/app/menu/create_a_lead/`. Read
 
 ### 1. Register the state
 
-Put the state definition in the module script. Fetch reference data in `resolve` with the typed query builder, in one `Promise.all`.
+Put the state definition in the module script. Select reference data in `resolve` with the typed query builder, in one `Promise.all`.
 
 ```svelte
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
+	import { select_tax_rates } from '#client/lib/generic_queries/tax_rate.ts'
+	import { select_employees } from '#client/lib/generic_queries/employee.ts'
 
 	export const asr_state = state_type({
 		name: `app.menu.create_a_lead`,
 		route: `/create_a_lead`,
 		resolve: async ({ client_cache, query, server }) => {
 			const [tax_rates, employees] = await Promise.all([
-				fetch_tax_rates(query),
-				fetch_employees(query),
+				select_tax_rates(query),
+				select_employees(query),
 			])
 			return { client_cache, server, tax_rates, employees }
 		},
@@ -51,7 +54,7 @@ Put the state definition in the module script. Fetch reference data in `resolve`
 </script>
 ```
 
-Each fetch is a small module-level function that takes `query: ClientQueryFn` and returns plain rows. The dev watcher (`dev:glob:states`) regenerates the state registry on save. Run `pnpm run build:glob:states` when the dev server is not running.
+Each query function is a small function named `select_<rows>` that takes `query: ClientQueryFn` and returns plain rows. One that lists a whole table, or gets one record by its primary key, lives in `#client/lib/generic_queries/<table_name>.ts` so every screen shares it. One with joins or filters that only this screen needs is a module-level function in the screen. The `select_` prefix means the function runs a query. A function that stores what the user picked is named `set_<thing>`. The dev watcher (`dev:glob:states`) regenerates the state registry on save. Run `pnpm run build:glob:states` when the dev server is not running.
 
 ### 2. Share the argument types
 
@@ -91,7 +94,7 @@ const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 
 	const values_to_save = $derived({ client: client.values_to_save, billing_address, address: address.values_to_save, project })
 
-	const select_client = (cached_client: CachedClient) => { ... }
+	const set_client = (cached_client: CachedClient) => { ... }
 	const clear_client = () => { ... }
 
 	return {
@@ -103,7 +106,7 @@ const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 		get project() { return project },
 		set project(value) { project = value },
 		get values_to_save() { return values_to_save },
-		select_client,
+		set_client,
 		clear_client,
 	}
 }
@@ -114,7 +117,7 @@ const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 - **After the server answers, hand back what was sent.** Snapshot `form.values_to_save` before the await. The server returns one id per sent row, in order. The screen zips those ids into the sent rows with `zip_with` from `#shared/array.ts`, then calls `form.update_db_values` with the result. The form calls `update_db_values(saved_values)` on each single record and `update_db_values(saved_rows, removed_ids)` on each array. Only the sent values become database values, so an edit made while the save was in flight still reads as needing to be saved. A row sent with a null id carries its record's identity on a symbol key that survives spreading and never reaches the server, which is how the array finds the record for a new id.
 - **Always-new arguments are plain `$state` in the closure.** Put them behind a getter and a setter so `bind:project={lead.project}` works from the screen.
 - **The picked cached row lives in the closure** (`selected_client`), so the selectors can read its child rows for their dropdowns. Use `$state.raw` for it. Nothing mutates it.
-- **Picking and clearing are methods on the form.** `select_client` sets the client record, picks the default address and contact, and resets billing. `clear_client` clears all three records. No `$effect` watches the picked row.
+- **Picking and clearing are methods on the form.** `set_client` sets the client record, picks the default address and contact, and resets billing. `clear_client` clears all three records. No `$effect` watches the picked row.
 
 The screen holds the form and nothing else:
 
@@ -152,7 +155,7 @@ Inside the selector:
 - **Use `$effect` only to mirror state another component owns.** The contact selector copies the client's name and phone into `contact` while "contact is different" is unchecked. The client's inputs live in a sibling, so an effect is the only way to follow them. The svelte-autofixer flags every state write inside an effect. Accept the note for these mirroring effects. Remove any other state write from effects.
 - **Reassign union-typed objects whole.** A discriminated union like `{ lead_source_id: bigint, lead_source_name: null } | { lead_source_id: null, lead_source_name: string | null }` cannot be updated one field at a time. Write `project = { ...project, lead_source_id, lead_source_name }`.
 - **A saved-row dropdown drives the record.** `<select bind:value={() => address.db_values, row => row ? address.set_values(row) : address.clear()}>` with one `<option value={row}>` per cached row and an `<option value={null}>` for a new row. The option values are the cached rows themselves, so `db_values` must keep the same reference it was given.
-- **Defaults belong to the form object.** `select_client` picks the default address and the matched or primary contact. Selectors do not watch the picked row.
+- **Defaults belong to the form object.** `set_client` picks the default address and the matched or primary contact. Selectors do not watch the picked row.
 - **Nullable sub-objects toggle by their own checkbox.** The billing checkbox reads `billing_address !== null`. Checking it builds the object with prefilled values from the client and address. Unchecking it stores the object in a plain `let` draft and sets null, so re-checking restores the draft. The screen renders the child inside `{#if billing_address}`.
 - **Row groups** (availability windows) keep string rows locally and write the converted, complete rows into the bound array from an effect.
 - **Mark inputs whose value is already in the database.** Set `data-style-as-unsaved={client.value_needs_to_be_saved(`name`)}` on each input of a tracked record. List input cell components take the same test as a `value_needs_to_be_saved` prop. The 98.css rule paints an input with `"false"` in the app background. The same test decides which fields go in `values_to_save`, so the style and the payload cannot disagree. A new record has no database row and every input reads as new.

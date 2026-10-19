@@ -27,8 +27,8 @@
 		note_result(await retry())
 	}
 
-	const select_device = async (device_id: string) => {
-		note_result(await camera_service.select_device(device_id))
+	const set_device = async (device_id: string) => {
+		note_result(await camera_service.set_device(device_id))
 	}
 
 	const attach_video: Attachment<HTMLVideoElement> = node => {
@@ -82,7 +82,7 @@
 						name={device_group_name}
 						value={device.device_id}
 						checked={device.device_id === camera_service.current_device_id}
-						onchange={() => select_device(device.device_id)}
+						onchange={() => set_device(device.device_id)}
 					/>
 					{device.label}
 				</label>

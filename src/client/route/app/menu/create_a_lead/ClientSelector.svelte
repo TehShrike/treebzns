@@ -19,14 +19,14 @@
 		lead: LeadForm
 	} = $props()
 
-	const select_client_and_contact = (selection: SearchSelection) => {
+	const set_client_and_contact = (selection: SearchSelection) => {
 		const cached_client = find(client_cache.clients, ({ client }) => client.client_id === selection.client.client_id)
 		assert(cached_client, `the picked client is in the client cache`)
-		lead.select_client(cached_client, selection.contact)
+		lead.set_client(cached_client, selection.contact)
 	}
 </script>
 
-<ClientSearch {client_cache} on_pick={select_client_and_contact} />
+<ClientSearch {client_cache} on_pick={set_client_and_contact} />
 
 <div class="title-bar" class:inactive={!lead.client.saved_in_database}>
 	<span>{lead.client.values_in_db?.name ?? `New client`}</span>

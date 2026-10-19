@@ -60,7 +60,7 @@ const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 		}
 	}
 
-	const select_client = (cached_client: CachedClient, matched_contact: CachedClientContact | null) => {
+	const set_client = (cached_client: CachedClient, matched_contact: CachedClientContact | null) => {
 		selected_client = cached_client
 		client.set_values(cached_client.client)
 		billing_address = null
@@ -94,7 +94,7 @@ const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 		get availability() { return availability },
 		set availability(value) { availability = value },
 		start_save,
-		select_client,
+		set_client,
 		clear_client,
 	}
 }

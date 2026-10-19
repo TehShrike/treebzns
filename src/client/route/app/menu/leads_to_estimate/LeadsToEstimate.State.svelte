@@ -11,7 +11,7 @@
 	import type { FinancialNumber } from '#shared/fnum.ts'
 	import { filter, map } from '#shared/array.ts'
 
-	const fetch_projects_needing_estimate = (query: ClientQueryFn) => query(
+	const select_projects_needing_estimate = (query: ClientQueryFn) => query(
 		query_builder<Schema>()
 			.from(`project`)
 			.join(`client`, q => q.comparison(`client.client_id`, `=`, `project.client_id`))
@@ -39,7 +39,7 @@
 		route: `/leads_to_estimate`,
 		resolve: async ({ query, session, server }) => {
 			const [projects, logged_in_session] = await Promise.all([
-				fetch_projects_needing_estimate(query),
+				select_projects_needing_estimate(query),
 				session.get_logged_in(),
 			])
 			return { projects, timezone: logged_in_session.company.timezone, server }

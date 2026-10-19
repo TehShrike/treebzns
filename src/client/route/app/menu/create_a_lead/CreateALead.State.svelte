@@ -1,6 +1,5 @@
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
-	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
 	import AppScreen from '#client/component/AppScreen.svelte'
 	import ClientSelector from './ClientSelector.svelte'
 	import AddressSelector from './AddressSelector.svelte'
@@ -9,52 +8,19 @@
 	import ProjectSelector, { in_estimator_order } from './ProjectSelector.svelte'
 	import make_lead_form from './lead_form.svelte.ts'
 	import form_saver from '#client/lib/form_saver.svelte.ts'
-	import query_builder from '#shared/sql_request/typed_query_builder.ts'
-	import type { Schema } from '#schema/types.ts'
-	import { map } from '#shared/array.ts'
+	import { select_tax_rates } from '#client/lib/generic_queries/tax_rate.ts'
+	import { select_employees } from '#client/lib/generic_queries/employee.ts'
+	import { select_lead_sources } from '#client/lib/generic_queries/lead_source.ts'
 	import { untrack } from 'svelte'
-
-	const fetch_tax_rates = async (query: ClientQueryFn) => map(
-		await query(
-			query_builder<Schema>()
-				.from('tax_rate')
-				.order_by('tax_rate.name', 'ASC')
-				.select(() => ['tax_rate.tax_rate_id', 'tax_rate.name'] as const)
-				.build()
-		),
-		row => row.tax_rate,
-	)
-
-	const fetch_employees = async (query: ClientQueryFn) => map(
-		await query(
-			query_builder<Schema>()
-				.from('employee')
-				.order_by('employee.name', 'ASC')
-				.select(() => ['employee.employee_id', 'employee.name', 'employee.estimator_sort'] as const)
-				.build()
-		),
-		row => row.employee,
-	)
-
-	const fetch_lead_sources = async (query: ClientQueryFn) => map(
-		await query(
-			query_builder<Schema>()
-				.from('lead_source')
-				.order_by('lead_source.name', 'ASC')
-				.select(() => ['lead_source.lead_source_id', 'lead_source.name'] as const)
-				.build()
-		),
-		row => row.lead_source,
-	)
 
 	export const asr_state = state_type({
 		name: `app.menu.create_a_lead`,
 		route: `/create_a_lead`,
 		resolve: async ({ client_cache, query, server }) => {
 			const [tax_rates, employees, lead_sources] = await Promise.all([
-				fetch_tax_rates(query),
-				fetch_employees(query),
-				fetch_lead_sources(query),
+				select_tax_rates(query),
+				select_employees(query),
+				select_lead_sources(query),
 				client_cache.been_fetched_at_least_once,
 			])
 

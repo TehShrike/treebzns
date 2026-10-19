@@ -3,7 +3,7 @@
 	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
 	import Layout from '../Layout.svelte'
 	import EstimateNavBar from '../EstimateNavBar.svelte'
-	import { fetch_line_items } from '../fetch_line_items.ts'
+	import { select_line_items } from '../select_line_items.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
 	import type { Schema } from '#schema/types.ts'
@@ -11,7 +11,7 @@
 	import { filter } from '#shared/array.ts'
 	import type { Temporal } from '@js-temporal/polyfill'
 
-	const fetch_project = async (query: ClientQueryFn, project_id: bigint) => {
+	const select_project = async (query: ClientQueryFn, project_id: bigint) => {
 		const rows = await query(
 			query_builder<Schema>()
 				.from(`project`)
@@ -32,7 +32,7 @@
 		return rows[0] ?? null
 	}
 
-	const fetch_availability = (query: ClientQueryFn, project_id: bigint) => query(
+	const select_availability = (query: ClientQueryFn, project_id: bigint) => query(
 		query_builder<Schema>()
 			.from(`estimate_availability`)
 			.where(q => q.comparison(`estimate_availability.project_id`, `=`, { value: project_id }))
@@ -53,9 +53,9 @@
 		param_validator: validate_estimate_params,
 		resolve: async ({ query, server }, { project_id }) => {
 			const [project, availability, line_items] = await Promise.all([
-				fetch_project(query, project_id),
-				fetch_availability(query, project_id),
-				fetch_line_items(query, project_id),
+				select_project(query, project_id),
+				select_availability(query, project_id),
+				select_line_items(query, project_id),
 			])
 
 			assert(project, `project ${project_id} exists`)

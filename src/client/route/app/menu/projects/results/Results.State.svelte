@@ -7,7 +7,7 @@
 	import { filter, map } from '#shared/array.ts'
 	import { validate_project_search_params, type ProjectSearchParams } from '../project_search_params.ts'
 
-	const fetch_projects = async (query: ClientQueryFn, { project_document_ids, open_or_closed, needs_client_approval }: ProjectSearchParams) => {
+	const select_projects = async (query: ClientQueryFn, { project_document_ids, open_or_closed, needs_client_approval }: ProjectSearchParams) => {
 		const base_query = query_builder<Schema>()
 			.from(`project`)
 			.join(`client`, q => q.comparison(`project.client_id`, `=`, `client.client_id`))
@@ -47,7 +47,7 @@
 		param_validator: validate_project_search_params,
 		resolve: async ({ query }, params) => {
 			return {
-				projects: await fetch_projects(query, params),
+				projects: await select_projects(query, params),
 			}
 		},
 	})

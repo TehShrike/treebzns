@@ -1,7 +1,5 @@
 # Catch up
 
-Queries like fetch_project_documents that are generic "get me the list of X" or "get me the Y record based on Y's primary key" that are extremely generic should be moved to client/shared/generic_queries/.
-
 tracked_record's `initial` should be renamed to `empty_values` (or maybe `clear_values`, but I'd actually rename towards renaming the `clear` function to `empty`).
 
 ## What project list screens do we need?

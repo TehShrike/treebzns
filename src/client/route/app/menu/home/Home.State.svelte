@@ -23,7 +23,7 @@
 		.limit(2n)
 		.build()
 
-	const fetch_pipeline_projects = (query: ClientQueryFn) => query(
+	const select_pipeline_projects = (query: ClientQueryFn) => query(
 		query_builder<Schema>()
 			.from({ subquery: pipeline_project_documents, alias: `project_document` })
 			.join(`project_document_history`, q => q.comparison(`project_document_history.change_date`, `>=`, { value: Temporal.Now.plainDateISO().subtract({ days: display_active_project_days }) }))
@@ -54,7 +54,7 @@
 		name: `app.menu.home`,
 		route: `/`,
 		resolve: async ({ query }) => ({
-			projects: await fetch_pipeline_projects(query),
+			projects: await select_pipeline_projects(query),
 		}),
 	})
 

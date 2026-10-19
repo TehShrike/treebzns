@@ -7,7 +7,7 @@ import { get_phone_digits } from "#shared/phone_number.ts"
 import { tokenize_string, tokenize_strings } from "#shared/tokenize.ts"
 import { latest_instant } from '#shared/temporal.ts'
 import assert from '#shared/assert.ts'
-import { get_latest_database_update, make_update_snapshot, type UpdateSnapshot, type UpdateSnapshotValues } from './client_cache_change_detection.ts'
+import { select_latest_database_update, make_update_snapshot, type UpdateSnapshot, type UpdateSnapshotValues } from './client_cache_change_detection.ts'
 
 const client_and_address_columns = [
 	'client.client_id',
@@ -63,7 +63,7 @@ const client_query = query_builder<Schema>()
 	.order_by('client_contact.sort', 'ASC')
 	.select(() => [...client_and_address_columns, ...client_contact_columns] as const)
 
-const get_query_results = async (query: ClientQueryFn) => {
+const select_query_results = async (query: ClientQueryFn) => {
 	const rows = await query(client_query.build())
 	return group_joined_rows(rows, {
 		table: 'client',
@@ -75,7 +75,7 @@ const get_query_results = async (query: ClientQueryFn) => {
 	})
 }
 
-const transform_clients_for_searching = (clients: Awaited<ReturnType<typeof get_query_results>>) => map(clients, row => {
+const transform_clients_for_searching = (clients: Awaited<ReturnType<typeof select_query_results>>) => map(clients, row => {
 	return {
 		...row,
 		search_helpers: {
@@ -116,7 +116,7 @@ const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refre
 		resolved: false
 	})
 
-	const refresh = (): Promise<void> => get_query_results(query).then(clients => {
+	const refresh = (): Promise<void> => select_query_results(query).then(clients => {
 		const refreshed_cache = transform_clients_for_searching(clients)
 		cached_snapshot = get_cached_update_snapshot(refreshed_cache)
 		cache = refreshed_cache
@@ -128,7 +128,7 @@ const client_cache = ({query, refresh_interval_ms}: {query: ClientQueryFn, refre
 	})
 
 	const refresh_if_necessary = async (): Promise<void> => {
-		const database_snapshot = await get_latest_database_update(query)
+		const database_snapshot = await select_latest_database_update(query)
 		if (cached_snapshot === null || cached_snapshot.is_superseded_by(database_snapshot)) {
 			await refresh()
 		}
