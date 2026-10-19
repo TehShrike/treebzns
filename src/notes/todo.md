@@ -1,5 +1,13 @@
 # Catch up
 
+## Make the estimation/proposal editing screen tolerable
+
+- Link should take you to the line item view if the project has line items
+- Need line item dollar calculations displayed; saved
+- Display totals at bottom
+- Upload images?
+- On large screens, images should be the left half, every other input should be on the right half, capped at something like 600px width
+
 ## What project list screens do we need?
 
 - Leads to estimate
