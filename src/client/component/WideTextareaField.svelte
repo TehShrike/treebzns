@@ -11,7 +11,7 @@
 
 <div class="wide_field">
 	<label for={id}>{label}</label>
-	<textarea {id} {rows} data-value-needs-to-be-saved={value_needs_to_be_saved} bind:value></textarea>
+	<textarea {id} {rows} data-style-as-unsaved={value_needs_to_be_saved} bind:value></textarea>
 </div>
 
 <style>

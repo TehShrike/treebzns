@@ -33,7 +33,7 @@
 		<span class="title">{line_item.title}</span>
 		<select
 			aria-label="Line type"
-			data-value-needs-to-be-saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`item_type_id`)}
+			data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`item_type_id`)}
 			bind:value={line_item.record.form_values.item_type_id}
 		>
 			<option value={null}>No type</option>
@@ -79,14 +79,14 @@
 				inputmode="numeric"
 				pattern="[0-9]*"
 				autocomplete="off"
-				data-value-needs-to-be-saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`estimated_hours`)}
+				data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`estimated_hours`)}
 				bind:value={() => hours_text, set_hours}
 			>
 		</label>
 		<label>
 			<input
 				type="checkbox"
-				data-value-needs-to-be-saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`client_optional`)}
+				data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`client_optional`)}
 				bind:checked={line_item.record.form_values.client_optional}
 			>
 			Optional

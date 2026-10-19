@@ -240,11 +240,11 @@
 		<FormLayout>
 			<label>
 				Name
-				<input type="text" autocomplete="off" data-1p-ignore required data-value-needs-to-be-saved={client.value_needs_to_be_saved(`name`)} bind:value={client.form_values.name}>
+				<input type="text" autocomplete="off" data-1p-ignore required data-style-as-unsaved={client.value_needs_to_be_saved(`name`)} bind:value={client.form_values.name}>
 			</label>
 			<label>
 				Commercial
-				<input type="checkbox" data-value-needs-to-be-saved={client.value_needs_to_be_saved(`is_commercial`)} bind:checked={client.form_values.is_commercial}>
+				<input type="checkbox" data-style-as-unsaved={client.value_needs_to_be_saved(`is_commercial`)} bind:checked={client.form_values.is_commercial}>
 			</label>
 		</FormLayout>
 
@@ -253,11 +253,11 @@
 			<FormLayout>
 				<label>
 					Phone
-					<input type="tel" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_phone`)} bind:value={client.form_values.billing_phone}>
+					<input type="tel" autocomplete="off" data-1p-ignore data-style-as-unsaved={client.value_needs_to_be_saved(`billing_phone`)} bind:value={client.form_values.billing_phone}>
 				</label>
 				<label>
 					Email
-					<input type="email" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_email`)} bind:value={client.form_values.billing_email}>
+					<input type="email" autocomplete="off" data-1p-ignore data-style-as-unsaved={client.value_needs_to_be_saved(`billing_email`)} bind:value={client.form_values.billing_email}>
 				</label>
 			</FormLayout>
 		</fieldset>
@@ -267,27 +267,27 @@
 			<FormLayout>
 				<label>
 					Name
-					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_name`)} bind:value={client.form_values.billing_name}>
+					<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={client.value_needs_to_be_saved(`billing_name`)} bind:value={client.form_values.billing_name}>
 				</label>
 				<label>
 					Address line 1
-					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_address_line_1`)} bind:value={client.form_values.billing_address_line_1}>
+					<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={client.value_needs_to_be_saved(`billing_address_line_1`)} bind:value={client.form_values.billing_address_line_1}>
 				</label>
 				<label>
 					Address line 2
-					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_address_line_2`)} bind:value={client.form_values.billing_address_line_2}>
+					<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={client.value_needs_to_be_saved(`billing_address_line_2`)} bind:value={client.form_values.billing_address_line_2}>
 				</label>
 				<label>
 					City
-					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_city`)} bind:value={client.form_values.billing_city}>
+					<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={client.value_needs_to_be_saved(`billing_city`)} bind:value={client.form_values.billing_city}>
 				</label>
 				<label>
 					State
-					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_state`)} bind:value={client.form_values.billing_state}>
+					<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={client.value_needs_to_be_saved(`billing_state`)} bind:value={client.form_values.billing_state}>
 				</label>
 				<label>
 					Zip
-					<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`billing_zip`)} bind:value={client.form_values.billing_zip}>
+					<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={client.value_needs_to_be_saved(`billing_zip`)} bind:value={client.form_values.billing_zip}>
 				</label>
 			</FormLayout>
 		</fieldset>
@@ -297,7 +297,7 @@
 				<FormLayout>
 					<label>
 						Tax rate
-						<select data-value-needs-to-be-saved={client.value_needs_to_be_saved(`tax_rate_id`)} bind:value={client.form_values.tax_rate_id}>
+						<select data-style-as-unsaved={client.value_needs_to_be_saved(`tax_rate_id`)} bind:value={client.form_values.tax_rate_id}>
 							<option value={null}>No tax</option>
 							{#each tax_rates as tax_rate (tax_rate.tax_rate_id)}
 								<option value={tax_rate.tax_rate_id}>{tax_rate.name}</option>
@@ -306,7 +306,7 @@
 					</label>
 					<label>
 						Referred by
-						<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={client.value_needs_to_be_saved(`referred_by`)} bind:value={client.form_values.referred_by}>
+						<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={client.value_needs_to_be_saved(`referred_by`)} bind:value={client.form_values.referred_by}>
 					</label>
 				</FormLayout>
 				<WideTextareaField label="Notes" rows={3} value_needs_to_be_saved={client.value_needs_to_be_saved(`notes`)} bind:value={client.form_values.notes} />

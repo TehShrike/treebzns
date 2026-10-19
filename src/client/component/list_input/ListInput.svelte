@@ -134,7 +134,7 @@
 		overflow: hidden;
 	}
 
-	[role=cell]:has(:global([data-value-needs-to-be-saved="false"])) {
+	[role=cell]:has(:global([data-style-as-unsaved="false"])) {
 		background-color: var(--background);
 	}
 

@@ -12,7 +12,7 @@
 </script>
 
 <input {id} type="checkbox" bind:checked {disabled}>
-<label for={id} class="pill" data-checked={checked} data-value-needs-to-be-saved={value_needs_to_be_saved}>
+<label for={id} class="pill" data-checked={checked} data-style-as-unsaved={value_needs_to_be_saved}>
 	{@render children()}
 </label>
 

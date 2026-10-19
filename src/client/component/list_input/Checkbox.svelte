@@ -7,7 +7,7 @@
 </script>
 
 <label>
-	<input type="checkbox" bind:checked {disabled} data-value-needs-to-be-saved={value_needs_to_be_saved}>
+	<input type="checkbox" bind:checked {disabled} data-style-as-unsaved={value_needs_to_be_saved}>
 </label>
 
 <style>

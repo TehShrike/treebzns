@@ -155,7 +155,7 @@ Inside the selector:
 - **Defaults belong to the form object.** `select_client` picks the default address and the matched or primary contact. Selectors do not watch the picked row.
 - **Nullable sub-objects toggle by their own checkbox.** The billing checkbox reads `billing_address !== null`. Checking it builds the object with prefilled values from the client and address. Unchecking it stores the object in a plain `let` draft and sets null, so re-checking restores the draft. The screen renders the child inside `{#if billing_address}`.
 - **Row groups** (availability windows) keep string rows locally and write the converted, complete rows into the bound array from an effect.
-- **Mark inputs whose value is already in the database.** Set `data-value-needs-to-be-saved={client.value_needs_to_be_saved(`name`)}` on each input of a tracked record. List input cell components take the same test as a `value_needs_to_be_saved` prop. The 98.css rule paints an input with `"false"` in the app background. The same test decides which fields go in `values_to_save`, so the style and the payload cannot disagree. A new record has no database row and every input reads as new.
+- **Mark inputs whose value is already in the database.** Set `data-style-as-unsaved={client.value_needs_to_be_saved(`name`)}` on each input of a tracked record. List input cell components take the same test as a `value_needs_to_be_saved` prop. The 98.css rule paints an input with `"false"` in the app background. The same test decides which fields go in `values_to_save`, so the style and the payload cannot disagree. A new record has no database row and every input reads as new.
 
 ### 5. Validate with the browser
 

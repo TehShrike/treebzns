@@ -10,6 +10,6 @@
 	type="text"
 	bind:value
 	{disabled}
-	data-value-needs-to-be-saved={value_needs_to_be_saved}
+	data-style-as-unsaved={value_needs_to_be_saved}
 	onfocus={event => event.currentTarget.select()}
 >

@@ -39,23 +39,23 @@
 		<FormLayout>
 			<label>
 				Name
-				<input type="text" autocomplete="off" data-1p-ignore required data-value-needs-to-be-saved={lead.client.value_needs_to_be_saved(`name`)} bind:value={lead.client.form_values.name}>
+				<input type="text" autocomplete="off" data-1p-ignore required data-style-as-unsaved={lead.client.value_needs_to_be_saved(`name`)} bind:value={lead.client.form_values.name}>
 			</label>
 			<label>
 				Phone
-				<input type="tel" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={lead.client.value_needs_to_be_saved(`billing_phone`)} bind:value={lead.client.form_values.billing_phone}>
+				<input type="tel" autocomplete="off" data-1p-ignore data-style-as-unsaved={lead.client.value_needs_to_be_saved(`billing_phone`)} bind:value={lead.client.form_values.billing_phone}>
 			</label>
 			<label>
 				Email
-				<input type="email" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={lead.client.value_needs_to_be_saved(`billing_email`)} bind:value={lead.client.form_values.billing_email}>
+				<input type="email" autocomplete="off" data-1p-ignore data-style-as-unsaved={lead.client.value_needs_to_be_saved(`billing_email`)} bind:value={lead.client.form_values.billing_email}>
 			</label>
 			<label>
 				Referred by
-				<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={lead.client.value_needs_to_be_saved(`referred_by`)} bind:value={lead.client.form_values.referred_by}>
+				<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={lead.client.value_needs_to_be_saved(`referred_by`)} bind:value={lead.client.form_values.referred_by}>
 			</label>
 			<label>
 				Tax rate
-				<select data-value-needs-to-be-saved={lead.client.value_needs_to_be_saved(`tax_rate_id`)} bind:value={lead.client.form_values.tax_rate_id}>
+				<select data-style-as-unsaved={lead.client.value_needs_to_be_saved(`tax_rate_id`)} bind:value={lead.client.form_values.tax_rate_id}>
 					<option value={null}>No tax</option>
 					{#each tax_rates as tax_rate (tax_rate.tax_rate_id)}
 						<option value={tax_rate.tax_rate_id}>{tax_rate.name}</option>
@@ -64,7 +64,7 @@
 			</label>
 			<label>
 				Commercial
-				<input type="checkbox" data-value-needs-to-be-saved={lead.client.value_needs_to_be_saved(`is_commercial`)} bind:checked={lead.client.form_values.is_commercial}>
+				<input type="checkbox" data-style-as-unsaved={lead.client.value_needs_to_be_saved(`is_commercial`)} bind:checked={lead.client.form_values.is_commercial}>
 			</label>
 		</FormLayout>
 		<WideTextareaField label="Notes" rows={2} value_needs_to_be_saved={lead.client.value_needs_to_be_saved(`notes`)} bind:value={lead.client.form_values.notes} />

@@ -156,7 +156,7 @@
 				inputmode="numeric"
 				pattern="[0-9]*"
 				autocomplete="off"
-				data-value-needs-to-be-saved={first_time_estimating || form.project.value_needs_to_be_saved(`estimated_crew_size`)}
+				data-style-as-unsaved={first_time_estimating || form.project.value_needs_to_be_saved(`estimated_crew_size`)}
 				bind:value={() => crew_size_text, set_crew_size}
 			>
 		</label>

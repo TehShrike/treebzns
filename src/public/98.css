@@ -454,12 +454,12 @@ textarea:disabled {
 	background-color: var(--surface);
 }
 
-input[data-value-needs-to-be-saved="false"],
-textarea[data-value-needs-to-be-saved="false"],
-select[data-value-needs-to-be-saved="false"] {
+input[data-style-as-unsaved="false"],
+textarea[data-style-as-unsaved="false"],
+select[data-style-as-unsaved="false"] {
 	background-color: var(--background);
 }
-label:has(input[data-value-needs-to-be-saved="false"])::before {
+label:has(input[data-style-as-unsaved="false"])::before {
 	background: var(--background);
 }
 

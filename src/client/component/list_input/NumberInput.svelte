@@ -72,7 +72,7 @@
 	{max}
 	{step}
 	{disabled}
-	data-value-needs-to-be-saved={value_needs_to_be_saved}
+	data-style-as-unsaved={value_needs_to_be_saved}
 	bind:this={input_element}
 	bind:value={() => input_value, set_input_value}
 	onfocus={event => event.currentTarget.select()}

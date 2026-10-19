@@ -59,23 +59,23 @@
 		<FormLayout>
 			<label>
 				Address line 1
-				<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={address.value_needs_to_be_saved(`address_line_1`)} bind:value={address.form_values.address_line_1}>
+				<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={address.value_needs_to_be_saved(`address_line_1`)} bind:value={address.form_values.address_line_1}>
 			</label>
 			<label>
 				Address line 2
-				<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={address.value_needs_to_be_saved(`address_line_2`)} bind:value={address.form_values.address_line_2}>
+				<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={address.value_needs_to_be_saved(`address_line_2`)} bind:value={address.form_values.address_line_2}>
 			</label>
 			<label>
 				City
-				<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={address.value_needs_to_be_saved(`city`)} bind:value={address.form_values.city}>
+				<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={address.value_needs_to_be_saved(`city`)} bind:value={address.form_values.city}>
 			</label>
 			<label>
 				State
-				<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={address.value_needs_to_be_saved(`state`)} bind:value={address.form_values.state}>
+				<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={address.value_needs_to_be_saved(`state`)} bind:value={address.form_values.state}>
 			</label>
 			<label>
 				Zip
-				<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={address.value_needs_to_be_saved(`zip`)} bind:value={address.form_values.zip}>
+				<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={address.value_needs_to_be_saved(`zip`)} bind:value={address.form_values.zip}>
 			</label>
 		</FormLayout>
 		{#if !client.saved_in_database}

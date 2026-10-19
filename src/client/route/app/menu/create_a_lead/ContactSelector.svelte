@@ -67,15 +67,15 @@
 		<FormLayout>
 			<label>
 				Contact name
-				<input type="text" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={contact.value_needs_to_be_saved(`name`)} disabled={inputs_disabled} bind:value={contact.form_values.name}>
+				<input type="text" autocomplete="off" data-1p-ignore data-style-as-unsaved={contact.value_needs_to_be_saved(`name`)} disabled={inputs_disabled} bind:value={contact.form_values.name}>
 			</label>
 			<label>
 				Contact phone
-				<input type="tel" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={contact.value_needs_to_be_saved(`phone`)} disabled={inputs_disabled} bind:value={contact.form_values.phone}>
+				<input type="tel" autocomplete="off" data-1p-ignore data-style-as-unsaved={contact.value_needs_to_be_saved(`phone`)} disabled={inputs_disabled} bind:value={contact.form_values.phone}>
 			</label>
 			<label>
 				Contact email
-				<input type="email" autocomplete="off" data-1p-ignore data-value-needs-to-be-saved={contact.value_needs_to_be_saved(`email`)} disabled={inputs_disabled} bind:value={contact.form_values.email}>
+				<input type="email" autocomplete="off" data-1p-ignore data-style-as-unsaved={contact.value_needs_to_be_saved(`email`)} disabled={inputs_disabled} bind:value={contact.form_values.email}>
 			</label>
 		</FormLayout>
 	</FieldsetColumn>
