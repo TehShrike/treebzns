@@ -36,11 +36,25 @@ const get_build_options = () => ({
 	sourcemap: true
 })
 
+const get_temporal_polyfill_build_options = () => ({
+	entryPoints: ['src/client/temporal_polyfill.ts'],
+	bundle: true,
+	outfile: `src/public/build/temporal_polyfill.js`,
+	format: 'iife' as const,
+	sourcemap: true
+})
+
 if (is_watch) {
-	const ctx = await context(get_build_options())
+	const [app_ctx, polyfill_ctx] = await Promise.all([
+		context(get_build_options()),
+		context(get_temporal_polyfill_build_options()),
+	])
 	console.log('Watching for changes...')
-	await ctx.watch()
+	await Promise.all([app_ctx.watch(), polyfill_ctx.watch()])
 } else {
-	await build(get_build_options())
+	await Promise.all([
+		build(get_build_options()),
+		build(get_temporal_polyfill_build_options()),
+	])
 	console.log('Build complete')
 }

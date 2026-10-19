@@ -12,6 +12,11 @@
 	</head>
 	<body>
 		<div id="app-target"></div>
+		<script>
+			if (!globalThis.Temporal) {
+				document.write('<script src="./build/temporal_polyfill.js"><\/script>')
+			}
+		</script>
 		<script type="module" src="./build/index.js"></script>
 	</body>
 </html>
