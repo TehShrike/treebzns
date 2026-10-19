@@ -3,6 +3,7 @@
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import ListInput from '#component/list_input/ListInput.svelte'
+	import ChevronLink from '#component/list_input/ChevronLink.svelte'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import { format_project_address } from '../format_project_address.ts'
@@ -48,7 +49,7 @@
 </script>
 
 <script lang="ts">
-	const { projects, timezone }: StateResolve<typeof asr_state> = $props()
+	const { projects, timezone, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
 
 	const format_date = (instant: Temporal.Instant) => instant.toZonedDateTimeISO(timezone).toPlainDate().toString()
 </script>
@@ -73,6 +74,13 @@
 	<div>{format_date(row.project.created_at)}</div>
 {/snippet}
 
+{#snippet open_cell(row: ProjectRow)}
+	<ChevronLink
+		href={asr.makePath(`app.estimate`, { project_id: row.project.project_id })}
+		label={`Open the estimate for ${row.client.name}`}
+	/>
+{/snippet}
+
 <ListInput
 	rows={projects}
 	get_key={row => row.project.project_id}
@@ -82,5 +90,6 @@
 		{ header: `Address`, cell: address_cell, width: `2fr` },
 		{ header: `Document`, cell: document_cell },
 		{ header: `Created`, cell: created_cell, width: `8rem` },
+		{ header: ``, cell: open_cell, width: `3rem` },
 	]}
 />

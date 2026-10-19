@@ -3,6 +3,7 @@
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import ListInput from '#component/list_input/ListInput.svelte'
+	import ChevronLink from '#component/list_input/ChevronLink.svelte'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import { filter, map } from '#shared/array.ts'
@@ -67,7 +68,7 @@
 </script>
 
 <script lang="ts">
-	const { projects }: StateResolve<typeof asr_state> = $props()
+	const { projects, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
 </script>
 
 {#snippet client_cell(row: ProjectRow)}
@@ -104,6 +105,13 @@
 	</div>
 {/snippet}
 
+{#snippet open_cell(row: ProjectRow)}
+	<ChevronLink
+		href={asr.makePath(`app.estimate`, { project_id: row.project.project_id })}
+		label={`Open the estimate for ${row.client.name}`}
+	/>
+{/snippet}
+
 <ListInput
 	rows={projects}
 	get_key={row => row.project.project_id}
@@ -115,6 +123,7 @@
 		{ header: `Subtotal`, cell: subtotal_cell, width: `7rem`, header_text_align: `right` },
 		{ header: `Crew size`, cell: crew_size_cell, width: `6rem`, header_text_align: `right` },
 		{ header: `Sent`, cell: sent_cell, width: `4rem` },
+		{ header: ``, cell: open_cell, width: `3rem` },
 	]}
 />
 
