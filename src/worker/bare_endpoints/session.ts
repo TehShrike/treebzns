@@ -1,6 +1,6 @@
-import { json_anything_response } from '#worker/lib/response_helpers.ts'
+import { json_anything_response } from '#lib/response_helpers.ts'
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
-import validate_session from '#worker/lib/db/validate_session.ts'
+import validate_session from '#lib/db/validate_session.ts'
 import { pick } from '#shared/pick.ts'
 import { session_employee_columns, session_company_columns, type SessionResponse } from '#shared/type/session.ts'
 

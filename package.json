@@ -15,9 +15,13 @@
 		"#schema/*": "./schema/*",
 		"#arbostar_export/*": "./arbostar_export/*",
 		"#arbostar_api_export/*": "./arbostar_api_export/*",
-		"#client/lib/*": "./src/client/lib/*",
-		"#client/component/*": "./src/client/component/*",
-		"#worker/lib/*": "./src/worker/lib/*"
+		"#lib/*": {
+			"client": "./src/client/lib/*",
+			"worker": "./src/worker/lib/*"
+		},
+		"#component/*": {
+			"client": "./src/client/component/*"
+		}
 	},
 	"license": "UNLICENSED",
 	"author": "TehShrike",
@@ -30,7 +34,10 @@
 		"test:types:everything_else": "tsc --noEmit",
 		"test:types:worker": "tsc -p src/worker --noEmit",
 		"test:types:svelte": "svelte-check --tsconfig ./src/client/tsconfig.json --fail-on-warnings",
-		"test:unit": "node --test \"src/shared/**/*.test.ts\" \"src/client/**/*.test.ts\" \"src/worker/**/*.test.ts\" \"scripts/**/*.test.ts\"",
+		"test:unit": "run-p -c test:unit:*",
+		"test:unit:shared": "node --test \"src/shared/**/*.test.ts\" \"scripts/**/*.test.ts\"",
+		"test:unit:client": "node --conditions=client --test \"src/client/**/*.test.ts\"",
+		"test:unit:worker": "node --conditions=worker --test \"src/worker/**/*.test.ts\"",
 		"smoke:spaces": "dotenv -- node src/shared/s3/spaces_smoke_test.ts",
 		"arbostar:api_export": "dotenv -- node scripts/arbostar_api/export_all.ts",
 		"import:arbostar_web": "dotenv -- node scripts/import_arbostar_export.ts",

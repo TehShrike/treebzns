@@ -1,6 +1,6 @@
 <script lang="ts">
-	import LinkThatLooksLikeAButton from '#client/component/LinkThatLooksLikeAButton.svelte'
-	import type { Context } from '#client/lib/client_context.ts'
+	import LinkThatLooksLikeAButton from '#component/LinkThatLooksLikeAButton.svelte'
+	import type { Context } from '#lib/client_context.ts'
 	import type { LineItemRow } from './select_line_items.ts'
 
 	const {

@@ -1,12 +1,11 @@
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
-import { password_hash } from '#worker/lib/password_hash.ts'
+import { password_hash } from '#lib/password_hash.ts'
 import make_write_helper from '#shared/mysql/write_helper.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
 import assert from '#shared/assert.ts'
-
-export const DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS = 50_000n
+import { DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS } from '#shared/password_hash_iterations.ts'
 
 type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> : never
 

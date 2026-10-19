@@ -13,7 +13,7 @@ Function names share one flat namespace across all `*.fns.ts` files. Routing use
 
 - Endpoint definitions: `src/worker/server_functions/<domain>.fns.ts`
 - Helpers used by one domain: a sibling directory, like `src/worker/server_functions/lead_helper/`
-- Helpers reusable across domains: `#worker/lib/db/`
+- Helpers reusable across domains: `#lib/db/`
 - Argument object types shared with the client: `#shared/type/`
 - Generated worker registry (do not edit): `src/worker/server_functions.generated.ts`
 - Generated client caller (do not edit): `src/client/lib/server_functions.ts`
@@ -22,7 +22,7 @@ Function names share one flat namespace across all `*.fns.ts` files. Routing use
 
 ### 1. Define the endpoint
 
-Add an entry to the `functions` export, wrapped in `sfn` from `#worker/lib/server_functions_api.ts`:
+Add an entry to the `functions` export, wrapped in `sfn` from `#lib/server_functions_api.ts`:
 
 ```ts
 export const functions = {
@@ -52,7 +52,7 @@ Use `jv` from `#shared/json_validator.ts`. Temporal validators come from `#schem
 ### 3. Write the body
 
 - Wrap the body in `transaction(...)` when it performs more than one write.
-- Validate every id the client sent before any write. Use `assert_db_id_valid` from `#worker/lib/db/assert_db_id_valid.ts`. Batch the checks in one `Promise.all`, with `field !== null &&` guards for nullable ids. Put them in one `assert_input_ids_valid` helper.
+- Validate every id the client sent before any write. Use `assert_db_id_valid` from `#lib/db/assert_db_id_valid.ts`. Batch the checks in one `Promise.all`, with `field !== null &&` guards for nullable ids. Put them in one `assert_input_ids_valid` helper.
 - Read with `select_builder`. Write with `write_helper.insert`, `write_helper.update`, and `write_helper.bulk_insert` (use `bulk_insert` for arrays).
 - Assert business assumptions with `assert` from `#shared/assert.ts`. The message states the thing asserted, not an error ("client_address_id is null when the client is new").
 - Check `schema/current_schema.sql` for a `_history` table that tracks a value you write (e.g. `project_document_history` tracks `project.project_document_id`). Insert a history row on the initial insert and on every change of the tracked value.
@@ -64,9 +64,9 @@ Use `jv` from `#shared/json_validator.ts`. Temporal validators come from `#schem
 The `sfn` body is orchestration. It names each step and holds the branching. If there is more than one query, the DB work lives in helpers:
 
 - Each helper takes one object parameter.
-- Each helper declares only what it needs, with narrow types: `company_id: bigint`, `write_helper: ConnectionBoundWriteHelper` (from `#worker/lib/mysql/write_helper.ts`), `select_builder: TenantedSelectBuilder` (from `#worker/lib/db/make_tenanted_select_builder.ts`). Do not pass the whole `Context` or the whole `company` object.
+- Each helper declares only what it needs, with narrow types: `company_id: bigint`, `write_helper: ConnectionBoundWriteHelper` (from `#lib/mysql/write_helper.ts`), `select_builder: TenantedSelectBuilder` (from `#lib/db/make_tenanted_select_builder.ts`). Do not pass the whole `Context` or the whole `company` object.
 - An insert-or-update pair becomes two private functions plus one exported `upsert_x` that branches on the null id.
-- If the file is more than ~250 lines, move helpers specific to the domain to the sibling `<domain>_helper/` directory. Helpers other domains could use go in `#worker/lib/db/`.
+- If the file is more than ~250 lines, move helpers specific to the domain to the sibling `<domain>_helper/` directory. Helpers other domains could use go in `#lib/db/`.
 
 ### 5. Regenerate
 

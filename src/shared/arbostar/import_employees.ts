@@ -1,7 +1,7 @@
 import type { Connection } from 'mysql2/promise'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ArbostarUser } from '#arbostar_export/users.d.ts'
-import { DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS } from '#worker/lib/employee.ts'
+import { DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS } from '#shared/password_hash_iterations.ts'
 import { map, filter } from '#shared/array.ts'
 import { ROWS_PER_BATCH, normalize_name, identity_key, placeholder_email } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'

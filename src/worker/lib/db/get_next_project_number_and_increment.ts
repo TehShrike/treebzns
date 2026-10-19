@@ -1,6 +1,6 @@
 import assert from '#shared/assert.ts'
 import { fns } from '#shared/sql_request/mysql_function.ts'
-import type { Context } from '#worker/lib/context.ts'
+import type { Context } from '#lib/context.ts'
 
 const get_next_project_number_and_increment = async ({
 	write_helper,

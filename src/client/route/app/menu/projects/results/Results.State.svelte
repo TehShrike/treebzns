@@ -1,7 +1,7 @@
 <script module lang="ts">
-	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
-	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
-	import ListInput from '#client/component/list_input/ListInput.svelte'
+	import { state_type, type StateResolve } from '#lib/client_type.ts'
+	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
+	import ListInput from '#component/list_input/ListInput.svelte'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import { filter, map } from '#shared/array.ts'

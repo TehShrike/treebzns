@@ -1,8 +1,8 @@
 <script module lang="ts">
-	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
-	import type { StateParamsByName } from '#client/lib/state_names.ts'
-	import AppScreen from '#client/component/AppScreen.svelte'
-	import { select_project_documents } from '#client/lib/generic_queries/project_document.ts'
+	import { state_type, type StateResolve } from '#lib/client_type.ts'
+	import type { StateParamsByName } from '#lib/state_names.ts'
+	import AppScreen from '#component/AppScreen.svelte'
+	import { select_project_documents } from '#lib/generic_queries/project_document.ts'
 	import { untrack } from 'svelte'
 	import { validate_project_search_params } from './project_search_params.ts'
 

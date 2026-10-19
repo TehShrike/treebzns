@@ -1,7 +1,7 @@
 import type { TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { AddedClientContact, ChangedClientContact } from '#shared/type/client.ts'
-import { get_next_sort } from '#worker/lib/db/sort_column.ts'
+import { get_next_sort } from '#lib/db/sort_column.ts'
 import { pick } from '#shared/pick.ts'
 
 export const insert_client_contact = async ({

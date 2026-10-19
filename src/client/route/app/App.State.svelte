@@ -1,6 +1,6 @@
 <script module lang="ts">
-	import { state_type } from '#client/lib/client_type.ts'
-	import redirect_resolve_to from '#client/lib/redirect_resolve_to.ts'
+	import { state_type } from '#lib/client_type.ts'
+	import redirect_resolve_to from '#lib/redirect_resolve_to.ts'
 	import type { LoggedInSession } from '#shared/type/session.ts'
 
 	export const asr_state = state_type({

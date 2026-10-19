@@ -1,5 +1,5 @@
-import tracked_record from '#client/lib/tracked_record.svelte.ts'
-import type { CachedClient, CachedClientContact } from '#client/lib/client_cache.svelte.ts'
+import tracked_record from '#lib/tracked_record.svelte.ts'
+import type { CachedClient, CachedClientContact } from '#lib/client_cache.svelte.ts'
 import type { LeadClientValues, LeadAddressValues, LeadContactValues, LeadBilling, LeadProject, LeadAvailability, CreateLeadArgument, CreateLeadResult } from '#shared/type/lead.ts'
 import { find } from '#shared/array.ts'
 

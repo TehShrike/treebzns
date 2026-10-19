@@ -1,8 +1,8 @@
 <script module lang="ts">
-	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
-	import type { CachedClient } from '#client/lib/client_cache.svelte.ts'
-	import AppScreen from '#client/component/AppScreen.svelte'
-	import ListInput from '#client/component/list_input/ListInput.svelte'
+	import { state_type, type StateResolve } from '#lib/client_type.ts'
+	import type { CachedClient } from '#lib/client_cache.svelte.ts'
+	import AppScreen from '#component/AppScreen.svelte'
+	import ListInput from '#component/list_input/ListInput.svelte'
 	import { filter } from '#shared/array.ts'
 
 	export const asr_state = state_type({

@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import type { ClientCache } from '#client/lib/client_cache.svelte.ts'
+	import type { ClientCache } from '#lib/client_cache.svelte.ts'
 	import type { SearchSelection } from './client_search_selection.ts'
 	import FormLayout from './FormLayout.svelte'
 	import ClientNameSearch from './ClientNameSearch.svelte'

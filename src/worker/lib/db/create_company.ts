@@ -1,6 +1,6 @@
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import make_mysql_helpers_object from '#shared/mysql/mysql_helpers_object.ts'
-import { create_employee } from '#worker/lib/employee.ts'
+import { create_employee } from '#lib/employee.ts'
 import { map } from '#shared/array.ts'
 import { transaction } from '#shared/mysql/helpers.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'

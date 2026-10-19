@@ -1,4 +1,4 @@
-import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
+import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import group_joined_rows from '#shared/sql_request/group_joined_rows.ts'
 import type { Schema } from '#schema/types.ts'

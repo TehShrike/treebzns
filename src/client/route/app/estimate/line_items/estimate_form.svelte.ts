@@ -1,7 +1,7 @@
-import tracked_record, { type AddedValues, type DbValues, type SavedValues } from '#client/lib/tracked_record.svelte.ts'
-import tracked_record_array from '#client/lib/tracked_record_array.ts'
-import tracked_id_set, { type TrackedIdSet } from '#client/lib/tracked_id_set.ts'
-import type { PendingAdd, PendingChange } from '#client/lib/pending_save.ts'
+import tracked_record, { type AddedValues, type DbValues, type SavedValues } from '#lib/tracked_record.svelte.ts'
+import tracked_record_array from '#lib/tracked_record_array.ts'
+import tracked_id_set, { type TrackedIdSet } from '#lib/tracked_id_set.ts'
+import type { PendingAdd, PendingChange } from '#lib/pending_save.ts'
 import assert from '#shared/assert.ts'
 import { map } from '#shared/array.ts'
 import type {

@@ -1,7 +1,7 @@
 import * as jv from '#shared/json_validator.ts'
-import { sfn } from '#worker/lib/server_functions_api.ts'
+import { sfn } from '#lib/server_functions_api.ts'
 import assert from '#shared/assert.ts'
-import assert_db_id_valid, { assert_db_ids_valid } from '#worker/lib/db/assert_db_id_valid.ts'
+import assert_db_id_valid, { assert_db_ids_valid } from '#lib/db/assert_db_id_valid.ts'
 import type { TenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type {
 	AddedEstimateLineItem,

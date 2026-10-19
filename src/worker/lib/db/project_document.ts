@@ -1,5 +1,5 @@
 import assert from '#shared/assert.ts'
-import type { Context } from '#worker/lib/context.ts'
+import type { Context } from '#lib/context.ts'
 
 export const get_lead_needing_estimate_project_document_id = async ({
 	select_builder,

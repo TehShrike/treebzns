@@ -14,9 +14,9 @@ The reference implementation is `src/client/route/app/menu/create_a_lead/`. Read
 - Screen: `src/client/route/app/menu/<screen_name>/<ScreenName>.State.svelte`
 - The form object: `src/client/route/app/menu/<screen_name>/<form_name>_form.svelte.ts`
 - Child components that own one record or argument: `src/client/route/app/menu/<screen_name>/<Thing>Selector.svelte`
-- Records that may already exist in the database: `#client/lib/tracked_record.svelte.ts`
-- Lists of child records the user can add, edit, and remove: `#client/component/list_input/editable_rows.svelte.ts` for the list, `#client/lib/tracked_record_array.svelte.ts` for what to save
-- Select functions that list a whole table or get one record by its primary key: `src/client/lib/generic_queries/<table_name>.ts`, imported as `#client/lib/generic_queries/<table_name>.ts`. Look there before writing a new one.
+- Records that may already exist in the database: `#lib/tracked_record.svelte.ts`
+- Lists of child records the user can add, edit, and remove: `#component/list_input/editable_rows.svelte.ts` for the list, `#lib/tracked_record_array.svelte.ts` for what to save
+- Select functions that list a whole table or get one record by its primary key: `src/client/lib/generic_queries/<table_name>.ts`, imported as `#lib/generic_queries/<table_name>.ts`. Look there before writing a new one.
 - Small layout or input helpers used only by this screen: `src/client/route/app/menu/<screen_name>/_helpers/`
 - Components used by more than one screen: `src/client/component/`
 - Argument types shared with the server: `#shared/type/<domain>.ts`
@@ -30,9 +30,9 @@ Put the state definition in the module script. Select reference data in `resolve
 
 ```svelte
 <script module lang="ts">
-	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
-	import { select_tax_rates } from '#client/lib/generic_queries/tax_rate.ts'
-	import { select_employees } from '#client/lib/generic_queries/employee.ts'
+	import { state_type, type StateResolve } from '#lib/client_type.ts'
+	import { select_tax_rates } from '#lib/generic_queries/tax_rate.ts'
+	import { select_employees } from '#lib/generic_queries/employee.ts'
 
 	export const asr_state = state_type({
 		name: `app.menu.create_a_lead`,
@@ -54,7 +54,7 @@ Put the state definition in the module script. Select reference data in `resolve
 </script>
 ```
 
-Each query function is a small function named `select_<rows>` that takes `query: ClientQueryFn` and returns plain rows. One that lists a whole table, or gets one record by its primary key, lives in `#client/lib/generic_queries/<table_name>.ts` so every screen shares it. One with joins or filters that only this screen needs is a module-level function in the screen. The `select_` prefix means the function runs a query. A function that stores what the user picked is named `set_<thing>`. The dev watcher (`dev:glob:states`) regenerates the state registry on save. Run `pnpm run build:glob:states` when the dev server is not running.
+Each query function is a small function named `select_<rows>` that takes `query: ClientQueryFn` and returns plain rows. One that lists a whole table, or gets one record by its primary key, lives in `#lib/generic_queries/<table_name>.ts` so every screen shares it. One with joins or filters that only this screen needs is a module-level function in the screen. The `select_` prefix means the function runs a query. A function that stores what the user picked is named `set_<thing>`. The dev watcher (`dev:glob:states`) regenerates the state registry on save. Run `pnpm run build:glob:states` when the dev server is not running.
 
 ### 2. Share the argument types
 
@@ -174,7 +174,7 @@ The form's submit does not fire until the browser is satisfied. The screen keeps
 ### 6. Markup and styling
 
 - Every form is a flex column with `var(--gap_unit)` from `global_styles.css`. Do not restyle `form`.
-- Fieldsets use `FieldsetColumn` for vertical stacking, `FormLayout` for the field grid, and `WideTextareaField` for a full-width textarea, all from `#client/component/`.
+- Fieldsets use `FieldsetColumn` for vertical stacking, `FormLayout` for the field grid, and `WideTextareaField` for a full-width textarea, all from `#component/`.
 - Use the 98.css design system classes that the app loads: `title-bar` with `title-bar-text`, and `title-bar inactive` for a disabled look. The current client header on the lead screen is a title bar.
 - To keep an element's space without showing it, set `data-hide={condition}` and style `[data-hide="true"] { visibility: hidden }`. Do not use `{#if}` for a control whose absence would change the parent's height.
 - Layout is the parent's job. No self-placement on children.

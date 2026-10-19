@@ -1,7 +1,7 @@
 import assert from '#shared/assert.ts'
 import type { CapturedPhoto } from './captured_photo.ts'
 import { scale_to_long_edge } from './scale_to_long_edge.ts'
-import { take_photo, type CaptureMethod } from '#client/lib/camera_service/take_photo.ts'
+import { take_photo, type CaptureMethod } from '#lib/camera_service/take_photo.ts'
 
 const long_edge = 2048
 const jpeg_quality = 0.85

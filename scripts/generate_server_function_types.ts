@@ -17,7 +17,7 @@ const fnFiles = readdirSync(fnDir)
 
 const program = ts.createProgram(
 	[...new Set([...parsed.fileNames, ...fnFiles])],
-	parsed.options,
+	{ ...parsed.options, customConditions: ['worker'] },
 )
 const checker = program.getTypeChecker()
 

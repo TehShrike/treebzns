@@ -1,10 +1,10 @@
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import type { S3Client } from '#shared/s3/s3_client.ts'
 import { upload_project_image_files_to_storage } from '#shared/project_image/upload_project_image_files_to_storage.ts'
-import validate_session from '#worker/lib/db/validate_session.ts'
-import make_context from '#worker/lib/make_context.ts'
-import read_form_data from '#worker/lib/read_form_data.ts'
-import { assert_valid_request, error_response, json_anything_response } from '#worker/lib/response_helpers.ts'
+import validate_session from '#lib/db/validate_session.ts'
+import make_context from '#lib/make_context.ts'
+import read_form_data from '#lib/read_form_data.ts'
+import { assert_valid_request, error_response, json_anything_response } from '#lib/response_helpers.ts'
 
 import parse_project_image_upload from './parse_project_image_upload.ts'
 import {

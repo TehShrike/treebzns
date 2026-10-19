@@ -1,8 +1,8 @@
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import type { S3Client } from '#shared/s3/s3_client.ts'
-import validate_session from '#worker/lib/db/validate_session.ts'
-import make_context from '#worker/lib/make_context.ts'
-import { error_response } from '#worker/lib/response_helpers.ts'
+import validate_session from '#lib/db/validate_session.ts'
+import make_context from '#lib/make_context.ts'
+import { error_response } from '#lib/response_helpers.ts'
 
 import type { ProjectImageVariant } from '#shared/project_image/project_image_object_key.ts'
 import { get_project_image } from './project_image_queries.ts'

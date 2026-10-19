@@ -1,5 +1,5 @@
 import { is_jpeg } from '#shared/is_jpeg.ts'
-import { ResponseError } from '#worker/lib/response_helpers.ts'
+import { ResponseError } from '#lib/response_helpers.ts'
 
 export const max_part_bytes = 8 * 1024 * 1024
 

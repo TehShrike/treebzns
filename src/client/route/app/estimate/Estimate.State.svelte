@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { state_type } from '#client/lib/client_type.ts'
+	import { state_type } from '#lib/client_type.ts'
 	import { validate_estimate_params } from './estimate_params.ts'
 
 	export const asr_state = state_type({

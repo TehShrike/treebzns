@@ -6,7 +6,7 @@ import type {
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import all_properties_have_values from '#shared/all_properties_have_values.ts'
 import type { LeadAddress, LeadAddressValues } from '#shared/type/lead.ts'
-import { get_next_sort } from '#worker/lib/db/sort_column.ts'
+import { get_next_sort } from '#lib/db/sort_column.ts'
 import { pick } from '#shared/pick.ts'
 
 

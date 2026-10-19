@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import type { CachedClient, ClientCache } from '#client/lib/client_cache.svelte.ts'
+	import type { CachedClient, ClientCache } from '#lib/client_cache.svelte.ts'
 	import type { SearchSelection } from './client_search_selection.ts'
 	import DropdownSearchInput from './dropdown_input/DropdownSearchInput.svelte'
 	import { search_clients_by_name, type NameSearchMatch } from './client_name_search.ts'

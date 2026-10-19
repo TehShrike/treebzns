@@ -1,6 +1,6 @@
 <script module lang="ts">
-	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
-	import type { ClientQueryFn } from '#client/lib/client_query_fn.ts'
+	import { state_type, type StateResolve } from '#lib/client_type.ts'
+	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import Layout from '../Layout.svelte'
 	import EstimateNavBar from '../EstimateNavBar.svelte'
 	import { select_line_items } from '../select_line_items.ts'

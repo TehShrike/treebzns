@@ -19,6 +19,7 @@ const get_build_options = () => ({
 		'@js-temporal/polyfill': './src/client/temporal_browser_shim.ts',
 	},
 	entryPoints: ['src/client/index.ts'],
+	conditions: ['client'],
 	bundle: true,
 	splitting: true,
 	outdir: `src/public/build`,

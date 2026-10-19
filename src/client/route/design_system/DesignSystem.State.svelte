@@ -1,19 +1,19 @@
 <script module lang="ts">
-	import { state_type } from "#client/lib/client_type.ts";
-	import AppScreen from "#client/component/AppScreen.svelte";
-	import WindowCard from "#client/component/WindowCard.svelte";
-	import Separator from "#client/component/Separator.svelte";
-	import FormLayout from "#client/component/FormLayout.svelte";
-	import ListInput from "#client/component/list_input/ListInput.svelte";
-	import TextInput from "#client/component/list_input/TextInput.svelte";
-	import TextArea from "#client/component/list_input/TextArea.svelte";
-	import NumberInput from "#client/component/list_input/NumberInput.svelte";
-	import NumberDisplay from "#client/component/list_input/NumberDisplay.svelte";
-	import Checkbox from "#client/component/list_input/Checkbox.svelte";
-	import DeleteButton from "#client/component/list_input/DeleteButton.svelte";
-	import LinkThatLooksLikeAButton from "#client/component/LinkThatLooksLikeAButton.svelte";
-	import editable_rows from "#client/component/list_input/editable_rows.svelte.ts";
-	import type { RowKey } from "#client/component/list_input/row_key.ts";
+	import { state_type } from "#lib/client_type.ts";
+	import AppScreen from "#component/AppScreen.svelte";
+	import WindowCard from "#component/WindowCard.svelte";
+	import Separator from "#component/Separator.svelte";
+	import FormLayout from "#component/FormLayout.svelte";
+	import ListInput from "#component/list_input/ListInput.svelte";
+	import TextInput from "#component/list_input/TextInput.svelte";
+	import TextArea from "#component/list_input/TextArea.svelte";
+	import NumberInput from "#component/list_input/NumberInput.svelte";
+	import NumberDisplay from "#component/list_input/NumberDisplay.svelte";
+	import Checkbox from "#component/list_input/Checkbox.svelte";
+	import DeleteButton from "#component/list_input/DeleteButton.svelte";
+	import LinkThatLooksLikeAButton from "#component/LinkThatLooksLikeAButton.svelte";
+	import editable_rows from "#component/list_input/editable_rows.svelte.ts";
+	import type { RowKey } from "#component/list_input/row_key.ts";
 	import number, { type FinancialNumber } from "#shared/fnum.ts";
 
 	type LineItemRow = {

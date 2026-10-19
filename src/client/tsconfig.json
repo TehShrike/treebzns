@@ -11,8 +11,8 @@
 		"paths": {
 			"#schema/*": ["../../schema/*"],
 			"#shared/*": ["../shared/*"],
-			"#client/lib/*": ["./lib/*"],
-			"#client/component/*": ["./component/*"]
+			"#lib/*": ["./lib/*"],
+			"#component/*": ["./component/*"]
 		},
 		"verbatimModuleSyntax": true,
 		"plugins": [{ "name": "typescript-svelte-plugin" }]

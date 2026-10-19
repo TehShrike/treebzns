@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte'
 	import type { Attachment } from 'svelte/attachments'
 	import assert from '#shared/assert.ts'
-	import type { CameraService, RetryOpen, UseResult } from '#client/lib/camera_service/camera_service.svelte.ts'
+	import type { CameraService, RetryOpen, UseResult } from '#lib/camera_service/camera_service.svelte.ts'
 	import type { CapturedPhoto } from './captured_photo.ts'
 	import { capture_still } from './capture_still.ts'
 

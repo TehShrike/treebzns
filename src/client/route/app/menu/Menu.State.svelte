@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { state_type } from '#client/lib/client_type.ts'
+	import { state_type } from '#lib/client_type.ts'
 
 	export const asr_state = state_type({
 		name: `app.menu`,

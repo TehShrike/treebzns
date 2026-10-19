@@ -1,5 +1,5 @@
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
-import { password_hash } from '#worker/lib/password_hash.ts'
+import { password_hash } from '#lib/password_hash.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import safe_select_query_builder from '#shared/treebzns_db/safe_select_query_builder.ts'
 import { fns } from '#shared/sql_request/mysql_function.ts'

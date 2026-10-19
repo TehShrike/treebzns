@@ -1,16 +1,16 @@
 <script module lang="ts">
-	import { state_type, type StateResolve } from '#client/lib/client_type.ts'
-	import AppScreen from '#client/component/AppScreen.svelte'
+	import { state_type, type StateResolve } from '#lib/client_type.ts'
+	import AppScreen from '#component/AppScreen.svelte'
 	import ClientSelector from './ClientSelector.svelte'
 	import AddressSelector from './AddressSelector.svelte'
 	import BillingAddressSelector from './BillingAddressSelector.svelte'
 	import ContactSelector from './ContactSelector.svelte'
 	import ProjectSelector, { in_estimator_order } from './ProjectSelector.svelte'
 	import make_lead_form from './lead_form.svelte.ts'
-	import form_saver from '#client/lib/form_saver.svelte.ts'
-	import { select_tax_rates } from '#client/lib/generic_queries/tax_rate.ts'
-	import { select_employees } from '#client/lib/generic_queries/employee.ts'
-	import { select_lead_sources } from '#client/lib/generic_queries/lead_source.ts'
+	import form_saver from '#lib/form_saver.svelte.ts'
+	import { select_tax_rates } from '#lib/generic_queries/tax_rate.ts'
+	import { select_employees } from '#lib/generic_queries/employee.ts'
+	import { select_lead_sources } from '#lib/generic_queries/lead_source.ts'
 	import { untrack } from 'svelte'
 
 	export const asr_state = state_type({

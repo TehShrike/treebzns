@@ -1,7 +1,7 @@
 <script lang="ts">
 	import assert from '#shared/assert.ts'
 	import { for_each } from '#shared/array.ts'
-	import type { CapturedPhoto } from '#client/component/photo_camera/captured_photo.ts'
+	import type { CapturedPhoto } from '#component/photo_camera/captured_photo.ts'
 	import { client_to_image_point, contained_rect, line_width_for_size, size_within_long_edge, type Point, type Stroke } from './markup_geometry.ts'
 	import { draw_stroke, draw_stroke_segment, draw_stroke_tail } from './stroke_rendering.ts'
 
