@@ -1,7 +1,5 @@
 # Catch up
 
-We need a assert_db_ids_valid function that selects `COUNT(*) WHERE id_column IN(ids)` rather than just taking a single id.
-
 We need the styles currently associated with data-value-needs-to-be-saved to be associated with a data attribute that implies something about the style – "display as if already saved", or maybe the inverse "display as will-be-saved"
 
 Queries like fetch_project_documents that are generic "get me the list of X" or "get me the Y record based on Y's primary key" that are extremely generic should be moved to client/shared/generic_queries/.

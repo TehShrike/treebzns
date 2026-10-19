@@ -1,7 +1,7 @@
 import * as jv from '#shared/json_validator.ts'
 import { sfn } from '#worker/lib/server_functions_api.ts'
 import assert from '#shared/assert.ts'
-import assert_db_id_valid from '#worker/lib/db/assert_db_id_valid.ts'
+import assert_db_id_valid, { assert_db_ids_valid } from '#worker/lib/db/assert_db_id_valid.ts'
 import type { TenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type {
 	AddedEstimateLineItem,
@@ -72,8 +72,8 @@ const assert_input_ids_valid = async ({
 	await Promise.all([
 		assert_db_id_valid({ select_builder, table_name: `project`, id: project_id }),
 		...(project_document_id === undefined ? [] : [assert_db_id_valid({ select_builder, table_name: `project_document`, id: project_document_id })]),
-		...map([...item_type_ids], id => assert_db_id_valid({ select_builder, table_name: `item_type`, id })),
-		...map([...work_skill_ids], id => assert_db_id_valid({ select_builder, table_name: `work_skill`, id })),
+		assert_db_ids_valid({ select_builder, table_name: `item_type`, ids: item_type_ids }),
+		assert_db_ids_valid({ select_builder, table_name: `work_skill`, ids: work_skill_ids }),
 	])
 }
 

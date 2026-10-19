@@ -25,4 +25,30 @@ const assert_db_id_valid = async ({
 	assert(row)
 }
 
+export const assert_db_ids_valid = async ({
+	select_builder,
+	table_name,
+	ids,
+}: {
+	select_builder: TenantedSelectBuilder
+	table_name: TableWithOwnIdColumn
+	ids: Iterable<bigint>
+}): Promise<void> => {
+	const unique_ids = [...new Set(ids)]
+	if (unique_ids.length === 0) {
+		return
+	}
+
+	const id_column: `${string}.${string}` = `${table_name}.${table_name}_id`
+	const row: Record<string, { matching_count: bigint }> | null = await select_builder.get_first_row(query_builder()
+		.from(table_name)
+		// @ts-expect-error This column name is validated by human logic and the power of deterministic string-building rather than the type checker
+		.where(q => q.in(id_column, unique_ids))
+		// @ts-expect-error This column name is validated by human logic and the power of deterministic string-building rather than the type checker
+		.select(q => [q.fn('COUNT', id_column, `${table_name}.matching_count`)])
+		.build())
+	assert(row, `an aggregate query returns exactly one row`)
+	assert(row[table_name]!.matching_count === BigInt(unique_ids.length), `every ${table_name} id matches one row`)
+}
+
 export default assert_db_id_valid
