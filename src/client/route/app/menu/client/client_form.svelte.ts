@@ -15,7 +15,6 @@ const make_address = (values_in_db: DbValues<ClientAddressValues, 'client_addres
 	initial: { client_contact_id: null, name: ``, address_line_1: ``, address_line_2: ``, city: ``, state: ``, zip: `` },
 	id_key: `client_address_id`,
 	values_in_db,
-	empty_checks: { client_contact_id: () => true },
 })
 
 const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, addresses: loaded_addresses }: {

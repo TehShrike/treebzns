@@ -69,22 +69,17 @@ const tracked_record = <VALUES extends object, ID_KEY extends string>({
 	id_key,
 	values_in_db: initial_values_in_db = null,
 	equality_checks = {},
-	empty_checks = {},
 }: {
 	initial: VALUES
 	id_key: ID_KEY
 	values_in_db?: DbValues<VALUES, ID_KEY> | null
 	equality_checks?: { [K in keyof VALUES]?: EqualityCheck<VALUES[K]> }
-	empty_checks?: { [K in keyof VALUES]?: (value: VALUES[K]) => boolean }
 }) => {
 	const keys: (keyof VALUES)[] = object_keys(initial)
 	const copy_values = (source: VALUES): VALUES => pick(source, keys)
 
 	const values_equal = <K extends keyof VALUES>(key: K, a: VALUES[K], b: VALUES[K]) => (equality_checks[key] ?? strictly_equal)(a, b)
-	const value_is_empty = <K extends keyof VALUES>(key: K, value: VALUES[K]) => {
-		const empty_check = empty_checks[key]
-		return empty_check === undefined ? values_equal(key, value, initial[key]) : empty_check(value)
-	}
+	const value_is_empty = <K extends keyof VALUES>(key: K, value: VALUES[K]) => values_equal(key, value, initial[key])
 
 	const saved_in_database = (values: DbValues<VALUES, ID_KEY> | null): values is DbValues<VALUES, ID_KEY> => values !== null
 
