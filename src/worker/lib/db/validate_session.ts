@@ -21,6 +21,7 @@ const company_columns = [
 	`company.${company.timezone}`,
 	`company.${company.default_crew_start_time}`,
 	`company.${company.invoice_due_after_days}`,
+	`company.${company.round_line_item_estimates_to_nearest}`,
 ] as const
 
 export const parse_session_cookie = (request: Request): string | null => {

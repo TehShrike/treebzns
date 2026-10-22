@@ -1,4 +1,5 @@
 import * as jv from '#shared/json_validator.ts'
+import { is_financial_number } from '#shared/value_validators.ts'
 import { sfn } from '#lib/server_functions_api.ts'
 import assert from '#shared/assert.ts'
 import assert_db_id_valid, { assert_db_ids_valid } from '#lib/db/assert_db_id_valid.ts'
@@ -24,6 +25,7 @@ const line_item_value_validators = {
 	work_details: jv.is_string,
 	estimated_hours: jv.is_bigint,
 	client_optional: jv.is_boolean,
+	price: is_financial_number,
 }
 
 const work_skill_ids_validator = jv.array(jv.is_bigint)

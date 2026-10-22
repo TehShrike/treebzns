@@ -2,11 +2,50 @@
 
 ## Make the estimation/proposal editing screen tolerable
 
-- Link should take you to the line item view if the project has line items
-- Need line item dollar calculations displayed; saved
-- Display totals at bottom
+We need to be able to set estimated_crew_size per project_line_item.  The column should be right before estimated_hours.  Non-nullable.  Default 1.  The arbostar import should populate this value.
+
+The project-level estimated_crew_size should be used as a default for this when creating line items.  When editing project-level estimated crew size on the estimate screen, all line items that had the same estimated crew size as the project level before the change should be updated to match.
+
+---
+
+We need to allow selecting the same work skill multiple times per line item.  line item + work skill can no longer be a unique key in project_line_item_work_skill.
+
+The work skill row in estimate line items needs te become two rows: one that shows a button for each selection, and one that shows a pill (with an x on the right side) for each time work skill in the list.  Clicking on the pill removes it from the list.  That will have to be done by project_line_item_work_skill_id, not just work_skill_id.
+
+When the number of work skills is greater than the number of estimated crew size on the line item, increase the estimated crew size to match.
+
+---
+
+On LineItems.State, can the input not just bind to form.project.form_values.estimated_crew_size?
+
+---
+
+On the Proposal page -> estimates, the link should take you to the line item view if the project has line items.
+
+The line item price needs to be saved.
+
+Let's make a component/IntegerInput that works the same way as NumberInput with type=number, except with an implicit decimal_places=0 and binding to a bigint not a FinancialNumber.  Default style should be the same as every other input, though it would be nice to have a list_input specific one that uses it, but overrides the styles similarly to what NumberInput does.  In fact, could we do the same thing for NumberInput – put one in component that has all the behavior, but the regular styles from 98, and then a version in list_input that just makes it look appropriately flat like other list_input cells when not focused?
+
+hours_text, crew_size_text, calculated_hours_text, hourly_rate_text should all be bigints, not strings.
+
+project subtotal, taxable_subtotal, line_item_discount_subtotal, tax_total, total should be calculated.  Actually, look into this – should we even be calculating taxes at estimation/proposal time, or is that a work-order-time concern?
+
+### Estimate editing screen
+
+- Allow editing line item discount_rate, discount, discount_description
+- Allow editing project-level discount (which disables line-item level discount)
+- Display totals at bottom of estimate
 - Upload images?
+- Allow changing sort
 - On large screens, images should be the left half, every other input should be on the right half, capped at something like 600px width
+- issues on Safari: see screenshot in Dropbox 2026-10-19T11:34:24
+- expose photo property: visible_to_client
+- deleting line items
+- editing line item title
+- allow editing project.notes_for_crew and project.notes_for_office
+- "save line item as template"?
+
+Then think about "sending for proposal" at this stage of the design – a "send" button should mark the proposal as sent, show you the proposal page, and if you are logged in, give you an easy-to-copy url to send to the client.
 
 ## What project list screens do we need?
 

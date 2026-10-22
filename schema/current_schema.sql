@@ -174,6 +174,7 @@ CREATE TABLE `company` (
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `default_crew_start_time` time NOT NULL DEFAULT '08:00:00',
   `invoice_due_after_days` int unsigned NOT NULL DEFAULT '30',
+  `round_line_item_estimates_to_nearest` decimal(10,2) NOT NULL DEFAULT '20.00',
   `timezone` varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
   PRIMARY KEY (`company_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

@@ -185,9 +185,7 @@ input[type="reset"] {
 }
 
 :disabled,
-input[readonly],
-label:has(input:disabled),
-label:has(input[readonly]) {
+label:has(input:disabled) {
 	color: var(--button-shadow);
 }
 
@@ -443,15 +441,13 @@ input[type="password"]:disabled,
 input[type="text"]:disabled,
 input[type="number"]:disabled,
 input[type="search"]:disabled,
-input[type="email"]:read-only,
-input[type="url"]:read-only,
-input[type="tel"]:read-only,
-input[type="password"]:read-only,
-input[type="text"]:read-only,
-input[type="number"]:read-only,
-input[type="search"]:read-only,
 textarea:disabled {
 	background-color: var(--surface);
+}
+
+input[readonly] {
+	box-shadow: inset -1px -1px var(--button-face), inset 1px 1px var(--surface);
+	background-color: var(--background);
 }
 
 input[data-style-as-unsaved="false"],
@@ -461,6 +457,11 @@ select[data-style-as-unsaved="false"] {
 }
 label:has(input[data-style-as-unsaved="false"])::before {
 	background: var(--background);
+}
+
+input[data-style-as-unsaved]:focus,
+textarea[data-style-as-unsaved]:focus {
+	background-color: var(--button-highlight);
 }
 
 select {

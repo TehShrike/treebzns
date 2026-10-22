@@ -19,12 +19,13 @@
 		name: `app.estimate.line_items`,
 		route: `/line_items`,
 		param_validator: validate_estimate_params,
-		resolve: async ({ query, server }, { project_id }) => {
-			const { estimate, item_types, work_skills, project_documents } = await promise_all_object({
+		resolve: async ({ query, server, session }, { project_id }) => {
+			const { estimate, item_types, work_skills, project_documents, logged_in_session } = await promise_all_object({
 				estimate: select_estimate(query, project_id),
 				item_types: select_item_types(query),
 				work_skills: select_work_skills(query),
 				project_documents: select_project_documents(query),
+				logged_in_session: session.get_logged_in(),
 			})
 
 			assert(estimate, `project ${project_id} exists`)
@@ -46,6 +47,7 @@
 				work_details: project_line_item.work_details ?? ``,
 				estimated_hours: project_line_item.estimated_hours,
 				client_optional: project_line_item.client_optional,
+				price: project_line_item.price,
 				image_ids: map(images, image => image.project_image_id),
 				work_skill_ids: map(work_skills, work_skill => work_skill.work_skill_id),
 			}))
@@ -55,6 +57,7 @@
 				&& line_item.work_details === ``
 				&& line_item.estimated_hours === 0n
 				&& !line_item.client_optional
+				&& line_item.price.equal(`0`)
 				&& line_item.work_skill_ids.length === 0
 			))
 
@@ -67,6 +70,7 @@
 				first_time_estimating,
 				item_types,
 				work_skills,
+				round_to_nearest: logged_in_session.company.round_line_item_estimates_to_nearest,
 				next_project_document,
 			}
 		},
@@ -85,11 +89,12 @@
 		first_time_estimating,
 		item_types,
 		work_skills,
+		round_to_nearest,
 		next_project_document,
 		asr,
 	}: Resolved & { asr: StateAsr } = $props()
 
-	const form = untrack(() => make_estimate_form({ project, line_items: loaded_line_items }))
+	const form = untrack(() => make_estimate_form({ project, line_items: loaded_line_items, work_skills, round_to_nearest }))
 
 	const saver = form_saver({ form, send: values => server.update_estimate(values) })
 
@@ -173,7 +178,7 @@
 		{:else}
 			<div class="cards">
 				{#each form.line_items as line_item (line_item.stable_record_identifier)}
-					<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills} />
+					<LineItemCard {line_item} crew_size={form.project.form_values.estimated_crew_size} {first_time_estimating} {item_types} {work_skills} />
 				{/each}
 			</div>
 		{/if}

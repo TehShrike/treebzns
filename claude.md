@@ -49,7 +49,7 @@ Apply this to all prose you write.
 
 If you need documentation for anything related to Svelte, invoke the svelte MCP `list-sections` tool to see the available sections, then `get-documentation` for the relevant paths. Before reaching for `get-documentation`, try to answer from your own knowledge and the `svelte-autofixer` tool — documentation sections are token-intensive.
 
-Every time you write a Svelte component or a Svelte module you MUST invoke the `svelte-autofixer` tool providing the code. The tool will return a list of issues or suggestions. If there are any issues or suggestions you MUST fix them and call the tool again with the updated code. You MUST keep doing this until the tool returns no issues or suggestions. Only then you can return the code to the user.
+Every time you write a Svelte component or a Svelte module you MUST invoke the `svelte-autofixer` tool providing the code. The tool will return a list of issues or suggestions. If there are any issues or suggestions you should address them and call the tool again with the updated code. Keep doing this until the tool returns no issues or suggestions.
 
 ## ASR (abstract-state-router)
 

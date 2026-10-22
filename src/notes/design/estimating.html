@@ -339,9 +339,10 @@ Gate is 42 in - no machine access to the back.</textarea>
 				The project-level discount lives on the project screen, not here.
 			</li>
 			<li>
-				The blended rate line is help text, not a rule.  It multiplies the average
-				<code>work_skill.hourly_rate</code> for the item's skills by the hours.  The estimator still
-				types the price.
+				The price starts from a calculation: hours, times the project's estimated crew size, times the
+				average <code>work_skill.hourly_rate</code> for the item's skills, rounded to the nearest
+				<code>company.round_line_item_estimates_to_nearest</code>.  A change to hours, skills, or crew
+				size recalculates the price.  The estimator can still type over it.
 			</li>
 			<li class="open_question">
 				Open: "Send the proposal" moves the document from Lead (Qualified) to Proposal.  Does it

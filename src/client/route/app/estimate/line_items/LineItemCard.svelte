@@ -2,31 +2,19 @@
 	import WindowCard from '#component/WindowCard.svelte'
 	import PillCheckbox from '#component/PillCheckbox.svelte'
 	import WideTextareaField from '#component/WideTextareaField.svelte'
+	import NumberInput from '#component/NumberInput.svelte'
+	import IntegerInput from '#component/IntegerInput.svelte'
 	import type { LineItemForm } from './estimate_form.svelte.ts'
 	import type { ItemTypeRow } from '#lib/generic_queries/item_type.ts'
 	import type { WorkSkillRow } from '#lib/generic_queries/work_skill.ts'
 
-	const { line_item, first_time_estimating, item_types, work_skills }: {
+	const { line_item, crew_size, first_time_estimating, item_types, work_skills }: {
 		line_item: LineItemForm
+		crew_size: bigint | null
 		first_time_estimating: boolean
 		item_types: readonly ItemTypeRow[]
 		work_skills: readonly WorkSkillRow[]
 	} = $props()
-
-	const hours_text = $derived(line_item.record.form_values.estimated_hours.toString())
-
-	const set_hours = (text: string) => {
-		const digits = text.replace(/\D/g, ``)
-		line_item.record.form_values.estimated_hours = digits === `` ? 0n : BigInt(digits)
-	}
-
-	const set_work_skill = (work_skill_id: bigint, selected: boolean) => {
-		if (selected) {
-			line_item.work_skill_ids.add(work_skill_id)
-		} else {
-			line_item.work_skill_ids.delete(work_skill_id)
-		}
-	}
 </script>
 
 <WindowCard>
@@ -58,7 +46,7 @@
 		{#each work_skills as work_skill (work_skill.work_skill_id)}
 			<PillCheckbox
 				value_needs_to_be_saved={first_time_estimating || line_item.work_skill_ids.id_needs_to_be_saved(work_skill.work_skill_id)}
-				bind:checked={() => line_item.work_skill_ids.has(work_skill.work_skill_id), selected => set_work_skill(work_skill.work_skill_id, selected)}
+				bind:checked={() => line_item.work_skill_ids.has(work_skill.work_skill_id), selected => line_item.set_work_skill(work_skill.work_skill_id, selected)}
 			>
 				{work_skill.short_name}
 			</PillCheckbox>
@@ -72,25 +60,36 @@
 		bind:value={line_item.record.form_values.work_details}
 	/>
 
-	<div class="bottom_row">
+	<label>
+		<input
+			type="checkbox"
+			data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`client_optional`)}
+			bind:checked={line_item.record.form_values.client_optional}
+		>
+		Optional
+	</label>
+
+	<div class="calculation">
 		<label class="hours">
 			Hours
-			<input
-				type="text"
-				inputmode="numeric"
-				pattern="[0-9]*"
-				autocomplete="off"
-				data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`estimated_hours`)}
-				bind:value={() => hours_text, set_hours}
-			>
+			<IntegerInput
+				value_needs_to_be_saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`estimated_hours`)}
+				bind:value={line_item.record.form_values.estimated_hours}
+			/>
 		</label>
-		<label>
-			<input
-				type="checkbox"
-				data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`client_optional`)}
-				bind:checked={line_item.record.form_values.client_optional}
-			>
-			Optional
+		<span class="prose">
+			× {crew_size ?? `?`} crew
+			= {line_item.price_calculation.calculated_hours ?? `?`} per hour
+			× {line_item.price_calculation.hourly_rate === null ? `?` : `$${line_item.price_calculation.hourly_rate.toString()}`}
+			=
+		</span>
+		<label class="price">
+			Price
+			<NumberInput
+				decimal_places={2}
+				value_needs_to_be_saved={first_time_estimating || line_item.price_needs_to_be_saved}
+				bind:value={line_item.price}
+			/>
 		</label>
 	</div>
 </WindowCard>
@@ -128,14 +127,22 @@
 		color: var(--text_color_light);
 	}
 
-	.bottom_row {
+	.calculation {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: flex-end;
-		justify-content: space-between;
-		gap: var(--gap_unit);
+		gap: var(--gap_half);
 	}
 
-	.hours input {
-		width: 6rem;
+	.hours {
+		width: 4rem;
+	}
+
+	.prose {
+		padding: 3px 0;
+	}
+
+	.price {
+		width: 7rem;
 	}
 </style>

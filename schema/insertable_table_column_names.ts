@@ -113,6 +113,7 @@ export const company = {
 	brand_color: 'brand_color',
 	default_crew_start_time: 'default_crew_start_time',
 	invoice_due_after_days: 'invoice_due_after_days',
+	round_line_item_estimates_to_nearest: 'round_line_item_estimates_to_nearest',
 	timezone: 'timezone',
 } as const
 

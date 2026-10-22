@@ -1,6 +1,6 @@
 import * as jv from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
-import { is_buffer, is_temporal_instant, is_temporal_plain_time } from './_helpers.ts'
+import { is_buffer, is_financial_number, is_temporal_instant, is_temporal_plain_time } from './_helpers.ts'
 
 export const validator_object = {
 	company_id: jv.is_bigint,
@@ -10,6 +10,7 @@ export const validator_object = {
 	timezone: jv.is_string,
 	default_crew_start_time: is_temporal_plain_time,
 	invoice_due_after_days: jv.is_bigint,
+	round_line_item_estimates_to_nearest: is_financial_number,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 }

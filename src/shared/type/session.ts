@@ -1,5 +1,5 @@
 export const session_employee_columns = [`employee_id`, `company_id`, `name`, `email`, `login_name`, `phone`, `is_owner`] as const
-export const session_company_columns = [`company_id`, `name`, `brand_color`, `timezone`] as const
+export const session_company_columns = [`company_id`, `name`, `brand_color`, `timezone`, `round_line_item_estimates_to_nearest`] as const
 
 export type LoggedInSession = {
 	logged_in: true
