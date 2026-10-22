@@ -137,7 +137,6 @@
 	}
 
 	.calculation {
-		--input_height: 36px;
 		display: grid;
 		grid-template-columns: auto 1fr auto;
 		align-items: end;
@@ -163,7 +162,7 @@
 	.formula {
 		display: flex;
 		align-items: center;
-		min-height: var(--input_height);
+		min-height: var(--input-height);
 		white-space: nowrap;
 	}
 

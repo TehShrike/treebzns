@@ -16,6 +16,12 @@
 	--dialog-gray-light: #b5b5b5;
 	--link-blue: #0000ff;
 
+	/* Text */
+	--font-size: 15px;
+	--input-padding-block: 3px;
+	--input-line-height: 2;
+	--input-height: calc(var(--font-size) * var(--input-line-height) + 2 * var(--input-padding-block));
+
 	/* Spacing */
 	--element-spacing: 8px;
 	--grouped-button-spacing: 4px;
@@ -93,7 +99,7 @@ ul.tree-view,
 li[role="tab"] {
 	font-family: Arial;
 	-webkit-font-smoothing: none;
-	font-size: 15px;
+	font-size: var(--font-size);
 }
 
 h1 {
@@ -392,7 +398,7 @@ input[type="number"],
 input[type="search"],
 select,
 textarea {
-	padding: 3px 6px;
+	padding: var(--input-padding-block) 6px;
 	border: none;
 	box-shadow: var(--border-field);
 	background-color: var(--button-highlight);
@@ -431,7 +437,7 @@ input[type="tel"],
 input[type="number"],
 input[type="search"] {
 	/* For some reason descenders are getting cut off without this */
-	line-height: 2;
+	line-height: var(--input-line-height);
 }
 
 input[type="email"]:disabled,
