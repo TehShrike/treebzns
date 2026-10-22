@@ -149,6 +149,7 @@ A lead missing from lead_notes.js (it has no estimate, or its fetch failed) impo
 | --- | --- |
 | `size` / `species` / `reason` | → appended to `description` as text |
 | `man_hours` | → `estimated_hours`, **rounded to whole hours** (the column is an integer) |
+| `crew_role_ids` | → `estimated_crew_size`: one entry per crew slot, so the count is the crew size. A line with no slots gets 1, the column default |
 | `cost` | dropped (no cost column — margin data is lost) |
 | `optional` | → `client_optional` (forced true on Declined lines — this schema only allows declining optional lines, and a declined line was never billed regardless of how it was offered) |
 | `status` | `Declined` → `client_declined`; otherwise dropped (`New` = still-undecided proposal, `Completed` = accepted/invoiced work — both import as not-declined) |

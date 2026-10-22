@@ -8,9 +8,8 @@
 	import type { ItemTypeRow } from '#lib/generic_queries/item_type.ts'
 	import type { WorkSkillRow } from '#lib/generic_queries/work_skill.ts'
 
-	const { line_item, crew_size, first_time_estimating, item_types, work_skills }: {
+	const { line_item, first_time_estimating, item_types, work_skills }: {
 		line_item: LineItemForm
-		crew_size: bigint | null
 		first_time_estimating: boolean
 		item_types: readonly ItemTypeRow[]
 		work_skills: readonly WorkSkillRow[]
@@ -70,27 +69,37 @@
 	</label>
 
 	<div class="calculation">
-		<label class="hours">
-			Hours
-			<IntegerInput
-				value_needs_to_be_saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`estimated_hours`)}
-				bind:value={line_item.record.form_values.estimated_hours}
-			/>
-		</label>
-		<span class="prose">
-			× {crew_size ?? `?`} crew
-			= {line_item.price_calculation.calculated_hours ?? `?`} per hour
-			× {line_item.price_calculation.hourly_rate === null ? `?` : `$${line_item.price_calculation.hourly_rate.toString()}`}
-			=
-		</span>
-		<label class="price">
-			Price
-			<NumberInput
-				decimal_places={2}
-				value_needs_to_be_saved={first_time_estimating || line_item.price_needs_to_be_saved}
-				bind:value={line_item.price}
-			/>
-		</label>
+		<div class="crew_hours">
+			<label class="hours">
+				Hours
+				<IntegerInput
+					value_needs_to_be_saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`estimated_hours`)}
+					bind:value={line_item.record.form_values.estimated_hours}
+				/>
+			</label>
+			<span class="formula">×</span>
+			<label class="crew">
+				Crew
+				<IntegerInput
+					min={1}
+					value_needs_to_be_saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`estimated_crew_size`)}
+					bind:value={line_item.record.form_values.estimated_crew_size}
+				/>
+			</label>
+			<span class="formula">= {line_item.price_calculation.calculated_hours} hours</span>
+		</div>
+		<span class="formula">× {line_item.price_calculation.hourly_rate === null ? `?` : `$${line_item.price_calculation.hourly_rate.toString()}`}</span>
+		<div class="equals_price">
+			<span class="formula">=</span>
+			<label class="price">
+				Price
+				<NumberInput
+					decimal_places={2}
+					value_needs_to_be_saved={first_time_estimating || line_item.price_needs_to_be_saved}
+					bind:value={line_item.price}
+				/>
+			</label>
+		</div>
 	</div>
 </WindowCard>
 
@@ -128,18 +137,34 @@
 	}
 
 	.calculation {
+		--input_height: 36px;
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		align-items: end;
+		justify-items: center;
+		gap: var(--gap_half);
+		width: 100%;
+		max-width: var(--wide_input);
+	}
+
+	.crew_hours,
+	.equals_price {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: flex-end;
 		gap: var(--gap_half);
 	}
 
-	.hours {
+	.hours,
+	.crew {
 		width: 4rem;
 	}
 
-	.prose {
-		padding: 3px 0;
+	.formula {
+		display: flex;
+		align-items: center;
+		min-height: var(--input_height);
+		white-space: nowrap;
 	}
 
 	.price {

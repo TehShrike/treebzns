@@ -5,6 +5,8 @@ import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten, chunk } from '#shared/array.ts'
 import { ROWS_PER_BATCH, join_lines } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
+import { pick } from '#shared/pick.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 export type ImportedDefaultProjectAddress = {
 	client_address_id: bigint
@@ -155,8 +157,7 @@ export const import_clients = async ({
 				billing_city: address.city,
 				billing_state: address.state,
 				billing_zip: address.zip,
-				tax_rate_id: null,
-				referred_by: '',
+				...pick(default_values.client, ['tax_rate_id', 'referred_by']),
 				arbostar_client_id: BigInt(client.client_id),
 			}
 		})
@@ -168,7 +169,7 @@ export const import_clients = async ({
 		// along with addresses.js) has never had data either.
 		const primary_address_rows = map(new_clients, (client, index) => ({
 			client_id: client_ids[index]!,
-			client_contact_id: null,
+			client_contact_id: default_values.client_address.client_contact_id,
 			name: 'Primary',
 			...address_fields(client),
 			sort: 0n,

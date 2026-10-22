@@ -10,6 +10,7 @@ import { ROWS_PER_BATCH, group_by, money } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
 import { date_from_yyyymmdd } from './arbostar_dates.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 export type ImportedInvoices = {
 	invoice_id_by_arbostar_invoice_id: Map<number, bigint>
@@ -239,9 +240,9 @@ export const import_invoices = async ({
 				invoice_id: invoice_id_by_arbostar_invoice_id.get(line.invoice_id!)!,
 				project_line_item_id,
 				description: line.service_name?.trim() ?? '',
-				quantity: money(line.quantity ?? 1),
-				price: money(line.price ?? 0),
-				discount_description: '',
+				quantity: line.quantity === null ? default_values.invoice_line_item.quantity : money(line.quantity),
+				price: line.price === null ? default_values.invoice_line_item.price : money(line.price),
+				discount_description: default_values.invoice_line_item.discount_description,
 				taxable: !line.non_taxable,
 				sort: BigInt(line.sort_order),
 			}

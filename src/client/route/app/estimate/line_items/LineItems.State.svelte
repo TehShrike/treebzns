@@ -4,6 +4,7 @@
 	import LinkThatLooksLikeAButton from '#component/LinkThatLooksLikeAButton.svelte'
 	import LineItemCard from './LineItemCard.svelte'
 	import make_estimate_form, { type LoadedLineItem } from './estimate_form.svelte.ts'
+	import * as default_values from '#shared/treebzns_db/default_values.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
 	import { select_estimate } from './select_estimate.ts'
@@ -45,6 +46,7 @@
 				title: project_line_item.title,
 				item_type_id: project_line_item.item_type_id,
 				work_details: project_line_item.work_details ?? ``,
+				estimated_crew_size: project_line_item.estimated_crew_size,
 				estimated_hours: project_line_item.estimated_hours,
 				client_optional: project_line_item.client_optional,
 				price: project_line_item.price,
@@ -52,9 +54,11 @@
 				work_skill_ids: map(work_skills, work_skill => work_skill.work_skill_id),
 			}))
 
+			const project_crew_size = estimate.project.estimated_crew_size ?? default_values.project_line_item.estimated_crew_size
 			const first_time_estimating = every(loaded_line_items, line_item => (
 				line_item.item_type_id === null
 				&& line_item.work_details === ``
+				&& line_item.estimated_crew_size === project_crew_size
 				&& line_item.estimated_hours === 0n
 				&& !line_item.client_optional
 				&& line_item.price.equal(`0`)
@@ -124,7 +128,7 @@
 
 	const set_crew_size = (text: string) => {
 		const digits = text.replace(/\D/g, ``)
-		form.project.form_values.estimated_crew_size = digits === `` ? null : BigInt(digits)
+		form.set_project_crew_size(digits === `` ? null : BigInt(digits))
 	}
 </script>
 
@@ -178,7 +182,7 @@
 		{:else}
 			<div class="cards">
 				{#each form.line_items as line_item (line_item.stable_record_identifier)}
-					<LineItemCard {line_item} crew_size={form.project.form_values.estimated_crew_size} {first_time_estimating} {item_types} {work_skills} />
+					<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills} />
 				{/each}
 			</div>
 		{/if}

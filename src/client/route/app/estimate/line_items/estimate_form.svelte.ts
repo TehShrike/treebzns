@@ -4,7 +4,9 @@ import tracked_record_array from '#lib/tracked_record_array.ts'
 import tracked_id_set, { type TrackedIdSet } from '#lib/tracked_id_set.ts'
 import type { PendingAdd, PendingChange } from '#lib/pending_save.ts'
 import assert from '#shared/assert.ts'
-import { map } from '#shared/array.ts'
+import { for_each, map } from '#shared/array.ts'
+import { pick } from '#shared/pick.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 import type { FinancialNumber } from '#shared/fnum.ts'
 import { average_hourly_rate, calculate_line_item_price } from '#shared/estimate/line_item_price.ts'
 import type {
@@ -26,7 +28,7 @@ type RecordValues = Omit<EstimateLineItemValues, 'price'>
 type PriceChange = Partial<Pick<EstimateLineItemValues, 'price'>>
 
 export type PriceCalculation = {
-	calculated_hours: bigint | null
+	calculated_hours: bigint
 	hourly_rate: FinancialNumber | null
 	price: FinancialNumber | null
 }
@@ -69,14 +71,13 @@ const start_change = ({ record_save, work_skill_ids_save, price_change, commit, 
 
 const make_line_item = (
 	{ title, image_ids, work_skill_ids: loaded_work_skill_ids, price: loaded_price, ...values_in_db }: LoadedLineItem,
-	{ crew_size, hourly_rate_of, round_to_nearest }: {
-		crew_size: () => bigint | null
+	{ hourly_rate_of, round_to_nearest }: {
 		hourly_rate_of: (work_skill_id: bigint) => FinancialNumber
 		round_to_nearest: FinancialNumber
 	},
 ) => {
 	const record = tracked_record<RecordValues, 'project_line_item_id'>({
-		default_values: { item_type_id: null, work_details: ``, estimated_hours: 0n, client_optional: false },
+		default_values: pick(default_values.project_line_item, [`item_type_id`, `work_details`, `estimated_crew_size`, `estimated_hours`, `client_optional`]),
 		id_key: `project_line_item_id`,
 		values_in_db,
 	})
@@ -84,13 +85,12 @@ const make_line_item = (
 	let price_in_db = $state.raw(loaded_price)
 
 	const price_calculation: PriceCalculation = $derived.by(() => {
-		const size = crew_size()
+		const { estimated_crew_size: crew_size, estimated_hours } = record.form_values
 		const hourly_rate = average_hourly_rate(map([...work_skill_ids.ids], hourly_rate_of))
-		const estimated_hours = record.form_values.estimated_hours
-		const calculated_hours = size === null ? null : estimated_hours * size
-		const price = size === null || hourly_rate === null
+		const calculated_hours = estimated_hours * crew_size
+		const price = hourly_rate === null
 			? null
-			: calculate_line_item_price({ estimated_hours, crew_size: size, hourly_rate, round_to_nearest })
+			: calculate_line_item_price({ estimated_hours, crew_size, hourly_rate, round_to_nearest })
 		return { calculated_hours, hourly_rate, price }
 	})
 
@@ -152,7 +152,7 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 	round_to_nearest: FinancialNumber
 }) => {
 	const project = tracked_record<EstimateProjectValues, 'project_id'>({
-		default_values: { estimated_crew_size: null, project_document_id: loaded_project.project_document_id },
+		default_values: { estimated_crew_size: default_values.project.estimated_crew_size, project_document_id: loaded_project.project_document_id },
 		id_key: `project_id`,
 		values_in_db: loaded_project,
 	})
@@ -165,12 +165,23 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 		return work_skill.hourly_rate
 	}
 
-	const line_items = map(loaded_line_items, loaded_line_item => make_line_item(loaded_line_item, {
-		crew_size: () => project.form_values.estimated_crew_size,
-		hourly_rate_of,
-		round_to_nearest,
-	}))
+	const line_items = map(loaded_line_items, loaded_line_item => make_line_item(loaded_line_item, { hourly_rate_of, round_to_nearest }))
 	const line_item_records = tracked_record_array({ records: () => line_items })
+
+	let crew_size_line_items_follow = loaded_project.estimated_crew_size ?? default_values.project_line_item.estimated_crew_size
+
+	const set_project_crew_size = (crew_size: bigint | null) => {
+		project.form_values.estimated_crew_size = crew_size
+		if (crew_size === null || crew_size === crew_size_line_items_follow) {
+			return
+		}
+		for_each(line_items, line_item => {
+			if (line_item.record.form_values.estimated_crew_size === crew_size_line_items_follow) {
+				line_item.record.form_values.estimated_crew_size = crew_size
+			}
+		})
+		crew_size_line_items_follow = crew_size
+	}
 
 	const needs_to_be_saved = $derived(project.needs_to_be_saved || line_item_records.needs_to_be_saved)
 
@@ -203,6 +214,7 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 		project,
 		line_items,
 		get needs_to_be_saved() { return needs_to_be_saved },
+		set_project_crew_size,
 		start_save,
 	}
 }

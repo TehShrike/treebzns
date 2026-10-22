@@ -2,12 +2,6 @@
 
 ## Make the estimation/proposal editing screen tolerable
 
-We need to be able to set estimated_crew_size per project_line_item.  The column should be right before estimated_hours.  Non-nullable.  Default 1.  The arbostar import should populate this value.
-
-The project-level estimated_crew_size should be used as a default for this when creating line items.  When editing project-level estimated crew size on the estimate screen, all line items that had the same estimated crew size as the project level before the change should be updated to match.
-
----
-
 We need to allow selecting the same work skill multiple times per line item.  line item + work skill can no longer be a unique key in project_line_item_work_skill.
 
 The work skill row in estimate line items needs te become two rows: one that shows a button for each selection, and one that shows a pill (with an x on the right side) for each time work skill in the list.  Clicking on the pill removes it from the list.  That will have to be done by project_line_item_work_skill_id, not just work_skill_id.

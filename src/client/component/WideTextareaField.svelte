@@ -20,7 +20,7 @@
 		flex-direction: column;
 		gap: 2px;
 		width: 100%;
-		max-width: 42rem;
+		max-width: var(--wide_input);
 	}
 
 	textarea {

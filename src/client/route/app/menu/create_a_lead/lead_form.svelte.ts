@@ -2,31 +2,28 @@ import tracked_record from '#lib/tracked_record.svelte.ts'
 import type { CachedClient, CachedClientContact } from '#lib/client_cache.svelte.ts'
 import type { LeadClientValues, LeadAddressValues, LeadContactValues, LeadBilling, LeadProject, LeadAvailability, CreateLeadArgument, CreateLeadResult } from '#shared/type/lead.ts'
 import { find } from '#shared/array.ts'
+import { pick } from '#shared/pick.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 	const client = tracked_record<LeadClientValues, 'client_id'>({
-		default_values: { name: ``, billing_phone: ``, billing_email: ``, referred_by: ``, tax_rate_id: null, is_commercial: false, notes: `` },
+		default_values: pick(default_values.client, [`name`, `billing_phone`, `billing_email`, `referred_by`, `tax_rate_id`, `is_commercial`, `notes`]),
 		id_key: `client_id`,
 	})
 	const address = tracked_record<LeadAddressValues, 'client_address_id'>({
-		default_values: { address_line_1: ``, address_line_2: ``, city: ``, state: ``, zip: `` },
+		default_values: pick(default_values.client_address, [`address_line_1`, `address_line_2`, `city`, `state`, `zip`]),
 		id_key: `client_address_id`,
 	})
 	const contact = tracked_record<LeadContactValues, 'client_contact_id'>({
-		default_values: { name: ``, phone: ``, email: `` },
+		default_values: pick(default_values.client_contact, [`name`, `phone`, `email`]),
 		id_key: `client_contact_id`,
 	})
 
 	let selected_client = $state.raw<CachedClient | null>(null)
 	let billing_address = $state<LeadBilling | null>(null)
 	let project = $state<LeadProject>({
-		due_date: null,
-		emergency: false,
-		lead_details: ``,
-		notes_for_crew: ``,
-		notes_for_office: ``,
+		...pick(default_values.project, [`due_date`, `emergency`, `lead_details`, `notes_for_crew`, `notes_for_office`, `lead_source_id`]),
 		assigned_estimator_employee_id: initial_estimator_employee_id,
-		lead_source_id: null,
 		lead_source_name: null,
 	})
 	let availability = $state<LeadAvailability[]>([])

@@ -27,6 +27,7 @@ import { ROWS_PER_BATCH, group_by, join_lines, join_paragraphs, money, money_dis
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ImportedDefaultProjectAddress } from './import_clients.ts'
 import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 export type ImportedProjects = {
 	project_id_by_arbostar_lead_id: Map<number, bigint>
@@ -551,7 +552,7 @@ export const import_projects = async ({
 			closed_date,
 			project_decline_reason_id,
 			lead_source_id: lead_source_id(lead),
-			discount_description: '',
+			discount_description: default_values.project.discount_description,
 			...totals,
 			...project_tax(lead),
 		}
@@ -583,8 +584,8 @@ export const import_projects = async ({
 		const project_rows = map(new_leads, lead => ({
 			number: lead_number(lead),
 			...project_fields(lead),
-			due_date: null,
-			emergency: false,
+			due_date: default_values.project.due_date,
+			emergency: default_values.project.emergency,
 			created_by_employee_id: context.created_by_employee_id,
 		}))
 		const { insert_ids } = await write_helper.bulk_insert('project', project_rows, ROWS_PER_BATCH)

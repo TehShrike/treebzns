@@ -2,11 +2,13 @@
 	import LinkThatLooksLikeAButton from '#component/LinkThatLooksLikeAButton.svelte'
 	import type { Context } from '#lib/client_context.ts'
 	import type { LineItemRow } from './select_line_items.ts'
+	import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 	const {
 		asr,
 		server,
 		project_id,
+		project_estimated_crew_size,
 		line_items,
 		current_index,
 		on_done,
@@ -14,6 +16,7 @@
 		asr: StateAsr
 		server: Context[`server`]
 		project_id: bigint
+		project_estimated_crew_size: bigint | null
 		line_items: LineItemRow[]
 		current_index: number | null
 		on_done?: () => void
@@ -32,7 +35,10 @@
 	const create_line_item = async () => {
 		creating = true
 		try {
-			const { project_line_item_id } = await server.create_line_item({ project_id })
+			const { project_line_item_id } = await server.create_line_item({
+				project_id,
+				estimated_crew_size: project_estimated_crew_size ?? default_values.project_line_item.estimated_crew_size,
+			})
 			asr.go(`app.estimate.line_item`, { project_id, project_line_item_id })
 		} finally {
 			creating = false

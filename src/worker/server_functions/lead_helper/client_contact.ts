@@ -3,6 +3,7 @@ import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { LeadContact, LeadContactValues } from '#shared/type/lead.ts'
 import { get_next_sort } from '#lib/db/sort_column.ts'
 import { pick } from '#shared/pick.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 const create_client_contact = async ({
 	client_id,
@@ -19,7 +20,7 @@ const create_client_contact = async ({
 
 	const { insert_id: client_contact_id } = await write_helper.insert('client_contact', {
 		client_id,
-		description: '',
+		description: default_values.client_contact.description,
 		...pick(contact, ['name', 'phone', 'email']),
 		is_primary: sort === 1n,
 		sort,

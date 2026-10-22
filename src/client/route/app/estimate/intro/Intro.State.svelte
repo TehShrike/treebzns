@@ -4,6 +4,7 @@
 	import Layout from '../Layout.svelte'
 	import EstimateNavBar from '../EstimateNavBar.svelte'
 	import { select_line_items } from '../select_line_items.ts'
+	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
 	import type { Schema } from '#schema/types.ts'
@@ -11,25 +12,18 @@
 	import { filter } from '#shared/array.ts'
 	import type { Temporal } from '@js-temporal/polyfill'
 
-	const select_project = async (query: ClientQueryFn, project_id: bigint) => {
+	const select_contact_name = async (query: ClientQueryFn, project_id: bigint) => {
 		const rows = await query(
 			query_builder<Schema>()
 				.from(`project`)
 				.join(`client_contact`, q => q.comparison(`client_contact.client_contact_id`, `=`, `project.client_contact_id`))
 				.where(q => q.comparison(`project.project_id`, `=`, { value: project_id }))
-				.select(() => [
-					`project.project_id`,
-					`project.address_line_1`,
-					`project.address_line_2`,
-					`project.city`,
-					`project.state`,
-					`project.zip`,
-					`project.lead_details`,
-					`client_contact.name`,
-				] as const)
+				.select(() => [`client_contact.name`] as const)
 				.build()
 		)
-		return rows[0] ?? null
+		const row = rows[0]
+		assert(row, `project ${project_id} exists`)
+		return row.client_contact.name
 	}
 
 	const select_availability = (query: ClientQueryFn, project_id: bigint) => query(
@@ -52,15 +46,13 @@
 		route: ``,
 		param_validator: validate_estimate_params,
 		resolve: async ({ query, server }, { project_id }) => {
-			const [project, availability, line_items] = await Promise.all([
-				select_project(query, project_id),
+			const [contact_name, availability, line_items] = await Promise.all([
+				select_contact_name(query, project_id),
 				select_availability(query, project_id),
 				select_line_items(query, project_id),
 			])
 
-			assert(project, `project ${project_id} exists`)
-
-			return { server, project_id, project, availability, line_items }
+			return { server, project_id, contact_name, availability, line_items }
 		},
 	})
 
@@ -68,20 +60,20 @@
 </script>
 
 <script lang="ts">
-	const { server, project_id, project, availability, line_items, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
+	const { server, project_id, project, contact_name, availability, line_items, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
 
-	const street = $derived(filter([project.project.address_line_1, project.project.address_line_2], Boolean).join(`, `))
-	const city_state_zip = $derived(filter([project.project.city, project.project.state, project.project.zip], Boolean).join(` `))
+	const street = $derived(filter([project.address_line_1, project.address_line_2], Boolean).join(`, `))
+	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
 </script>
 
 <Layout>
 	{#snippet top()}
-		<EstimateNavBar {asr} {server} {project_id} {line_items} current_index={null} />
+		<EstimateNavBar {asr} {server} {project_id} project_estimated_crew_size={project.estimated_crew_size} {line_items} current_index={null} />
 	{/snippet}
 
 	<fieldset>
 		<legend>Client</legend>
-		<div>{project.client_contact.name}</div>
+		<div>{contact_name}</div>
 		<div class="address">
 			<div>{street}</div>
 			<div>{city_state_zip}</div>
@@ -90,10 +82,10 @@
 
 	<fieldset>
 		<legend>Job</legend>
-		{#if project.project.lead_details === ``}
+		{#if project.lead_details === ``}
 			<div>No description given</div>
 		{:else}
-			<p class="lead-details">{project.project.lead_details}</p>
+			<p class="lead-details">{project.lead_details}</p>
 		{/if}
 	</fieldset>
 

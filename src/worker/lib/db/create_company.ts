@@ -9,6 +9,7 @@ import make_write_helper from '#shared/mysql/write_helper.ts'
 import assert from '#shared/assert.ts'
 import is_valid_timezone from '#shared/is_valid_timezone.ts'
 import type { Schema } from '#schema/types.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 const ROWS_PER_BATCH = 100
 
@@ -60,9 +61,9 @@ export const create_company = async (
 			.insert('company', company)
 		const write_helper = make_write_helper({ connection: transaction_connection, company_id })
 
-		await write_helper.insert('project_number', { next_number: 1100n })
+		await write_helper.insert('project_number', default_values.project_number)
 
-		await write_helper.insert('invoice_number', { next_number: 1100n })
+		await write_helper.insert('invoice_number', default_values.invoice_number)
 
 		await write_helper.bulk_insert(
 			'payment_method',
@@ -108,8 +109,8 @@ export const create_company = async (
 			...owner_employee,
 			company_id,
 			is_owner: true,
-			default_crew_id: null,
-			phone: owner_employee.phone ?? '',
+			default_crew_id: default_values.employee.default_crew_id,
+			phone: owner_employee.phone ?? default_values.employee.phone,
 		}, transaction_mysql)
 
 		assert(owner_software_role_id !== null, 'One of the default software roles is the owner role')

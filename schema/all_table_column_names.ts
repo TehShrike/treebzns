@@ -525,6 +525,7 @@ export const project_line_item = {
 	work_details: 'work_details',
 	item_type_id: 'item_type_id',
 	line_item_template_id: 'line_item_template_id',
+	estimated_crew_size: 'estimated_crew_size',
 	estimated_hours: 'estimated_hours',
 	taxable: 'taxable',
 	client_optional: 'client_optional',

@@ -29,7 +29,7 @@
 
 	const on_blur = (event: FocusEvent & { currentTarget: HTMLInputElement }) => {
 		if (event.currentTarget.value === ``) {
-			value = 0n
+			value = BigInt(min ?? 0)
 		}
 		event.currentTarget.value = value.toString()
 	}

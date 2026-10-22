@@ -16,17 +16,19 @@ import { default_line_item, insert_line_item } from './estimate_helper/line_item
 import { assert_line_items_belong_to_project, remove_line_items, update_line_item } from './estimate_helper/update_line_item.ts'
 import { update_project_document } from '#shared/treebzns_db/changes_with_history/project_document_history.ts'
 
-const create_line_item_validator = jv.object({
-	project_id: jv.is_bigint,
-})
-
 const line_item_value_validators = {
 	item_type_id: jv.nullable(jv.is_bigint),
 	work_details: jv.is_string,
+	estimated_crew_size: jv.is_bigint,
 	estimated_hours: jv.is_bigint,
 	client_optional: jv.is_boolean,
 	price: is_financial_number,
 }
+
+const create_line_item_validator = jv.object({
+	project_id: jv.is_bigint,
+	...jv.optional_shape(line_item_value_validators),
+})
 
 const work_skill_ids_validator = jv.array(jv.is_bigint)
 
@@ -90,12 +92,17 @@ export const functions = {
 	create_line_item: sfn({
 		validator: create_line_item_validator,
 		fn: (
-			{ project_id },
+			{ project_id, ...line_item_values },
 			{ transaction },
 		): Promise<{ project_line_item_id: bigint }> => transaction(async ({ select_builder, write_helper }) => {
 			await assert_db_id_valid({ select_builder, table_name: `project`, id: project_id })
 
-			const project_line_item_id = await insert_line_item({ project_id, line_item: default_line_item, select_builder, write_helper })
+			const project_line_item_id = await insert_line_item({
+				project_id,
+				line_item: { ...default_line_item, ...line_item_values },
+				select_builder,
+				write_helper,
+			})
 
 			return { project_line_item_id }
 		}),

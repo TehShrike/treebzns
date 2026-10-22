@@ -643,6 +643,7 @@ CREATE TABLE `project_line_item` (
   `work_details` text COLLATE utf8mb4_general_ci,
   `item_type_id` int unsigned DEFAULT NULL,
   `line_item_template_id` int unsigned DEFAULT NULL,
+  `estimated_crew_size` tinyint unsigned NOT NULL DEFAULT '1',
   `estimated_hours` int unsigned NOT NULL,
   `taxable` bit(1) NOT NULL DEFAULT b'0',
   `client_optional` bit(1) NOT NULL DEFAULT b'0',

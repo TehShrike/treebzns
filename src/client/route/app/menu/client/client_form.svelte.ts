@@ -3,16 +3,18 @@ import tracked_record_array from '#lib/tracked_record_array.ts'
 import editable_rows from '#component/list_input/editable_rows.svelte.ts'
 import assert from '#shared/assert.ts'
 import { map } from '#shared/array.ts'
+import { pick } from '#shared/pick.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 import type { ClientValues, ClientContactValues, ClientAddressValues, UpdateClientArgument, UpdateClientResult } from '#shared/type/client.ts'
 
 const make_contact = (values_in_db: DbValues<ClientContactValues, 'client_contact_id'> | null) => tracked_record<ClientContactValues, 'client_contact_id'>({
-	default_values: { description: ``, name: ``, phone: ``, email: ``, is_primary: false },
+	default_values: pick(default_values.client_contact, [`description`, `name`, `phone`, `email`, `is_primary`]),
 	id_key: `client_contact_id`,
 	values_in_db,
 })
 
 const make_address = (values_in_db: DbValues<ClientAddressValues, 'client_address_id'> | null) => tracked_record<ClientAddressValues, 'client_address_id'>({
-	default_values: { client_contact_id: null, name: ``, address_line_1: ``, address_line_2: ``, city: ``, state: ``, zip: `` },
+	default_values: pick(default_values.client_address, [`client_contact_id`, `name`, `address_line_1`, `address_line_2`, `city`, `state`, `zip`]),
 	id_key: `client_address_id`,
 	values_in_db,
 })
@@ -24,20 +26,22 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 }) => {
 	const client = tracked_record<ClientValues, 'client_id'>({
 		default_values: {
-			name: ``,
-			is_commercial: false,
+			...pick(default_values.client, [
+				`name`,
+				`is_commercial`,
+				`billing_name`,
+				`billing_address_line_1`,
+				`billing_address_line_2`,
+				`billing_city`,
+				`billing_state`,
+				`billing_zip`,
+				`billing_phone`,
+				`billing_email`,
+				`tax_rate_id`,
+				`notes`,
+				`referred_by`,
+			]),
 			default_project_address_id: 0n,
-			billing_name: ``,
-			billing_address_line_1: ``,
-			billing_address_line_2: ``,
-			billing_city: ``,
-			billing_state: ``,
-			billing_zip: ``,
-			billing_phone: ``,
-			billing_email: ``,
-			tax_rate_id: null,
-			notes: ``,
-			referred_by: ``,
 		},
 		id_key: `client_id`,
 		values_in_db: loaded_client,

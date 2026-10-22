@@ -9,6 +9,7 @@ import { filter, filter_map, flat_map, for_each, map, map_with_concurrency } fro
 import { ROWS_PER_BATCH } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ExistingProjectImage } from './load_existing_correlations.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 export const UPLOAD_CONCURRENCY = 8
 
@@ -134,13 +135,9 @@ export const import_images = async ({
 			const { insert_ids } = await write_helper.bulk_insert(
 				'project_image',
 				map(new_rows, row => ({
+					...default_values.project_image,
 					project_id: row.project_id,
-					original_object_key: '',
-					display_object_key: '',
-					thumbnail_object_key: '',
-					description: '',
 					visible_to_client: row.image.in_estimate_pdf,
-					uploaded_at: null,
 					arbostar_image_id: BigInt(row.image.image_id),
 					upload_employee_id: row.upload_employee_id,
 				})),

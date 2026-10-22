@@ -7,6 +7,7 @@ import { map, filter, flat_map } from '#shared/array.ts'
 import { ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { normalize_crew_code } from './import_work_skills.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 export type ImportedLineItems = {
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>
@@ -103,13 +104,14 @@ export const import_line_items = async ({
 			title: item.service_name?.trim() ?? '',
 			work_details: work_details === '' ? null : work_details,
 			item_type_id: item.service_name === null ? null : item_type_id_by_name.get(normalize_name(item.service_name))!,
-			estimated_hours: BigInt(Math.round(item.man_hours ?? 0)),
+			estimated_crew_size: item.crew_role_ids.length === 0 ? default_values.project_line_item.estimated_crew_size : BigInt(item.crew_role_ids.length),
+			estimated_hours: item.man_hours === null ? default_values.project_line_item.estimated_hours : BigInt(Math.round(item.man_hours)),
 			taxable: !item.non_taxable,
 			client_optional: item.optional || item.status === 'Declined',
 			client_declined: item.status === 'Declined',
-			quantity: money(item.quantity ?? 1),
-			price: money(item.price ?? 0),
-			discount_description: '',
+			quantity: item.quantity === null ? default_values.project_line_item.quantity : money(item.quantity),
+			price: item.price === null ? default_values.project_line_item.price : money(item.price),
+			discount_description: default_values.project_line_item.discount_description,
 			sort: BigInt(item.sort_order),
 		}
 	}

@@ -1,6 +1,7 @@
 import assert from '#shared/assert.ts'
 import type { TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 const get_line_item_project_id = async ({
 	project_line_item_id,
@@ -52,13 +53,8 @@ export const insert_line_item_image = async ({
 	const sort = await get_next_sort({ project_line_item_id, select_builder })
 
 	const { insert_id: project_image_id } = await write_helper.insert(`project_image`, {
+		...default_values.project_image,
 		project_id,
-		original_object_key: ``,
-		display_object_key: ``,
-		thumbnail_object_key: ``,
-		description: ``,
-		visible_to_client: true,
-		uploaded_at: null,
 		upload_employee_id,
 	})
 

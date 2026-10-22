@@ -8,6 +8,7 @@ import all_properties_have_values from '#shared/all_properties_have_values.ts'
 import type { LeadAddress, LeadAddressValues } from '#shared/type/lead.ts'
 import { get_next_sort } from '#lib/db/sort_column.ts'
 import { pick } from '#shared/pick.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 
 const select_address_values = async ({ client_address_id, select_builder }: {
@@ -45,8 +46,7 @@ const insert_client_address = async ({
 
 	const { insert_id: client_address_id } = await write_helper.insert('client_address', {
 		client_id,
-		client_contact_id: null,
-		name: '',
+		...pick(default_values.client_address, ['client_contact_id', 'name']),
 		...pick(address, ['address_line_1', 'address_line_2', 'city', 'state', 'zip']),
 		sort,
 	})

@@ -7,6 +7,7 @@
 	import type { CapturedPhoto } from '#component/photo_camera/captured_photo.ts'
 	import { validate_line_item_params } from '../line_item_params.ts'
 	import { select_line_items } from '../select_line_items.ts'
+	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
 	import assert from '#shared/assert.ts'
 	import { find_index } from '#shared/array.ts'
 
@@ -29,7 +30,7 @@
 </script>
 
 <script lang="ts">
-	const { server, photo_upload_queue, camera_service, project_id, line_items, current_index, line_item, asr }: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
+	const { server, photo_upload_queue, camera_service, project_id, project, line_items, current_index, line_item, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
 
 	let camera: PhotoCamera | undefined = $state()
 	let markup: PhotoMarkup | undefined = $state()
@@ -81,7 +82,7 @@
 
 <Layout fill>
 	{#snippet top()}
-		<EstimateNavBar {asr} {server} {project_id} {line_items} {current_index} on_done={camera_service.close} />
+		<EstimateNavBar {asr} {server} {project_id} project_estimated_crew_size={project.estimated_crew_size} {line_items} {current_index} on_done={camera_service.close} />
 	{/snippet}
 
 	<div class="stage">

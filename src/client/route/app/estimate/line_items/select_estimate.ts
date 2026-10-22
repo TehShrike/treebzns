@@ -29,6 +29,7 @@ export const select_estimate = async (query: ClientQueryFn, project_id: bigint) 
 				`project_line_item.title`,
 				`project_line_item.item_type_id`,
 				`project_line_item.work_details`,
+				`project_line_item.estimated_crew_size`,
 				`project_line_item.estimated_hours`,
 				`project_line_item.client_optional`,
 				`project_line_item.price`,

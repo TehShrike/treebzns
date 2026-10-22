@@ -11,6 +11,7 @@ import { insert_client_address, update_client_address } from './client_helper/cl
 import { remove_client_addresses, remove_client_contacts } from './client_helper/remove_rows.ts'
 import { get_client_metrics } from './client_helper/client_metrics.ts'
 import { select_client_address_ids_in_use, select_client_contact_ids_in_use } from '#shared/treebzns_db/client_relationships.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 const address_validator = jv.object({
 	name: jv.is_string,
@@ -141,21 +142,16 @@ export const functions = {
 			const { company, transaction } = context
 			return transaction(async ({ write_helper }) => {
 				const { insert_id: client_id } = await write_helper.insert('client', {
+					...pick(default_values.client, ['billing_name', 'billing_address_line_1', 'billing_address_line_2', 'billing_city', 'billing_state', 'billing_zip']),
 					...pick(arg, ['name', 'is_commercial', 'billing_phone', 'billing_email', 'notes', 'referred_by']),
 					default_project_address_id: 0n,
-					billing_name: '',
-					billing_address_line_1: '',
-					billing_address_line_2: '',
-					billing_city: '',
-					billing_state: '',
-					billing_zip: '',
-					tax_rate_id: arg.tax_rate_id ?? null,
+					tax_rate_id: arg.tax_rate_id ?? default_values.client.tax_rate_id,
 				})
 
 				const { primary_address } = arg
 				const { insert_id: client_address_id } = await write_helper.insert('client_address', {
 					client_id,
-					client_contact_id: null,
+					client_contact_id: default_values.client_address.client_contact_id,
 					...pick(primary_address, ['name', 'address_line_1', 'address_line_2', 'city', 'state', 'zip']),
 					sort: 0n,
 				})

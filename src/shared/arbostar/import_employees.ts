@@ -5,6 +5,7 @@ import { DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS } from '#shared/password_has
 import { map, filter } from '#shared/array.ts'
 import { ROWS_PER_BATCH, normalize_name, identity_key, placeholder_email } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
+import * as default_values from '#shared/treebzns_db/default_values.ts'
 
 export type ImportedEmployees = {
 	employee_id_by_arbostar_user_id: Map<number, bigint>
@@ -136,7 +137,7 @@ export const import_employees = async ({
 				// An empty hash can never equal a computed PBKDF2 hex digest, so imported employees
 				// cannot log in until someone sets a real password for them.
 				password_hash: '',
-				is_owner: false,
+				is_owner: default_values.employee.is_owner,
 				number_of_password_hash_iterations: DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS,
 				arbostar_user_id: BigInt(user.user_id),
 				estimator_sort: context.next_estimator_sort + BigInt(index),
