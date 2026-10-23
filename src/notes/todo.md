@@ -4,9 +4,9 @@
 
 We need to allow selecting the same work skill multiple times per line item.  line item + work skill can no longer be a unique key in project_line_item_work_skill.
 
-The work skill row in estimate line items needs te become two rows: one that shows a button for each selection, and one that shows a pill (with an x on the right side) for each time work skill in the list.  Clicking on the pill removes it from the list.  That will have to be done by project_line_item_work_skill_id, not just work_skill_id.
+The work skill row in estimate line items needs to become two rows: one that shows a button for each work skill, and one that shows a pill (with an x on the right side) for each time work skill in the list.  Clicking on the pill removes it from the list.  That will have to be done by project_line_item_work_skill_id, not just work_skill_id.
 
-When the number of work skills is greater than the number of estimated crew size on the line item, increase the estimated crew size to match.
+When the number of work skills is greater than the number of estimated crew size on the line item, increase the line's estimated crew size to match.
 
 ---
 

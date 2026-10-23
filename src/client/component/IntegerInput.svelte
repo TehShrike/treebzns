@@ -1,15 +1,31 @@
-<script lang="ts">
-	import assert from '#shared/assert.ts'
-
-	let { value = $bindable(), min = 0, max = null, disabled = false, value_needs_to_be_saved = true, align_numeric_for_vertical = false, hide_spinner = false }: {
-		value: bigint
+<script module lang="ts">
+	export type IntegerInputOptions = {
 		min?: number | null
 		max?: number | null
 		disabled?: boolean
 		value_needs_to_be_saved?: boolean
 		align_numeric_for_vertical?: boolean
 		hide_spinner?: boolean
-	} = $props()
+	}
+
+	export type IntegerInputValue = { nullable: true, value: bigint | null } | { nullable?: false, value: bigint }
+</script>
+
+<script lang="ts">
+	import assert from '#shared/assert.ts'
+
+	let {
+		value = $bindable(),
+		nullable = false,
+		min = 0,
+		max = null,
+		disabled = false,
+		value_needs_to_be_saved = true,
+		align_numeric_for_vertical = false,
+		hide_spinner = false,
+	}: IntegerInputOptions & IntegerInputValue = $props()
+
+	const value_text = $derived(value?.toString() ?? ``)
 
 	const candidate_is_acceptable = (candidate: number) => {
 		assert(min === null || Number.isInteger(min), `min is an integer or null`)
@@ -21,6 +37,12 @@
 	}
 
 	const on_input = (event: Event & { currentTarget: HTMLInputElement }) => {
+		if (event.currentTarget.value === ``) {
+			if (nullable) {
+				value = null
+			}
+			return
+		}
 		const candidate = event.currentTarget.valueAsNumber
 		if (candidate_is_acceptable(candidate)) {
 			value = BigInt(candidate)
@@ -29,13 +51,12 @@
 
 	const on_blur = (event: FocusEvent & { currentTarget: HTMLInputElement }) => {
 		if (event.currentTarget.value === ``) {
-			value = BigInt(min ?? 0)
+			value = nullable ? null : BigInt(min ?? 0)
 		}
-		event.currentTarget.value = value.toString()
+		event.currentTarget.value = value_text
 	}
 
 	const show_value = (input: HTMLInputElement) => {
-		const value_text = value.toString()
 		if (document.activeElement !== input && input.value !== value_text) {
 			input.value = value_text
 		}

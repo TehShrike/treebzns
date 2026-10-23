@@ -170,18 +170,20 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 
 	let crew_size_line_items_follow = loaded_project.estimated_crew_size ?? default_values.project_line_item.estimated_crew_size
 
-	const set_project_crew_size = (crew_size: bigint | null) => {
-		project.form_values.estimated_crew_size = crew_size
+	$effect(() => {
+		const crew_size = project.form_values.estimated_crew_size
 		if (crew_size === null || crew_size === crew_size_line_items_follow) {
 			return
 		}
-		for_each(line_items, line_item => {
-			if (line_item.record.form_values.estimated_crew_size === crew_size_line_items_follow) {
-				line_item.record.form_values.estimated_crew_size = crew_size
-			}
+		untrack(() => {
+			for_each(line_items, line_item => {
+				if (line_item.record.form_values.estimated_crew_size === crew_size_line_items_follow) {
+					line_item.record.form_values.estimated_crew_size = crew_size
+				}
+			})
 		})
 		crew_size_line_items_follow = crew_size
-	}
+	})
 
 	const needs_to_be_saved = $derived(project.needs_to_be_saved || line_item_records.needs_to_be_saved)
 
@@ -214,7 +216,6 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 		project,
 		line_items,
 		get needs_to_be_saved() { return needs_to_be_saved },
-		set_project_crew_size,
 		start_save,
 	}
 }

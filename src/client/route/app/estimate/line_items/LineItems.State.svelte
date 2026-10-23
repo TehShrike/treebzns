@@ -3,6 +3,7 @@
 	import Layout from '../Layout.svelte'
 	import LinkThatLooksLikeAButton from '#component/LinkThatLooksLikeAButton.svelte'
 	import LineItemCard from './LineItemCard.svelte'
+	import IntegerInput from '#component/IntegerInput.svelte'
 	import make_estimate_form, { type LoadedLineItem } from './estimate_form.svelte.ts'
 	import * as default_values from '#shared/treebzns_db/default_values.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
@@ -54,11 +55,11 @@
 				work_skill_ids: map(work_skills, work_skill => work_skill.work_skill_id),
 			}))
 
-			const project_crew_size = estimate.project.estimated_crew_size ?? default_values.project_line_item.estimated_crew_size
+			const project_estimated_crew_size = estimate.project.estimated_crew_size ?? default_values.project_line_item.estimated_crew_size
 			const first_time_estimating = every(loaded_line_items, line_item => (
 				line_item.item_type_id === null
 				&& line_item.work_details === ``
-				&& line_item.estimated_crew_size === project_crew_size
+				&& line_item.estimated_crew_size === project_estimated_crew_size
 				&& line_item.estimated_hours === 0n
 				&& !line_item.client_optional
 				&& line_item.price.equal(`0`)
@@ -123,13 +124,6 @@
 
 	const street = $derived(filter([project.address_line_1, project.address_line_2], Boolean).join(`, `))
 	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
-
-	const crew_size_text = $derived(form.project.form_values.estimated_crew_size?.toString() ?? ``)
-
-	const set_crew_size = (text: string) => {
-		const digits = text.replace(/\D/g, ``)
-		form.set_project_crew_size(digits === `` ? null : BigInt(digits))
-	}
 </script>
 
 <Layout>
@@ -163,14 +157,12 @@
 
 		<label class="crew_size">
 			Estimate crew size
-			<input
-				type="text"
-				inputmode="numeric"
-				pattern="[0-9]*"
-				autocomplete="off"
-				data-style-as-unsaved={first_time_estimating || form.project.value_needs_to_be_saved(`estimated_crew_size`)}
-				bind:value={() => crew_size_text, set_crew_size}
-			>
+			<IntegerInput
+				nullable={true}
+				min={1}
+				value_needs_to_be_saved={first_time_estimating || form.project.value_needs_to_be_saved(`estimated_crew_size`)}
+				bind:value={form.project.form_values.estimated_crew_size}
+			/>
 		</label>
 
 		{#await saver.pending_save_promise catch err}
@@ -220,10 +212,6 @@
 	}
 
 	.crew_size {
-		width: fit-content;
-	}
-
-	.crew_size input {
 		width: 6rem;
 	}
 
