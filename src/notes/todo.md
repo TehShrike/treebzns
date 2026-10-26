@@ -1,4 +1,14 @@
-# Catch up
+# TODO
+
+## This week
+
+- Finish immediate review
+- Make sure deployed code works in production
+- Check estimate process practically
+	- Undo/redo drawing
+	- "Done" is wrong word for center button editing photos
+	- "Photos" button should say "take photos"? take you to the camera view for an existing line item?
+- Sync prod data
 
 ## Review
 

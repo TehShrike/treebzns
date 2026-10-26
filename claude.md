@@ -49,6 +49,8 @@ Apply this to all prose you write.
 
 The form pattern and tracked_values are the core language for saveable forms.  We keep screens simple by binding inputs directly to tracked properties as much as possible rather than specialized setters.  If there is something keeping us from binding directly to a tracked value, that is a potential design smell in the schema, or an issue with the input, and you should bring it up.
 
+If there is a visually grouped collection of inputs that edits the properties of one or two objects, the ideal is for them to be in a component that binds directly to those objects.
+
 ## Svelte
 
 If you need documentation for anything related to Svelte, invoke the svelte MCP `list-sections` tool to see the available sections, then `get-documentation` for the relevant paths. Before reaching for `get-documentation`, try to answer from your own knowledge and the `svelte-autofixer` tool — documentation sections are token-intensive.
