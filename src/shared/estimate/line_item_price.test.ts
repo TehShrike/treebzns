@@ -9,7 +9,7 @@ const assert_fnum_equal = (actual: FinancialNumber | null, expected: string) => 
 	assert.equal(actual.toString(), expected)
 }
 
-const rates = (...values: string[]) => values.map(value => fnum(value))
+const rates = (...values: string[]) => values.map(value => ({ hourly_rate: fnum(value), count: 1n }))
 
 test('average_hourly_rate: no skills means no rate', () => {
 	assert.equal(average_hourly_rate([]), null)
@@ -29,6 +29,14 @@ test('average_hourly_rate: rounds half up on the third decimal place', () => {
 	assert_fnum_equal(average_hourly_rate(rates(`100.00`, `115.00`, `132.00`)), `115.67`)
 	assert_fnum_equal(average_hourly_rate(rates(`0.01`, `0.00`, `0.00`, `0.00`)), `0.00`)
 	assert_fnum_equal(average_hourly_rate(rates(`0.01`, `0.01`, `0.00`, `0.00`)), `0.01`)
+})
+
+test('average_hourly_rate: weights each rate by how many people have the skill', () => {
+	assert_fnum_equal(average_hourly_rate([{ hourly_rate: fnum(`100.00`), count: 1n }, { hourly_rate: fnum(`130.00`), count: 2n }]), `120.00`)
+})
+
+test('average_hourly_rate: a line item work skill count is at least one', () => {
+	assert.throws(() => average_hourly_rate([{ hourly_rate: fnum(`100.00`), count: 0n }]), { message: `a line item work skill count is at least one` })
 })
 
 test('round_to_nearest: rounds to the closest increment', () => {

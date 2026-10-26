@@ -1,18 +1,15 @@
 # Catch up
 
+## Review
+
+estimate_form.svelte.ts: is the modelling of work skills tolerable?  Do we need a tracked map of some kind?
+Is it reasonable to have the `if (record_save.adding) {` instead of separate start_add/start_change functions?
+
+All the insert/update server functions need to be checked against the new worker/claude.md, and switched from bespoke validators to assert_db_id_valid as much as possible.
+
+tracked_record_array's commit function changed to take an object with changed or updated properties.  Check those types, check the logic, find out why.
+
 ## Make the estimation/proposal editing screen tolerable
-
-We need to allow selecting the same work skill multiple times per line item.  line item + work skill can no longer be a unique key in project_line_item_work_skill.
-
-The work skill row in estimate line items needs to become two rows: one that shows a button for each work skill, and one that shows a pill (with an x on the right side) for each time work skill in the list.  Clicking on the pill removes it from the list.  That will have to be done by project_line_item_work_skill_id, not just work_skill_id.
-
-When the number of work skills is greater than the number of estimated crew size on the line item, increase the line's estimated crew size to match.
-
----
-
-On LineItems.State, can the input not just bind to form.project.form_values.estimated_crew_size?
-
----
 
 On the Proposal page -> estimates, the link should take you to the line item view if the project has line items.
 

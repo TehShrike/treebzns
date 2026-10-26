@@ -57,8 +57,9 @@
 	}
 
 	const show_value = (input: HTMLInputElement) => {
-		if (document.activeElement !== input && input.value !== value_text) {
-			input.value = value_text
+		const text = value_text
+		if (document.activeElement !== input && input.value !== text) {
+			input.value = text
 		}
 	}
 </script>

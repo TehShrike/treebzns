@@ -1,31 +1,34 @@
 import { untrack } from 'svelte'
-import tracked_record, { type AddedValues, type DbValues, type SavedValues } from '#lib/tracked_record.svelte.ts'
+import tracked_record, { type DbValues } from '#lib/tracked_record.svelte.ts'
 import tracked_record_array from '#lib/tracked_record_array.ts'
-import tracked_id_set, { type TrackedIdSet } from '#lib/tracked_id_set.ts'
-import type { PendingAdd, PendingChange } from '#lib/pending_save.ts'
+import type { PendingSave } from '#lib/pending_save.ts'
 import assert from '#shared/assert.ts'
-import { for_each, map } from '#shared/array.ts'
+import { filter, find, for_each, map, reduce } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
 import * as default_values from '#shared/treebzns_db/default_values.ts'
 import type { FinancialNumber } from '#shared/fnum.ts'
 import { average_hourly_rate, calculate_line_item_price } from '#shared/estimate/line_item_price.ts'
 import type {
 	AddedEstimateLineItem,
+	AddedEstimateLineItemResult,
 	ChangedEstimateLineItem,
+	ChangedEstimateLineItemResult,
 	EstimateLineItemValues,
+	EstimateLineItemWorkSkillValues,
 	EstimateProjectValues,
 	UpdateEstimateArgument,
 	UpdateEstimateResult,
 } from '#shared/type/estimate.ts'
 
+export type LoadedLineItemWorkSkill = DbValues<EstimateLineItemWorkSkillValues, 'project_line_item_work_skill_id'>
+
 export type LoadedLineItem = DbValues<EstimateLineItemValues, 'project_line_item_id'> & {
 	title: string
 	image_ids: readonly bigint[]
-	work_skill_ids: readonly bigint[]
+	work_skills: readonly LoadedLineItemWorkSkill[]
 }
 
 type RecordValues = Omit<EstimateLineItemValues, 'price'>
-type PriceChange = Partial<Pick<EstimateLineItemValues, 'price'>>
 
 export type PriceCalculation = {
 	calculated_hours: bigint
@@ -33,44 +36,16 @@ export type PriceCalculation = {
 	price: FinancialNumber | null
 }
 
-type WorkSkillIdsSave = ReturnType<TrackedIdSet['start_save']>
-
-const start_add = ({ record_save, work_skill_ids_save, price, commit, discard }: {
-	record_save: PendingAdd<AddedValues<RecordValues, 'project_line_item_id'>>
-	work_skill_ids_save: WorkSkillIdsSave
-	price: FinancialNumber
-	commit: (db_id: bigint) => void
-	discard: () => void
-}): PendingAdd<AddedEstimateLineItem> => {
-	assert(work_skill_ids_save.values.removed_ids.length === 0, `a line item that is not in the database has no work skills in the database`)
-	return {
-		adding: true,
-		values: { ...record_save.values, price, work_skill_ids: work_skill_ids_save.values.added_ids },
-		commit,
-		discard,
-	}
-}
-
-const start_change = ({ record_save, work_skill_ids_save, price_change, commit, discard }: {
-	record_save: PendingChange<SavedValues<RecordValues, 'project_line_item_id'>>
-	work_skill_ids_save: WorkSkillIdsSave
-	price_change: PriceChange
-	commit: (db_id: bigint) => void
-	discard: () => void
-}): PendingChange<ChangedEstimateLineItem> => ({
-	adding: false,
-	values: {
-		...record_save.values,
-		...price_change,
-		added_work_skill_ids: work_skill_ids_save.values.added_ids,
-		removed_work_skill_ids: work_skill_ids_save.values.removed_ids,
-	},
-	commit: (db_id = record_save.values.project_line_item_id) => { commit(db_id) },
-	discard,
+const make_work_skill = (work_skill_id: bigint, values_in_db: LoadedLineItemWorkSkill | null = null) => tracked_record<EstimateLineItemWorkSkillValues, 'project_line_item_work_skill_id'>({
+	default_values: { work_skill_id, count: default_values.project_line_item_work_skill.count },
+	id_key: `project_line_item_work_skill_id`,
+	values_in_db,
 })
 
+export type LineItemWorkSkill = ReturnType<typeof make_work_skill>
+
 const make_line_item = (
-	{ title, image_ids, work_skill_ids: loaded_work_skill_ids, price: loaded_price, ...values_in_db }: LoadedLineItem,
+	{ title, image_ids, work_skills: loaded_work_skills, price: loaded_price, ...values_in_db }: LoadedLineItem,
 	{ hourly_rate_of, round_to_nearest }: {
 		hourly_rate_of: (work_skill_id: bigint) => FinancialNumber
 		round_to_nearest: FinancialNumber
@@ -81,12 +56,16 @@ const make_line_item = (
 		id_key: `project_line_item_id`,
 		values_in_db,
 	})
-	const work_skill_ids = tracked_id_set(loaded_work_skill_ids)
+	let work_skills = $state.raw(map(loaded_work_skills, loaded_work_skill => make_work_skill(loaded_work_skill.work_skill_id, loaded_work_skill)))
+	const work_skill_records = tracked_record_array({ records: () => work_skills })
 	let price_in_db = $state.raw(loaded_price)
 
 	const price_calculation: PriceCalculation = $derived.by(() => {
 		const { estimated_crew_size: crew_size, estimated_hours } = record.form_values
-		const hourly_rate = average_hourly_rate(map([...work_skill_ids.ids], hourly_rate_of))
+		const hourly_rate = average_hourly_rate(map(work_skills, work_skill => ({
+			hourly_rate: hourly_rate_of(work_skill.form_values.work_skill_id),
+			count: work_skill.form_values.count,
+		})))
 		const calculated_hours = estimated_hours * crew_size
 		const price = hourly_rate === null
 			? null
@@ -98,47 +77,87 @@ const make_line_item = (
 	price = loaded_price
 
 	const price_needs_to_be_saved = $derived(!price.equal(price_in_db))
-	const needs_to_be_saved = $derived(record.needs_to_be_saved || work_skill_ids.needs_to_be_saved || price_needs_to_be_saved)
+	const needs_to_be_saved = $derived(record.needs_to_be_saved || work_skill_records.needs_to_be_saved || price_needs_to_be_saved)
 
-	const set_work_skill = (work_skill_id: bigint, selected: boolean) => {
-		if (selected) {
-			work_skill_ids.add(work_skill_id)
+	const add_work_skill = (work_skill_id: bigint) => {
+		const existing = find(work_skills, work_skill => work_skill.form_values.work_skill_id === work_skill_id)
+		if (existing) {
+			existing.form_values.count += 1n
 		} else {
-			work_skill_ids.delete(work_skill_id)
+			work_skills = [...work_skills, make_work_skill(work_skill_id)]
+		}
+		const work_skill_person_count = reduce(work_skills, 0n, (total, work_skill) => total + work_skill.form_values.count)
+		if (record.form_values.estimated_crew_size < work_skill_person_count) {
+			record.form_values.estimated_crew_size = work_skill_person_count
 		}
 	}
 
-	const start_save = () => {
-		const record_save = record.start_save()
-		const work_skill_ids_save = work_skill_ids.start_save()
-		const saved_price = price
-		const commit = (db_id: bigint) => {
-			record_save.commit(db_id)
-			work_skill_ids_save.commit()
-			price_in_db = saved_price
+	const remove_work_skill = (work_skill: LineItemWorkSkill) => {
+		if (work_skill.form_values.count > 1n) {
+			work_skill.form_values.count -= 1n
+		} else {
+			work_skills = filter(work_skills, other => other !== work_skill)
 		}
+	}
+
+	const start_save = (): PendingSave<AddedEstimateLineItem, ChangedEstimateLineItem, AddedEstimateLineItemResult, ChangedEstimateLineItemResult> => {
+		const record_save = record.start_save()
+		const work_skills_save = work_skill_records.start_save()
+		const saved_price = price
 		const discard = () => {
 			record_save.discard()
-			work_skill_ids_save.discard()
+			work_skills_save.discard()
 		}
-		return record_save.adding
-			? start_add({ record_save, work_skill_ids_save, price: saved_price, commit, discard })
-			: start_change({ record_save, work_skill_ids_save, price_change: price_needs_to_be_saved ? { price: saved_price } : {}, commit, discard })
+
+		if (record_save.adding) {
+			assert(
+				work_skills_save.changed.length === 0 && work_skills_save.removed_ids.length === 0,
+				`a line item that is not in the database has no work skills in the database`,
+			)
+			return {
+				adding: true,
+				values: { ...record_save.values, price: saved_price, work_skills: work_skills_save.added },
+				commit: ({ project_line_item_id, project_line_item_work_skill_ids }) => {
+					record_save.commit(project_line_item_id)
+					work_skills_save.commit({ added: project_line_item_work_skill_ids })
+					price_in_db = saved_price
+				},
+				discard,
+			}
+		}
+
+		return {
+			adding: false,
+			values: {
+				...record_save.values,
+				...(price_needs_to_be_saved ? { price: saved_price } : {}),
+				added_work_skills: work_skills_save.added,
+				changed_work_skills: work_skills_save.changed,
+				removed_project_line_item_work_skill_ids: work_skills_save.removed_ids,
+			},
+			commit: ({ added_project_line_item_work_skill_ids }) => {
+				record_save.commit()
+				work_skills_save.commit({ added: added_project_line_item_work_skill_ids })
+				price_in_db = saved_price
+			},
+			discard,
+		}
 	}
 
 	return {
 		title,
 		image_ids,
 		record,
-		work_skill_ids,
 		stable_record_identifier: record.stable_record_identifier,
 		get db_id() { return record.db_id },
+		get work_skills(): readonly LineItemWorkSkill[] { return work_skills },
 		get needs_to_be_saved() { return needs_to_be_saved },
 		get price_calculation() { return price_calculation },
 		get price() { return price },
 		set price(value: FinancialNumber) { price = value },
 		get price_needs_to_be_saved() { return price_needs_to_be_saved },
-		set_work_skill,
+		add_work_skill,
+		remove_work_skill,
 		start_save,
 	}
 }
@@ -203,7 +222,7 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 			values,
 			commit: (result: UpdateEstimateResult) => {
 				project_save.commit(result.project_id)
-				line_items_save.commit(result.added_line_item_ids)
+				line_items_save.commit({ added: result.added_line_items, changed: result.changed_line_items })
 			},
 			discard: () => {
 				project_save.discard()

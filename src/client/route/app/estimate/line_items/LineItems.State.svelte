@@ -52,7 +52,7 @@
 				client_optional: project_line_item.client_optional,
 				price: project_line_item.price,
 				image_ids: map(images, image => image.project_image_id),
-				work_skill_ids: map(work_skills, work_skill => work_skill.work_skill_id),
+				work_skills,
 			}))
 
 			const project_estimated_crew_size = estimate.project.estimated_crew_size ?? default_values.project_line_item.estimated_crew_size
@@ -63,7 +63,7 @@
 				&& line_item.estimated_hours === 0n
 				&& !line_item.client_optional
 				&& line_item.price.equal(`0`)
-				&& line_item.work_skill_ids.length === 0
+				&& line_item.work_skills.length === 0
 			))
 
 			return {

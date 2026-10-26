@@ -14,6 +14,7 @@ export const select_estimate = async (query: ClientQueryFn, project_id: bigint) 
 			.where(q => q.comparison(`project.project_id`, `=`, { value: project_id }))
 			.order_by(`project_line_item.sort`, `ASC`)
 			.order_by(`project_line_item_image.sort`, `ASC`)
+			.order_by(`project_line_item_work_skill.project_line_item_work_skill_id`, `ASC`)
 			.select(() => [
 				`project.project_id`,
 				`project.project_document_id`,
@@ -34,7 +35,9 @@ export const select_estimate = async (query: ClientQueryFn, project_id: bigint) 
 				`project_line_item.client_optional`,
 				`project_line_item.price`,
 				`project_line_item_image.project_image_id`,
+				`project_line_item_work_skill.project_line_item_work_skill_id`,
 				`project_line_item_work_skill.work_skill_id`,
+				`project_line_item_work_skill.count`,
 			] as const)
 			.build(),
 	)
@@ -49,7 +52,7 @@ export const select_estimate = async (query: ClientQueryFn, project_id: bigint) 
 				key: `project_line_item_id`,
 				children: {
 					images: { table: `project_line_item_image`, key: `project_image_id` },
-					work_skills: { table: `project_line_item_work_skill`, key: `work_skill_id` },
+					work_skills: { table: `project_line_item_work_skill`, key: `project_line_item_work_skill_id` },
 				},
 			},
 		},

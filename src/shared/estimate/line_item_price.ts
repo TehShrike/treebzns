@@ -1,7 +1,7 @@
 import fnum from '#shared/fnum.ts'
 import type { FinancialNumber } from '#shared/fnum.ts'
 import assert from '#shared/assert.ts'
-import { reduce } from '#shared/array.ts'
+import { every, reduce } from '#shared/array.ts'
 
 const MONEY_DECIMAL_PLACES = 2n
 
@@ -20,12 +20,14 @@ const divide_rounding_half_up = (dividend: FinancialNumber, divisor: bigint, dec
 	return fnum({ value: remainder * 2n >= denominator ? quotient + 1n : quotient, decimal_places })
 }
 
-export const average_hourly_rate = (hourly_rates: readonly FinancialNumber[]): FinancialNumber | null => {
-	if (hourly_rates.length === 0) {
+export const average_hourly_rate = (work_skills: readonly { hourly_rate: FinancialNumber, count: bigint }[]): FinancialNumber | null => {
+	assert(every(work_skills, ({ count }) => count >= 1n), `a line item work skill count is at least one`)
+	if (work_skills.length === 0) {
 		return null
 	}
-	const sum = reduce(hourly_rates, zero, (total, rate) => total.plus(rate))
-	return divide_rounding_half_up(sum, BigInt(hourly_rates.length), MONEY_DECIMAL_PLACES)
+	const person_count = reduce(work_skills, 0n, (total, { count }) => total + count)
+	const sum = reduce(work_skills, zero, (total, { hourly_rate, count }) => total.plus(hourly_rate.times(count)))
+	return divide_rounding_half_up(sum, person_count, MONEY_DECIMAL_PLACES)
 }
 
 export const round_to_nearest = (amount: FinancialNumber, increment: FinancialNumber): FinancialNumber => {

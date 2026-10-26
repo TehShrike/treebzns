@@ -2,9 +2,9 @@ import assert from '#shared/assert.ts'
 import { every } from '#shared/array.ts'
 import type { TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
-import type { ChangedEstimateLineItem } from '#shared/type/estimate.ts'
+import type { ChangedEstimateLineItem, ChangedEstimateLineItemResult } from '#shared/type/estimate.ts'
 import { assert_line_item_values_valid } from './line_item.ts'
-import { add_work_skills, remove_work_skills } from './work_skill.ts'
+import { add_work_skills, change_work_skills, remove_work_skills } from './work_skill.ts'
 
 const ROWS_PER_BATCH = 100
 
@@ -38,8 +38,8 @@ export const update_line_item = async ({
 }: {
 	line_item: ChangedEstimateLineItem
 	write_helper: TenantedWriteHelper
-}) => {
-	const { project_line_item_id, added_work_skill_ids, removed_work_skill_ids, ...changes } = line_item
+}): Promise<ChangedEstimateLineItemResult> => {
+	const { project_line_item_id, added_work_skills, changed_work_skills, removed_project_line_item_work_skill_ids, ...changes } = line_item
 
 	assert_line_item_values_valid(changes)
 
@@ -47,8 +47,12 @@ export const update_line_item = async ({
 		await write_helper.update({ table_name: `project_line_item`, column: `project_line_item_id`, value: project_line_item_id, set: changes })
 	}
 
-	await remove_work_skills({ project_line_item_id, work_skill_ids: removed_work_skill_ids, write_helper })
-	await add_work_skills({ project_line_item_id, work_skill_ids: added_work_skill_ids, write_helper })
+	await remove_work_skills({ project_line_item_id, project_line_item_work_skill_ids: removed_project_line_item_work_skill_ids, write_helper })
+	const [added_project_line_item_work_skill_ids] = await Promise.all([
+		add_work_skills({ project_line_item_id, work_skills: added_work_skills, write_helper }),
+		change_work_skills({ work_skills: changed_work_skills, write_helper }),
+	])
+	return { added_project_line_item_work_skill_ids }
 }
 
 const assert_line_items_not_worked_or_invoiced = async ({

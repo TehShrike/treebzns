@@ -438,6 +438,7 @@ export const project_line_item_work_skill = {
 	company_id: 'company_id',
 	project_line_item_id: 'project_line_item_id',
 	work_skill_id: 'work_skill_id',
+	count: 'count',
 } as const
 
 export const project_number = {

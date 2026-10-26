@@ -7,6 +7,7 @@ export const validator_object = {
 	company_id: jv.is_bigint,
 	project_line_item_id: jv.is_bigint,
 	work_skill_id: jv.is_bigint,
+	count: jv.is_bigint,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 }

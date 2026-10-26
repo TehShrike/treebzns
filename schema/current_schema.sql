@@ -684,6 +684,7 @@ CREATE TABLE `project_line_item_work_skill` (
   `company_id` int unsigned NOT NULL,
   `project_line_item_id` int unsigned NOT NULL,
   `work_skill_id` int unsigned NOT NULL,
+  `count` smallint unsigned NOT NULL DEFAULT '1',
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   PRIMARY KEY (`project_line_item_work_skill_id`),

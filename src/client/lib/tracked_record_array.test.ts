@@ -32,8 +32,7 @@ const make_record = (loaded: Row | null) => {
 		return {
 			adding: false,
 			values: { id: current.id, ...values },
-			commit: (id?: bigint) => {
-				assert.ok(id === undefined || id === current.id, `the server saved the record the client sent`)
+			commit: () => {
 				values_in_db = { id: current.id, ...values }
 				saving = false
 			},
@@ -59,6 +58,51 @@ const make_array = (initial: FakeRecord[]) => {
 	return {
 		array,
 		set_records: (next: FakeRecord[]) => { records = next },
+	}
+}
+
+type AddResult = { id: bigint, note: string }
+type ChangeResult = { note: string }
+
+const make_record_with_results = (loaded: Row | null) => {
+	let values_in_db = loaded
+	let note: string | null = null
+	const form_values = { name: loaded?.name ?? `` }
+
+	const start_save = (): PendingSave<{ id: null, name: string }, Row, AddResult, ChangeResult> => {
+		const values = { name: form_values.name }
+		const current = values_in_db
+		const discard = () => {}
+
+		if (current === null) {
+			return {
+				adding: true,
+				values: { id: null, ...values },
+				commit: (result: AddResult) => {
+					values_in_db = { id: result.id, ...values }
+					note = result.note
+				},
+				discard,
+			}
+		}
+
+		return {
+			adding: false,
+			values: { id: current.id, ...values },
+			commit: (result: ChangeResult) => {
+				values_in_db = { id: current.id, ...values }
+				note = result.note
+			},
+			discard,
+		}
+	}
+
+	return {
+		form_values,
+		get note() { return note },
+		get db_id() { return values_in_db?.id ?? null },
+		get needs_to_be_saved() { return values_in_db === null || values_in_db.name !== form_values.name },
+		start_save,
 	}
 }
 
@@ -98,7 +142,7 @@ test('tracked_record_array gives each added record its id when the save commits'
 	const { array } = make_array([record])
 
 	record.form_values.name = `First`
-	array.start_save().commit([1n])
+	array.start_save().commit({ added: [1n] })
 
 	assert.strictEqual(record.db_id, 1n)
 	assert.strictEqual(record.saving, false)
@@ -107,20 +151,40 @@ test('tracked_record_array gives each added record its id when the save commits'
 	record.form_values.name = `Second`
 	const save = array.start_save()
 	assert.deepStrictEqual(save.changed, [{ id: 1n, name: `Second` }])
-	save.commit([])
+	save.commit({ added: [] })
 
 	assert.strictEqual(record.values_in_db?.name, `Second`)
 	assert.strictEqual(array.needs_to_be_saved, false)
 })
 
-test('tracked_record_array requires one id per added record', () => {
-	const record = make_record(null)
-	const { array } = make_array([record])
+test('tracked_record_array gives each added and changed record its result when the save commits', () => {
+	const added = make_record_with_results(null)
+	const changed = make_record_with_results({ id: 1n, name: `Alice` })
+	const unchanged = make_record_with_results({ id: 2n, name: `Bob` })
+	const array = tracked_record_array({ records: () => [changed, unchanged, added] })
 
-	record.form_values.name = `Dave`
+	added.form_values.name = `Dave`
+	changed.form_values.name = `Alicia`
+	array.start_save().commit({ added: [{ id: 3n, note: `added` }], changed: [{ note: `changed` }] })
+
+	assert.strictEqual(added.db_id, 3n)
+	assert.strictEqual(added.note, `added`)
+	assert.strictEqual(changed.note, `changed`)
+	assert.strictEqual(unchanged.note, null, `a record with nothing to save gets no result`)
+	assert.strictEqual(array.needs_to_be_saved, false)
+})
+
+test('tracked_record_array requires one result per added record and one per changed record', () => {
+	const added = make_record_with_results(null)
+	const changed = make_record_with_results({ id: 1n, name: `Alice` })
+	const array = tracked_record_array({ records: () => [added, changed] })
+
+	added.form_values.name = `Dave`
+	changed.form_values.name = `Alicia`
 	const save = array.start_save()
 
-	assert.throws(() => save.commit([]), { message: `the server returns one id per added record` })
+	assert.throws(() => save.commit({ added: [], changed: [{ note: `changed` }] }), { message: `the server returns one result per added record` })
+	assert.throws(() => save.commit({ added: [{ id: 2n, note: `added` }], changed: [] }), { message: `the server returns one result per changed record` })
 })
 
 test('tracked_record_array keeps a record added during a save as added', () => {
@@ -132,7 +196,7 @@ test('tracked_record_array keeps a record added during a save as added', () => {
 	const save = array.start_save()
 	second.form_values.name = `Second`
 	set_records([first, second])
-	save.commit([1n])
+	save.commit({ added: [1n] })
 
 	assert.strictEqual(first.db_id, 1n)
 	assert.strictEqual(second.db_id, null)
@@ -148,7 +212,7 @@ test('tracked_record_array removes a record that was deleted while its save was 
 	deleted.form_values.name = `Deleted`
 	const save = array.start_save()
 	set_records([kept])
-	save.commit([1n, 2n])
+	save.commit({ added: [1n, 2n] })
 
 	assert.strictEqual(deleted.db_id, 2n, `the deleted record still gets the id the server made for it`)
 	assert.strictEqual(array.needs_to_be_saved, true)
@@ -162,7 +226,7 @@ test('tracked_record_array forgets removed ids after they are saved', () => {
 	set_records([kept])
 	const save = array.start_save()
 	assert.deepStrictEqual(save.removed_ids, [2n])
-	save.commit([])
+	save.commit({ added: [] })
 
 	assert.strictEqual(array.needs_to_be_saved, false)
 	assert.deepStrictEqual(array.start_save().removed_ids, [])
@@ -198,6 +262,6 @@ test('tracked_record_array has at most one save running, even when the save only
 	assert.throws(() => array.start_save(), { message: `a record array has at most one save running` })
 
 	save.discard()
-	array.start_save().commit([])
+	array.start_save().commit({ added: [] })
 	assert.doesNotThrow(() => array.start_save())
 })

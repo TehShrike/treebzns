@@ -2,7 +2,7 @@ import assert from '#shared/assert.ts'
 import type { TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import * as default_values from '#shared/treebzns_db/default_values.ts'
-import type { AddedEstimateLineItem, EstimateLineItemValues } from '#shared/type/estimate.ts'
+import type { AddedEstimateLineItem, AddedEstimateLineItemResult, EstimateLineItemValues } from '#shared/type/estimate.ts'
 import { add_work_skills } from './work_skill.ts'
 import { pick } from '#shared/pick.ts'
 
@@ -11,7 +11,7 @@ export const line_item_value_keys = ['item_type_id', 'work_details', 'estimated_
 export const default_line_item: AddedEstimateLineItem = {
 	project_line_item_id: null,
 	...pick(default_values.project_line_item, line_item_value_keys),
-	work_skill_ids: [],
+	work_skills: [],
 }
 
 export const assert_line_item_values_valid = (values: Partial<EstimateLineItemValues>) => {
@@ -55,7 +55,7 @@ export const insert_line_item = async ({
 	line_item: AddedEstimateLineItem
 	select_builder: TransactionTenantedSelectBuilder
 	write_helper: TenantedWriteHelper
-}): Promise<bigint> => {
+}): Promise<AddedEstimateLineItemResult> => {
 	assert(line_item.project_line_item_id === null, `a line item is inserted only when it is not in the database`)
 	const values = pick(line_item, line_item_value_keys)
 	assert_line_item_values_valid(values)
@@ -70,7 +70,7 @@ export const insert_line_item = async ({
 		sort: max_sort + 1n,
 	})
 
-	await add_work_skills({ project_line_item_id, work_skill_ids: line_item.work_skill_ids, write_helper })
+	const project_line_item_work_skill_ids = await add_work_skills({ project_line_item_id, work_skills: line_item.work_skills, write_helper })
 
-	return project_line_item_id
+	return { project_line_item_id, project_line_item_work_skill_ids }
 }

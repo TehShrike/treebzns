@@ -11,9 +11,10 @@ import type {
 	UpdateEstimateArgument,
 	UpdateEstimateResult,
 } from '#shared/type/estimate.ts'
-import { filter_map, flat_map, for_each_async, map, map_async } from '#shared/array.ts'
+import { filter_map, flat_map, map, map_async } from '#shared/array.ts'
 import { default_line_item, insert_line_item } from './estimate_helper/line_item.ts'
 import { assert_line_items_belong_to_project, remove_line_items, update_line_item } from './estimate_helper/update_line_item.ts'
+import { assert_work_skill_rows_belong_to_line_items } from './estimate_helper/work_skill.ts'
 import { update_project_document } from '#shared/treebzns_db/changes_with_history/project_document_history.ts'
 
 const line_item_value_validators = {
@@ -30,7 +31,22 @@ const create_line_item_validator = jv.object({
 	...jv.optional_shape(line_item_value_validators),
 })
 
-const work_skill_ids_validator = jv.array(jv.is_bigint)
+const ids_validator = jv.array(jv.is_bigint)
+
+const work_skill_value_validators = {
+	work_skill_id: jv.is_bigint,
+	count: jv.is_bigint,
+}
+
+const added_work_skills_validator = jv.array(jv.object({
+	project_line_item_work_skill_id: jv.is_null,
+	...work_skill_value_validators,
+}))
+
+const changed_work_skills_validator = jv.array(jv.object({
+	project_line_item_work_skill_id: jv.is_bigint,
+	...jv.optional_shape(work_skill_value_validators),
+}))
 
 const update_estimate_validator: jv.Validator<UpdateEstimateArgument> = jv.object({
 	project: jv.object({
@@ -43,12 +59,13 @@ const update_estimate_validator: jv.Validator<UpdateEstimateArgument> = jv.objec
 	added_line_items: jv.array(jv.object({
 		project_line_item_id: jv.is_null,
 		...line_item_value_validators,
-		work_skill_ids: work_skill_ids_validator,
+		work_skills: added_work_skills_validator,
 	})),
 	changed_line_items: jv.array(jv.object({
 		project_line_item_id: jv.is_bigint,
-		added_work_skill_ids: work_skill_ids_validator,
-		removed_work_skill_ids: work_skill_ids_validator,
+		added_work_skills: added_work_skills_validator,
+		changed_work_skills: changed_work_skills_validator,
+		removed_project_line_item_work_skill_ids: ids_validator,
 		...jv.optional_shape(line_item_value_validators),
 	})),
 	removed_line_item_ids: jv.array(jv.is_bigint),
@@ -69,8 +86,11 @@ const assert_input_ids_valid = async ({
 }) => {
 	const item_type_ids = new Set(filter_map([...added_line_items, ...changed_line_items], line_item => line_item.item_type_id ?? null))
 	const work_skill_ids = new Set([
-		...flat_map(added_line_items, line_item => line_item.work_skill_ids),
-		...flat_map(changed_line_items, line_item => line_item.added_work_skill_ids),
+		...flat_map(added_line_items, line_item => map(line_item.work_skills, work_skill => work_skill.work_skill_id)),
+		...flat_map(changed_line_items, line_item => [
+			...map(line_item.added_work_skills, work_skill => work_skill.work_skill_id),
+			...filter_map(line_item.changed_work_skills, work_skill => work_skill.work_skill_id ?? null),
+		]),
 	])
 
 	await Promise.all([
@@ -97,7 +117,7 @@ export const functions = {
 		): Promise<{ project_line_item_id: bigint }> => transaction(async ({ select_builder, write_helper }) => {
 			await assert_db_id_valid({ select_builder, table_name: `project`, id: project_id })
 
-			const project_line_item_id = await insert_line_item({
+			const { project_line_item_id } = await insert_line_item({
 				project_id,
 				line_item: { ...default_line_item, ...line_item_values },
 				select_builder,
@@ -122,14 +142,21 @@ export const functions = {
 				project_line_item_ids: [...map(changed_line_items, line_item => line_item.project_line_item_id), ...removed_line_item_ids],
 				select_builder,
 			})
+			await assert_work_skill_rows_belong_to_line_items({
+				rows: flat_map(changed_line_items, line_item => map(line_item.changed_work_skills, work_skill => ({
+					project_line_item_id: line_item.project_line_item_id,
+					project_line_item_work_skill_id: work_skill.project_line_item_work_skill_id,
+				}))),
+				select_builder,
+			})
 
 			if (Object.keys(project_changes).length > 0) {
 				await write_helper.update({ table_name: `project`, column: `project_id`, value: project_id, set: project_changes })
 			}
 
-			await for_each_async(changed_line_items, line_item => update_line_item({ line_item, write_helper }))
+			const changed_line_item_results = await map_async(changed_line_items, line_item => update_line_item({ line_item, write_helper }))
 			await remove_line_items({ project_line_item_ids: removed_line_item_ids, select_builder, write_helper })
-			const added_line_item_ids = await map_async(added_line_items, line_item => insert_line_item({ project_id, line_item, select_builder, write_helper }))
+			const added_line_item_results = await map_async(added_line_items, line_item => insert_line_item({ project_id, line_item, select_builder, write_helper }))
 
 			if (project_document_id !== undefined) {
 				await update_project_document({
@@ -142,7 +169,7 @@ export const functions = {
 				})
 			}
 
-			return { project_id, added_line_item_ids }
+			return { project_id, added_line_items: added_line_item_results, changed_line_items: changed_line_item_results }
 		}),
 	}),
 }

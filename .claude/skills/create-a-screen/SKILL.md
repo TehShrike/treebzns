@@ -5,19 +5,15 @@ description: Create or restructure a client screen (a *.State.svelte route under
 
 # Create a screen
 
-A screen is a `*.State.svelte` file under `src/client/route/`. It registers an abstract-state-router state, resolves its data, and renders the page. A form screen holds one form object whose `values_to_save` is the server function argument. The form object lives in a `<form_name>_form.svelte.ts` module next to the screen. Child components own every input and every conversion.
-
-The reference implementation is `src/client/route/app/menu/create_a_lead/`. Read it before starting a new screen.
+A screen is a `*.State.svelte` file under `src/client/route/`. It registers an abstract-state-router state, resolves its data, and renders the page. A form screen holds one form object whose `start_save()` builds the server function argument. The form object lives in a `<form_name>_form.svelte.ts` module next to the screen.
 
 ## Where things live
 
-- Screen: `src/client/route/app/menu/<screen_name>/<ScreenName>.State.svelte`
-- The form object: `src/client/route/app/menu/<screen_name>/<form_name>_form.svelte.ts`
-- Child components that own one record or argument: `src/client/route/app/menu/<screen_name>/<Thing>Selector.svelte`
+- Screen: `src/client/route/app/<area>/<screen_name>/<ScreenName>.State.svelte` (areas so far: `menu`, `estimate`)
+- The form object: `src/client/route/app/<area>/<screen_name>/<form_name>_form.svelte.ts`
 - Records that may already exist in the database: `#lib/tracked_record.svelte.ts`
-- Lists of child records the user can add, edit, and remove: `#component/list_input/editable_rows.svelte.ts` for the list, `#lib/tracked_record_array.svelte.ts` for what to save
+- Lists of child records the user can add, edit, and remove: `#component/list_input/editable_rows.svelte.ts` for the list, `#lib/tracked_record_array.ts` for what to save
 - Select functions that list a whole table or get one record by its primary key: `src/client/lib/generic_queries/<table_name>.ts`, imported as `#lib/generic_queries/<table_name>.ts`. Look there before writing a new one.
-- Small layout or input helpers used only by this screen: `src/client/route/app/menu/<screen_name>/_helpers/`
 - Components used by more than one screen: `src/client/component/`
 - Argument types shared with the server: `#shared/type/<domain>.ts`
 - Generated state registry (do not edit): `src/client/globbed_states.generated.ts`
@@ -54,7 +50,7 @@ Put the state definition in the module script. Select reference data in `resolve
 </script>
 ```
 
-Each query function is a small function named `select_<rows>` that takes `query: ClientQueryFn` and returns plain rows. One that lists a whole table, or gets one record by its primary key, lives in `#lib/generic_queries/<table_name>.ts` so every screen shares it. One with joins or filters that only this screen needs is a module-level function in the screen. The `select_` prefix means the function runs a query. A function that stores what the user picked is named `set_<thing>`. The dev watcher (`dev:glob:states`) regenerates the state registry on save. Run `pnpm run build:glob:states` when the dev server is not running.
+Each query function is a small function named `select_<rows>` that takes `query: ClientQueryFn` and returns plain rows. One that lists a whole table, or gets one record by its primary key, lives in `#lib/generic_queries/<table_name>.ts` so every screen shares it. One with joins or filters that only this screen needs is a module-level function in the screen. The `select_` prefix means the function runs a query. The dev watcher (`dev:glob:states`) regenerates the state registry on save. Run `pnpm run build:glob:states` when the dev server is not running.
 
 ### 2. Share the argument types
 
@@ -81,110 +77,83 @@ Type the validator with them (`jv.Validator<{ address: LeadAddress, ... }>`). Re
 
 ### 3. Build the form object
 
-The form object is a closure in `<form_name>_form.svelte.ts`. It owns every value the server receives and derives the whole argument as `values_to_save`. The screen creates it once and passes its parts to the selectors.
+The form object is a closure in `<form_name>_form.svelte.ts`. It owns every value the server receives. Its `start_save()` builds the whole argument and returns it with `commit` and `discard`. The screen creates it once and passes its parts to the child components.
 
 ```ts
-const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
-	const client = tracked_record<LeadClientValues, 'client_id'>({ initial: { name: ``, ... }, id_key: `client_id` })
-	const address = tracked_record<LeadAddressValues, 'client_address_id'>({ initial: { address_line_1: ``, ... }, id_key: `client_address_id` })
+const make_lead_form = () => {
+	const client = tracked_record<LeadClientValues, 'client_id'>({
+		default_values: pick(default_values.client, [`name`, `billing_phone`, ...]),
+		id_key: `client_id`,
+	})
+	const address = tracked_record<LeadAddressValues, 'client_address_id'>({
+		default_values: pick(default_values.client_address, [`address_line_1`, ...]),
+		id_key: `client_address_id`,
+	})
 
-	let selected_client = $state.raw<CachedClient | null>(null)
-	let billing_address = $state<LeadBilling | null>(null)
-	let project = $state<LeadProject>({ due_date: null, lead_source_id: null, lead_source_name: null, ... })
+	const start_save = () => {
+		const client_save = client.start_save()
+		const address_save = address.start_save()
 
-	const values_to_save = $derived({ client: client.values_to_save, billing_address, address: address.values_to_save, project })
+		const values: CreateLeadArgument = { client: client_save.values, address: address_save.values }
 
-	const set_client = (cached_client: CachedClient) => { ... }
-	const clear_client = () => { ... }
+		return {
+			values,
+			commit: (result: CreateLeadResult) => {
+				client_save.commit(result.client_id)
+				address_save.commit(result.client_address_id)
+			},
+			discard: () => {
+				client_save.discard()
+				address_save.discard()
+			},
+		}
+	}
 
 	return {
 		client,
 		address,
-		get selected_client() { return selected_client },
-		get billing_address() { return billing_address },
-		set billing_address(value) { billing_address = value },
-		get project() { return project },
-		set project(value) { project = value },
-		get values_to_save() { return values_to_save },
-		set_client,
-		clear_client,
+		start_save,
 	}
 }
 ```
 
-- **A record that may already exist is a `tracked_record`.** It holds `form_values` (what inputs bind to), `db_values` (the row from the database, or null), `key` (its db id, or a permanent temporary key for a new record), `value_needs_to_be_saved(key)`, `is_empty`, and `values_to_save`. For a new record `values_to_save` is every field with a null id. For a pre-existing record it is the id plus the fields whose form value differs from the database value. `set_values(row)` picks a row and copies its values into the form. `clear()` returns to a new record. Pass `is_empty` when a blank row means something other than "every value equals `initial`".
-- **A list of child records is an `editable_rows` of `tracked_record`s plus a `tracked_record_array`.** Write one `make_<thing>(db_values)` function that builds a `tracked_record`. Give `editable_rows` the loaded records, `make_empty_row: () => make_<thing>(null)`, `row_is_empty: row => row.is_empty`, and `get_key: row => row.key`. It owns the trailing placeholder row, cleanup, focus, and removal, and the screen binds `ListInput` to it. Give `tracked_record_array` a getter for the live rows and the id key. Its `values_to_save` is every non-empty row that is new or changed, in the same union shape as a single record. Its `removed_ids` is every database id no record in the list carries. The placeholder row is never in either. The client screen (`src/client/route/app/menu/client/`) is the reference.
-- **After the server answers, hand back what was sent.** Snapshot `form.values_to_save` before the await. The server returns one id per sent row, in order. The screen zips those ids into the sent rows with `zip_with` from `#shared/array.ts`, then calls `form.update_db_values` with the result. The form calls `update_db_values(saved_values)` on each single record and `update_db_values(saved_rows, removed_ids)` on each array. Only the sent values become database values, so an edit made while the save was in flight still reads as needing to be saved. A row sent with a null id carries its record's identity on a symbol key that survives spreading and never reaches the server, which is how the array finds the record for a new id.
-- **Always-new arguments are plain `$state` in the closure.** Put them behind a getter and a setter so `bind:project={lead.project}` works from the screen.
-- **The picked cached row lives in the closure** (`selected_client`), so the selectors can read its child rows for their dropdowns. Use `$state.raw` for it. Nothing mutates it.
-- **Picking and clearing are methods on the form.** `set_client` sets the client record, picks the default address and contact, and resets billing. `clear_client` clears all three records. No `$effect` watches the picked row.
+- **A record that may already exist is a `tracked_record`.** It takes `default_values`, `id_key`, and `values_in_db` (the row from the database, or omitted for a new record). It exposes `form_values` (what inputs bind to), `values_in_db`, `db_id` (null for a new record), `stable_record_identifier` (a key that stays the same before and after the first save), `needs_to_be_saved`, `is_empty`, `saved_in_database`, and `value_needs_to_be_saved(key)`. `start_save()` returns a pending save. For a new record its `values` is every field with a null id. For a pre-existing record it is the id plus the fields whose form value differs from the database value. Call its `commit(db_id)` after the server answers, or `discard()` when the save fails. `set_values(row)` picks a row and copies its values into the form. `clear()` returns to a new record. Pass `equality_checks` for a value that `===` cannot compare.
+- **A list of child records is an `editable_rows` of `tracked_record`s plus a `tracked_record_array`.** Write one `make_<thing>(values_in_db)` function that builds a `tracked_record`. Give `editable_rows` the loaded records as `initial`, `make_empty_row: () => make_<thing>(null)`, `row_is_empty: row => row.is_empty`, and `get_key: row => row.stable_record_identifier`. It owns the trailing placeholder row, cleanup, focus, and removal, and the screen binds `ListInput` to it. Give `tracked_record_array` a getter for the live rows: `records: () => rows.non_empty_rows`. Its `start_save()` returns `added` (new rows), `changed` (pre-existing rows as id plus changed fields), `removed_ids` (every database id no row carries), `commit`, and `discard`. The placeholder row is never in any of them. The client screen (`src/client/route/app/menu/client/`) is the reference.
+- **The screen saves through `form_saver`.** `form_saver({ form, send })` calls `form.start_save()`, passes the pending save's `values` to `send`, then calls `commit(result)` on success or `discard()` on failure. The form's `commit` hands each record's save the id the server returned for it, and each array's save the `added` ids in order. Each record snapshots its form values when the save starts, so an edit made while the save was in flight still reads as needing to be saved.
 
-The screen holds the form and nothing else:
+The screen holds the form and the saver and nothing else:
 
 ```ts
-const lead = make_lead_form(untrack(() => in_estimator_order(employees)[0]?.employee_id ?? null))
+const lead = make_lead_form()
+const saver = form_saver({ form: lead, send: values => server.create_lead(values) })
 ```
 
-Submit passes the derived argument straight through:
+Submit passes the argument straight through:
 
-```ts
-await server.create_lead(lead.values_to_save)
+```svelte
+<form onsubmit={saver.on_submit}>
 ```
 
 The screen does no reshaping, no conversion, and no validation. If submit needs a spread, a ternary, or a `.trim()`, that logic belongs in a child or in the form object.
 
-### 4. Write one Selector per record or argument
+### 4. Validate with the browser
 
-Each `<Thing>Selector.svelte` receives the record or argument it owns. A `tracked_record` comes in as a plain prop, because its `form_values` is already reactive. An always-new argument that the selector reassigns whole (`project`) or toggles to null (`billing_address`) is bound with `$bindable()`. Reference data and cached child rows come in as plain props.
+No hand-written checks in submit. Put `required` on the inputs. The form's submit does not fire until the browser is satisfied. Server errors arrive through `saver.pending_save_promise`. Render them with `{#await saver.pending_save_promise catch err}` and disable the submit button with `saver.saving`.
 
-```svelte
-<ClientSelector {client_cache} {tax_rates} {lead} />
-<AddressSelector
-	client={lead.client}
-	client_addresses={lead.selected_client?.client_addresses ?? []}
-	address={lead.address}
-	bind:billing_address={lead.billing_address}
-/>
-<ProjectSelector bind:project={lead.project} bind:availability={lead.availability} />
-```
+### 5. Markup and styling
 
-Inside the selector:
-
-- **Form-only state stays local.** A "has a due date" checkbox, the date input's text, a search string, a lead source option. Convert it to the server shape at the point of change.
-- **Use function bindings for single inputs.** `bind:value={() => due_date_text, text => set_due_date(has_due_date, text)}` writes both the local text and `project.due_date` in one setter.
-- **Use `$effect` only to mirror state another component owns.** The contact selector copies the client's name and phone into `contact` while "contact is different" is unchecked. The client's inputs live in a sibling, so an effect is the only way to follow them. The svelte-autofixer flags every state write inside an effect. Accept the note for these mirroring effects. Remove any other state write from effects.
-- **Reassign union-typed objects whole.** A discriminated union like `{ lead_source_id: bigint, lead_source_name: null } | { lead_source_id: null, lead_source_name: string | null }` cannot be updated one field at a time. Write `project = { ...project, lead_source_id, lead_source_name }`.
-- **A saved-row dropdown drives the record.** `<select bind:value={() => address.db_values, row => row ? address.set_values(row) : address.clear()}>` with one `<option value={row}>` per cached row and an `<option value={null}>` for a new row. The option values are the cached rows themselves, so `db_values` must keep the same reference it was given.
-- **Defaults belong to the form object.** `set_client` picks the default address and the matched or primary contact. Selectors do not watch the picked row.
-- **Nullable sub-objects toggle by their own checkbox.** The billing checkbox reads `billing_address !== null`. Checking it builds the object with prefilled values from the client and address. Unchecking it stores the object in a plain `let` draft and sets null, so re-checking restores the draft. The screen renders the child inside `{#if billing_address}`.
-- **Row groups** (availability windows) keep string rows locally and write the converted, complete rows into the bound array from an effect.
-- **Mark inputs whose value is already in the database.** Set `data-style-as-unsaved={client.value_needs_to_be_saved(`name`)}` on each input of a tracked record. List input cell components take the same test as a `value_needs_to_be_saved` prop. The 98.css rule paints an input with `"false"` in the app background. The same test decides which fields go in `values_to_save`, so the style and the payload cannot disagree. A new record has no database row and every input reads as new.
-
-### 5. Validate with the browser
-
-No hand-written checks in submit. Put `required` on the inputs. For a row where all fields must be filled once any is filled, compute `required` per row:
-
-```svelte
-{@const required = window.date !== `` || window.from !== `` || window.to !== ``}
-<input type="date" {required} bind:value={window.date}>
-```
-
-The form's submit does not fire until the browser is satisfied. The screen keeps a `save_error` string for server errors only.
-
-### 6. Markup and styling
-
-- Every form is a flex column with `var(--gap_unit)` from `global_styles.css`. Do not restyle `form`.
+- Every form is a flex column with `var(--gap_unit)` from `src/public/global_variables.css`. Do not restyle `form`.
 - Fieldsets use `FieldsetColumn` for vertical stacking, `FormLayout` for the field grid, and `WideTextareaField` for a full-width textarea, all from `#component/`.
-- Use the 98.css design system classes that the app loads: `title-bar` with `title-bar-text`, and `title-bar inactive` for a disabled look. The current client header on the lead screen is a title bar.
+- Use the 98.css design system classes that the app loads: `title-bar` with `title-bar-text`, and `title-bar inactive` for a disabled look.
 - To keep an element's space without showing it, set `data-hide={condition}` and style `[data-hide="true"] { visibility: hidden }`. Do not use `{#if}` for a control whose absence would change the parent's height.
 - Layout is the parent's job. No self-placement on children.
 - Use the array functions from `#shared/array.ts`.
 
-### 7. Verify
+### 6. Verify
 
 1. Run `pnpm run test`. Types, svelte-check, and unit tests must pass.
-2. Run the svelte-autofixer on every component you wrote or changed. Fix everything except the effect notes described in step 4.
-3. Open the screen in Chrome (`http://localhost:8787/app#/app/<route>`). Check each state the selectors can be in: new record, pre-existing record picked, toggles on and off.
+2. Run the svelte-autofixer on every component you wrote or changed. Fix everything except notes about an `$effect` that the Editable user interfaces rule in claude.md calls for.
+3. Open the screen in Chrome (`http://localhost:8787/app#/app/<route>`). Check each state the form can be in: new record, pre-existing record.
 4. Check the payload without writing to the database. Patch `fetch` in the page to log the body for the server function and throw, then submit:
 
 ```js

@@ -3,7 +3,7 @@ import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import assert from '#shared/assert.ts'
-import { map, filter, flat_map } from '#shared/array.ts'
+import { map, filter, flat_map, reduce } from '#shared/array.ts'
 import { ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { normalize_crew_code } from './import_work_skills.ts'
@@ -43,12 +43,13 @@ const data_score = (item: ArbostarLineItem): number =>
 // totals, which derive from line items — but only within projects present in this run, so a
 // lead missing from a (possibly partial) export keeps its lines just like it keeps its
 // project. In-app lines (null arbostar id) are never touched.
-// Each line's `crews` string (comma-joined crew role codes) becomes its
-// project_line_item_work_skill rows. ArboStar is the source of truth for the set, so the
-// links of every ArboStar line in an imported project are replaced wholesale — including
-// those of lines about to be deleted, which would otherwise be orphaned. A deleted line also
-// takes its photo links and its imported photos (project_image rows with an arbostar_image_id)
-// with it, in the same statement; in-app photos linked to the line only lose the link.
+// Each line's `crews` string (comma-joined crew role codes, one per crew member, so a code
+// can repeat) becomes one project_line_item_work_skill row per distinct code, counting how many times it appears. ArboStar is the source
+// of truth for the list, so the links of every ArboStar line in an imported project are
+// replaced wholesale — including those of lines about to be deleted, which would otherwise be
+// orphaned. A deleted line also takes its photo links and its imported photos (project_image
+// rows with an arbostar_image_id) with it, in the same statement; in-app photos linked to the
+// line only lose the link.
 export const import_line_items = async ({
 	connection,
 	write_helper,
@@ -154,15 +155,17 @@ export const import_line_items = async ({
 	})()
 	const work_skill_rows = flat_map(importable, item => {
 		if (item.crews === null) return []
-		const codes = [...new Set(map(item.crews.split(','), normalize_crew_code))]
-		return map(filter(codes, code => code !== ''), code => {
+		const codes = filter(map(item.crews.split(','), normalize_crew_code), code => code !== '')
+		const count_by_work_skill_id = reduce(codes, new Map<bigint, bigint>(), (counts, code) => {
 			const work_skill_id = work_skill_id_by_crew_code.get(code)
 			assert(work_skill_id !== undefined, `crew role code "${code}" on ArboStar line item ${item.line_item_id} is in crew_roles.js`)
-			return {
-				project_line_item_id: project_line_item_id_by_arbostar_line_item_id.get(item.line_item_id)!,
-				work_skill_id,
-			}
+			return counts.set(work_skill_id, (counts.get(work_skill_id) ?? 0n) + 1n)
 		})
+		return map([...count_by_work_skill_id], ([work_skill_id, count]) => ({
+			project_line_item_id: project_line_item_id_by_arbostar_line_item_id.get(item.line_item_id)!,
+			work_skill_id,
+			count,
+		}))
 	})
 	if (work_skill_rows.length > 0) {
 		await write_helper.bulk_insert('project_line_item_work_skill', work_skill_rows, ROWS_PER_BATCH)

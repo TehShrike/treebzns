@@ -99,6 +99,10 @@ export const project_line_item = {
 	arbostar_line_item_id: null,
 } as const satisfies Partial<DbProjectLineItem>
 
+export const project_line_item_work_skill = {
+	count: 1n,
+}
+
 export const project_image = {
 	original_object_key: ``,
 	display_object_key: ``,

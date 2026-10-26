@@ -45,11 +45,17 @@ Apply this to all prose you write.
 - Any "-ing" main verb, nominalization ("perform an analysis"), or phrasal verb ("spin up")? Replace with a plain verb.
 - Same thing named two ways? Pick one name.
 
+## Editable user interfaces
+
+The form pattern and tracked_values are the core language for saveable forms.  We keep screens simple by binding inputs directly to tracked properties as much as possible rather than specialized setters.  If there is something keeping us from binding directly to a tracked value, that is a potential design smell in the schema, or an issue with the input, and you should bring it up.
+
 ## Svelte
 
 If you need documentation for anything related to Svelte, invoke the svelte MCP `list-sections` tool to see the available sections, then `get-documentation` for the relevant paths. Before reaching for `get-documentation`, try to answer from your own knowledge and the `svelte-autofixer` tool — documentation sections are token-intensive.
 
 Every time you write a Svelte component or a Svelte module you MUST invoke the `svelte-autofixer` tool providing the code. The tool will return a list of issues or suggestions. If there are any issues or suggestions you should address them and call the tool again with the updated code. Keep doing this until the tool returns no issues or suggestions.
+
+This project's "bind directly to tracked form values as much as possible" principle is more important than the Svelte autofixer's "don't use $effect" rule.
 
 ## ASR (abstract-state-router)
 

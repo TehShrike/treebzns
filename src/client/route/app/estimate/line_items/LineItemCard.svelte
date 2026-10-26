@@ -1,12 +1,14 @@
 <script lang="ts">
 	import WindowCard from '#component/WindowCard.svelte'
-	import PillCheckbox from '#component/PillCheckbox.svelte'
+	import RemovablePill from '#component/RemovablePill.svelte'
 	import WideTextareaField from '#component/WideTextareaField.svelte'
 	import NumberInput from '#component/NumberInput.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
 	import type { LineItemForm } from './estimate_form.svelte.ts'
 	import type { ItemTypeRow } from '#lib/generic_queries/item_type.ts'
 	import type { WorkSkillRow } from '#lib/generic_queries/work_skill.ts'
+	import assert from '#shared/assert.ts'
+	import { map } from '#shared/array.ts'
 
 	const { line_item, first_time_estimating, item_types, work_skills }: {
 		line_item: LineItemForm
@@ -14,6 +16,14 @@
 		item_types: readonly ItemTypeRow[]
 		work_skills: readonly WorkSkillRow[]
 	} = $props()
+
+	const work_skill_by_id = $derived(new Map(map(work_skills, work_skill => [work_skill.work_skill_id, work_skill] as const)))
+
+	const short_name_of = (work_skill_id: bigint) => {
+		const work_skill = work_skill_by_id.get(work_skill_id)
+		assert(work_skill, `work skill ${work_skill_id} is one of the company's work skills`)
+		return work_skill.short_name
+	}
 </script>
 
 <WindowCard>
@@ -43,14 +53,26 @@
 
 	<div class="scroller">
 		{#each work_skills as work_skill (work_skill.work_skill_id)}
-			<PillCheckbox
-				value_needs_to_be_saved={first_time_estimating || line_item.work_skill_ids.id_needs_to_be_saved(work_skill.work_skill_id)}
-				bind:checked={() => line_item.work_skill_ids.has(work_skill.work_skill_id), selected => line_item.set_work_skill(work_skill.work_skill_id, selected)}
-			>
+			<button type="button" class="add_work_skill" onclick={() => line_item.add_work_skill(work_skill.work_skill_id)}>
 				{work_skill.short_name}
-			</PillCheckbox>
+			</button>
 		{/each}
 	</div>
+
+	{#if line_item.work_skills.length === 0}
+		<div class="no_work_skills">No skills selected</div>
+	{:else}
+		<div class="scroller">
+			{#each line_item.work_skills as line_item_work_skill (line_item_work_skill.stable_record_identifier)}
+				{@const short_name = short_name_of(line_item_work_skill.form_values.work_skill_id)}
+				{#each { length: Number(line_item_work_skill.form_values.count) }}
+					<RemovablePill label="Remove {short_name}" onclick={() => line_item.remove_work_skill(line_item_work_skill)}>
+						{short_name}
+					</RemovablePill>
+				{/each}
+			{/each}
+		</div>
+	{/if}
 
 	<WideTextareaField
 		label="Work details"
@@ -132,7 +154,12 @@
 		background: var(--accent_background);
 	}
 
-	.no_photos {
+	.add_work_skill {
+		flex-shrink: 0;
+	}
+
+	.no_photos,
+	.no_work_skills {
 		color: var(--text_color_light);
 	}
 
