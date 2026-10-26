@@ -2,7 +2,7 @@ import assert from '#shared/assert.ts'
 import type { TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import * as default_values from '#shared/treebzns_db/default_values.ts'
-import type { AddedEstimateLineItem, AddedEstimateLineItemResult, EstimateLineItemValues } from '#shared/type/estimate.ts'
+import type { AddedEstimateLineItem, AddedEstimateLineItemResult } from '#shared/type/estimate.ts'
 import { add_work_skills } from './work_skill.ts'
 import { pick } from '#shared/pick.ts'
 
@@ -12,12 +12,6 @@ export const default_line_item: AddedEstimateLineItem = {
 	project_line_item_id: null,
 	...pick(default_values.project_line_item, line_item_value_keys),
 	work_skills: [],
-}
-
-export const assert_line_item_values_valid = (values: Partial<EstimateLineItemValues>) => {
-	assert(values.estimated_crew_size === undefined || values.estimated_crew_size >= 1n, `an estimated crew size is at least one person`)
-	assert(values.estimated_hours === undefined || values.estimated_hours >= 0n, `estimated hours are not negative`)
-	assert(values.price === undefined || !values.price.isNegative(), `a price is not negative`)
 }
 
 const get_line_item_count_and_max_sort = async ({
@@ -45,7 +39,6 @@ const get_line_item_count_and_max_sort = async ({
 }
 
 export const insert_line_item = async ({
-
 	project_id,
 	line_item,
 	select_builder,
@@ -56,9 +49,7 @@ export const insert_line_item = async ({
 	select_builder: TransactionTenantedSelectBuilder
 	write_helper: TenantedWriteHelper
 }): Promise<AddedEstimateLineItemResult> => {
-	assert(line_item.project_line_item_id === null, `a line item is inserted only when it is not in the database`)
 	const values = pick(line_item, line_item_value_keys)
-	assert_line_item_values_valid(values)
 
 	const { line_item_count, max_sort } = await get_line_item_count_and_max_sort({ project_id, select_builder })
 

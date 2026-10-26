@@ -15,8 +15,6 @@
 estimate_form.svelte.ts: is the modelling of work skills tolerable?  Do we need a tracked map of some kind?
 Is it reasonable to have the `if (record_save.adding) {` instead of separate start_add/start_change functions?
 
-All the insert/update server functions need to be checked against the new worker/claude.md, and switched from bespoke validators to assert_db_id_valid as much as possible.
-
 tracked_record_array's commit function changed to take an object with changed or updated properties.  Check those types, check the logic, find out why.
 
 ## Make the estimation/proposal editing screen tolerable

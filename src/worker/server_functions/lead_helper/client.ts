@@ -62,7 +62,5 @@ export const upsert_client = ({
 		})
 	}
 
-	assert(billing_address === null, `billing_address only exists for a new client`)
-
 	return update_existing_client({ client, write_helper })
 }

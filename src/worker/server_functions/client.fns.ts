@@ -1,11 +1,11 @@
-import assert from '#shared/assert.ts'
 import * as jv from '#shared/json_validator.ts'
-import { for_each, for_each_async, map_async } from '#shared/array.ts'
+import { filter_map, for_each_async, map_async } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
+import { omit } from '#shared/omit.ts'
 import { sfn } from '#lib/server_functions_api.ts'
-import assert_db_id_valid from '#lib/db/assert_db_id_valid.ts'
+import assert_db_id_valid, { assert_db_ids_valid } from '#lib/db/assert_db_id_valid.ts'
 import type { TenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
-import type { AddedClientAddress, ChangedClientAddress, ChangedClientContact, ClientMetrics, ClientValues, UpdateClientArgument, UpdateClientResult } from '#shared/type/client.ts'
+import type { AddedClientAddress, ChangedClientAddress, ClientMetrics, ClientValues, UpdateClientArgument, UpdateClientResult } from '#shared/type/client.ts'
 import { insert_client_contact, update_client_contact } from './client_helper/client_contact.ts'
 import { insert_client_address, update_client_address } from './client_helper/client_address.ts'
 import { remove_client_addresses, remove_client_contacts } from './client_helper/remove_rows.ts'
@@ -89,58 +89,35 @@ const update_client_validator: jv.Validator<UpdateClientArgument> = jv.object({
 const assert_input_ids_valid = async ({
 	client_id,
 	client,
+	added_addresses,
+	changed_addresses,
 	select_builder,
 }: {
 	client_id: bigint
 	client: Partial<ClientValues>
+	added_addresses: readonly AddedClientAddress[]
+	changed_addresses: readonly ChangedClientAddress[]
 	select_builder: TenantedSelectBuilder
-}) => Promise.all([
-	assert_db_id_valid({ select_builder, table_name: 'client', id: client_id }),
-	client.tax_rate_id != null && assert_db_id_valid({ select_builder, table_name: 'tax_rate', id: client.tax_rate_id }),
-])
-
-const assert_removed_ids_unused = ({
-	client,
-	changed_contacts,
-	added_addresses,
-	changed_addresses,
-	removed_contact_ids,
-	removed_address_ids,
-}: {
-	client: Partial<ClientValues>
-	changed_contacts: ChangedClientContact[]
-	added_addresses: AddedClientAddress[]
-	changed_addresses: ChangedClientAddress[]
-	removed_contact_ids: bigint[]
-	removed_address_ids: bigint[]
 }) => {
-	const removed_contact_id_set = new Set(removed_contact_ids)
-	const removed_address_id_set = new Set(removed_address_ids)
+	const client_contact_ids = filter_map([...added_addresses, ...changed_addresses], address => address.client_contact_id ?? null)
 
-	for_each(changed_contacts, ({ client_contact_id }) => {
-		assert(!removed_contact_id_set.has(client_contact_id), `a changed contact is not also removed`)
-	})
-
-	for_each(changed_addresses, ({ client_address_id }) => {
-		assert(!removed_address_id_set.has(client_address_id), `a changed address is not also removed`)
-	})
-
-	for_each([...added_addresses, ...changed_addresses], ({ client_contact_id }) => {
-		assert(client_contact_id == null || !removed_contact_id_set.has(client_contact_id), `the contact of an address is not removed`)
-	})
-
-	assert(
-		client.default_project_address_id === undefined || !removed_address_id_set.has(client.default_project_address_id),
-		`the default project address is not removed`,
-	)
+	await Promise.all([
+		assert_db_id_valid({ select_builder, table_name: 'client', id: client_id }),
+		client.tax_rate_id != null && assert_db_id_valid({ select_builder, table_name: 'tax_rate', id: client.tax_rate_id }),
+		client.default_project_address_id !== undefined && assert_db_id_valid({ select_builder, table_name: 'client_address', id: client.default_project_address_id }),
+		assert_db_ids_valid({ select_builder, table_name: 'client_contact', ids: client_contact_ids }),
+	])
 }
 
 export const functions = {
 	create_client: sfn({
 		validator: create_client_validator,
-		fn: async (arg, context): Promise<Pick<DbClient, 'client_id' | 'default_project_address_id'>> => {
-			const { company, transaction } = context
-			return transaction(async ({ write_helper }) => {
+		fn: async (arg, { transaction }): Promise<Pick<DbClient, 'client_id' | 'default_project_address_id'>> => {
+			return transaction(async ({ select_builder, write_helper }) => {
+				if (arg.tax_rate_id != null) {
+					await assert_db_id_valid({ select_builder, table_name: 'tax_rate', id: arg.tax_rate_id })
+				}
+
 				const { insert_id: client_id } = await write_helper.insert('client', {
 					...pick(default_values.client, ['billing_name', 'billing_address_line_1', 'billing_address_line_2', 'billing_city', 'billing_state', 'billing_zip']),
 					...pick(arg, ['name', 'is_commercial', 'billing_phone', 'billing_email', 'notes', 'referred_by']),
@@ -178,11 +155,9 @@ export const functions = {
 			{ client_id, client, added_contacts, changed_contacts, added_addresses, changed_addresses, removed_contact_ids, removed_address_ids },
 			{ transaction },
 		): Promise<UpdateClientResult> => transaction(async ({ select_builder, write_helper }) => {
-			const { client_id: client_object_id, ...client_changes } = client
+			const client_changes = omit(client, ['client_id'])
 
-			assert(client_object_id === null || client_object_id === client_id, `client.client_id matches client_id when it is set`)
-			assert_removed_ids_unused({ client: client_changes, changed_contacts, added_addresses, changed_addresses, removed_contact_ids, removed_address_ids })
-			await assert_input_ids_valid({ client_id, client: client_changes, select_builder })
+			await assert_input_ids_valid({ client_id, client: client_changes, added_addresses, changed_addresses, select_builder })
 
 			if (Object.keys(client_changes).length > 0) {
 				await write_helper.update({ table_name: 'client', column: 'client_id', value: client_id, set: client_changes })

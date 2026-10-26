@@ -1,20 +1,17 @@
 import * as jv from '#shared/json_validator.ts'
 import { is_financial_number } from '#shared/value_validators.ts'
 import { sfn } from '#lib/server_functions_api.ts'
-import assert from '#shared/assert.ts'
 import assert_db_id_valid, { assert_db_ids_valid } from '#lib/db/assert_db_id_valid.ts'
 import type { TenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type {
 	AddedEstimateLineItem,
 	ChangedEstimateLineItem,
-	EstimateProjectValues,
 	UpdateEstimateArgument,
 	UpdateEstimateResult,
 } from '#shared/type/estimate.ts'
 import { filter_map, flat_map, map, map_async } from '#shared/array.ts'
 import { default_line_item, insert_line_item } from './estimate_helper/line_item.ts'
-import { assert_line_items_belong_to_project, remove_line_items, update_line_item } from './estimate_helper/update_line_item.ts'
-import { assert_work_skill_rows_belong_to_line_items } from './estimate_helper/work_skill.ts'
+import { remove_line_items, update_line_item } from './estimate_helper/update_line_item.ts'
 import { update_project_document } from '#shared/treebzns_db/changes_with_history/project_document_history.ts'
 
 const line_item_value_validators = {
@@ -84,6 +81,7 @@ const assert_input_ids_valid = async ({
 	changed_line_items: readonly ChangedEstimateLineItem[]
 	select_builder: TenantedSelectBuilder
 }) => {
+	const project_line_item_ids = map(changed_line_items, line_item => line_item.project_line_item_id)
 	const item_type_ids = new Set(filter_map([...added_line_items, ...changed_line_items], line_item => line_item.item_type_id ?? null))
 	const work_skill_ids = new Set([
 		...flat_map(added_line_items, line_item => map(line_item.work_skills, work_skill => work_skill.work_skill_id)),
@@ -95,17 +93,11 @@ const assert_input_ids_valid = async ({
 
 	await Promise.all([
 		assert_db_id_valid({ select_builder, table_name: `project`, id: project_id }),
-		...(project_document_id === undefined ? [] : [assert_db_id_valid({ select_builder, table_name: `project_document`, id: project_document_id })]),
+		project_document_id !== undefined && assert_db_id_valid({ select_builder, table_name: `project_document`, id: project_document_id }),
+		assert_db_ids_valid({ select_builder, table_name: `project_line_item`, ids: project_line_item_ids }),
 		assert_db_ids_valid({ select_builder, table_name: `item_type`, ids: item_type_ids }),
 		assert_db_ids_valid({ select_builder, table_name: `work_skill`, ids: work_skill_ids }),
 	])
-}
-
-const assert_project_values_valid = (project: Partial<EstimateProjectValues>) => {
-	assert(
-		project.estimated_crew_size === undefined || project.estimated_crew_size === null || project.estimated_crew_size >= 1n,
-		`an estimated crew size is at least one person`,
-	)
 }
 
 export const functions = {
@@ -115,7 +107,10 @@ export const functions = {
 			{ project_id, ...line_item_values },
 			{ transaction },
 		): Promise<{ project_line_item_id: bigint }> => transaction(async ({ select_builder, write_helper }) => {
-			await assert_db_id_valid({ select_builder, table_name: `project`, id: project_id })
+			await Promise.all([
+				assert_db_id_valid({ select_builder, table_name: `project`, id: project_id }),
+				line_item_values.item_type_id != null && assert_db_id_valid({ select_builder, table_name: `item_type`, id: line_item_values.item_type_id }),
+			])
 
 			const { project_line_item_id } = await insert_line_item({
 				project_id,
@@ -135,20 +130,7 @@ export const functions = {
 		): Promise<UpdateEstimateResult> => transaction(async ({ select_builder, write_helper }) => {
 			const { project_id, project_document_id, ...project_changes } = project
 
-			assert_project_values_valid(project_changes)
 			await assert_input_ids_valid({ project_id, project_document_id, added_line_items, changed_line_items, select_builder })
-			await assert_line_items_belong_to_project({
-				project_id,
-				project_line_item_ids: [...map(changed_line_items, line_item => line_item.project_line_item_id), ...removed_line_item_ids],
-				select_builder,
-			})
-			await assert_work_skill_rows_belong_to_line_items({
-				rows: flat_map(changed_line_items, line_item => map(line_item.changed_work_skills, work_skill => ({
-					project_line_item_id: line_item.project_line_item_id,
-					project_line_item_work_skill_id: work_skill.project_line_item_work_skill_id,
-				}))),
-				select_builder,
-			})
 
 			if (Object.keys(project_changes).length > 0) {
 				await write_helper.update({ table_name: `project`, column: `project_id`, value: project_id, set: project_changes })

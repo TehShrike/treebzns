@@ -1,5 +1,4 @@
 import { Temporal } from '@js-temporal/polyfill'
-import assert from '#shared/assert.ts'
 import * as jv from '#shared/json_validator.ts'
 import { sfn } from '#lib/server_functions_api.ts'
 import { is_temporal_plain_date, is_temporal_plain_time } from '#schema/validator/_helpers.ts'
@@ -129,11 +128,6 @@ export const functions = {
 			await assert_input_ids_valid({ client, address, contact, project, select_builder })
 
 			const creating_new_client = client.client_id === null
-
-			if (creating_new_client) {
-				assert(address.client_address_id === null, `a new client gets a new address`)
-				assert(contact.client_contact_id === null, `a new client gets a new contact`)
-			}
 
 			const { client_address_id, address: all_address_values } = await upsert_client_address({
 				client_id: creating_new_client ? 0n : client.client_id,
