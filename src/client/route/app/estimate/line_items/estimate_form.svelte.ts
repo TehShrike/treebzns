@@ -37,7 +37,7 @@ export type PriceCalculation = {
 }
 
 const make_work_skill = (work_skill_id: bigint, values_in_db: LoadedLineItemWorkSkill | null = null) => tracked_record<EstimateLineItemWorkSkillValues, 'project_line_item_work_skill_id'>({
-	default_values: { work_skill_id, count: default_values.project_line_item_work_skill.count },
+	default_values: { ...default_values.project_line_item_work_skill, work_skill_id },
 	id_key: `project_line_item_work_skill_id`,
 	values_in_db,
 })
