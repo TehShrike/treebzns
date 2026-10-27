@@ -1,4 +1,4 @@
-import * as jv from '#shared/json_validator.ts'
+import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
 import { is_temporal_instant } from './_helpers.ts'
 
@@ -18,6 +18,6 @@ export const validator_object = {
 	upload_employee_id: jv.nullable(jv.is_bigint),
 }
 
-export const project_image_validator: jv.Validator<DbProjectImage> = jv.object(validator_object)
+export const project_image_validator: Validator<DbProjectImage> = jv.object(validator_object)
 
-export const insertable_project_image_validator: jv.Validator<DbInsertableProjectImage> = jv.object(omit(validator_object, ['project_image_id', 'created_at', 'updated_at']))
+export const insertable_project_image_validator: Validator<DbInsertableProjectImage> = jv.object(omit(validator_object, ['project_image_id', 'created_at', 'updated_at']))

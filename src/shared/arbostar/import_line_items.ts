@@ -7,7 +7,7 @@ import { map, filter, flat_map, reduce } from '#shared/array.ts'
 import { ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { normalize_crew_code } from './import_work_skills.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 
 export type ImportedLineItems = {
 	project_line_item_id_by_arbostar_line_item_id: Map<number, bigint>

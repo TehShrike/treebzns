@@ -5,7 +5,7 @@
 	import LineItemCard from './LineItemCard.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
 	import make_estimate_form, { type LoadedLineItem } from './estimate_form.svelte.ts'
-	import * as default_values from '#shared/treebzns_db/default_values.ts'
+	import default_values from '#shared/treebzns_db/default_values.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
 	import { select_estimate } from './select_estimate.ts'

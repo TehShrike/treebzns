@@ -1,4 +1,4 @@
-import * as jv from '#shared/json_validator.ts'
+import jv from '#shared/json_validator.ts'
 
 export {
 	is_temporal_instant,

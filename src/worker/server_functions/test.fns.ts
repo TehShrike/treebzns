@@ -1,4 +1,4 @@
-import * as jv from "#shared/json_validator.ts"
+import jv from "#shared/json_validator.ts"
 import { sfns } from "#lib/server_functions_api.ts"
 
 export const functions = sfns({

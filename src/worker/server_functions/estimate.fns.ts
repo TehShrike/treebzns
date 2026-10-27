@@ -1,4 +1,4 @@
-import * as jv from '#shared/json_validator.ts'
+import jv, { type Validator } from '#shared/json_validator.ts'
 import { is_financial_number } from '#shared/value_validators.ts'
 import { sfn } from '#lib/server_functions_api.ts'
 import assert_db_id_valid, { assert_db_ids_valid } from '#lib/db/assert_db_id_valid.ts'
@@ -45,7 +45,7 @@ const changed_work_skills_validator = jv.array(jv.object({
 	...jv.optional_shape(work_skill_value_validators),
 }))
 
-const update_estimate_validator: jv.Validator<UpdateEstimateArgument> = jv.object({
+const update_estimate_validator: Validator<UpdateEstimateArgument> = jv.object({
 	project: jv.object({
 		project_id: jv.is_bigint,
 		...jv.optional_shape({

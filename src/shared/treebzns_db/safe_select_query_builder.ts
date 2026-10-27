@@ -1,6 +1,6 @@
 import { make_safe_select_query_builder } from '#shared/sql_request/safe_select_query.ts'
 import object_keys from '#shared/object_keys.ts'
-import * as schema from '#schema/all_table_column_names.ts'
+import schema from '#schema/all_table_column_names.ts'
 import { large_blob_columns } from '#schema/large_blob_columns.ts'
 
 const whitelisted_columns = {

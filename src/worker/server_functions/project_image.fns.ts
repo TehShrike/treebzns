@@ -1,4 +1,4 @@
-import * as jv from '#shared/json_validator.ts'
+import jv from '#shared/json_validator.ts'
 import { sfn } from '#lib/server_functions_api.ts'
 import { insert_line_item_image } from './project_image_helper/line_item_image.ts'
 

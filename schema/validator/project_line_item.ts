@@ -1,4 +1,4 @@
-import * as jv from '#shared/json_validator.ts'
+import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
 import { is_financial_number, is_temporal_instant } from './_helpers.ts'
 
@@ -29,7 +29,7 @@ export const validator_object = {
 	updated_at: is_temporal_instant,
 }
 
-export const project_line_item_validator: jv.Validator<DbProjectLineItem> = jv.one_of(
+export const project_line_item_validator: Validator<DbProjectLineItem> = jv.one_of(
 	jv.object({ ...validator_object, ...done, ...rate_discount }),
 	jv.object({ ...validator_object, ...done, ...flat_discount }),
 	jv.object({ ...validator_object, ...not_done, ...rate_discount }),
@@ -38,7 +38,7 @@ export const project_line_item_validator: jv.Validator<DbProjectLineItem> = jv.o
 
 const insertable_validator_object = omit(validator_object, ['project_line_item_id', 'created_at', 'updated_at'])
 
-export const insertable_project_line_item_validator: jv.Validator<DbInsertableProjectLineItem> = jv.one_of(
+export const insertable_project_line_item_validator: Validator<DbInsertableProjectLineItem> = jv.one_of(
 	jv.object({ ...insertable_validator_object, ...done, ...rate_discount }),
 	jv.object({ ...insertable_validator_object, ...done, ...flat_discount }),
 	jv.object({ ...insertable_validator_object, ...not_done, ...rate_discount }),

@@ -1,4 +1,4 @@
-import * as jv from '#shared/json_validator.ts'
+import jv, { type Validator } from '#shared/json_validator.ts'
 import { filter_map, for_each_async, map_async } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
 import { omit } from '#shared/omit.ts'
@@ -11,7 +11,7 @@ import { insert_client_address, update_client_address } from './client_helper/cl
 import { remove_client_addresses, remove_client_contacts } from './client_helper/remove_rows.ts'
 import { get_client_metrics } from './client_helper/client_metrics.ts'
 import { select_client_address_ids_in_use, select_client_contact_ids_in_use } from '#shared/treebzns_db/client_relationships.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 
 const address_validator = jv.object({
 	name: jv.is_string,
@@ -72,7 +72,7 @@ const get_client_metrics_validator = jv.object({
 	client_ids: jv.array(jv.is_bigint),
 })
 
-const update_client_validator: jv.Validator<UpdateClientArgument> = jv.object({
+const update_client_validator: Validator<UpdateClientArgument> = jv.object({
 	client_id: jv.is_bigint,
 	client: jv.object({
 		client_id: jv.nullable(jv.is_bigint),

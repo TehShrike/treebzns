@@ -4,7 +4,7 @@ import editable_rows from '#component/list_input/editable_rows.svelte.ts'
 import assert from '#shared/assert.ts'
 import { map } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 import type { ClientValues, ClientContactValues, ClientAddressValues, UpdateClientArgument, UpdateClientResult } from '#shared/type/client.ts'
 
 const make_contact = (values_in_db: DbValues<ClientContactValues, 'client_contact_id'> | null) => tracked_record<ClientContactValues, 'client_contact_id'>({

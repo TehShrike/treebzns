@@ -1,4 +1,4 @@
-import * as jv from '#shared/json_validator.ts'
+import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
 import { is_temporal_instant } from './_helpers.ts'
 
@@ -10,6 +10,6 @@ export const validator_object = {
 	created_at: is_temporal_instant,
 }
 
-export const clock_session_line_item_validator: jv.Validator<DbClockSessionLineItem> = jv.object(validator_object)
+export const clock_session_line_item_validator: Validator<DbClockSessionLineItem> = jv.object(validator_object)
 
-export const insertable_clock_session_line_item_validator: jv.Validator<DbInsertableClockSessionLineItem> = jv.object(omit(validator_object, ['clock_session_line_item_id', 'created_at']))
+export const insertable_clock_session_line_item_validator: Validator<DbInsertableClockSessionLineItem> = jv.object(omit(validator_object, ['clock_session_line_item_id', 'created_at']))

@@ -5,7 +5,7 @@ import { DEFAULT_NUMBER_OF_PASSWORD_HASH_ITERATIONS } from '#shared/password_has
 import { map, filter } from '#shared/array.ts'
 import { ROWS_PER_BATCH, normalize_name, identity_key, placeholder_email } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 
 export type ImportedEmployees = {
 	employee_id_by_arbostar_user_id: Map<number, bigint>

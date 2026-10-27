@@ -1,5 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill'
-import * as jv from '#shared/json_validator.ts'
+import jv from '#shared/json_validator.ts'
 import type { FinancialNumber } from 'financial-number'
 import is_a_financial_number from '#shared/is_financial_number.ts'
 

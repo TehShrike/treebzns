@@ -1,5 +1,5 @@
 import { Temporal } from '@js-temporal/polyfill'
-import * as jv from '#shared/json_validator.ts'
+import jv, { type Validator } from '#shared/json_validator.ts'
 import { sfn } from '#lib/server_functions_api.ts'
 import { is_temporal_plain_date, is_temporal_plain_time } from '#schema/validator/_helpers.ts'
 import get_next_project_number_and_increment from '#lib/db/get_next_project_number_and_increment.ts'
@@ -11,7 +11,7 @@ import { upsert_client_contact } from './lead_helper/client_contact.ts'
 import { insert_lead_source } from './lead_helper/lead_source.ts'
 import { filter_map, for_each_parallel, map } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 import type { TenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { LeadClient, LeadBilling, LeadAddress, LeadAddressValues, LeadContact, CreateLeadArgument, CreateLeadResult } from '#shared/type/lead.ts'
 
@@ -48,7 +48,7 @@ const contact_value_validators = {
 	email: jv.is_string,
 }
 
-const create_lead_validator: jv.Validator<CreateLeadArgument> = jv.object({
+const create_lead_validator: Validator<CreateLeadArgument> = jv.object({
 	client: jv.one_of(
 		jv.object({ client_id: jv.is_null, ...client_value_validators }),
 		jv.object({ client_id: jv.is_bigint, ...jv.optional_shape(client_value_validators) }),

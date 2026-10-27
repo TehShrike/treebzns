@@ -2,7 +2,7 @@
 	import LinkThatLooksLikeAButton from '#component/LinkThatLooksLikeAButton.svelte'
 	import type { Context } from '#lib/client_context.ts'
 	import type { LineItemRow } from './select_line_items.ts'
-	import * as default_values from '#shared/treebzns_db/default_values.ts'
+	import default_values from '#shared/treebzns_db/default_values.ts'
 
 	const {
 		asr,

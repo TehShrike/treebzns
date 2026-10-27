@@ -9,7 +9,7 @@ import make_write_helper from '#shared/mysql/write_helper.ts'
 import assert from '#shared/assert.ts'
 import is_valid_timezone from '#shared/is_valid_timezone.ts'
 import type { Schema } from '#schema/types.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 
 const ROWS_PER_BATCH = 100
 

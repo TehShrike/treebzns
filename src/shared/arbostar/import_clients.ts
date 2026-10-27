@@ -6,7 +6,7 @@ import { map, filter, flatten, chunk } from '#shared/array.ts'
 import { ROWS_PER_BATCH, join_lines } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { pick } from '#shared/pick.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 
 export type ImportedDefaultProjectAddress = {
 	client_address_id: bigint

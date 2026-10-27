@@ -1,7 +1,7 @@
 import assert from '#shared/assert.ts'
 import type { TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 import type { AddedEstimateLineItem, AddedEstimateLineItemResult } from '#shared/type/estimate.ts'
 import { add_work_skills } from './work_skill.ts'
 import { pick } from '#shared/pick.ts'

@@ -1,4 +1,4 @@
-import * as jv from '#shared/json_validator.ts'
+import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
 import { is_temporal_instant } from './_helpers.ts'
 
@@ -20,14 +20,14 @@ export const validator_object = {
 	number_of_password_hash_iterations: jv.is_bigint,
 }
 
-export const employee_validator: jv.Validator<DbEmployee> = jv.one_of(
+export const employee_validator: Validator<DbEmployee> = jv.one_of(
 	jv.object({ ...validator_object, ...has_email }),
 	jv.object({ ...validator_object, ...has_login_name }),
 )
 
 const insertable_validator_object = omit(validator_object, ['employee_id', 'created_at', 'updated_at'])
 
-export const insertable_employee_validator: jv.Validator<DbInsertableEmployee> = jv.one_of(
+export const insertable_employee_validator: Validator<DbInsertableEmployee> = jv.one_of(
 	jv.object({ ...insertable_validator_object, ...has_email }),
 	jv.object({ ...insertable_validator_object, ...has_login_name }),
 )

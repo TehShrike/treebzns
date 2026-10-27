@@ -10,7 +10,7 @@ import { ROWS_PER_BATCH, group_by, money } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { derive_taxable_subtotal } from './derive_taxable_subtotal.ts'
 import { date_from_yyyymmdd } from './arbostar_dates.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 
 export type ImportedInvoices = {
 	invoice_id_by_arbostar_invoice_id: Map<number, bigint>

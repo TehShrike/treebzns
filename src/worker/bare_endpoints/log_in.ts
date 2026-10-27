@@ -2,7 +2,7 @@ import { json_response, error_response } from '#lib/response_helpers.ts'
 import { log_in as db_log_in } from '#lib/db/log_in.ts'
 import get_session_cookie_headers from '#lib/get_session_cookie_headers.ts'
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
-import * as jv from '#shared/json_validator.ts'
+import jv from '#shared/json_validator.ts'
 
 const log_in_validator = jv.object({
 	email_or_login_name: jv.is_string,

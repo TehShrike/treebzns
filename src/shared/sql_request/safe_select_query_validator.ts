@@ -1,4 +1,4 @@
-import * as jv from '#shared/json_validator.ts'
+import jv from '#shared/json_validator.ts'
 import type { InferValidator, Validator } from '#shared/json_validator.ts'
 import assert from '#shared/assert.ts'
 import {

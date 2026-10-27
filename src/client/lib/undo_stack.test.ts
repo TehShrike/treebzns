@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert/strict'
-import * as undo_stack from './undo_stack.ts'
+import undo_stack from './undo_stack.ts'
 
 test('an empty stack has nothing to undo or redo', () => {
 	const stack = undo_stack.empty<string>()

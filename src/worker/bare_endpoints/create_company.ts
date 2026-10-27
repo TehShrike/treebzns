@@ -2,8 +2,8 @@ import { json_response, error_response } from '#lib/response_helpers.ts'
 import type { MysqlHelpersObject } from '#shared/mysql/mysql_helpers_object.ts'
 import { create_company as db_create_company } from '#lib/db/create_company.ts'
 import { log_in_with_password } from './log_in.ts'
-import * as jv from '#shared/json_validator.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import jv from '#shared/json_validator.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 
 const create_company_validator = jv.object({
 	company: jv.object({

@@ -280,6 +280,26 @@ const make_custom_validator = <T>({
 	get_messages,
 })
 
+const json_validator = {
+	object: make_object_validator,
+	array: make_array_validator,
+	object_values: make_object_values_validator,
+	regex: make_regex_validator,
+	exact: make_exact_validator,
+	custom: make_custom_validator,
+	one_of,
+	optional,
+	optional_shape,
+	nullable,
+	is_integer: integer_validator,
+	is_boolean: boolean_validator,
+	is_string: string_validator,
+	is_number: number_validator,
+	is_bigint: bigint_validator,
+	is_date: date_validator,
+	is_null: null_validator,
+}
+
 export {
 	make_object_validator as object,
 	make_array_validator as array,
@@ -299,3 +319,5 @@ export {
 	date_validator as is_date,
 	null_validator as is_null,
 }
+
+export default json_validator

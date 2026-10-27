@@ -33,3 +33,7 @@ export const redo = <T>(stack: UndoStack<T>): UndoStack<T> => {
 		undone: stack.undone.slice(0, -1),
 	}
 }
+
+const undo_stack = { empty, can_undo, can_redo, push, undo, redo }
+
+export default undo_stack

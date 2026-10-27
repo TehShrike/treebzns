@@ -1,4 +1,4 @@
-import * as jv from '#shared/json_validator.ts'
+import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
 import { is_temporal_instant } from './_helpers.ts'
 
@@ -24,6 +24,6 @@ export const validator_object = {
 	updated_at: is_temporal_instant,
 }
 
-export const client_validator: jv.Validator<DbClient> = jv.object(validator_object)
+export const client_validator: Validator<DbClient> = jv.object(validator_object)
 
-export const insertable_client_validator: jv.Validator<DbInsertableClient> = jv.object(omit(validator_object, ['client_id', 'created_at', 'updated_at']))
+export const insertable_client_validator: Validator<DbInsertableClient> = jv.object(omit(validator_object, ['client_id', 'created_at', 'updated_at']))

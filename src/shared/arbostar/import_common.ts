@@ -2,7 +2,7 @@
 // the orchestrator and arbostar_import_notes.md for what does/doesn't survive the mapping).
 import type { Connection, Pool, RowDataPacket } from 'mysql2/promise'
 import type { Schema } from '#schema/types.ts'
-import * as schema from '#schema/all_table_column_names.ts'
+import schema from '#schema/all_table_column_names.ts'
 import { make_safe_select_query_builder } from '#shared/sql_request/safe_select_query.ts'
 import query_builder, { type BuiltQuery, type QueryBuilder } from '#shared/sql_request/typed_query_builder.ts'
 import { make_tenanted_query } from '#shared/treebzns_db/tenanted_query_builder.ts'

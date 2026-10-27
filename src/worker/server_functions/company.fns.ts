@@ -1,4 +1,4 @@
-import * as jv from "#shared/json_validator.ts"
+import jv from "#shared/json_validator.ts"
 import { sfns, sfn } from "#lib/server_functions_api.ts"
 import { pick } from "#shared/pick.ts"
 import { validator_object } from '#schema/validator/company.ts'

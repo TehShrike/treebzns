@@ -5,7 +5,7 @@ import type { PendingSave } from '#lib/pending_save.ts'
 import assert from '#shared/assert.ts'
 import { filter, find, for_each, map, reduce, zip_with } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 import type { FinancialNumber } from '#shared/fnum.ts'
 import { average_hourly_rate, calculate_line_item_price } from '#shared/estimate/line_item_price.ts'
 import type {

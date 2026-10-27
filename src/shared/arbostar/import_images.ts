@@ -9,7 +9,7 @@ import { filter, filter_map, flat_map, for_each, map, map_with_concurrency } fro
 import { ROWS_PER_BATCH } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import type { ExistingProjectImage } from './load_existing_correlations.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 
 export const UPLOAD_CONCURRENCY = 8
 

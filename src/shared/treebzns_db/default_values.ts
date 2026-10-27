@@ -120,3 +120,20 @@ export const invoice_line_item = {
 	discount: null,
 	discount_description: ``,
 } as const satisfies Partial<DbInvoiceLineItem>
+
+const default_values = {
+	company,
+	project_number,
+	invoice_number,
+	employee,
+	client,
+	client_address,
+	client_contact,
+	project,
+	project_line_item,
+	project_line_item_work_skill,
+	project_image,
+	invoice_line_item,
+}
+
+export default default_values

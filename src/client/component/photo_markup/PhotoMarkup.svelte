@@ -1,7 +1,7 @@
 <script lang="ts">
 	import assert from '#shared/assert.ts'
 	import { for_each } from '#shared/array.ts'
-	import * as undo_stack from '#lib/undo_stack.ts'
+	import undo_stack from '#lib/undo_stack.ts'
 	import type { UndoStack } from '#lib/undo_stack.ts'
 	import type { CapturedPhoto } from '#component/photo_camera/captured_photo.ts'
 	import { client_to_image_point, contained_rect, line_width_for_size, size_within_long_edge, type Stroke } from './markup_geometry.ts'

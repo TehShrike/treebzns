@@ -3,7 +3,7 @@ import type { CachedClient, CachedClientContact } from '#lib/client_cache.svelte
 import type { LeadClientValues, LeadAddressValues, LeadContactValues, LeadBilling, LeadProject, LeadAvailability, CreateLeadArgument, CreateLeadResult } from '#shared/type/lead.ts'
 import { find } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 
 const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 	const client = tracked_record<LeadClientValues, 'client_id'>({

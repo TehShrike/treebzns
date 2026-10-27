@@ -8,7 +8,7 @@ import all_properties_have_values from '#shared/all_properties_have_values.ts'
 import type { LeadAddress, LeadAddressValues } from '#shared/type/lead.ts'
 import { get_next_sort } from '#lib/db/sort_column.ts'
 import { pick } from '#shared/pick.ts'
-import * as default_values from '#shared/treebzns_db/default_values.ts'
+import default_values from '#shared/treebzns_db/default_values.ts'
 
 
 const select_address_values = async ({ client_address_id, select_builder }: {
