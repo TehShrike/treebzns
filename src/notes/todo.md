@@ -2,6 +2,7 @@
 
 ## This week
 
+
 - Finish immediate review
 - Make sure deployed code works in production
 - Check estimate process practically
