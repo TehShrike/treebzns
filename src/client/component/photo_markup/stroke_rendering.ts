@@ -6,9 +6,7 @@ export type StrokeContext = Pick<
 	| 'strokeStyle' | 'fillStyle' | 'lineWidth' | 'lineCap' | 'lineJoin'
 >
 
-export type StrokeOptions = { color: string, line_width: number }
-
-const apply_options = (ctx: StrokeContext, { color, line_width }: StrokeOptions) => {
+const apply_options = (ctx: StrokeContext, { color, line_width }: Stroke) => {
 	ctx.strokeStyle = color
 	ctx.fillStyle = color
 	ctx.lineWidth = line_width
@@ -29,17 +27,18 @@ const curve_to_midpoint = (ctx: StrokeContext, control: Point, next: Point) => {
 	ctx.quadraticCurveTo(control.x, control.y, end.x, end.y)
 }
 
-export const draw_stroke = (ctx: StrokeContext, { points }: Stroke, options: StrokeOptions) => {
+export const draw_stroke = (ctx: StrokeContext, stroke: Stroke) => {
+	const { points } = stroke
 	const count = points.length
 	if (count === 0) {
 		return
 	}
 
-	apply_options(ctx, options)
+	apply_options(ctx, stroke)
 
 	const first = point_at(points, 0)
 	if (count === 1) {
-		draw_dot(ctx, first, options.line_width)
+		draw_dot(ctx, first, stroke.line_width)
 		return
 	}
 
@@ -53,11 +52,12 @@ export const draw_stroke = (ctx: StrokeContext, { points }: Stroke, options: Str
 	ctx.stroke()
 }
 
-export const draw_stroke_segment = (ctx: StrokeContext, points: readonly Point[], index: number, options: StrokeOptions) => {
-	apply_options(ctx, options)
+export const draw_stroke_segment = (ctx: StrokeContext, stroke: Stroke, index: number) => {
+	const { points } = stroke
+	apply_options(ctx, stroke)
 
 	if (index === 0) {
-		draw_dot(ctx, point_at(points, 0), options.line_width)
+		draw_dot(ctx, point_at(points, 0), stroke.line_width)
 		return
 	}
 
@@ -72,24 +72,5 @@ export const draw_stroke_segment = (ctx: StrokeContext, points: readonly Point[]
 	ctx.beginPath()
 	ctx.moveTo(start.x, start.y)
 	curve_to_midpoint(ctx, point_at(points, index - 1), point_at(points, index))
-	ctx.stroke()
-}
-
-export const draw_stroke_tail = (ctx: StrokeContext, points: readonly Point[], options: StrokeOptions) => {
-	const count = points.length
-	if (count < 2) {
-		return
-	}
-
-	apply_options(ctx, options)
-
-	const last = point_at(points, count - 1)
-	const start = count === 2
-		? point_at(points, 0)
-		: midpoint(point_at(points, count - 2), last)
-
-	ctx.beginPath()
-	ctx.moveTo(start.x, start.y)
-	ctx.lineTo(last.x, last.y)
 	ctx.stroke()
 }

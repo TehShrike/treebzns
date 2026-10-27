@@ -1,22 +1,24 @@
 <script lang="ts">
 	import assert from '#shared/assert.ts'
 	import { for_each } from '#shared/array.ts'
+	import * as undo_stack from '#lib/undo_stack.ts'
+	import type { UndoStack } from '#lib/undo_stack.ts'
 	import type { CapturedPhoto } from '#component/photo_camera/captured_photo.ts'
-	import { client_to_image_point, contained_rect, line_width_for_size, size_within_long_edge, type Point, type Stroke } from './markup_geometry.ts'
-	import { draw_stroke, draw_stroke_segment, draw_stroke_tail } from './stroke_rendering.ts'
+	import { client_to_image_point, contained_rect, line_width_for_size, size_within_long_edge, type Stroke } from './markup_geometry.ts'
+	import { draw_stroke, draw_stroke_segment } from './stroke_rendering.ts'
 
-	const { photo, color = `#d40000` }: {
+	let { photo, color = `#d40000`, history = $bindable(undo_stack.empty<Stroke>()) }: {
 		photo: CapturedPhoto
 		color?: string
+		history?: UndoStack<Stroke>
 	} = $props()
 
 	const width = $derived(photo.canvas.width)
 	const height = $derived(photo.canvas.height)
-	const stroke_options = $derived({ color, line_width: line_width_for_size({ width, height }) })
+	const line_width = $derived(line_width_for_size({ width, height }))
 
 	let overlay_canvas: HTMLCanvasElement | undefined
-	let strokes: Stroke[] = []
-	let drawing: { pointer_id: number, points: Point[] } | null = null
+	let drawing: { pointer_id: number, stroke: Stroke } | null = null
 
 	const context_of = (canvas: HTMLCanvasElement) => {
 		const ctx = canvas.getContext(`2d`)
@@ -27,20 +29,15 @@
 	const redraw_overlay = (canvas: HTMLCanvasElement) => {
 		const ctx = context_of(canvas)
 		ctx.clearRect(0, 0, canvas.width, canvas.height)
-		for_each(strokes, stroke => draw_stroke(ctx, stroke, stroke_options))
+		for_each(history.done, stroke => draw_stroke(ctx, stroke))
 		if (drawing) {
-			const points = drawing.points
-			for_each(points, (_, index) => draw_stroke_segment(ctx, points, index, stroke_options))
+			const { stroke } = drawing
+			for_each(stroke.points, (_, index) => draw_stroke_segment(ctx, stroke, index))
 		}
 	}
 
 	const attach_base = (canvas: HTMLCanvasElement) => {
 		context_of(canvas).drawImage(photo.canvas, 0, 0)
-		strokes = []
-		drawing = null
-		if (overlay_canvas) {
-			context_of(overlay_canvas).clearRect(0, 0, overlay_canvas.width, overlay_canvas.height)
-		}
 	}
 
 	const attach_overlay = (canvas: HTMLCanvasElement) => {
@@ -64,9 +61,9 @@
 
 		const canvas = event.currentTarget as HTMLCanvasElement
 		canvas.setPointerCapture(event.pointerId)
-		const points = [image_point(event, canvas)]
-		drawing = { pointer_id: event.pointerId, points }
-		draw_stroke_segment(context_of(canvas), points, 0, stroke_options)
+		const stroke: Stroke = { points: [image_point(event, canvas)], color, line_width }
+		drawing = { pointer_id: event.pointerId, stroke }
+		draw_stroke_segment(context_of(canvas), stroke, 0)
 	}
 
 	const on_pointer_move = (event: PointerEvent) => {
@@ -76,13 +73,13 @@
 
 		const canvas = event.currentTarget as HTMLCanvasElement
 		const ctx = context_of(canvas)
-		const points = drawing.points
+		const { stroke } = drawing
 		const coalesced = event.getCoalescedEvents?.()
 		const events = coalesced && coalesced.length > 0 ? coalesced : [event]
 
 		for_each(events, sample => {
-			points.push(image_point(sample, canvas))
-			draw_stroke_segment(ctx, points, points.length - 1, stroke_options)
+			stroke.points.push(image_point(sample, canvas))
+			draw_stroke_segment(ctx, stroke, stroke.points.length - 1)
 		})
 	}
 
@@ -91,9 +88,7 @@
 			return
 		}
 
-		const canvas = event.currentTarget as HTMLCanvasElement
-		draw_stroke_tail(context_of(canvas), drawing.points, stroke_options)
-		strokes.push({ points: drawing.points })
+		history = undo_stack.push(history, drawing.stroke)
 		drawing = null
 	}
 
@@ -110,14 +105,7 @@
 		return canvas
 	}
 
-	export const has_strokes = () => strokes.length > 0
-
-	export const undo = () => {
-		strokes.pop()
-		if (overlay_canvas) {
-			redraw_overlay(overlay_canvas)
-		}
-	}
+	const has_strokes = () => history.done.length > 0
 
 	export const compose = async (): Promise<{ display: Blob | null, thumbnail: Blob }> => {
 		assert(overlay_canvas, `the overlay canvas is mounted`)

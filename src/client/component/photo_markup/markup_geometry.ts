@@ -1,5 +1,5 @@
 export type Point = { x: number, y: number }
-export type Stroke = { points: Point[] }
+export type Stroke = { points: Point[], color: string, line_width: number }
 export type Size = { width: number, height: number }
 export type Rect = { left: number, top: number, width: number, height: number }
 
