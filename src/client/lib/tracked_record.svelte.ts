@@ -50,16 +50,13 @@ const start_change = <VALUES extends object, ID_KEY extends string>({
 	values_equal: <K extends keyof VALUES>(key: K, a: VALUES[K], b: VALUES[K]) => boolean
 	commit: (values_in_db: DbValues<VALUES, ID_KEY>) => void
 	discard: () => void
-}): PendingChange<SavedValues<VALUES, ID_KEY>, bigint | void> => {
+}): PendingChange<SavedValues<VALUES, ID_KEY>> => {
 	const changed = object_filter(form_values, (key, value) => !values_equal(key, value, current[key]))
 	const values = with_key(changed, id_key, current[id_key])
 	return {
 		adding: false,
 		values,
-		commit: (db_id: bigint | void) => {
-			assert(db_id === undefined || db_id === current[id_key], `the server saved the record the client sent`)
-			commit({ ...current, ...values })
-		},
+		commit: () => { commit({ ...current, ...values }) },
 		discard,
 	}
 }

@@ -3,7 +3,7 @@ import tracked_record, { type DbValues } from '#lib/tracked_record.svelte.ts'
 import tracked_record_array from '#lib/tracked_record_array.ts'
 import type { PendingSave } from '#lib/pending_save.ts'
 import assert from '#shared/assert.ts'
-import { filter, find, for_each, map, reduce } from '#shared/array.ts'
+import { filter, find, for_each, map, reduce, zip_with } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
 import * as default_values from '#shared/treebzns_db/default_values.ts'
 import type { FinancialNumber } from '#shared/fnum.ts'
@@ -185,7 +185,13 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 	}
 
 	const line_items = map(loaded_line_items, loaded_line_item => make_line_item(loaded_line_item, { hourly_rate_of, round_to_nearest }))
-	const line_item_records = tracked_record_array({ records: () => line_items })
+	const line_item_records = tracked_record_array({
+		records: () => line_items,
+		commit_changed: (changed, results) => {
+			assert(results.length === changed.length, `the server returns one result per changed line item`)
+			for_each(zip_with(changed, results, (save, result) => ({ save, result })), ({ save, result }) => { save.commit(result) })
+		},
+	})
 
 	let crew_size_line_items_follow = loaded_project.estimated_crew_size ?? default_values.project_line_item.estimated_crew_size
 
@@ -221,7 +227,7 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 		return {
 			values,
 			commit: (result: UpdateEstimateResult) => {
-				project_save.commit(result.project_id)
+				project_save.commit()
 				line_items_save.commit({ added: result.added_line_items, changed: result.changed_line_items })
 			},
 			discard: () => {

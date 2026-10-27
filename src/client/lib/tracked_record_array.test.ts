@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import * as assert from 'node:assert'
 import type { PendingSave } from './pending_save.ts'
 import tracked_record_array from './tracked_record_array.ts'
+import { for_each, zip_with } from '#shared/array.ts'
 
 type Row = { id: bigint, name: string }
 
@@ -106,6 +107,14 @@ const make_record_with_results = (loaded: Row | null) => {
 	}
 }
 
+const make_array_with_results = (records: ReturnType<typeof make_record_with_results>[]) => tracked_record_array({
+	records: () => records,
+	commit_changed: (changed, results) => {
+		assert.ok(results.length === changed.length, `the server returns one result per changed record`)
+		for_each(zip_with(changed, results, (save, result) => ({ save, result })), ({ save, result }) => { save.commit(result) })
+	},
+})
+
 test('tracked_record_array has nothing to save when every record matches the database', () => {
 	const { array } = make_array([make_record({ id: 1n, name: `Alice` })])
 
@@ -161,7 +170,7 @@ test('tracked_record_array gives each added and changed record its result when t
 	const added = make_record_with_results(null)
 	const changed = make_record_with_results({ id: 1n, name: `Alice` })
 	const unchanged = make_record_with_results({ id: 2n, name: `Bob` })
-	const array = tracked_record_array({ records: () => [changed, unchanged, added] })
+	const array = make_array_with_results([changed, unchanged, added])
 
 	added.form_values.name = `Dave`
 	changed.form_values.name = `Alicia`
@@ -177,7 +186,7 @@ test('tracked_record_array gives each added and changed record its result when t
 test('tracked_record_array requires one result per added record and one per changed record', () => {
 	const added = make_record_with_results(null)
 	const changed = make_record_with_results({ id: 1n, name: `Alice` })
-	const array = tracked_record_array({ records: () => [added, changed] })
+	const array = make_array_with_results([added, changed])
 
 	added.form_values.name = `Dave`
 	changed.form_values.name = `Alicia`
@@ -185,6 +194,14 @@ test('tracked_record_array requires one result per added record and one per chan
 
 	assert.throws(() => save.commit({ added: [], changed: [{ note: `changed` }] }), { message: `the server returns one result per added record` })
 	assert.throws(() => save.commit({ added: [{ id: 2n, note: `added` }], changed: [] }), { message: `the server returns one result per changed record` })
+	assert.strictEqual(added.db_id, null, `no record commits when the server returns the wrong number of results`)
+})
+
+test('tracked_record_array requires a commit_changed when the records have change results', () => {
+	const record = make_record_with_results({ id: 1n, name: `Alice` })
+
+	// @ts-expect-error records whose change commit takes a result need a commit_changed
+	tracked_record_array({ records: () => [record] })
 })
 
 test('tracked_record_array keeps a record added during a save as added', () => {

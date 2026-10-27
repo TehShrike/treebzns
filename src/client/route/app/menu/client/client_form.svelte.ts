@@ -85,7 +85,7 @@ const make_client_form = ({ client: loaded_client, contacts: loaded_contacts, ad
 		return {
 			values,
 			commit: (result: UpdateClientResult) => {
-				client_save.commit(result.client_id)
+				client_save.commit()
 				contacts_save.commit({ added: result.added_contact_ids })
 				addresses_save.commit({ added: result.added_address_ids })
 			},

@@ -1,7 +1,7 @@
 import { SvelteSet } from 'svelte/reactivity'
 import { filter_map, for_each, map, some, zip_with } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
-import type { PendingSave } from './pending_save.ts'
+import type { PendingChange, PendingSave } from './pending_save.ts'
 
 export type Trackable<ADDED, CHANGED, ADD_RESULT = bigint, CHANGE_RESULT = void> = {
 	readonly db_id: bigint | null
@@ -9,12 +9,11 @@ export type Trackable<ADDED, CHANGED, ADD_RESULT = bigint, CHANGE_RESULT = void>
 	start_save: () => PendingSave<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT>
 }
 
-type ChangeResults<CHANGE_RESULT> = undefined extends CHANGE_RESULT ? { changed?: readonly CHANGE_RESULT[] } : { changed: readonly CHANGE_RESULT[] }
+type Records<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT> = () => readonly Trackable<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT>[]
 
-export type SaveResults<ADD_RESULT, CHANGE_RESULT> = { added: readonly ADD_RESULT[] } & ChangeResults<CHANGE_RESULT>
-
-const tracked_record_array = <ADDED, CHANGED, ADD_RESULT = bigint, CHANGE_RESULT = void>({ records: get_records }: {
-	records: () => readonly Trackable<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT>[]
+const tracked_record_array_core = <ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT, CHANGE_RESULTS>({ records: get_records, commit_changed }: {
+	records: Records<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT>
+	commit_changed: (changed: readonly PendingChange<CHANGED, CHANGE_RESULT>[], results: CHANGE_RESULTS) => void
 }) => {
 	const ids_in_db = new SvelteSet(filter_map(get_records(), record => record.db_id))
 	let saving = false
@@ -34,17 +33,15 @@ const tracked_record_array = <ADDED, CHANGED, ADD_RESULT = bigint, CHANGE_RESULT
 			added: map(added, ({ save }) => save.values),
 			changed: map(changed, save => save.values),
 			removed_ids: removed,
-			commit: (results: SaveResults<ADD_RESULT, CHANGE_RESULT>) => {
-				const changed_results = results.changed ?? map(changed, () => undefined as CHANGE_RESULT)
+			commit: (results: { added: readonly ADD_RESULT[] } & CHANGE_RESULTS) => {
 				assert(results.added.length === added.length, `the server returns one result per added record`)
-				assert(changed_results.length === changed.length, `the server returns one result per changed record`)
+				commit_changed(changed, results)
 				for_each(zip_with(added, results.added, ({ record, save }, result) => ({ record, save, result })), ({ record, save, result }) => {
 					save.commit(result)
 					const db_id = record.db_id
 					assert(db_id !== null, `an added record has its database id once its save commits`)
 					ids_in_db.add(db_id)
 				})
-				for_each(zip_with(changed, changed_results, (save, result) => ({ save, result })), ({ save, result }) => { save.commit(result) })
 				for_each(removed, id => { ids_in_db.delete(id) })
 				saving = false
 			},
@@ -61,6 +58,35 @@ const tracked_record_array = <ADDED, CHANGED, ADD_RESULT = bigint, CHANGE_RESULT
 	}
 }
 
-export type TrackedRecordArray<ADDED, CHANGED, ADD_RESULT = bigint, CHANGE_RESULT = void> = ReturnType<typeof tracked_record_array<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT>>
+const commit_changed_without_results = (changed: readonly PendingChange<unknown, void>[]) => {
+	for_each(changed, save => { save.commit() })
+}
+
+type WithoutChangeResults<ADDED, CHANGED, ADD_RESULT> = {
+	records: Records<ADDED, CHANGED, ADD_RESULT, void>
+	commit_changed?: undefined
+}
+
+type WithChangeResults<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT> = {
+	records: Records<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT>
+	commit_changed: (changed: readonly PendingChange<CHANGED, CHANGE_RESULT>[], results: readonly CHANGE_RESULT[]) => void
+}
+
+function tracked_record_array<ADDED, CHANGED, ADD_RESULT = bigint>(
+	options: WithoutChangeResults<ADDED, CHANGED, ADD_RESULT>
+): ReturnType<typeof tracked_record_array_core<ADDED, CHANGED, ADD_RESULT, void, {}>>
+function tracked_record_array<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT>(
+	options: WithChangeResults<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT>
+): ReturnType<typeof tracked_record_array_core<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT, { changed: readonly CHANGE_RESULT[] }>>
+function tracked_record_array<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT>(
+	{ records, commit_changed }: WithoutChangeResults<ADDED, CHANGED, ADD_RESULT> | WithChangeResults<ADDED, CHANGED, ADD_RESULT, CHANGE_RESULT>
+) {
+	return commit_changed === undefined
+		? tracked_record_array_core({ records, commit_changed: commit_changed_without_results })
+		: tracked_record_array_core({
+			records,
+			commit_changed: (changed, results: { changed: readonly CHANGE_RESULT[] }) => { commit_changed(changed, results.changed) },
+		})
+}
 
 export default tracked_record_array

@@ -4,10 +4,13 @@ export type PendingAdd<ADDED, ADD_RESULT = bigint> = {
 	commit: (result: ADD_RESULT) => void,
 	discard: () => void
 }
+
+type ChangeCommit<CHANGE_RESULT> = [CHANGE_RESULT] extends [void] ? () => void : (result: CHANGE_RESULT) => void
+
 export type PendingChange<CHANGED, CHANGE_RESULT = void> = {
 	adding: false,
 	values: CHANGED,
-	commit: (result: CHANGE_RESULT) => void,
+	commit: ChangeCommit<CHANGE_RESULT>,
 	discard: () => void
 }
 

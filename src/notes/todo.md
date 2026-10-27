@@ -21,8 +21,6 @@ Could really use some kind of line editing (work skills, line type)
 estimate_form.svelte.ts: is the modelling of work skills tolerable?  Do we need a tracked map of some kind?
 Is it reasonable to have the `if (record_save.adding) {` instead of separate start_add/start_change functions?
 
-tracked_record_array's commit function changed to take an object with changed or updated properties.  Check those types, check the logic, find out why.
-
 ## Make the estimation/proposal editing screen tolerable
 
 On the Proposal page -> estimates, the link should take you to the line item view if the project has line items.
