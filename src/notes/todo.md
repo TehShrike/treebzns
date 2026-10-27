@@ -5,10 +5,16 @@
 - Finish immediate review
 - Make sure deployed code works in production
 - Check estimate process practically
-	- Undo/redo drawing
-	- "Done" is wrong word for center button editing photos
-	- "Photos" button should say "take photos"? take you to the camera view for an existing line item?
 - Sync prod data
+
+### Check estimate process practically
+
+- Undo/redo drawing
+- "Done" is wrong word for center button editing photos
+- "Photos" button should say "take photos"? take you to the camera view for an existing line item?
+- Rename "Upload" to "Save photo", rename "Cancel" to "Discard photo", "Next" should say "Next line"
+
+Could really use some kind of line editing (work skills, line type)
 
 ## Review
 
