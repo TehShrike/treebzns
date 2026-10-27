@@ -43,7 +43,7 @@ Destructure the argument and the context in the parameter list. The context prov
 
 ### 2. Write the validator
 
-Use `jv` from `#shared/json_validator.ts`. Temporal validators come from `#schema/validator/_helpers.ts`.
+Use `jv` from `#shared/json_validator.ts`. Temporal validators come from `#shared/value_validators.ts`.
 
 - Group related fields into sub-objects (`client`, `address`, `project`). Do not accept one flat bag of fields.
 - Model mutually exclusive fields as a discriminated union: put the shared field validators in a plain object, then spread it into each `jv.one_of` branch.

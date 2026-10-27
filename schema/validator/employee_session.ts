@@ -1,6 +1,7 @@
 import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
-import { is_buffer, is_temporal_instant } from './_helpers.ts'
+import { is_temporal_instant } from '#shared/value_validators.ts'
+import { is_buffer } from '#shared/value_validators_node.ts'
 
 export const validator_object = {
 	employee_session_id: jv.is_bigint,

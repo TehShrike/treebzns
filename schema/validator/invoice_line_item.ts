@@ -1,6 +1,6 @@
 import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
-import { is_financial_number, is_temporal_instant } from './_helpers.ts'
+import { is_financial_number, is_temporal_instant } from '#shared/value_validators.ts'
 
 const rate_discount = { discount_rate: is_financial_number, discount: jv.is_null } as const
 const flat_discount = { discount_rate: jv.is_null, discount: jv.nullable(is_financial_number) } as const

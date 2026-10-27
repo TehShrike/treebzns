@@ -1,5 +1,6 @@
 import assert from '#shared/assert.ts'
 import { map, filter, every, some } from '#shared/array.ts'
+import { double_quote } from '#shared/quote_string.ts'
 
 type MessageReturningFunction = (input: unknown, name: string) => string[]
 
@@ -21,8 +22,6 @@ type NonOptionalValidator<T> = {
 type StringIndexedObject = {
 	[key: string]: unknown
 }
-
-const double_quote = (str: string) => `"${str}"`
 
 const is_string = (input: unknown): input is string => typeof input === `string`
 

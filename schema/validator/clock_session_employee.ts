@@ -1,6 +1,6 @@
 import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
-import { is_temporal_instant, is_temporal_plain_date } from './_helpers.ts'
+import { is_temporal_instant, is_temporal_plain_date } from '#shared/value_validators.ts'
 
 export const validator_object = {
 	clock_session_employee_id: jv.is_bigint,

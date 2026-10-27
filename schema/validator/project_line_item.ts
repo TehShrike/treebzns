@@ -1,6 +1,6 @@
 import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
-import { is_financial_number, is_temporal_instant } from './_helpers.ts'
+import { is_financial_number, is_temporal_instant } from '#shared/value_validators.ts'
 
 const done = { done_at: is_temporal_instant, done_by_employee_id: jv.is_bigint } as const
 const not_done = { done_at: jv.is_null, done_by_employee_id: jv.is_null } as const

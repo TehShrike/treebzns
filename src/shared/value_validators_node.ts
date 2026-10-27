@@ -1,13 +1,5 @@
 import jv from '#shared/json_validator.ts'
-
-export {
-	is_temporal_instant,
-	is_temporal_plain_date,
-	is_temporal_plain_time,
-	is_financial_number,
-} from '#shared/value_validators.ts'
-
-const double_quote = (str: string) => `"${str}"`
+import { double_quote } from '#shared/quote_string.ts'
 
 export const is_buffer = jv.custom<Buffer>({
 	is_valid: (input: unknown): input is Buffer => Buffer.isBuffer(input),

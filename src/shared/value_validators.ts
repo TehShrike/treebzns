@@ -2,8 +2,7 @@ import { Temporal } from '@js-temporal/polyfill'
 import jv from '#shared/json_validator.ts'
 import type { FinancialNumber } from 'financial-number'
 import is_a_financial_number from '#shared/is_financial_number.ts'
-
-const double_quote = (str: string) => `"${str}"`
+import { double_quote } from '#shared/quote_string.ts'
 
 export const is_temporal_instant = jv.custom<Temporal.Instant>({
 	is_valid: (input: unknown): input is Temporal.Instant => input instanceof Temporal.Instant,

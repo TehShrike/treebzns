@@ -1,6 +1,6 @@
 import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
-import { is_temporal_instant } from './_helpers.ts'
+import { is_temporal_instant } from '#shared/value_validators.ts'
 
 const expires = { can_expire: jv.exact<true>(true), expire_days: jv.is_bigint } as const
 const never_expires = { can_expire: jv.exact<false>(false), expire_days: jv.is_null } as const

@@ -1,6 +1,6 @@
 import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
-import { is_temporal_instant } from './_helpers.ts'
+import { is_temporal_instant } from '#shared/value_validators.ts'
 
 const permission_code_validator = jv.one_of(
 	jv.exact('CAN_CHANGE_WORK_ORDERS_WITHOUT_CUSTOMER_APPROVAL' as const),

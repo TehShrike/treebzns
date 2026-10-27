@@ -1,6 +1,6 @@
 import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
-import { is_temporal_instant } from './_helpers.ts'
+import { is_temporal_instant } from '#shared/value_validators.ts'
 
 const has_email = { email: jv.is_string, login_name: jv.nullable(jv.is_string) } as const
 const has_login_name = { email: jv.nullable(jv.is_string), login_name: jv.is_string } as const

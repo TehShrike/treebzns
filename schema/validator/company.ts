@@ -1,6 +1,7 @@
 import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
-import { is_buffer, is_financial_number, is_temporal_instant, is_temporal_plain_time } from './_helpers.ts'
+import { is_financial_number, is_temporal_instant, is_temporal_plain_time } from '#shared/value_validators.ts'
+import { is_buffer } from '#shared/value_validators_node.ts'
 
 export const validator_object = {
 	company_id: jv.is_bigint,

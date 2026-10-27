@@ -1,6 +1,6 @@
 import jv, { type Validator } from '#shared/json_validator.ts'
 import { omit } from '#shared/omit.ts'
-import { is_financial_number, is_temporal_instant, is_temporal_plain_date } from './_helpers.ts'
+import { is_financial_number, is_temporal_instant, is_temporal_plain_date } from '#shared/value_validators.ts'
 
 const taxed = { taxable: jv.exact<true>(true), tax_rate_id: jv.is_bigint, tax_rate: is_financial_number } as const
 const untaxed = { taxable: jv.exact<false>(false), tax_rate_id: jv.is_null, tax_rate: jv.is_null } as const
