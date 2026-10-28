@@ -125,7 +125,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
-		gap: var(--gap_unit);
+		gap: var(--gap_half) var(--gap_unit);
 		padding: var(--gap_half);
 		flex-shrink: 0;
 	}
