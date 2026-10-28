@@ -100,7 +100,6 @@
 	}
 
 	video {
-		flex-grow: 1;
 		min-height: 0;
 		width: 100%;
 		object-fit: contain;
