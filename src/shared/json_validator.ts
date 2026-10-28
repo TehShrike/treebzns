@@ -80,7 +80,7 @@ const make_object_validator = <const OBJECT extends { [key: string]: any }>(shap
 			return false
 		}
 
-		const all_input_keys_exist_in_shape = every(keys_plz(input), (key) => key in shape)
+		const all_input_keys_exist_in_shape = every(keys_plz(input), (key) => Object.hasOwn(shape, key))
 
 		if (!all_input_keys_exist_in_shape) {
 			return false
@@ -101,7 +101,7 @@ const make_object_validator = <const OBJECT extends { [key: string]: any }>(shap
 			return [`${quoted_name} is not an object`]
 		}
 
-		const keys_that_dont_exist_in_shape = filter(keys_plz(input), (key) => !(key in shape))
+		const keys_that_dont_exist_in_shape = filter(keys_plz(input), (key) => !Object.hasOwn(shape, key))
 		const property_messages = keys_plz(shape).flatMap((key) => {
 			const validator = shape[key]
 			assert(validator)

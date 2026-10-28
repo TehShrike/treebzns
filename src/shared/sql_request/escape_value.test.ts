@@ -41,3 +41,22 @@ test('escape_value: serializes arrays and plain objects as JSON strings', () => 
 test('escape_value: leaves buffers for sql-escaper', () => {
 	assert.strictEqual(escape_value(Buffer.from([0xde, 0xad])), `X'dead'`)
 })
+
+test('escape_value: leaves Uint8Arrays for sql-escaper', () => {
+	assert.strictEqual(escape_value(new Uint8Array([0xde, 0xad])), `X'dead'`)
+})
+
+test('escape_value: rejects objects it has no representation for instead of letting sql-escaper expand them into SQL', () => {
+	class Widget { name = 'x' }
+	class RawSql { toSqlString() { return 'DROP TABLE widget' } }
+	assert.throws(() => escape_value(new Widget()), /got Widget/)
+	assert.throws(() => escape_value(new RawSql()), /got RawSql/)
+	assert.throws(() => escape_value(new Map()), /got Map/)
+	assert.throws(() => escape_value(Temporal.PlainDateTime.from('2026-06-15T08:30:45')), /got PlainDateTime/)
+	assert.throws(() => escape_value(new Date()), /got Date/)
+})
+
+test('escape_value: rejects numbers that would become bare identifiers', () => {
+	assert.throws(() => escape_value(NaN), /got number/)
+	assert.throws(() => escape_value(Infinity), /got number/)
+})

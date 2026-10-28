@@ -163,9 +163,9 @@ const typed_write_helper = <
 	tables_unique_on_company_id: Record<UniqueOnCompanyId, string>,
 }): ForConnection<Insertable, Row, UniqueOnCompanyId> => {
 	for_each(object_keys(tables_unique_on_company_id), table_name => {
-		assert(table_name in schema_constants, `Table "${table_name}" unique on company_id must exist in schema constants`)
+		assert(Object.hasOwn(schema_constants, table_name), `Table "${table_name}" unique on company_id must exist in schema constants`)
 		assert(
-			company_id_column in (schema_constants[table_name] as Record<string, string>),
+			Object.hasOwn(schema_constants[table_name] as Record<string, string>, company_id_column),
 			`Table "${table_name}" unique on company_id must have a company_id column`,
 		)
 	})
@@ -177,12 +177,12 @@ const typed_write_helper = <
 		const assert_table_matches_company_scope = (table_name: string, table_columns: Record<string, string>) => {
 			if (company_id === null) {
 				assert(
-					!(company_id_column in table_columns),
+					!Object.hasOwn(table_columns, company_id_column),
 					`Table "${table_name}" has a company_id column, so it must be written through a write helper bound to a company`,
 				)
 			} else {
 				assert(
-					company_id_column in table_columns,
+					Object.hasOwn(table_columns, company_id_column),
 					`Table "${table_name}" has no company_id column, so it must be written through a write helper bound to no company`,
 				)
 			}
@@ -200,10 +200,10 @@ const typed_write_helper = <
 			: ` AND ${escape_identifier(company_id_column)} = ${serialize_value(company_id)}`
 
 		const table_columns_for_write = (table_name: string, column: string): Record<string, string> => {
-			assert(table_name in schema_constants, `Table "${table_name}" must exist in schema constants`)
+			assert(Object.hasOwn(schema_constants, table_name), `Table "${table_name}" must exist in schema constants`)
 			const table_columns = schema_constants[table_name] as Record<string, string>
 			assert_table_matches_company_scope(table_name, table_columns)
-			assert(column in table_columns, `Column "${column}" must exist in schema constants for table "${table_name}"`)
+			assert(Object.hasOwn(table_columns, column), `Column "${column}" must exist in schema constants for table "${table_name}"`)
 			return table_columns
 		}
 
@@ -212,10 +212,10 @@ const typed_write_helper = <
 			assert(entries.length > 0, `An update of table "${table_name}" must set at least one column`)
 			assert_no_company_id_in('set', map(entries, ([column]) => column), table_name)
 			const assignments = map(entries, ([column, value]) => {
-				assert(column in table_columns, `Column "${column}" must exist in schema constants for table "${table_name}"`)
+				assert(Object.hasOwn(table_columns, column), `Column "${column}" must exist in schema constants for table "${table_name}"`)
 				return `${escape_identifier(column)} = ${serialize_value(value)}`
 			})
-			if ('updated_at' in table_columns && !some(entries, ([column]) => column === 'updated_at')) {
+			if (Object.hasOwn(table_columns, 'updated_at') && !some(entries, ([column]) => column === 'updated_at')) {
 				assignments.push('`updated_at` = UTC_TIMESTAMP()')
 			}
 			const set_sql = assignments.join(', ')
@@ -241,7 +241,7 @@ const typed_write_helper = <
 		) => {
 			assert(company_id !== null, `update_company_row needs a write helper bound to a company`)
 			assert(
-				table_name in tables_unique_on_company_id,
+				Object.hasOwn(tables_unique_on_company_id, table_name),
 				`Table "${table_name}" must be unique on company_id to update the company's row`,
 			)
 			const table_columns = table_columns_for_write(table_name, company_id_column)
@@ -252,14 +252,14 @@ const typed_write_helper = <
 		}
 
 		const insert: WriteHelper<Insertable, Row, keyof Insertable & string, keyof Row & string>['insert'] = async (table_name, row) => {
-			assert(table_name in schema_constants, `Table "${table_name}" must exist in schema constants`)
-			assert(table_name in insertable_column_names, `Table "${table_name}" must exist in insertable column names`)
+			assert(Object.hasOwn(schema_constants, table_name), `Table "${table_name}" must exist in schema constants`)
+			assert(Object.hasOwn(insertable_column_names, table_name), `Table "${table_name}" must exist in insertable column names`)
 			assert_table_matches_company_scope(table_name, insertable_column_names[table_name] as Record<string, string>)
 			const row_entries: [string, unknown][] = Object.entries(row)
 			assert_no_company_id_in('row', map(row_entries, ([column]) => column), table_name)
 			const entries: [string, unknown][] = company_id === null ? row_entries : [[company_id_column, company_id], ...row_entries]
 			const column_list = map(entries, ([column]) => {
-				assert(column in schema_constants[table_name], `Column "${column}" must exist in schema constants for table "${table_name}"`)
+				assert(Object.hasOwn(schema_constants[table_name], column), `Column "${column}" must exist in schema constants for table "${table_name}"`)
 				return escape_identifier(column)
 			}).join(', ')
 			const value_list = map(entries, ([, value]) => serialize_value(value)).join(', ')
@@ -274,7 +274,7 @@ const typed_write_helper = <
 			rows,
 			rows_per_batch,
 		) => {
-			assert(table_name in insertable_column_names, `Table "${table_name}" must exist in insertable column names`)
+			assert(Object.hasOwn(insertable_column_names, table_name), `Table "${table_name}" must exist in insertable column names`)
 			assert_table_matches_company_scope(table_name, insertable_column_names[table_name] as Record<string, string>)
 			assert(rows.length > 0, `bulk_insert requires at least one row for table "${table_name}"`)
 			assert(
@@ -360,7 +360,7 @@ const typed_write_helper = <
 			const equal_columns = object_keys(where_equal)
 			assert_no_company_id_in('where_equal', equal_columns, table_name)
 			const equal_sql = map(equal_columns, equal_column => {
-				assert(equal_column in table_columns, `Column "${equal_column}" must exist in schema constants for table "${table_name}"`)
+				assert(Object.hasOwn(table_columns, equal_column), `Column "${equal_column}" must exist in schema constants for table "${table_name}"`)
 				return ` AND ${escape_identifier(equal_column)} = ${serialize_value(where_equal[equal_column])}`
 			}).join('')
 			if (values.length === 0) return { affected_rows: 0n }

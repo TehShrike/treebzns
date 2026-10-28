@@ -1045,3 +1045,21 @@ test('typed_write_helper: MySQLFunction values render as SQL function calls in w
 		last_seen_at: fns.utc_timestamp(),
 	})
 })
+
+test('typed_write_helper: a column named after an Object.prototype member is not a schema column', async () => {
+	const { connection, calls } = make_mock_connection()
+	const helper = make_helper(connection)
+	const row_with_prototype_key = { name: 'x', description: null, constructor: 'evil' } as unknown as { name: string, description: null }
+	await assert.rejects(() => helper.insert('widget', row_with_prototype_key), /Column "constructor" must exist in schema constants/)
+	const set_with_prototype_key = { toString: 'evil' } as unknown as { name: string }
+	await assert.rejects(
+		() => helper.update({ table_name: 'widget', column: 'widget_id', value: 1n, set: set_with_prototype_key }),
+		/Column "toString" must exist in schema constants/,
+	)
+	const where_equal_with_prototype_key = { hasOwnProperty: 'evil' } as unknown as { name: string }
+	await assert.rejects(
+		() => helper.delete({ table_name: 'widget', column: 'widget_id', values: [1n], values_per_batch: 10, where_equal: where_equal_with_prototype_key }),
+		/Column "hasOwnProperty" must exist in schema constants/,
+	)
+	assert.strictEqual(calls.length, 0)
+})

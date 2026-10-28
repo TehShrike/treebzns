@@ -126,7 +126,7 @@ const operand_to_sql_chunk = (operand: ComparisonOperand): SqlChunk => {
 		return { sql: `\`${operand.alias}\``, parameters: [] }
 	}
 	if (operand.type === 'function') {
-		assert(operand.function in FUNCTIONS)
+		assert(Object.hasOwn(FUNCTIONS, operand.function))
 		assertZeroOrOneOrTwoArguments(operand.arguments)
 		return FUNCTIONS[operand.function](operand.arguments)
 	}
@@ -171,7 +171,7 @@ const comparison_to_chunk = (comp: RenderableComparison): SqlChunk => {
 const on_clause_item_to_chunk = (clause: Comparison | FunctionExpression | WhereGrouping): SqlChunk => {
 	if ('expressions' in clause) return bool_expr_to_chunk(clause)
 	if (clause.type === 'comparison') return comparison_to_chunk(clause)
-	assert(clause.function in FUNCTIONS)
+	assert(Object.hasOwn(FUNCTIONS, clause.function))
 	assertZeroOrOneOrTwoArguments(clause.arguments)
 	return FUNCTIONS[clause.function](clause.arguments)
 }
@@ -181,7 +181,7 @@ const select_item_to_chunk = (sel: SelectExpression): SqlChunk => {
 		const chunk = value_to_sql_chunk(sel)
 		return sel.alias ? { ...chunk, sql: `${chunk.sql} AS \`${sel.alias}\`` } : chunk
 	}
-	assert(sel.function in FUNCTIONS)
+	assert(Object.hasOwn(FUNCTIONS, sel.function))
 	assertZeroOrOneOrTwoArguments(sel.arguments)
 	const chunk = FUNCTIONS[sel.function](sel.arguments)
 	return { ...chunk, sql: `${chunk.sql} AS \`${sel.alias}\`` }
@@ -189,7 +189,7 @@ const select_item_to_chunk = (sel: SelectExpression): SqlChunk => {
 
 const group_by_item_to_chunk = (sel: SelectExpression): SqlChunk => {
 	if (sel.type === 'column reference') return value_to_sql_chunk(sel)
-	assert(sel.function in FUNCTIONS)
+	assert(Object.hasOwn(FUNCTIONS, sel.function))
 	assertZeroOrOneOrTwoArguments(sel.arguments)
 	return FUNCTIONS[sel.function](sel.arguments)
 }
