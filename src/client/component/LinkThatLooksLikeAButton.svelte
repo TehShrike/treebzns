@@ -11,6 +11,6 @@
 <style>
 	.link-button {
 		font-size: calc(15px * var(--size));
-		padding: calc(6px * var(--size)) calc(16px * var(--size));
+		padding: calc(6px * var(--size) + var(--press)) calc(16px * var(--size) - var(--press)) calc(6px * var(--size) - var(--press)) calc(16px * var(--size) + var(--press));
 	}
 </style>

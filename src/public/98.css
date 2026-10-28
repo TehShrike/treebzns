@@ -129,15 +129,15 @@ input[type="submit"],
 input[type="reset"] {
 	box-sizing: border-box;
 	border: none;
-	color: transparent;
-	text-shadow: 0 0 var(--text-color);
+	color: var(--text-color);
+	--press: 0px;
 	background: var(--surface);
 	box-shadow: var(--border-raised-outer), var(--border-raised-inner);
 	border-radius: 0;
 
 	min-width: 75px;
 	min-height: 23px;
-	padding: 6px 16px;
+	padding: calc(6px + var(--press)) calc(16px - var(--press)) calc(6px - var(--press)) calc(16px + var(--press));
 
 	&:is(a) {
 		display: inline-block;
@@ -154,7 +154,7 @@ input[type="reset"] {
 
 	&:not(:disabled):active {
 		box-shadow: var(--border-sunken-outer), var(--border-sunken-inner);
-		text-shadow: 1px 1px var(--text-color);
+		--press: 1px;
 	}
 
 	&.default:not(:disabled):active {
