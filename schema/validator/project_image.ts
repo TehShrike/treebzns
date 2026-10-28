@@ -10,6 +10,7 @@ export const validator_object = {
 	display_object_key: jv.is_string,
 	thumbnail_object_key: jv.is_string,
 	description: jv.is_string,
+	strokes: jv.nullable(jv.is_string),
 	visible_to_client: jv.is_boolean,
 	uploaded_at: jv.nullable(is_temporal_instant),
 	created_at: is_temporal_instant,

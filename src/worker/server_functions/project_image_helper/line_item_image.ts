@@ -40,11 +40,13 @@ const get_next_sort = async ({
 
 export const insert_line_item_image = async ({
 	project_line_item_id,
+	strokes,
 	upload_employee_id,
 	select_builder,
 	write_helper,
 }: {
 	project_line_item_id: bigint
+	strokes: string
 	upload_employee_id: bigint
 	select_builder: TransactionTenantedSelectBuilder
 	write_helper: TenantedWriteHelper
@@ -55,6 +57,7 @@ export const insert_line_item_image = async ({
 	const { insert_id: project_image_id } = await write_helper.insert(`project_image`, {
 		...default_values.project_image,
 		project_id,
+		strokes,
 		upload_employee_id,
 	})
 

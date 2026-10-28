@@ -61,13 +61,13 @@
 		await camera?.resume()
 	}
 
-	const upload = async () => {
+	const save_photo = async () => {
 		assert(markup, `the markup component is mounted while marking`)
 		assert(photo, `a photo is held while marking`)
 		busy = true
 		try {
-			const { display, thumbnail } = await markup.compose()
-			const { project_image_id } = await server.create_line_item_image({ project_line_item_id: line_item.project_line_item_id })
+			const { display, thumbnail, strokes } = await markup.compose()
+			const { project_image_id } = await server.create_line_item_image({ project_line_item_id: line_item.project_line_item_id, strokes })
 			photo_upload_queue.enqueue({
 				project_image_id,
 				original: photo.original,
@@ -111,7 +111,7 @@
 			<button type="button" disabled={busy} onclick={take_photo}>📸 Take Photo</button>
 		{:else}
 			<button type="button" disabled={busy} onclick={back_to_live}>Discard</button>
-			<button type="button" disabled={busy} onclick={upload}>💾 Save Photo</button>
+			<button type="button" disabled={busy} onclick={save_photo}>💾 Save Photo</button>
 		{/if}
 	{/snippet}
 </Layout>

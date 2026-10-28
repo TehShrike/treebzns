@@ -624,6 +624,7 @@ CREATE TABLE `project_image` (
   `display_object_key` varchar(1024) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `thumbnail_object_key` varchar(1024) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `description` text COLLATE utf8mb4_general_ci NOT NULL,
+  `strokes` json DEFAULT NULL,
   `visible_to_client` bit(1) NOT NULL DEFAULT b'0',
   `uploaded_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),

@@ -398,6 +398,7 @@ export const project_image = {
 	display_object_key: 'display_object_key',
 	thumbnail_object_key: 'thumbnail_object_key',
 	description: 'description',
+	strokes: 'strokes',
 	visible_to_client: 'visible_to_client',
 	uploaded_at: 'uploaded_at',
 	arbostar_image_id: 'arbostar_image_id',

@@ -107,7 +107,15 @@
 
 	const has_strokes = () => history.done.length > 0
 
-	export const compose = async (): Promise<{ display: Blob | null, thumbnail: Blob }> => {
+	const undo = () => {
+		history = undo_stack.undo(history)
+	}
+
+	const redo = () => {
+		history = undo_stack.redo(history)
+	}
+
+	export const compose = async (): Promise<{ display: Blob | null, thumbnail: Blob, strokes: Stroke[] }> => {
 		assert(overlay_canvas, `the overlay canvas is mounted`)
 
 		const composed = make_canvas(photo.canvas)
@@ -125,29 +133,43 @@
 		const display = has_strokes() ? await canvas_to_jpeg(composed, 0.85) : null
 		const thumbnail = await canvas_to_jpeg(thumbnail_canvas, 0.7)
 
-		return { display, thumbnail }
+		return { display, thumbnail, strokes: [...history.done] }
 	}
 </script>
 
-<div class="frame" style:aspect-ratio="{width} / {height}">
-	<canvas {width} {height} {@attach attach_base}></canvas>
-	<canvas
-		class="overlay"
-		{width}
-		{height}
-		{@attach attach_overlay}
-		onpointerdown={on_pointer_down}
-		onpointermove={on_pointer_move}
-		onpointerup={on_pointer_end}
-		onpointercancel={on_pointer_end}
-	></canvas>
+<div class="markup">
+	<div class="frame" style:aspect-ratio="{width} / {height}">
+		<canvas {width} {height} {@attach attach_base}></canvas>
+		<canvas
+			class="overlay"
+			{width}
+			{height}
+			{@attach attach_overlay}
+			onpointerdown={on_pointer_down}
+			onpointermove={on_pointer_move}
+			onpointerup={on_pointer_end}
+			onpointercancel={on_pointer_end}
+		></canvas>
+	</div>
+
+	<div class="history">
+		<button type="button" disabled={!undo_stack.can_undo(history)} onclick={undo}>Undo</button>
+		<button type="button" disabled={!undo_stack.can_redo(history)} onclick={redo}>Redo</button>
+	</div>
 </div>
 
 <style>
+	.markup {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		height: 100%;
+	}
+
 	.frame {
 		position: relative;
 		width: 100%;
-		max-height: 100%;
+		min-height: 0;
 	}
 
 	canvas {
@@ -160,5 +182,13 @@
 
 	.overlay {
 		touch-action: none;
+	}
+
+	.history {
+		display: flex;
+		justify-content: center;
+		gap: var(--gap_unit);
+		padding: var(--gap_half);
+		flex-shrink: 0;
 	}
 </style>

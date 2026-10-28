@@ -21,8 +21,6 @@
 	- Undo/redo buttons
 - "Photos" button in "Edit all" should say "take photos"? take you to the camera view for an existing line item?
 
-
-
 ## Review
 
 estimate_form.svelte.ts: is the modelling of work skills tolerable?  Do we need a tracked map of some kind?
