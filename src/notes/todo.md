@@ -14,13 +14,11 @@
 	- View should let you flip between photos and hit a button to go into edit mode
 	- A button at the bottom that lets you go between the two modes
 - Taking a photo
-	- Photo button should be "📸 Take Photo"
 	- "Text" button needs to be live, show an input somewhere (area between camera and bottom buttons?)
 		- Should sync directly to the line item's description, saved with photo
 - Editing a photo
 	- Editing photo should be centered like when taking a photo.  Or maybe taking a photo should be top aligned like viewing a photo?
 	- Undo/redo buttons
-	- "Upload" -> "Save photo"
 - "Photos" button should say "take photos"? take you to the camera view for an existing line item?
 - Rename "Upload" to "Save photo", rename "Cancel" to "Discard photo", "Next" should say "Next line"
 
