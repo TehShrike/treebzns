@@ -110,8 +110,8 @@
 			<button type="button" disabled>Text</button>
 			<button type="button" disabled={busy} onclick={take_photo}>📸 Take Photo</button>
 		{:else}
-			<button type="button" disabled={busy} onclick={back_to_live}>Cancel</button>
-			<button type="button" disabled={busy} onclick={upload}>📷 Save Photo</button>
+			<button type="button" disabled={busy} onclick={back_to_live}>Discard</button>
+			<button type="button" disabled={busy} onclick={upload}>💾 Save Photo</button>
 		{/if}
 	{/snippet}
 </Layout>
