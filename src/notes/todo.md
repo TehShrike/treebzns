@@ -17,8 +17,6 @@
 	- "Text" button needs to be live, show an input somewhere (area between camera and bottom buttons?)
 		- Should sync directly to the line item's description, saved with photo
 	- Some kind of line editing in camera/single-line view (work skills, line type)
-- Editing a photo
-	- Undo/redo buttons
 - "Photos" button in "Edit all" should say "take photos"? take you to the camera view for an existing line item?
 
 ## Review

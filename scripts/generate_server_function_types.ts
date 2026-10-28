@@ -120,6 +120,7 @@ const type_source_modules = [
 	{ specifier: '#shared/type/lead.ts', path: ['src', 'shared', 'type', 'lead.ts'] },
 	{ specifier: '#shared/type/client.ts', path: ['src', 'shared', 'type', 'client.ts'] },
 	{ specifier: '#shared/type/estimate.ts', path: ['src', 'shared', 'type', 'estimate.ts'] },
+	{ specifier: '#schema/type/project_image.d.ts', path: ['schema', 'type', 'project_image.d.ts'] },
 ]
 
 const validator_import = type_source_modules

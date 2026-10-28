@@ -2,6 +2,7 @@ import assert from '#shared/assert.ts'
 import type { TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import default_values from '#shared/treebzns_db/default_values.ts'
+import type { Stroke } from '#schema/type/project_image.d.ts'
 
 const get_line_item_project_id = async ({
 	project_line_item_id,
@@ -46,7 +47,7 @@ export const insert_line_item_image = async ({
 	write_helper,
 }: {
 	project_line_item_id: bigint
-	strokes: string
+	strokes: Stroke[]
 	upload_employee_id: bigint
 	select_builder: TransactionTenantedSelectBuilder
 	write_helper: TenantedWriteHelper

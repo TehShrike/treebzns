@@ -4,7 +4,8 @@
 	import undo_stack from '#lib/undo_stack.ts'
 	import type { UndoStack } from '#lib/undo_stack.ts'
 	import type { CapturedPhoto } from '#component/photo_camera/captured_photo.ts'
-	import { client_to_image_point, contained_rect, line_width_for_size, size_within_long_edge, type Stroke } from './markup_geometry.ts'
+	import { client_to_image_point, contained_rect, line_width_for_size, size_within_long_edge } from './markup_geometry.ts'
+	import type { Stroke } from '#schema/type/project_image.d.ts'
 	import { draw_stroke, draw_stroke_segment } from './stroke_rendering.ts'
 
 	let { photo, color = `#d40000`, history = $bindable(undo_stack.empty<Stroke>()) }: {

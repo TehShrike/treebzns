@@ -93,7 +93,11 @@ export const static_connection_options: ConnectionOptions = {
 			}
 			return Temporal.PlainTime.from(time_string)
 		} else if (field.type === `JSON`) {
-			return field.string()
+			const json_string = field.string(`utf8`)
+			if (json_string === null) {
+				return null
+			}
+			return JSON.parse(json_string)
 		} else if (integer_types_we_want_returned_as_bigints.has(field.type)) {
 			const int_string = field.string()
 			if (int_string === null) {

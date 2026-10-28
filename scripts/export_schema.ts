@@ -29,7 +29,7 @@ const MYSQL_TYPE_TO_TS: Record<string, (col: ColumnMeta) => string> = {
 	date: () => 'Temporal.PlainDate',
 	time: () => 'Temporal.PlainTime',
 	varchar: () => 'string',
-	json: () => 'string',
+	json: () => 'unknown',
 	char: () => 'string',
 	text: () => 'string',
 	blob: () => 'Buffer',
@@ -55,7 +55,7 @@ function columnTsType(col: ColumnMeta): string {
 	const mapFn = MYSQL_TYPE_TO_TS[col.DATA_TYPE]
 	assert(mapFn, `Every type must exist in MYSQL_TYPE_TO_TS: "${col.DATA_TYPE}"`)
 	const base = mapFn(col)
-	return col.IS_NULLABLE === 'YES' ? `${base} | null` : base
+	return col.IS_NULLABLE === 'YES' && base !== 'unknown' ? `${base} | null` : base
 }
 
 function isInsertable(col: ColumnMeta): boolean {

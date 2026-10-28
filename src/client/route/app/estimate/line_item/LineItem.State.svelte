@@ -107,11 +107,11 @@
 
 	{#snippet bottom()}
 		{#if mode === `live`}
-			<button type="button" disabled>Text</button>
-			<button type="button" disabled={busy} onclick={take_photo}>📸 Take Photo</button>
+			<button type="button" disabled>Edit item</button>
+			<button type="button" disabled={busy} onclick={take_photo}>📸 Take photo</button>
 		{:else}
 			<button type="button" disabled={busy} onclick={back_to_live}>Discard</button>
-			<button type="button" disabled={busy} onclick={save_photo}>💾 Save Photo</button>
+			<button type="button" disabled={busy} onclick={save_photo}>💾 Save photo</button>
 		{/if}
 	{/snippet}
 </Layout>

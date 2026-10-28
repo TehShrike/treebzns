@@ -1,6 +1,7 @@
 import type { Connection } from 'mysql2/promise'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ArbostarClient, ArbostarContact } from '#arbostar_export/clients.d.ts'
+import type { ArbostarEmailData } from '#schema/type/client_contact.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import { map, filter, flatten, chunk } from '#shared/array.ts'
 import { ROWS_PER_BATCH, join_lines } from './import_common.ts'
@@ -41,7 +42,7 @@ const contact_description = (title: string): string => {
 	return BOILERPLATE_TITLE.test(trimmed) ? '' : trimmed
 }
 
-const contact_email_data = (contact: ArbostarContact): string => JSON.stringify({
+const contact_email_data = (contact: ArbostarContact): ArbostarEmailData => ({
 	email_check: contact.cc_email_check,
 	email_manual_approve: contact.cc_email_manual_approve,
 	email_blocked: contact.cc_email_blocked,

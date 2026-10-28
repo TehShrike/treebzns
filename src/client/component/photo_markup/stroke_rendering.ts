@@ -1,4 +1,5 @@
-import { midpoint, type Point, type Stroke } from './markup_geometry.ts'
+import { midpoint } from './markup_geometry.ts'
+import type { Point, Stroke } from '#schema/type/project_image.d.ts'
 
 export type StrokeContext = Pick<
 	CanvasRenderingContext2D,

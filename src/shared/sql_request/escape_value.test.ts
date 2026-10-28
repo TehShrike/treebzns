@@ -31,3 +31,13 @@ test('escape_value: escapes dangerous characters in strings', () => {
 	assert.strictEqual(escape_value("O'Malley"), "'O\\'Malley'")
 	assert.strictEqual(escape_value('a"b\\c'), "'a\\\"b\\\\c'")
 })
+
+test('escape_value: serializes arrays and plain objects as JSON strings', () => {
+	assert.strictEqual(escape_value([{ x: 1, y: 2 }]), `'[{\\"x\\":1,\\"y\\":2}]'`)
+	assert.strictEqual(escape_value({ blocked: true, reason: null }), `'{\\"blocked\\":true,\\"reason\\":null}'`)
+	assert.strictEqual(escape_value([]), `'[]'`)
+})
+
+test('escape_value: leaves buffers for sql-escaper', () => {
+	assert.strictEqual(escape_value(Buffer.from([0xde, 0xad])), `X'dead'`)
+})

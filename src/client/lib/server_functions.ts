@@ -6,6 +6,7 @@ import type { SafeSelectQuery } from '#shared/sql_request/safe_select_query_vali
 import type { CreateLeadArgument, CreateLeadResult } from '#shared/type/lead.ts'
 import type { ClientMetrics, UpdateClientArgument, UpdateClientResult } from '#shared/type/client.ts'
 import type { UpdateEstimateArgument, UpdateEstimateResult } from '#shared/type/estimate.ts'
+import type { Stroke } from '#schema/type/project_image.d.ts'
 
 const call_server_function = (function_name: string) => async (arg: unknown) => f3tch(`/api/fn/${function_name}`, {
 	method: 'POST',
@@ -21,7 +22,7 @@ const server_functions: {
 	create_line_item: (arg: OptionalizeUndefinedKeys<{ readonly item_type_id: bigint | null | undefined; readonly work_details: string | undefined; readonly estimated_crew_size: bigint | undefined; readonly estimated_hours: bigint | undefined; readonly client_optional: boolean | undefined; readonly price: FinancialNumber | undefined; readonly project_id: bigint; }>) => Promise<{ project_line_item_id: bigint; }>
 	update_estimate: (arg: UpdateEstimateArgument) => Promise<UpdateEstimateResult>
 	create_lead: (arg: CreateLeadArgument) => Promise<CreateLeadResult>
-	create_line_item_image: (arg: OptionalizeUndefinedKeys<{ readonly project_line_item_id: bigint; readonly strokes: OptionalizeUndefinedKeys<{ readonly points: OptionalizeUndefinedKeys<{ readonly x: number; readonly y: number; }>[]; readonly color: string; readonly line_width: number; }>[]; }>) => Promise<{ project_image_id: bigint; }>
+	create_line_item_image: (arg: OptionalizeUndefinedKeys<{ readonly project_line_item_id: bigint; readonly strokes: Stroke[]; }>) => Promise<{ project_image_id: bigint; }>
 	query: (arg: SafeSelectQuery) => Promise<unknown[][]>
 	ping: (arg: OptionalizeUndefinedKeys<{ readonly timeout: 1000n | 2000n | 3000n; }>) => Promise<{ pong: boolean; user_id: bigint; }>
 } = {
