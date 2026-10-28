@@ -1,10 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
-	const { top, bottom, fill = false, children }: { top?: Snippet, bottom?: Snippet, fill?: boolean, children: Snippet } = $props()
+	const { heading, top, bottom, fill = false, children }: { heading?: Snippet, top?: Snippet, bottom?: Snippet, fill?: boolean, children: Snippet } = $props()
 </script>
 
 <div class="layout">
+	{@render heading?.()}
 	{#if top}
 		<div class="bar">
 			{@render top()}

@@ -2,6 +2,7 @@
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import Layout from '../Layout.svelte'
 	import EstimateNavBar from '../EstimateNavBar.svelte'
+	import EstimateMap from '../EstimateMap.svelte'
 	import PhotoCamera from '#component/photo_camera/PhotoCamera.svelte'
 	import PhotoMarkup from '#component/photo_markup/PhotoMarkup.svelte'
 	import type { CapturedPhoto } from '#component/photo_camera/captured_photo.ts'
@@ -81,6 +82,10 @@
 </script>
 
 <Layout fill>
+	{#snippet heading()}
+		<EstimateMap {asr} {project_id} {line_items} current={current_index} />
+	{/snippet}
+
 	{#snippet top()}
 		<EstimateNavBar {asr} {server} {project_id} project_estimated_crew_size={project.estimated_crew_size} {line_items} {current_index} on_done={camera_service.close} />
 	{/snippet}

@@ -49,18 +49,18 @@
 {#if current_index === null}
 	<button type="button" disabled>Previous</button>
 {:else if previous_line_item === null}
-	<LinkThatLooksLikeAButton href={asr.makePath(`app.estimate.intro`, { project_id })}>Previous</LinkThatLooksLikeAButton>
+	<LinkThatLooksLikeAButton href={asr.makePath(`app.estimate.notes`, { project_id })}>Notes</LinkThatLooksLikeAButton>
 {:else}
-	<LinkThatLooksLikeAButton href={line_item_path(previous_line_item)}>Previous</LinkThatLooksLikeAButton>
+	<LinkThatLooksLikeAButton href={line_item_path(previous_line_item)}>Previous item</LinkThatLooksLikeAButton>
 {/if}
 
 <button type="button" onclick={() => {
 	on_done?.()
 	asr.go(`app.estimate.line_items`, { project_id })
-}}>Done</button>
+}}>Edit all</button>
 
 {#if next_line_item === null}
-	<button type="button" disabled={creating} onclick={create_line_item}>New line</button>
+	<button type="button" disabled={creating} onclick={create_line_item}>New item</button>
 {:else}
-	<LinkThatLooksLikeAButton href={line_item_path(next_line_item)}>Next</LinkThatLooksLikeAButton>
+	<LinkThatLooksLikeAButton href={line_item_path(next_line_item)}>Next item</LinkThatLooksLikeAButton>
 {/if}

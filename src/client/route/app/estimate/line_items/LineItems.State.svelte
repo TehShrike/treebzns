@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import Layout from '../Layout.svelte'
+	import EstimateMap from '../EstimateMap.svelte'
 	import LinkThatLooksLikeAButton from '#component/LinkThatLooksLikeAButton.svelte'
 	import LineItemCard from './LineItemCard.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
@@ -127,8 +128,12 @@
 </script>
 
 <Layout>
+	{#snippet heading()}
+		<EstimateMap {asr} {project_id} line_items={loaded_line_items} current={`edit_all`} />
+	{/snippet}
+
 	{#snippet top()}
-		<LinkThatLooksLikeAButton href={asr.makePath(`app.estimate.intro`, { project_id })}>Photos</LinkThatLooksLikeAButton>
+		<LinkThatLooksLikeAButton href={asr.makePath(`app.estimate.notes`, { project_id })}>Photos</LinkThatLooksLikeAButton>
 		<button type="submit" form="estimate_form" class="default" disabled={saver.saving || !form.needs_to_be_saved}>Save</button>
 		{#if next_project_document === null}
 			<button type="button" disabled={saver.saving} onclick={save_and_close}>

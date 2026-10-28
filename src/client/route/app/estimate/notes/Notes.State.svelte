@@ -3,6 +3,7 @@
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import Layout from '../Layout.svelte'
 	import EstimateNavBar from '../EstimateNavBar.svelte'
+	import EstimateMap from '../EstimateMap.svelte'
 	import { select_line_items } from '../select_line_items.ts'
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
@@ -42,7 +43,7 @@
 	)
 
 	export const asr_state = state_type({
-		name: `app.estimate.intro`,
+		name: `app.estimate.notes`,
 		route: ``,
 		param_validator: validate_estimate_params,
 		resolve: async ({ query, server }, { project_id }) => {
@@ -67,6 +68,10 @@
 </script>
 
 <Layout>
+	{#snippet heading()}
+		<EstimateMap {asr} {project_id} {line_items} current={`notes`} />
+	{/snippet}
+
 	{#snippet top()}
 		<EstimateNavBar {asr} {server} {project_id} project_estimated_crew_size={project.estimated_crew_size} {line_items} current_index={null} />
 	{/snippet}

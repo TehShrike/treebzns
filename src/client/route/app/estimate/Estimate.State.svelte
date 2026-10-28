@@ -35,7 +35,7 @@
 	export const asr_state = state_type({
 		name: `app.estimate`,
 		route: `/estimate/:project_id`,
-		default_child: `intro`,
+		default_child: `notes`,
 		param_validator: validate_estimate_params,
 		resolve: async ({ query }, { project_id }) => ({
 			project: await select_project(query, project_id),
