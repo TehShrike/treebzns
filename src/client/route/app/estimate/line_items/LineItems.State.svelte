@@ -128,26 +128,24 @@
 
 <Layout>
 	{#snippet heading()}
-		<EstimateMap {asr} {project_id} line_items={loaded_line_items} current={`edit_all`} />
+		<EstimateMap {asr} {project_id} line_items={loaded_line_items} current="edit_all" />
 	{/snippet}
 
 	{#snippet top()}
 		<LinkThatLooksLikeAButton href={asr.makePath(`app.estimate.notes`, { project_id })}>Photos</LinkThatLooksLikeAButton>
-		<button type="submit" form="estimate_form" class="default" disabled={saver.saving || !form.needs_to_be_saved}>Save</button>
-		{#if next_project_document === null}
-			<button type="button" disabled={saver.saving} onclick={save_and_close}>
-				{#if form.needs_to_be_saved}
-					Save & Close
-				{:else}
-					Close
-				{/if}
-			</button>
-		{:else}
+		<button type="button" class="default" disabled={saver.saving} onclick={save_and_close}>
+			{#if form.needs_to_be_saved}
+				Save and close
+			{:else}
+				Close
+			{/if}
+		</button>
+		{#if next_project_document !== null}
 			<button type="button" disabled={saver.saving} onclick={save_as_next_project_document}>Save as {next_project_document.name}</button>
 		{/if}
 	{/snippet}
 
-	<form id="estimate_form" class="estimate" onsubmit={saver.on_submit}>
+	<form class="estimate" onsubmit={saver.on_submit}>
 		<header class="heading">
 			<h1>Estimate for {client.name}</h1>
 			<div class="lead_details">
