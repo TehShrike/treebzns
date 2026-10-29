@@ -9,7 +9,7 @@
 	import type { CapturedPhoto } from '#component/photo_camera/captured_photo.ts'
 	import { validate_line_item_params } from '../line_item_params.ts'
 	import { select_line_items_at } from '../select_line_items.ts'
-	import { new_line_item_details } from '../new_line_item_details.ts'
+	import { added_line_item, new_line_item_details } from '../line_item_details.ts'
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
@@ -84,7 +84,7 @@
 	}
 
 	const create_line_item = async (): Promise<bigint> => {
-		const { project_line_item_id } = await server.upsert_line_item_details({ project_id, project_line_item_id: null, ...new_item_details() })
+		const { project_line_item_id } = await server.upsert_line_item({ project_id, line_item: added_line_item(new_item_details()) })
 		return project_line_item_id
 	}
 

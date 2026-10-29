@@ -98,7 +98,7 @@
 		values_in_db: line_item,
 	}))
 
-	const saver = form_saver({ form, send: values => server.upsert_line_item_details(values) })
+	const saver = form_saver({ form, send: values => server.upsert_line_item(values) })
 
 	const save_if_needed = async (): Promise<boolean> => {
 		if (!form.needs_to_be_saved) return true

@@ -28,7 +28,7 @@
 
 <WindowCard>
 	{#snippet title_bar()}
-		<span class="title">{line_item.title}</span>
+		<span class="title">{line_item.record.form_values.title}</span>
 		<select
 			aria-label="Line type"
 			data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`item_type_id`)}

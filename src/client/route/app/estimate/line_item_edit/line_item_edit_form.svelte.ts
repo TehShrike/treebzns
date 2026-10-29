@@ -1,6 +1,6 @@
 import tracked_record, { type DbValues } from '#lib/tracked_record.svelte.ts'
-import type { LineItemDetails, UpsertLineItemDetailsArgument, UpsertLineItemDetailsResult } from '#shared/type/estimate.ts'
-import { new_line_item_details } from '../new_line_item_details.ts'
+import type { UpsertLineItemArgument, UpsertLineItemResult } from '#shared/type/estimate.ts'
+import { added_line_item, changed_line_item, new_line_item_details, type LineItemDetails } from '../line_item_details.ts'
 
 export type LoadedLineItemDetails = DbValues<LineItemDetails, 'project_line_item_id'>
 
@@ -22,11 +22,14 @@ const make_line_item_details_form = ({ project_id, project_estimated_crew_size, 
 
 	const start_save = () => {
 		const pending = record.start_save()
-		const values: UpsertLineItemDetailsArgument = { project_id, ...pending.values }
+		const values: UpsertLineItemArgument = {
+			project_id,
+			line_item: pending.adding ? added_line_item(pending.values) : changed_line_item(pending.values),
+		}
 
 		return {
 			values,
-			commit: ({ project_line_item_id }: UpsertLineItemDetailsResult) => {
+			commit: ({ project_line_item_id }: UpsertLineItemResult) => {
 				if (pending.adding) {
 					pending.commit(project_line_item_id)
 				} else {

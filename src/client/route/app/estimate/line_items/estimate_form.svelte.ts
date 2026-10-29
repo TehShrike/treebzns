@@ -23,7 +23,6 @@ import type {
 export type LoadedLineItemWorkSkill = DbValues<EstimateLineItemWorkSkillValues, 'project_line_item_work_skill_id'>
 
 export type LoadedLineItem = DbValues<EstimateLineItemValues, 'project_line_item_id'> & {
-	title: string
 	image_ids: readonly bigint[]
 	work_skills: readonly LoadedLineItemWorkSkill[]
 }
@@ -45,14 +44,14 @@ const make_work_skill = (work_skill_id: bigint, values_in_db: LoadedLineItemWork
 export type LineItemWorkSkill = ReturnType<typeof make_work_skill>
 
 const make_line_item = (
-	{ title, image_ids, work_skills: loaded_work_skills, price: loaded_price, ...values_in_db }: LoadedLineItem,
+	{ image_ids, work_skills: loaded_work_skills, price: loaded_price, ...values_in_db }: LoadedLineItem,
 	{ hourly_rate_of, round_to_nearest }: {
 		hourly_rate_of: (work_skill_id: bigint) => FinancialNumber
 		round_to_nearest: FinancialNumber
 	},
 ) => {
 	const record = tracked_record<EstimateLineItemValuesWithoutPrice, 'project_line_item_id'>({
-		default_values: pick(default_values.project_line_item, [`item_type_id`, `work_details`, `estimated_crew_size`, `estimated_hours`, `client_optional`]),
+		default_values: { title: ``, ...pick(default_values.project_line_item, [`item_type_id`, `work_details`, `estimated_crew_size`, `estimated_hours`, `client_optional`]) },
 		id_key: `project_line_item_id`,
 		values_in_db,
 	})
@@ -151,7 +150,6 @@ const make_line_item = (
 	}
 
 	return {
-		title,
 		image_ids,
 		record,
 		stable_record_identifier: record.stable_record_identifier,

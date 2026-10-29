@@ -1,6 +1,6 @@
 export type EstimateProjectValues = Pick<DbProject, 'estimated_crew_size' | 'project_document_id'>
 
-export type EstimateLineItemValues = Pick<DbProjectLineItem, 'item_type_id' | 'estimated_crew_size' | 'estimated_hours' | 'client_optional' | 'price'> & {
+export type EstimateLineItemValues = Pick<DbProjectLineItem, 'title' | 'item_type_id' | 'estimated_crew_size' | 'estimated_hours' | 'client_optional' | 'price'> & {
 	work_details: string
 }
 
@@ -36,6 +36,7 @@ export type AddedEstimateLineItemResult = {
 }
 
 export type ChangedEstimateLineItemResult = {
+	project_line_item_id: DbProjectLineItem['project_line_item_id']
 	added_project_line_item_work_skill_ids: DbProjectLineItemWorkSkill['project_line_item_work_skill_id'][]
 }
 
@@ -45,15 +46,9 @@ export type UpdateEstimateResult = {
 	changed_line_items: ChangedEstimateLineItemResult[]
 }
 
-export type LineItemDetails = Pick<DbProjectLineItem, 'title' | 'estimated_crew_size' | 'estimated_hours'> & {
-	work_details: string
+export type UpsertLineItemArgument = {
+	project_id: DbProject['project_id']
+	line_item: AddedEstimateLineItem | ChangedEstimateLineItem
 }
 
-export type UpsertLineItemDetailsArgument = { project_id: DbProject['project_id'] } & (
-	| ({ project_line_item_id: null } & LineItemDetails)
-	| ({ project_line_item_id: DbProjectLineItem['project_line_item_id'] } & Partial<LineItemDetails>)
-)
-
-export type UpsertLineItemDetailsResult = {
-	project_line_item_id: DbProjectLineItem['project_line_item_id']
-}
+export type UpsertLineItemResult = AddedEstimateLineItemResult | ChangedEstimateLineItemResult

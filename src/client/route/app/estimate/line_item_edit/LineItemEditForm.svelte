@@ -2,7 +2,7 @@
 	import WideTextareaField from '#component/WideTextareaField.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
 	import type { TrackedRecord } from '#lib/tracked_record.svelte.ts'
-	import type { LineItemDetails } from '#shared/type/estimate.ts'
+	import type { LineItemDetails } from '../line_item_details.ts'
 
 	const { line_item_record, on_submit }: {
 		line_item_record: TrackedRecord<LineItemDetails, `project_line_item_id`>
