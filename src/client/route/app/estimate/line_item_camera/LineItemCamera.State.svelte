@@ -1,4 +1,5 @@
 <script module lang="ts">
+	import { untrack } from 'svelte'
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import Layout from '../Layout.svelte'
 	import EstimateNavBar from '../EstimateNavBar.svelte'
@@ -9,16 +10,36 @@
 	import { validate_line_item_params } from '../line_item_params.ts'
 	import { select_line_items_at } from '../select_line_items.ts'
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
+	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
+	import query_builder from '#shared/sql_request/typed_query_builder.ts'
+	import type { Schema } from '#schema/types.ts'
 	import assert from '#shared/assert.ts'
+
+	const select_photo_count = async (query: ClientQueryFn, project_line_item_id: bigint) => {
+		const row = await query(
+			query_builder<Schema>()
+				.from(`project_line_item_image`)
+				.where(q => q.comparison(`project_line_item_image.project_line_item_id`, `=`, { value: project_line_item_id }))
+				.select(q => [
+					q.fn(`COUNT`, `project_line_item_image.project_line_item_image_id`, `project_line_item_image.photo_count`),
+				])
+				.build()
+		).get_first_row()
+		assert(row, `an aggregate query returns exactly one row`)
+		return row.project_line_item_image.photo_count
+	}
 
 	export const asr_state = state_type({
 		name: `app.estimate.line_item_camera`,
 		route: `/line_item/:project_line_item_id/camera`,
 		param_validator: validate_line_item_params,
 		resolve: async ({ query, server, photo_upload_queue, camera_service }, { project_id, project_line_item_id }) => {
-			const { line_items, current_index, line_item } = await select_line_items_at(query, project_id, project_line_item_id)
+			const [{ line_items, current_index, line_item }, photo_count] = await Promise.all([
+				select_line_items_at(query, project_id, project_line_item_id),
+				select_photo_count(query, project_line_item_id),
+			])
 
-			return { server, photo_upload_queue, camera_service, project_id, line_items, current_index, line_item }
+			return { server, photo_upload_queue, camera_service, project_id, line_items, current_index, line_item, photo_count }
 		},
 	})
 
@@ -26,7 +47,9 @@
 </script>
 
 <script lang="ts">
-	const { server, photo_upload_queue, camera_service, project_id, project, line_items, current_index, line_item, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
+	const { server, photo_upload_queue, camera_service, project_id, project, line_items, current_index, line_item, photo_count: initial_photo_count, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
+
+	let photo_count = $state(untrack(() => initial_photo_count))
 
 	let camera: PhotoCamera | undefined = $state()
 	let markup: PhotoMarkup | undefined = $state()
@@ -69,6 +92,7 @@
 				display,
 				thumbnail,
 			})
+			photo_count++
 			await back_to_live()
 		} finally {
 			busy = false
@@ -90,7 +114,7 @@
 	{/snippet}
 
 	<div class="stage">
-		<h2>{line_item.title}</h2>
+		<h2>{line_item.title} <span class="photo_count">({photo_count} {photo_count === 1n ? `photo` : `photos`})</span></h2>
 		<div class="camera" hidden={mode !== `live`}>
 			<PhotoCamera bind:this={camera} {camera_service} />
 		</div>
@@ -127,6 +151,10 @@
 		padding: var(--gap_half);
 		font-size: var(--font_size_base);
 		flex-shrink: 0;
+	}
+
+	.photo_count {
+		font-weight: normal;
 	}
 
 	.camera,
