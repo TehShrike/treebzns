@@ -7,7 +7,7 @@
 	import PhotoGallery from '#component/photo_gallery/PhotoGallery.svelte'
 	import type { GalleryImage } from '#component/photo_gallery/gallery_image.ts'
 	import LineItemDetailsForm from './LineItemDetailsForm.svelte'
-	import tracked_record from '#lib/tracked_record.svelte.ts'
+	import make_line_item_details_form, { type LoadedLineItemDetails } from './line_item_details_form.svelte.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_line_item_params } from '../line_item_params.ts'
 	import { select_line_items_at } from '../select_line_items.ts'
@@ -15,14 +15,11 @@
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
-	import type { LineItemDetails, UpdateLineItemDetailsArgument } from '#shared/type/estimate.ts'
-	import default_values from '#shared/treebzns_db/default_values.ts'
-	import { pick } from '#shared/pick.ts'
 	import assert from '#shared/assert.ts'
 	import { map } from '#shared/array.ts'
 	import { untrack } from 'svelte'
 
-	const select_line_item_details = async (query: ClientQueryFn, project_line_item_id: bigint) => {
+	const select_line_item_details = async (query: ClientQueryFn, project_line_item_id: bigint): Promise<LoadedLineItemDetails> => {
 		const rows = await query(
 			query_builder<Schema>()
 				.from(`project_line_item`)
@@ -69,8 +66,8 @@
 		resolve: async ({ query, server, camera_service }, { project_id, project_line_item_id }) => {
 			const [{ line_items, current_index }, line_item, images] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
-				select_line_item_details(query, project_line_item_id),
-				select_line_item_images(query, project_line_item_id),
+				project_line_item_id === `new` ? null : select_line_item_details(query, project_line_item_id),
+				project_line_item_id === `new` ? [] : select_line_item_images(query, project_line_item_id),
 			])
 
 			return { server, camera_service, project_id, line_items, current_index, line_item, images }
@@ -79,27 +76,32 @@
 </script>
 
 <script lang="ts">
-	const { server, camera_service, project_id, project, line_items, current_index, line_item, images, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
+	const {
+		server,
+		camera_service,
+		project_id,
+		project,
+		line_items: loaded_line_items,
+		current_index: loaded_current_index,
+		line_item,
+		images,
+		asr,
+	}: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
 
-	const line_item_record = untrack(() => tracked_record<LineItemDetails, `project_line_item_id`>({
-		default_values: { title: ``, ...pick(default_values.project_line_item, [`work_details`, `estimated_crew_size`, `estimated_hours`]) },
-		id_key: `project_line_item_id`,
+	let line_items = $state.raw(untrack(() => loaded_line_items))
+	const current_index = $derived(line_item === null ? line_items.length : loaded_current_index)
+
+	const form = untrack(() => make_line_item_details_form({
+		project_id,
+		project_estimated_crew_size: project.estimated_crew_size,
+		line_item_count: loaded_line_items.length,
 		values_in_db: line_item,
 	}))
 
-	const saver = form_saver<UpdateLineItemDetailsArgument, { project_line_item_id: bigint }>({
-		form: {
-			start_save: () => {
-				const pending = line_item_record.start_save()
-				assert(!pending.adding, `the line item is in the database`)
-				return pending
-			},
-		},
-		send: values => server.update_line_item_details(values),
-	})
+	const saver = form_saver({ form, send: values => server.upsert_line_item_details(values) })
 
 	const save_if_needed = async (): Promise<boolean> => {
-		if (!line_item_record.needs_to_be_saved) return true
+		if (!form.needs_to_be_saved) return true
 		try {
 			await saver.save()
 			return true
@@ -108,17 +110,28 @@
 		}
 	}
 
-	const unsaved: UnsavedChanges = $derived({ needs_to_be_saved: line_item_record.needs_to_be_saved, saving: saver.saving, save: save_if_needed })
-	const prefix = $derived(line_item_record.needs_to_be_saved ? `💾 ` : ``)
+	const unsaved: UnsavedChanges = $derived({ needs_to_be_saved: form.needs_to_be_saved, saving: saver.saving, save: save_if_needed })
+	const prefix = $derived(form.needs_to_be_saved ? `💾 ` : ``)
 
-	const discard_changes = () => {
-		assert(line_item_record.values_in_db, `the line item is in the database`)
-		line_item_record.set_values(line_item_record.values_in_db)
+	const on_submit = async (event: SubmitEvent) => {
+		event.preventDefault()
+		const adding = !form.record.saved_in_database
+		if (!(await save_if_needed()) || !adding) return
+		const project_line_item_id = form.record.db_id
+		assert(project_line_item_id !== null, `a saved line item has its database id`)
+		asr.go(`app.estimate.line_item_edit`, { project_id, project_line_item_id }, { replace: true })
+	}
+
+	const start_new_item = () => {
+		const saved = form.record.values_in_db
+		assert(saved, `the new line item is in the database before the next one starts`)
+		line_items = [...line_items, { project_line_item_id: saved.project_line_item_id, title: saved.title }]
+		form.start_new_item(line_items.length)
 	}
 
 	const go_to_camera = async () => {
 		if (!(await save_if_needed())) return
-		asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id: line_item.project_line_item_id })
+		asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id: form.record.db_id ?? `new` })
 	}
 </script>
 
@@ -130,20 +143,19 @@
 	{#snippet top()}
 		<EstimateNavBar
 			{asr}
-			{server}
 			{project_id}
-			project_estimated_crew_size={project.estimated_crew_size}
 			{line_items}
 			{current_index}
 			mode="edit"
 			{unsaved}
+			{start_new_item}
 			on_done={camera_service.close_if_active}
 		/>
 	{/snippet}
 
 	<PhotoGallery {images} />
 
-	<LineItemDetailsForm {line_item_record} on_submit={saver.on_submit} />
+	<LineItemDetailsForm line_item_record={form.record} {on_submit} />
 
 	{#snippet status()}
 		{#await saver.pending_save_promise catch err}
@@ -152,7 +164,7 @@
 	{/snippet}
 
 	{#snippet bottom()}
-		<button type="button" disabled={saver.saving || !line_item_record.needs_to_be_saved} onclick={discard_changes}>Discard changes</button>
+		<button type="button" disabled={saver.saving || !form.needs_to_be_saved} onclick={() => form.record.revert()}>Discard changes</button>
 		<button type="button" disabled={saver.saving} onclick={go_to_camera}>{prefix}Go to camera</button>
 	{/snippet}
 </Layout>

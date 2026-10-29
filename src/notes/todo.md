@@ -2,39 +2,23 @@
 
 ## This week
 
-- Finish immediate review
 - Make sure deployed code works in production
 - Check estimate process practically
 - Sync prod data
 
 ### Check estimate process practically
 
+- In the editing view for a single line item, we should use exactly the same card component as the line_items page does
 - Add to the line item edit page
 	- Edit work skills
 	- Edit line type
-- "Photos" button in "Edit all" should say "take photos"? take you to the camera view for an existing line item?
+- The "Photos" button in the "Edit all" should say "Previous item", should take you to the last line item page – is it possible to know whether or not the last viewed line item was camera or edit?
 - When editing line item crew size: the project-level estimated crew should increase if the line item's crew is larger than the current maybe?
 - Guards to block navigating with unsaved changes
 - In the single line editing: display thumbnails by default, start loading the full image when it is swiped to/centered
+- Split line interface: click a "split" button, choose a new item type, have current/new fields for title/description/skills.
 
-## Review
-
-estimate_form.svelte.ts: is the modelling of work skills tolerable?  Do we need a tracked map of some kind?
-Is it reasonable to have the `if (record_save.adding) {` instead of separate start_add/start_change functions?
-
-## Make the estimation/proposal editing screen tolerable
-
-On the Proposal page -> estimates, the link should take you to the line item view if the project has line items.
-
-The line item price needs to be saved.
-
-Let's make a component/IntegerInput that works the same way as NumberInput with type=number, except with an implicit decimal_places=0 and binding to a bigint not a FinancialNumber.  Default style should be the same as every other input, though it would be nice to have a list_input specific one that uses it, but overrides the styles similarly to what NumberInput does.  In fact, could we do the same thing for NumberInput – put one in component that has all the behavior, but the regular styles from 98, and then a version in list_input that just makes it look appropriately flat like other list_input cells when not focused?
-
-hours_text, crew_size_text, calculated_hours_text, hourly_rate_text should all be bigints, not strings.
-
-project subtotal, taxable_subtotal, line_item_discount_subtotal, tax_total, total should be calculated.  Actually, look into this – should we even be calculating taxes at estimation/proposal time, or is that a work-order-time concern?
-
-### Estimate editing screen
+### More notes on estimate editing
 
 - Allow editing line item discount_rate, discount, discount_description
 - Allow editing project-level discount (which disables line-item level discount)

@@ -49,6 +49,11 @@ export type LineItemDetails = Pick<DbProjectLineItem, 'title' | 'estimated_crew_
 	work_details: string
 }
 
-export type UpdateLineItemDetailsArgument = {
+export type UpsertLineItemDetailsArgument = { project_id: DbProject['project_id'] } & (
+	| ({ project_line_item_id: null } & LineItemDetails)
+	| ({ project_line_item_id: DbProjectLineItem['project_line_item_id'] } & Partial<LineItemDetails>)
+)
+
+export type UpsertLineItemDetailsResult = {
 	project_line_item_id: DbProjectLineItem['project_line_item_id']
-} & Partial<LineItemDetails>
+}

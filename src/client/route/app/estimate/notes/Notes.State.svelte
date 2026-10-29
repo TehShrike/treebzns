@@ -46,14 +46,14 @@
 		name: `app.estimate.notes`,
 		route: ``,
 		param_validator: validate_estimate_params,
-		resolve: async ({ query, server }, { project_id }) => {
+		resolve: async ({ query }, { project_id }) => {
 			const [contact_name, availability, line_items] = await Promise.all([
 				select_contact_name(query, project_id),
 				select_availability(query, project_id),
 				select_line_items(query, project_id),
 			])
 
-			return { server, project_id, contact_name, availability, line_items }
+			return { project_id, contact_name, availability, line_items }
 		},
 	})
 
@@ -61,7 +61,7 @@
 </script>
 
 <script lang="ts">
-	const { server, project_id, project, contact_name, availability, line_items, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
+	const { project_id, project, contact_name, availability, line_items, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
 
 	const street = $derived(filter([project.address_line_1, project.address_line_2], Boolean).join(`, `))
 	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
@@ -69,11 +69,11 @@
 
 <Layout>
 	{#snippet heading()}
-		<EstimateMap {asr} {project_id} {line_items} current={`notes`} />
+		<EstimateMap {asr} {project_id} {line_items} current="notes" />
 	{/snippet}
 
 	{#snippet top()}
-		<EstimateNavBar {asr} {server} {project_id} project_estimated_crew_size={project.estimated_crew_size} {line_items} current_index={null} />
+		<EstimateNavBar {asr} {project_id} {line_items} current_index={null} />
 	{/snippet}
 
 	<fieldset>

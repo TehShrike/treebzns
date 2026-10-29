@@ -108,6 +108,12 @@ const tracked_record = <VALUES extends object, ID_KEY extends string>({
 			: start_add({ id_key, form_values, commit, discard })
 	}
 
+	const clear = () => {
+		assert(!saving, `a record is cleared only while no save is running`)
+		values_in_db = null
+		form_values = copy_values(default_values)
+	}
+
 	return {
 		stable_record_identifier: identifier,
 		get form_values() { return form_values },
@@ -123,10 +129,14 @@ const tracked_record = <VALUES extends object, ID_KEY extends string>({
 			values_in_db = values
 			for_each(keys, key => { form_values[key] = values[key] })
 		},
-		clear: () => {
-			assert(!saving, `a record is cleared only while no save is running`)
-			values_in_db = null
-			form_values = copy_values(default_values)
+		clear,
+		revert: () => {
+			assert(!saving, `a record reverts only while no save is running`)
+			if (saved_in_database(values_in_db)) {
+				form_values = copy_values(values_in_db)
+			} else {
+				clear()
+			}
 		},
 	}
 }

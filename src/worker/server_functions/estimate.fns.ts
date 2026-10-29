@@ -8,11 +8,13 @@ import type {
 	ChangedEstimateLineItem,
 	UpdateEstimateArgument,
 	UpdateEstimateResult,
-	UpdateLineItemDetailsArgument,
+	UpsertLineItemDetailsArgument,
+	UpsertLineItemDetailsResult,
 } from '#shared/type/estimate.ts'
 import { filter_map, flat_map, map, map_async } from '#shared/array.ts'
-import { default_line_item, insert_line_item } from './estimate_helper/line_item.ts'
+import { insert_line_item } from './estimate_helper/line_item.ts'
 import { remove_line_items, update_line_item } from './estimate_helper/update_line_item.ts'
+import { upsert_line_item_details } from './estimate_helper/line_item_details.ts'
 import { update_project_document } from '#shared/treebzns_db/changes_with_history/project_document_history.ts'
 
 const crew_and_hours_validators = {
@@ -28,19 +30,16 @@ const line_item_value_validators = {
 	price: is_financial_number,
 }
 
-const update_line_item_details_validator: Validator<UpdateLineItemDetailsArgument> = jv.object({
-	project_line_item_id: jv.is_bigint,
-	...jv.optional_shape({
-		title: jv.is_string,
-		work_details: jv.is_string,
-		...crew_and_hours_validators,
-	}),
-})
+const line_item_details_validators = {
+	title: jv.is_string,
+	work_details: jv.is_string,
+	...crew_and_hours_validators,
+}
 
-const create_line_item_validator = jv.object({
-	project_id: jv.is_bigint,
-	...jv.optional_shape(line_item_value_validators),
-})
+const upsert_line_item_details_validator: Validator<UpsertLineItemDetailsArgument> = jv.one_of(
+	jv.object({ project_id: jv.is_bigint, project_line_item_id: jv.is_null, ...line_item_details_validators }),
+	jv.object({ project_id: jv.is_bigint, project_line_item_id: jv.is_bigint, ...jv.optional_shape(line_item_details_validators) }),
+)
 
 const ids_validator = jv.array(jv.is_bigint)
 
@@ -112,38 +111,14 @@ const assert_input_ids_valid = async ({
 }
 
 export const functions = {
-	create_line_item: sfn({
-		validator: create_line_item_validator,
+	upsert_line_item_details: sfn({
+		validator: upsert_line_item_details_validator,
 		fn: (
-			{ project_id, ...line_item_values },
+			details,
 			{ transaction },
-		): Promise<{ project_line_item_id: bigint }> => transaction(async ({ select_builder, write_helper }) => {
-			await Promise.all([
-				assert_db_id_valid({ select_builder, table_name: `project`, id: project_id }),
-				line_item_values.item_type_id != null && assert_db_id_valid({ select_builder, table_name: `item_type`, id: line_item_values.item_type_id }),
-			])
-
-			const { project_line_item_id } = await insert_line_item({
-				project_id,
-				line_item: { ...default_line_item, ...line_item_values },
-				select_builder,
-				write_helper,
-			})
-
-			return { project_line_item_id }
-		}),
-	}),
-	update_line_item_details: sfn({
-		validator: update_line_item_details_validator,
-		fn: (
-			{ project_line_item_id, ...changes },
-			{ transaction },
-		): Promise<{ project_line_item_id: bigint }> => transaction(async ({ write_helper }) => {
-			if (Object.keys(changes).length > 0) {
-				await write_helper.update({ table_name: `project_line_item`, column: `project_line_item_id`, value: project_line_item_id, set: changes })
-			}
-			return { project_line_item_id }
-		}),
+		): Promise<UpsertLineItemDetailsResult> => transaction(async ({ select_builder, write_helper }) => ({
+			project_line_item_id: await upsert_line_item_details({ details, select_builder, write_helper }),
+		})),
 	}),
 	update_estimate: sfn({
 		validator: update_estimate_validator,

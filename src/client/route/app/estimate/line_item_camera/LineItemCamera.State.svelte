@@ -9,6 +9,7 @@
 	import type { CapturedPhoto } from '#component/photo_camera/captured_photo.ts'
 	import { validate_line_item_params } from '../line_item_params.ts'
 	import { select_line_items_at } from '../select_line_items.ts'
+	import { new_line_item_details } from '../new_line_item_details.ts'
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
@@ -36,7 +37,7 @@
 		resolve: async ({ query, server, photo_upload_queue, camera_service }, { project_id, project_line_item_id }) => {
 			const [{ line_items, current_index, line_item }, photo_count] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
-				select_photo_count(query, project_line_item_id),
+				project_line_item_id === `new` ? 0n : select_photo_count(query, project_line_item_id),
 			])
 
 			return { server, photo_upload_queue, camera_service, project_id, line_items, current_index, line_item, photo_count }
@@ -50,6 +51,9 @@
 	const { server, photo_upload_queue, camera_service, project_id, project, line_items, current_index, line_item, photo_count: initial_photo_count, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
 
 	let photo_count = $state(untrack(() => initial_photo_count))
+
+	const new_item_details = () => new_line_item_details({ project_estimated_crew_size: project.estimated_crew_size, line_item_count: line_items.length })
+	const title = $derived(line_item === null ? new_item_details().title : line_item.title)
 
 	let camera: PhotoCamera | undefined = $state()
 	let markup: PhotoMarkup | undefined = $state()
@@ -79,28 +83,38 @@
 		await camera?.resume()
 	}
 
+	const create_line_item = async (): Promise<bigint> => {
+		const { project_line_item_id } = await server.upsert_line_item_details({ project_id, project_line_item_id: null, ...new_item_details() })
+		return project_line_item_id
+	}
+
 	const save_photo = async () => {
 		assert(markup, `the markup component is mounted while marking`)
 		assert(photo, `a photo is held while marking`)
 		busy = true
 		try {
 			const { display, thumbnail, strokes } = await markup.compose()
-			const { project_image_id } = await server.create_line_item_image({ project_line_item_id: line_item.project_line_item_id, strokes })
+			const project_line_item_id = line_item?.project_line_item_id ?? await create_line_item()
+			const { project_image_id } = await server.create_line_item_image({ project_line_item_id, strokes })
 			photo_upload_queue.enqueue({
 				project_image_id,
 				original: photo.original,
 				display,
 				thumbnail,
 			})
-			photo_count++
-			await back_to_live()
+			if (line_item === null) {
+				asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id }, { replace: true })
+			} else {
+				photo_count++
+				await back_to_live()
+			}
 		} finally {
 			busy = false
 		}
 	}
 
 	const go_to_edit = () => {
-		asr.go(`app.estimate.line_item_edit`, { project_id, project_line_item_id: line_item.project_line_item_id })
+		asr.go(`app.estimate.line_item_edit`, { project_id, project_line_item_id: line_item?.project_line_item_id ?? `new` })
 	}
 </script>
 
@@ -110,11 +124,11 @@
 	{/snippet}
 
 	{#snippet top()}
-		<EstimateNavBar {asr} {server} {project_id} project_estimated_crew_size={project.estimated_crew_size} {line_items} {current_index} on_done={camera_service.close_if_active} />
+		<EstimateNavBar {asr} {project_id} {line_items} {current_index} on_done={camera_service.close_if_active} />
 	{/snippet}
 
 	<div class="stage">
-		<h2>{line_item.title} <span class="photo_count">({photo_count} {photo_count === 1n ? `photo` : `photos`})</span></h2>
+		<h2>{title} <span class="photo_count">({photo_count} {photo_count === 1n ? `photo` : `photos`})</span></h2>
 		<div class="camera" hidden={mode !== `live`}>
 			<PhotoCamera bind:this={camera} {camera_service} />
 		</div>

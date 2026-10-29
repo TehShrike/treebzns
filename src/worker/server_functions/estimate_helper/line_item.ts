@@ -40,11 +40,13 @@ const get_line_item_count_and_max_sort = async ({
 
 export const insert_line_item = async ({
 	project_id,
+	title,
 	line_item,
 	select_builder,
 	write_helper,
 }: {
 	project_id: bigint
+	title?: string
 	line_item: AddedEstimateLineItem
 	select_builder: TransactionTenantedSelectBuilder
 	write_helper: TenantedWriteHelper
@@ -56,7 +58,7 @@ export const insert_line_item = async ({
 	const { insert_id: project_line_item_id } = await write_helper.insert(`project_line_item`, {
 		...default_values.project_line_item,
 		project_id,
-		title: `Line item ${line_item_count + 1n}`,
+		title: title ?? `Line item ${line_item_count + 1n}`,
 		...values,
 		sort: max_sort + 1n,
 	})
