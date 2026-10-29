@@ -1,4 +1,6 @@
-export type LineItemMode = `camera` | `edit`
+import type { LineItemMode } from '#lib/estimate_line_item_mode.ts'
+
+export type { LineItemMode }
 
 export type UnsavedChanges = {
 	needs_to_be_saved: boolean

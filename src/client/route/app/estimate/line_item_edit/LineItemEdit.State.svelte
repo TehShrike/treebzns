@@ -63,7 +63,8 @@
 		name: `app.estimate.line_item_edit`,
 		route: `/line_item/:project_line_item_id/edit`,
 		param_validator: validate_line_item_params,
-		resolve: async ({ query, server, camera_service }, { project_id, project_line_item_id }) => {
+		resolve: async ({ query, server, camera_service, estimate_line_item_mode }, { project_id, project_line_item_id }) => {
+			estimate_line_item_mode.remember(`edit`)
 			const [{ line_items, current_index }, line_item, images] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
 				project_line_item_id === `new` ? null : select_line_item(query, project_line_item_id),

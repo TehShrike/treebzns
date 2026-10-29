@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { state_type } from '#lib/client_type.ts'
+	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
@@ -37,10 +37,19 @@
 		route: `/estimate/:project_id`,
 		default_child: `notes`,
 		param_validator: validate_estimate_params,
-		resolve: async ({ query }, { project_id }) => ({
+		resolve: async ({ query, estimate_line_item_mode }, { project_id }) => ({
 			project: await select_project(query, project_id),
+			estimate_line_item_mode,
 		}),
 	})
+</script>
+
+<script lang="ts">
+	import { onDestroy } from 'svelte'
+
+	const { estimate_line_item_mode }: StateResolve<typeof asr_state> = $props()
+
+	onDestroy(() => estimate_line_item_mode.clear())
 </script>
 
 <uiView></uiView>

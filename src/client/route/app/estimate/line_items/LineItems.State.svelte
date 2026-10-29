@@ -8,6 +8,7 @@
 	import make_estimate_form, { type LoadedLineItem } from './estimate_form.svelte.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
+	import { line_item_state_name } from '../line_item_navigation.ts'
 	import { select_estimate } from './select_estimate.ts'
 	import { select_item_types } from '#lib/generic_queries/item_type.ts'
 	import { select_work_skills } from '#lib/generic_queries/work_skill.ts'
@@ -21,7 +22,7 @@
 		name: `app.estimate.line_items`,
 		route: `/line_items`,
 		param_validator: validate_estimate_params,
-		resolve: async ({ query, server, session }, { project_id }) => {
+		resolve: async ({ query, server, session, estimate_line_item_mode }, { project_id }) => {
 			const { estimate, item_types, work_skills, project_documents, logged_in_session } = await promise_all_object({
 				estimate: select_estimate(query, project_id),
 				item_types: select_item_types(query),
@@ -77,6 +78,7 @@
 				work_skills,
 				round_to_nearest: logged_in_session.company.round_line_item_estimates_to_nearest,
 				next_project_document,
+				line_item_mode: estimate_line_item_mode.last_viewed,
 			}
 		},
 	})
@@ -96,6 +98,7 @@
 		work_skills,
 		round_to_nearest,
 		next_project_document,
+		line_item_mode,
 		asr,
 	}: Resolved & { asr: StateAsr } = $props()
 
@@ -122,6 +125,11 @@
 		await save_and_close()
 	}
 
+	const last_line_item = $derived(loaded_line_items[loaded_line_items.length - 1] ?? null)
+	const previous_href = $derived(last_line_item === null
+		? asr.makePath(`app.estimate.notes`, { project_id })
+		: asr.makePath(line_item_state_name(line_item_mode), { project_id, project_line_item_id: last_line_item.project_line_item_id }))
+
 	const street = $derived(filter([project.address_line_1, project.address_line_2], Boolean).join(`, `))
 	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
 </script>
@@ -132,7 +140,7 @@
 	{/snippet}
 
 	{#snippet top()}
-		<LinkThatLooksLikeAButton href={asr.makePath(`app.estimate.notes`, { project_id })}>Photos</LinkThatLooksLikeAButton>
+		<LinkThatLooksLikeAButton href={previous_href}>{last_line_item === null ? `Notes` : `Previous item`}</LinkThatLooksLikeAButton>
 		<button type="button" class="default" disabled={saver.saving} onclick={save_and_close}>
 			{#if form.needs_to_be_saved}
 				Save and close
@@ -172,7 +180,7 @@
 		{/await}
 
 		{#if form.line_items.length === 0}
-			<p class="no_line_items">No line items yet. Go back to Photos and add one.</p>
+			<p class="no_line_items">No line items yet. Go back and add one.</p>
 		{:else}
 			<div class="cards">
 				{#each form.line_items as line_item (line_item.stable_record_identifier)}

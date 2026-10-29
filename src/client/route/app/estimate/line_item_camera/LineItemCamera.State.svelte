@@ -34,7 +34,8 @@
 		name: `app.estimate.line_item_camera`,
 		route: `/line_item/:project_line_item_id/camera`,
 		param_validator: validate_line_item_params,
-		resolve: async ({ query, server, photo_upload_queue, camera_service }, { project_id, project_line_item_id }) => {
+		resolve: async ({ query, server, photo_upload_queue, camera_service, estimate_line_item_mode }, { project_id, project_line_item_id }) => {
+			estimate_line_item_mode.remember(`camera`)
 			const [{ line_items, current_index, line_item }, photo_count] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
 				project_line_item_id === `new` ? 0n : select_photo_count(query, project_line_item_id),
