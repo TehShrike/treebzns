@@ -6,7 +6,6 @@
 	import LineItemCard from './LineItemCard.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
 	import make_estimate_form, { type LoadedLineItem } from './estimate_form.svelte.ts'
-	import default_values from '#shared/treebzns_db/default_values.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
 	import { select_estimate } from './select_estimate.ts'
@@ -56,12 +55,12 @@
 				work_skills,
 			}))
 
-			const project_estimated_crew_size = estimate.project.estimated_crew_size ?? default_values.project_line_item.estimated_crew_size
+			const project_estimated_crew_size = estimate.project.estimated_crew_size
 			const first_time_estimating = every(loaded_line_items, line_item => (
 				line_item.item_type_id === null
 				&& line_item.work_details === ``
 				&& line_item.estimated_crew_size === project_estimated_crew_size
-				&& line_item.estimated_hours === 0n
+				&& line_item.estimated_hours === null
 				&& !line_item.client_optional
 				&& line_item.price.equal(`0`)
 				&& line_item.work_skills.length === 0

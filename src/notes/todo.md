@@ -9,15 +9,13 @@
 
 ### Check estimate process practically
 
-- Single line item page should have two modes.  "Take photo" and "View"
-	- Take photo is the current one
-	- View should let you flip between photos and hit a button to go into edit mode
-	- A button at the bottom that lets you go between the two modes?
-- Single-line/photo view
-	- "Text" button needs to be live, show an input somewhere (area between camera and bottom buttons?)
-		- Should sync directly to the line item's description, saved with photo
-	- Some kind of line editing in camera/single-line view (work skills, line type)
+- Add to the line item edit page
+	- Edit work skills
+	- Edit line type
 - "Photos" button in "Edit all" should say "take photos"? take you to the camera view for an existing line item?
+- When editing line item crew size: the project-level estimated crew should increase if the line item's crew is larger than the current maybe?
+- Guards to block navigating with unsaved changes
+- In the single line editing: display thumbnails by default, start loading the full image when it is swiped to/centered
 
 ## Review
 

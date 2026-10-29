@@ -1,7 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
-	const { heading, top, bottom, fill = false, children }: { heading?: Snippet, top?: Snippet, bottom?: Snippet, fill?: boolean, children: Snippet } = $props()
+	const { heading, top, status, bottom, fill = false, children }: {
+		heading?: Snippet
+		top?: Snippet
+		status?: Snippet
+		bottom?: Snippet
+		fill?: boolean
+		children: Snippet
+	} = $props()
 </script>
 
 <div class="layout">
@@ -14,6 +21,11 @@
 	<div class="center" data-fill={fill}>
 		{@render children()}
 	</div>
+	{#if status}
+		<div class="status">
+			{@render status()}
+		</div>
+	{/if}
 	{#if bottom}
 		<div class="bar">
 			{@render bottom()}
@@ -40,6 +52,13 @@
 		flex-grow: 1;
 		flex-shrink: 1;
 		flex-basis: 0;
+	}
+
+	.status {
+		display: flex;
+		flex-direction: column;
+		padding: 0 var(--gap_half);
+		flex-shrink: 0;
 	}
 
 	.center {

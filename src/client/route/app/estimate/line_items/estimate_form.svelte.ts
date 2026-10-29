@@ -28,10 +28,10 @@ export type LoadedLineItem = DbValues<EstimateLineItemValues, 'project_line_item
 	work_skills: readonly LoadedLineItemWorkSkill[]
 }
 
-type RecordValues = Omit<EstimateLineItemValues, 'price'>
+type EstimateLineItemValuesWithoutPrice = Omit<EstimateLineItemValues, 'price'>
 
 export type PriceCalculation = {
-	calculated_hours: bigint
+	calculated_hours: bigint | null
 	hourly_rate: FinancialNumber | null
 	price: FinancialNumber | null
 }
@@ -51,7 +51,7 @@ const make_line_item = (
 		round_to_nearest: FinancialNumber
 	},
 ) => {
-	const record = tracked_record<RecordValues, 'project_line_item_id'>({
+	const record = tracked_record<EstimateLineItemValuesWithoutPrice, 'project_line_item_id'>({
 		default_values: pick(default_values.project_line_item, [`item_type_id`, `work_details`, `estimated_crew_size`, `estimated_hours`, `client_optional`]),
 		id_key: `project_line_item_id`,
 		values_in_db,
@@ -66,10 +66,15 @@ const make_line_item = (
 			hourly_rate: hourly_rate_of(work_skill.form_values.work_skill_id),
 			count: work_skill.form_values.count,
 		})))
-		const calculated_hours = estimated_hours * crew_size
-		const price = hourly_rate === null
+		const missing_hours_or_crew = estimated_hours === null || crew_size === null
+		const calculated_hours = missing_hours_or_crew
+			? null
+			: estimated_hours * crew_size
+
+		const price = missing_hours_or_crew || hourly_rate === null
 			? null
 			: calculate_line_item_price({ estimated_hours, crew_size, hourly_rate, round_to_nearest })
+
 		return { calculated_hours, hourly_rate, price }
 	})
 
@@ -87,7 +92,8 @@ const make_line_item = (
 			work_skills = [...work_skills, make_work_skill(work_skill_id)]
 		}
 		const work_skill_person_count = reduce(work_skills, 0n, (total, work_skill) => total + work_skill.form_values.count)
-		if (record.form_values.estimated_crew_size < work_skill_person_count) {
+		const { estimated_crew_size } = record.form_values
+		if (estimated_crew_size === null || estimated_crew_size < work_skill_person_count) {
 			record.form_values.estimated_crew_size = work_skill_person_count
 		}
 	}
@@ -193,11 +199,11 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 		},
 	})
 
-	let crew_size_line_items_follow = loaded_project.estimated_crew_size ?? default_values.project_line_item.estimated_crew_size
+	let crew_size_line_items_follow = loaded_project.estimated_crew_size
 
 	$effect(() => {
 		const crew_size = project.form_values.estimated_crew_size
-		if (crew_size === null || crew_size === crew_size_line_items_follow) {
+		if (crew_size === crew_size_line_items_follow) {
 			return
 		}
 		untrack(() => {

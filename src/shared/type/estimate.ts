@@ -44,3 +44,11 @@ export type UpdateEstimateResult = {
 	added_line_items: AddedEstimateLineItemResult[]
 	changed_line_items: ChangedEstimateLineItemResult[]
 }
+
+export type LineItemDetails = Pick<DbProjectLineItem, 'title' | 'estimated_crew_size' | 'estimated_hours'> & {
+	work_details: string
+}
+
+export type UpdateLineItemDetailsArgument = {
+	project_line_item_id: DbProjectLineItem['project_line_item_id']
+} & Partial<LineItemDetails>

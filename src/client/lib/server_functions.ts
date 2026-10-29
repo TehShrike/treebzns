@@ -5,7 +5,7 @@ import type { OptionalizeUndefinedKeys } from '#shared/json_validator.ts'
 import type { SafeSelectQuery } from '#shared/sql_request/safe_select_query_validator.ts'
 import type { CreateLeadArgument, CreateLeadResult } from '#shared/type/lead.ts'
 import type { ClientMetrics, UpdateClientArgument, UpdateClientResult } from '#shared/type/client.ts'
-import type { UpdateEstimateArgument, UpdateEstimateResult } from '#shared/type/estimate.ts'
+import type { UpdateEstimateArgument, UpdateEstimateResult, UpdateLineItemDetailsArgument } from '#shared/type/estimate.ts'
 import type { Stroke } from '#schema/type/project_image.d.ts'
 
 const call_server_function = (function_name: string) => async (arg: unknown) => f3tch(`/api/fn/${function_name}`, {
@@ -19,7 +19,8 @@ const server_functions: {
 	update_client: (arg: UpdateClientArgument) => Promise<UpdateClientResult>
 	get_client_metrics: (arg: OptionalizeUndefinedKeys<{ readonly client_ids: bigint[]; }>) => Promise<ClientMetrics[]>
 	create_company: (arg: OptionalizeUndefinedKeys<{ name: string; }>) => Promise<Pick<DbCompany, "name" | "company_id">>
-	create_line_item: (arg: OptionalizeUndefinedKeys<{ readonly item_type_id: bigint | null | undefined; readonly work_details: string | undefined; readonly estimated_crew_size: bigint | undefined; readonly estimated_hours: bigint | undefined; readonly client_optional: boolean | undefined; readonly price: FinancialNumber | undefined; readonly project_id: bigint; }>) => Promise<{ project_line_item_id: bigint; }>
+	create_line_item: (arg: OptionalizeUndefinedKeys<{ readonly client_optional: boolean | undefined; readonly price: FinancialNumber | undefined; readonly estimated_crew_size: bigint | null | undefined; readonly estimated_hours: bigint | null | undefined; readonly item_type_id: bigint | null | undefined; readonly work_details: string | undefined; readonly project_id: bigint; }>) => Promise<{ project_line_item_id: bigint; }>
+	update_line_item_details: (arg: UpdateLineItemDetailsArgument) => Promise<{ project_line_item_id: bigint; }>
 	update_estimate: (arg: UpdateEstimateArgument) => Promise<UpdateEstimateResult>
 	create_lead: (arg: CreateLeadArgument) => Promise<CreateLeadResult>
 	create_line_item_image: (arg: OptionalizeUndefinedKeys<{ readonly project_line_item_id: bigint; readonly strokes: Stroke[]; }>) => Promise<{ project_image_id: bigint; }>
@@ -31,6 +32,7 @@ const server_functions: {
 	get_client_metrics: call_server_function('get_client_metrics'),
 	create_company: call_server_function('create_company'),
 	create_line_item: call_server_function('create_line_item'),
+	update_line_item_details: call_server_function('update_line_item_details'),
 	update_estimate: call_server_function('update_estimate'),
 	create_lead: call_server_function('create_lead'),
 	create_line_item_image: call_server_function('create_line_item_image'),

@@ -1,0 +1,3 @@
+ALTER TABLE project_line_item
+	MODIFY COLUMN estimated_crew_size TINYINT UNSIGNED DEFAULT NULL,
+	MODIFY COLUMN estimated_hours INT UNSIGNED DEFAULT NULL;

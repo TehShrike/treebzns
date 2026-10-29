@@ -8,20 +8,34 @@ import type {
 	ChangedEstimateLineItem,
 	UpdateEstimateArgument,
 	UpdateEstimateResult,
+	UpdateLineItemDetailsArgument,
 } from '#shared/type/estimate.ts'
 import { filter_map, flat_map, map, map_async } from '#shared/array.ts'
 import { default_line_item, insert_line_item } from './estimate_helper/line_item.ts'
 import { remove_line_items, update_line_item } from './estimate_helper/update_line_item.ts'
 import { update_project_document } from '#shared/treebzns_db/changes_with_history/project_document_history.ts'
 
+const crew_and_hours_validators = {
+	estimated_crew_size: jv.nullable(jv.is_bigint),
+	estimated_hours: jv.nullable(jv.is_bigint),
+}
+
 const line_item_value_validators = {
 	item_type_id: jv.nullable(jv.is_bigint),
 	work_details: jv.is_string,
-	estimated_crew_size: jv.is_bigint,
-	estimated_hours: jv.is_bigint,
+	...crew_and_hours_validators,
 	client_optional: jv.is_boolean,
 	price: is_financial_number,
 }
+
+const update_line_item_details_validator: Validator<UpdateLineItemDetailsArgument> = jv.object({
+	project_line_item_id: jv.is_bigint,
+	...jv.optional_shape({
+		title: jv.is_string,
+		work_details: jv.is_string,
+		...crew_and_hours_validators,
+	}),
+})
 
 const create_line_item_validator = jv.object({
 	project_id: jv.is_bigint,
@@ -119,6 +133,19 @@ export const functions = {
 				write_helper,
 			})
 
+			return { project_line_item_id }
+		}),
+	}),
+	update_line_item_details: sfn({
+		validator: update_line_item_details_validator,
+		fn: (
+			{ project_line_item_id, ...changes },
+			{ transaction },
+		): Promise<{ project_line_item_id: bigint }> => transaction(async ({ select_builder, write_helper }) => {
+			await assert_db_id_valid({ select_builder, table_name: `project_line_item`, id: project_line_item_id })
+			if (Object.keys(changes).length > 0) {
+				await write_helper.update({ table_name: `project_line_item`, column: `project_line_item_id`, value: project_line_item_id, set: changes })
+			}
 			return { project_line_item_id }
 		}),
 	}),

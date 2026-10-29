@@ -1,35 +1,64 @@
 <script lang="ts">
 	import { map } from '#shared/array.ts'
+	import { line_item_state_name, type LineItemMode, type UnsavedChanges } from './line_item_navigation.ts'
 
 	const {
 		asr,
 		project_id,
 		line_items,
 		current,
+		line_item_mode = `camera`,
+		unsaved = null,
 	}: {
 		asr: StateAsr
 		project_id: bigint
 		line_items: readonly { project_line_item_id: bigint }[]
 		current: `notes` | `edit_all` | number
+		line_item_mode?: LineItemMode
+		unsaved?: UnsavedChanges | null
 	} = $props()
 
 	const items = $derived([
-		{ key: `notes`, label: `Notes`, href: asr.makePath(`app.estimate.notes`, { project_id }), current: current === `notes` },
-		...map(line_items, (line_item, index) => ({
-			key: String(line_item.project_line_item_id),
-			label: String(index + 1),
-			href: asr.makePath(`app.estimate.line_item`, { project_id, project_line_item_id: line_item.project_line_item_id }),
-			current: current === index,
-		})),
-		{ key: `edit_all`, label: `Edit all`, href: asr.makePath(`app.estimate.line_items`, { project_id }), current: current === `edit_all` },
+		{
+			key: `notes`,
+			label: `Notes`,
+			href: asr.makePath(`app.estimate.notes`, { project_id }),
+			go: () => asr.go(`app.estimate.notes`, { project_id }),
+			current: current === `notes`,
+		},
+		...map(line_items, (line_item, index) => {
+			const state_name = line_item_state_name(line_item_mode)
+			const params = { project_id, project_line_item_id: line_item.project_line_item_id }
+			return {
+				key: String(line_item.project_line_item_id),
+				label: String(index + 1),
+				href: asr.makePath(state_name, params),
+				go: () => asr.go(state_name, params),
+				current: current === index,
+			}
+		}),
+		{
+			key: `edit_all`,
+			label: `Edit all`,
+			href: asr.makePath(`app.estimate.line_items`, { project_id }),
+			go: () => asr.go(`app.estimate.line_items`, { project_id }),
+			current: current === `edit_all`,
+		},
 	])
+
+	const on_click = async (event: MouseEvent, go: () => void) => {
+		if (unsaved === null) return
+		event.preventDefault()
+		if (unsaved.saving || !(await unsaved.save())) return
+		go()
+	}
 </script>
 
 <nav>
 	<ol>
 		{#each items as item (item.key)}
 			<li>
-				<a href={item.href} data-label={item.label} aria-current={item.current ? `page` : undefined}>{item.label}</a>
+				<a href={item.href} data-label={item.label} aria-current={item.current ? `page` : undefined} onclick={event => on_click(event, item.go)}>{item.label}</a>
 			</li>
 		{/each}
 	</ol>

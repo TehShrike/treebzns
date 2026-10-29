@@ -1,7 +1,8 @@
 import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import type { Schema } from '#schema/types.ts'
-import { map } from '#shared/array.ts'
+import { find_index, map } from '#shared/array.ts'
+import assert from '#shared/assert.ts'
 
 export const select_line_items = (query: ClientQueryFn, project_id: bigint) => query(
 	query_builder<Schema>()
@@ -17,3 +18,12 @@ export const select_line_items = (query: ClientQueryFn, project_id: bigint) => q
 ).then(rows => map(rows, row => row.project_line_item))
 
 export type LineItemRow = Awaited<ReturnType<typeof select_line_items>>[number]
+
+export const select_line_items_at = async (query: ClientQueryFn, project_id: bigint, project_line_item_id: bigint) => {
+	const line_items = await select_line_items(query, project_id)
+	const current_index = find_index(line_items, row => row.project_line_item_id === project_line_item_id)
+	const line_item = line_items[current_index]
+	assert(line_item, `line item ${project_line_item_id} belongs to project ${project_id}`)
+
+	return { line_items, current_index, line_item }
+}

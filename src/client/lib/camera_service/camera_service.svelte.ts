@@ -105,6 +105,10 @@ export const create_camera_service = () => {
 		stop_stream()
 	}
 
+	const close_if_active = () => {
+		if (active) close()
+	}
+
 	const use_result = async (opened: Promise<boolean>): Promise<UseResult> => {
 		if (await opened) return { ok: true }
 		return {
@@ -151,6 +155,7 @@ export const create_camera_service = () => {
 		start_using,
 		stop_using,
 		close,
+		close_if_active,
 		set_device,
 	}
 }

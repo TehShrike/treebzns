@@ -7,21 +7,16 @@
 	import PhotoMarkup from '#component/photo_markup/PhotoMarkup.svelte'
 	import type { CapturedPhoto } from '#component/photo_camera/captured_photo.ts'
 	import { validate_line_item_params } from '../line_item_params.ts'
-	import { select_line_items } from '../select_line_items.ts'
+	import { select_line_items_at } from '../select_line_items.ts'
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
 	import assert from '#shared/assert.ts'
-	import { find_index } from '#shared/array.ts'
 
 	export const asr_state = state_type({
-		name: `app.estimate.line_item`,
-		route: `/line_item/:project_line_item_id`,
+		name: `app.estimate.line_item_camera`,
+		route: `/line_item/:project_line_item_id/camera`,
 		param_validator: validate_line_item_params,
 		resolve: async ({ query, server, photo_upload_queue, camera_service }, { project_id, project_line_item_id }) => {
-			const line_items = await select_line_items(query, project_id)
-
-			const current_index = find_index(line_items, row => row.project_line_item_id === project_line_item_id)
-			const line_item = line_items[current_index]
-			assert(line_item, `line item ${project_line_item_id} belongs to project ${project_id}`)
+			const { line_items, current_index, line_item } = await select_line_items_at(query, project_id, project_line_item_id)
 
 			return { server, photo_upload_queue, camera_service, project_id, line_items, current_index, line_item }
 		},
@@ -79,6 +74,10 @@
 			busy = false
 		}
 	}
+
+	const go_to_edit = () => {
+		asr.go(`app.estimate.line_item_edit`, { project_id, project_line_item_id: line_item.project_line_item_id })
+	}
 </script>
 
 <Layout fill>
@@ -87,7 +86,7 @@
 	{/snippet}
 
 	{#snippet top()}
-		<EstimateNavBar {asr} {server} {project_id} project_estimated_crew_size={project.estimated_crew_size} {line_items} {current_index} on_done={camera_service.close} />
+		<EstimateNavBar {asr} {server} {project_id} project_estimated_crew_size={project.estimated_crew_size} {line_items} {current_index} on_done={camera_service.close_if_active} />
 	{/snippet}
 
 	<div class="stage">
@@ -107,7 +106,7 @@
 
 	{#snippet bottom()}
 		{#if mode === `live`}
-			<button type="button" disabled>Edit item</button>
+			<button type="button" disabled={busy} onclick={go_to_edit}>Edit item</button>
 			<button type="button" disabled={busy} onclick={take_photo}>📸 Take photo</button>
 		{:else}
 			<button type="button" disabled={busy} onclick={back_to_live}>Discard</button>

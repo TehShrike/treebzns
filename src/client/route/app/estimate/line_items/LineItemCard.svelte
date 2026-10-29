@@ -95,6 +95,7 @@
 			<label class="hours">
 				Hours
 				<IntegerInput
+					nullable={true}
 					value_needs_to_be_saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`estimated_hours`)}
 					bind:value={line_item.record.form_values.estimated_hours}
 				/>
@@ -103,12 +104,13 @@
 			<label class="crew">
 				Crew
 				<IntegerInput
+					nullable={true}
 					min={1}
 					value_needs_to_be_saved={first_time_estimating || line_item.record.value_needs_to_be_saved(`estimated_crew_size`)}
 					bind:value={line_item.record.form_values.estimated_crew_size}
 				/>
 			</label>
-			<span class="formula">= {line_item.price_calculation.calculated_hours} hours</span>
+			<span class="formula">= {line_item.price_calculation.calculated_hours ?? `?`} hours</span>
 		</div>
 		<span class="formula">× {line_item.price_calculation.hourly_rate === null ? `?` : `$${line_item.price_calculation.hourly_rate.toString()}`}</span>
 		<div class="equals_price">
