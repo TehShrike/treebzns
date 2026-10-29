@@ -6,3 +6,7 @@ If a row being updated or inserted contains a foreign key id, then it will not b
 assert_db_id_valid.ts can be used to assert this validity.
 
 The server does not validate anything about the foreign keys except that their records belong to the same company.  The client is responsible for validating everything else.
+
+An id used only in the WHERE clause of a tenanted update or delete needs no check – silent failures when inserting or updating are fine.  We only need to prevent writing ids that point to another company's records.
+
+Ids that point to non-tenanted tables do not need to be validated.

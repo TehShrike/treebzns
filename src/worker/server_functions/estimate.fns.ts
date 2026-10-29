@@ -84,13 +84,11 @@ const update_estimate_validator: Validator<UpdateEstimateArgument> = jv.object({
 
 const assert_input_ids_valid = async ({
 	project_id,
-	project_document_id,
 	added_line_items,
 	changed_line_items,
 	select_builder,
 }: {
 	project_id: bigint
-	project_document_id: bigint | undefined
 	added_line_items: readonly AddedEstimateLineItem[]
 	changed_line_items: readonly ChangedEstimateLineItem[]
 	select_builder: TenantedSelectBuilder
@@ -107,7 +105,6 @@ const assert_input_ids_valid = async ({
 
 	await Promise.all([
 		assert_db_id_valid({ select_builder, table_name: `project`, id: project_id }),
-		project_document_id !== undefined && assert_db_id_valid({ select_builder, table_name: `project_document`, id: project_document_id }),
 		assert_db_ids_valid({ select_builder, table_name: `project_line_item`, ids: project_line_item_ids }),
 		assert_db_ids_valid({ select_builder, table_name: `item_type`, ids: item_type_ids }),
 		assert_db_ids_valid({ select_builder, table_name: `work_skill`, ids: work_skill_ids }),
@@ -141,8 +138,7 @@ export const functions = {
 		fn: (
 			{ project_line_item_id, ...changes },
 			{ transaction },
-		): Promise<{ project_line_item_id: bigint }> => transaction(async ({ select_builder, write_helper }) => {
-			await assert_db_id_valid({ select_builder, table_name: `project_line_item`, id: project_line_item_id })
+		): Promise<{ project_line_item_id: bigint }> => transaction(async ({ write_helper }) => {
 			if (Object.keys(changes).length > 0) {
 				await write_helper.update({ table_name: `project_line_item`, column: `project_line_item_id`, value: project_line_item_id, set: changes })
 			}
@@ -157,7 +153,7 @@ export const functions = {
 		): Promise<UpdateEstimateResult> => transaction(async ({ select_builder, write_helper }) => {
 			const { project_id, project_document_id, ...project_changes } = project
 
-			await assert_input_ids_valid({ project_id, project_document_id, added_line_items, changed_line_items, select_builder })
+			await assert_input_ids_valid({ project_id, added_line_items, changed_line_items, select_builder })
 
 			if (Object.keys(project_changes).length > 0) {
 				await write_helper.update({ table_name: `project`, column: `project_id`, value: project_id, set: project_changes })
