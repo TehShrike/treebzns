@@ -6,8 +6,8 @@
 	import EstimateMap from '../EstimateMap.svelte'
 	import PhotoGallery from '#component/photo_gallery/PhotoGallery.svelte'
 	import type { GalleryImage } from '#component/photo_gallery/gallery_image.ts'
-	import LineItemDetailsForm from './LineItemDetailsForm.svelte'
-	import make_line_item_details_form, { type LoadedLineItemDetails } from './line_item_details_form.svelte.ts'
+	import LineItemEditForm from './LineItemEditForm.svelte'
+	import make_line_item_edit_form from './line_item_edit_form.svelte.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_line_item_params } from '../line_item_params.ts'
 	import { select_line_items_at } from '../select_line_items.ts'
@@ -19,7 +19,7 @@
 	import { map } from '#shared/array.ts'
 	import { untrack } from 'svelte'
 
-	const select_line_item_details = async (query: ClientQueryFn, project_line_item_id: bigint): Promise<LoadedLineItemDetails> => {
+	const select_line_item = async (query: ClientQueryFn, project_line_item_id: bigint) => {
 		const rows = await query(
 			query_builder<Schema>()
 				.from(`project_line_item`)
@@ -35,9 +35,9 @@
 		)
 		const row = rows[0]
 		assert(row, `line item ${project_line_item_id} exists`)
-		const { work_details, ...details } = row.project_line_item
+		const { work_details, ...line_item } = row.project_line_item
 
-		return { ...details, work_details: work_details ?? `` }
+		return { ...line_item, work_details: work_details ?? `` }
 	}
 
 	const select_line_item_images = (query: ClientQueryFn, project_line_item_id: bigint) => query(
@@ -66,7 +66,7 @@
 		resolve: async ({ query, server, camera_service }, { project_id, project_line_item_id }) => {
 			const [{ line_items, current_index }, line_item, images] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
-				project_line_item_id === `new` ? null : select_line_item_details(query, project_line_item_id),
+				project_line_item_id === `new` ? null : select_line_item(query, project_line_item_id),
 				project_line_item_id === `new` ? [] : select_line_item_images(query, project_line_item_id),
 			])
 
@@ -91,7 +91,7 @@
 	let line_items = $state.raw(untrack(() => loaded_line_items))
 	const current_index = $derived(line_item === null ? line_items.length : loaded_current_index)
 
-	const form = untrack(() => make_line_item_details_form({
+	const form = untrack(() => make_line_item_edit_form({
 		project_id,
 		project_estimated_crew_size: project.estimated_crew_size,
 		line_item_count: loaded_line_items.length,
@@ -155,7 +155,7 @@
 
 	<PhotoGallery {images} />
 
-	<LineItemDetailsForm line_item_record={form.record} {on_submit} />
+	<LineItemEditForm line_item_record={form.record} {on_submit} />
 
 	{#snippet status()}
 		{#await saver.pending_save_promise catch err}

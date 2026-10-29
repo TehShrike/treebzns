@@ -1,17 +1,17 @@
 import tracked_record, { type DbValues } from '#lib/tracked_record.svelte.ts'
-import type { UpsertLineItemArgument, UpsertLineItemResult } from '#shared/type/estimate.ts'
-import { added_line_item, changed_line_item, new_line_item_details, type LineItemDetails } from '../line_item_details.ts'
+import type { EstimateLineItemValues, UpsertLineItemArgument, UpsertLineItemResult } from '#shared/type/estimate.ts'
+import { added_line_item, changed_line_item, new_line_item } from '../line_item.ts'
 
-export type LoadedLineItemDetails = DbValues<LineItemDetails, 'project_line_item_id'>
+type LineItemValues = Pick<EstimateLineItemValues, 'title' | 'work_details' | 'estimated_crew_size' | 'estimated_hours'>
 
-const make_line_item_details_form = ({ project_id, project_estimated_crew_size, line_item_count, values_in_db }: {
+const make_line_item_edit_form = ({ project_id, project_estimated_crew_size, line_item_count, values_in_db }: {
 	project_id: bigint
 	project_estimated_crew_size: bigint | null
 	line_item_count: number
-	values_in_db: LoadedLineItemDetails | null
+	values_in_db: DbValues<LineItemValues, 'project_line_item_id'> | null
 }) => {
-	const make_record = (line_item_count: number, values_in_db: LoadedLineItemDetails | null) => tracked_record<LineItemDetails, 'project_line_item_id'>({
-		default_values: new_line_item_details({ project_estimated_crew_size, line_item_count }),
+	const make_record = (line_item_count: number, values_in_db: DbValues<LineItemValues, 'project_line_item_id'> | null) => tracked_record<LineItemValues, 'project_line_item_id'>({
+		default_values: new_line_item({ project_estimated_crew_size, line_item_count }),
 		id_key: `project_line_item_id`,
 		values_in_db,
 	})
@@ -52,6 +52,6 @@ const make_line_item_details_form = ({ project_id, project_estimated_crew_size, 
 	}
 }
 
-export type LineItemDetailsForm = ReturnType<typeof make_line_item_details_form>
+export type LineItemEditForm = ReturnType<typeof make_line_item_edit_form>
 
-export default make_line_item_details_form
+export default make_line_item_edit_form

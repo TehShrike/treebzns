@@ -1,16 +1,15 @@
 <script lang="ts">
 	import WideTextareaField from '#component/WideTextareaField.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
-	import type { TrackedRecord } from '#lib/tracked_record.svelte.ts'
-	import type { LineItemDetails } from '../line_item_details.ts'
+	import type { LineItemEditForm } from './line_item_edit_form.svelte.ts'
 
 	const { line_item_record, on_submit }: {
-		line_item_record: TrackedRecord<LineItemDetails, `project_line_item_id`>
+		line_item_record: LineItemEditForm['record']
 		on_submit: (event: SubmitEvent) => void
 	} = $props()
 </script>
 
-<form class="details" onsubmit={on_submit}>
+<form class="line_item" onsubmit={on_submit}>
 	<label>
 		Title
 		<input type="text" maxlength="200" autocomplete="off" data-1p-ignore data-style-as-unsaved={line_item_record.value_needs_to_be_saved(`title`)} bind:value={line_item_record.form_values.title}>
@@ -43,7 +42,7 @@
 </form>
 
 <style>
-	.details {
+	.line_item {
 		display: flex;
 		flex-direction: column;
 		gap: var(--gap_unit);
