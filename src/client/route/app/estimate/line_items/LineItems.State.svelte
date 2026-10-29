@@ -5,7 +5,8 @@
 	import LinkThatLooksLikeAButton from '#component/LinkThatLooksLikeAButton.svelte'
 	import LineItemCard from './LineItemCard.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
-	import make_estimate_form, { type LoadedLineItem } from './estimate_form.svelte.ts'
+	import make_estimate_form from './estimate_form.svelte.ts'
+	import { loaded_line_item } from '../line_item_form.svelte.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
 	import { line_item_state_name } from '../line_item_navigation.ts'
@@ -43,18 +44,7 @@
 				`a document that needs an estimate to move on has a next document`,
 			)
 
-			const loaded_line_items: LoadedLineItem[] = map(estimate.line_items, ({ project_line_item, images, work_skills }) => ({
-				project_line_item_id: project_line_item.project_line_item_id,
-				title: project_line_item.title,
-				item_type_id: project_line_item.item_type_id,
-				work_details: project_line_item.work_details ?? ``,
-				estimated_crew_size: project_line_item.estimated_crew_size,
-				estimated_hours: project_line_item.estimated_hours,
-				client_optional: project_line_item.client_optional,
-				price: project_line_item.price,
-				image_ids: map(images, image => image.project_image_id),
-				work_skills,
-			}))
+			const loaded_line_items = map(estimate.line_items, loaded_line_item)
 
 			const project_estimated_crew_size = estimate.project.estimated_crew_size
 			const first_time_estimating = every(loaded_line_items, line_item => (
@@ -184,7 +174,7 @@
 		{:else}
 			<div class="cards">
 				{#each form.line_items as line_item (line_item.stable_record_identifier)}
-					<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills} />
+					<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills} display_image_thumbnails />
 				{/each}
 			</div>
 		{/if}

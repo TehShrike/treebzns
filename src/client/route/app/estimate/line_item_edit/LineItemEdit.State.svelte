@@ -6,14 +6,18 @@
 	import EstimateMap from '../EstimateMap.svelte'
 	import PhotoGallery from '#component/photo_gallery/PhotoGallery.svelte'
 	import type { GalleryImage } from '#component/photo_gallery/gallery_image.ts'
-	import LineItemEditForm from './LineItemEditForm.svelte'
+	import LineItemCard from '../line_items/LineItemCard.svelte'
 	import make_line_item_edit_form from './line_item_edit_form.svelte.ts'
+	import { loaded_line_item } from '../line_item_form.svelte.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_line_item_params } from '../line_item_params.ts'
 	import { select_line_items_at } from '../select_line_items.ts'
 	import type { UnsavedChanges } from '../line_item_navigation.ts'
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
+	import { select_item_types } from '#lib/generic_queries/item_type.ts'
+	import { select_work_skills } from '#lib/generic_queries/work_skill.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
+	import group_joined_rows from '#shared/sql_request/group_joined_rows.ts'
 	import type { Schema } from '#schema/types.ts'
 	import assert from '#shared/assert.ts'
 	import { map } from '#shared/array.ts'
@@ -23,55 +27,77 @@
 		const rows = await query(
 			query_builder<Schema>()
 				.from(`project_line_item`)
+				.left_join(`project_line_item_image`, q => q.comparison(`project_line_item_image.project_line_item_id`, `=`, `project_line_item.project_line_item_id`))
+				.left_join(`project_image`, q => q.comparison(`project_image.project_image_id`, `=`, `project_line_item_image.project_image_id`))
+				.left_join(`project_line_item_work_skill`, q => q.comparison(`project_line_item_work_skill.project_line_item_id`, `=`, `project_line_item.project_line_item_id`))
 				.where(q => q.comparison(`project_line_item.project_line_item_id`, `=`, { value: project_line_item_id }))
+				.order_by(`project_line_item_image.sort`, `ASC`)
+				.order_by(`project_line_item_work_skill.project_line_item_work_skill_id`, `ASC`)
 				.select(() => [
 					`project_line_item.project_line_item_id`,
 					`project_line_item.title`,
+					`project_line_item.item_type_id`,
 					`project_line_item.work_details`,
 					`project_line_item.estimated_crew_size`,
 					`project_line_item.estimated_hours`,
+					`project_line_item.client_optional`,
+					`project_line_item.price`,
+					`project_image.project_image_id`,
+					`project_image.display_object_key`,
+					`project_image.uploaded_at`,
+					`project_line_item_work_skill.project_line_item_work_skill_id`,
+					`project_line_item_work_skill.work_skill_id`,
+					`project_line_item_work_skill.count`,
 				] as const)
 				.build(),
 		)
-		const row = rows[0]
-		assert(row, `line item ${project_line_item_id} exists`)
-		const { work_details, ...line_item } = row.project_line_item
 
-		return { ...line_item, work_details: work_details ?? `` }
+		const [line_item] = group_joined_rows(rows, {
+			table: `project_line_item`,
+			key: `project_line_item_id`,
+			children: {
+				images: { table: `project_image`, key: `project_image_id` },
+				work_skills: { table: `project_line_item_work_skill`, key: `project_line_item_work_skill_id` },
+			},
+		})
+		assert(line_item, `line item ${project_line_item_id} exists`)
+
+		return line_item
 	}
-
-	const select_line_item_images = (query: ClientQueryFn, project_line_item_id: bigint) => query(
-		query_builder<Schema>()
-			.from(`project_line_item_image`)
-			.join(`project_image`, q => q.comparison(`project_image.project_image_id`, `=`, `project_line_item_image.project_image_id`))
-			.where(q => q.comparison(`project_line_item_image.project_line_item_id`, `=`, { value: project_line_item_id }))
-			.order_by(`project_line_item_image.sort`, `ASC`)
-			.select(() => [
-				`project_image.project_image_id`,
-				`project_image.display_object_key`,
-				`project_image.uploaded_at`,
-			] as const)
-			.build(),
-	).then(rows => map(rows, ({ project_image }): GalleryImage => ({
-		project_image_id: project_image.project_image_id,
-		src: project_image.uploaded_at === null
-			? null
-			: `/api/project_image/${project_image.project_image_id}/${project_image.display_object_key === `` ? `original` : `display`}`,
-	})))
 
 	export const asr_state = state_type({
 		name: `app.estimate.line_item_edit`,
 		route: `/line_item/:project_line_item_id/edit`,
 		param_validator: validate_line_item_params,
-		resolve: async ({ query, server, camera_service, estimate_line_item_mode }, { project_id, project_line_item_id }) => {
+		resolve: async ({ query, server, session, camera_service, estimate_line_item_mode }, { project_id, project_line_item_id }) => {
 			estimate_line_item_mode.remember(`edit`)
-			const [{ line_items, current_index }, line_item, images] = await Promise.all([
+			const [{ line_items, current_index }, line_item, item_types, work_skills, logged_in_session] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
 				project_line_item_id === `new` ? null : select_line_item(query, project_line_item_id),
-				project_line_item_id === `new` ? [] : select_line_item_images(query, project_line_item_id),
+				select_item_types(query),
+				select_work_skills(query),
+				session.get_logged_in(),
 			])
 
-			return { server, camera_service, project_id, line_items, current_index, line_item, images }
+			const images = line_item === null ? [] : map(line_item.images, ({ project_image_id, display_object_key, uploaded_at }): GalleryImage => ({
+				project_image_id,
+				src: uploaded_at === null
+					? null
+					: `/api/project_image/${project_image_id}/${display_object_key === `` ? `original` : `display`}`,
+			}))
+
+			return {
+				server,
+				camera_service,
+				project_id,
+				line_items,
+				current_index,
+				line_item: line_item === null ? null : loaded_line_item(line_item),
+				images,
+				item_types,
+				work_skills,
+				round_to_nearest: logged_in_session.company.round_line_item_estimates_to_nearest,
+			}
 		},
 	})
 </script>
@@ -86,6 +112,9 @@
 		current_index: loaded_current_index,
 		line_item,
 		images,
+		item_types,
+		work_skills,
+		round_to_nearest,
 		asr,
 	}: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
 
@@ -97,6 +126,8 @@
 		project_estimated_crew_size: project.estimated_crew_size,
 		line_item_count: loaded_line_items.length,
 		values_in_db: line_item,
+		work_skills,
+		round_to_nearest,
 	}))
 
 	const saver = form_saver({ form, send: values => server.upsert_line_item(values) })
@@ -116,15 +147,15 @@
 
 	const on_submit = async (event: SubmitEvent) => {
 		event.preventDefault()
-		const adding = !form.record.saved_in_database
+		const adding = !form.line_item.record.saved_in_database
 		if (!(await save_if_needed()) || !adding) return
-		const project_line_item_id = form.record.db_id
+		const project_line_item_id = form.line_item.db_id
 		assert(project_line_item_id !== null, `a saved line item has its database id`)
 		asr.go(`app.estimate.line_item_edit`, { project_id, project_line_item_id }, { replace: true })
 	}
 
 	const start_new_item = () => {
-		const saved = form.record.values_in_db
+		const saved = form.line_item.record.values_in_db
 		assert(saved, `the new line item is in the database before the next one starts`)
 		line_items = [...line_items, { project_line_item_id: saved.project_line_item_id, title: saved.title }]
 		form.start_new_item(line_items.length)
@@ -132,7 +163,7 @@
 
 	const go_to_camera = async () => {
 		if (!(await save_if_needed())) return
-		asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id: form.record.db_id ?? `new` })
+		asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id: form.line_item.db_id ?? `new` })
 	}
 </script>
 
@@ -156,7 +187,9 @@
 
 	<PhotoGallery {images} />
 
-	<LineItemEditForm line_item_record={form.record} {on_submit} />
+	<form class="line_item" onsubmit={on_submit}>
+		<LineItemCard line_item={form.line_item} first_time_estimating={false} {item_types} {work_skills} display_image_thumbnails={false} />
+	</form>
 
 	{#snippet status()}
 		{#await saver.pending_save_promise catch err}
@@ -165,12 +198,17 @@
 	{/snippet}
 
 	{#snippet bottom()}
-		<button type="button" disabled={saver.saving || !form.needs_to_be_saved} onclick={() => form.record.revert()}>Discard changes</button>
+		<button type="button" disabled={saver.saving || !form.needs_to_be_saved} onclick={() => form.line_item.revert()}>Discard changes</button>
 		<button type="button" disabled={saver.saving} onclick={go_to_camera}>{prefix}Go to camera</button>
 	{/snippet}
 </Layout>
 
 <style>
+	.line_item {
+		width: 100%;
+		max-width: 72rem;
+	}
+
 	.error {
 		margin: 0;
 		padding-bottom: var(--gap_half);

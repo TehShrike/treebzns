@@ -4,17 +4,18 @@
 	import WideTextareaField from '#component/WideTextareaField.svelte'
 	import NumberInput from '#component/NumberInput.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
-	import type { LineItemForm } from './estimate_form.svelte.ts'
+	import type { LineItemForm } from '../line_item_form.svelte.ts'
 	import type { ItemTypeRow } from '#lib/generic_queries/item_type.ts'
 	import type { WorkSkillRow } from '#lib/generic_queries/work_skill.ts'
 	import assert from '#shared/assert.ts'
 	import { map } from '#shared/array.ts'
 
-	const { line_item, first_time_estimating, item_types, work_skills }: {
+	const { line_item, first_time_estimating, item_types, work_skills, display_image_thumbnails }: {
 		line_item: LineItemForm
 		first_time_estimating: boolean
 		item_types: readonly ItemTypeRow[]
 		work_skills: readonly WorkSkillRow[]
+		display_image_thumbnails: boolean
 	} = $props()
 
 	const work_skill_by_id = $derived(new Map(map(work_skills, work_skill => [work_skill.work_skill_id, work_skill] as const)))
@@ -28,7 +29,16 @@
 
 <WindowCard>
 	{#snippet title_bar()}
-		<span class="title">{line_item.record.form_values.title}</span>
+		<input
+			type="text"
+			class="title"
+			maxlength="200"
+			autocomplete="off"
+			data-1p-ignore
+			aria-label="Title"
+			data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`title`)}
+			bind:value={line_item.record.form_values.title}
+		>
 		<select
 			aria-label="Line type"
 			data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`item_type_id`)}
@@ -41,14 +51,16 @@
 		</select>
 	{/snippet}
 
-	{#if line_item.image_ids.length === 0}
-		<div class="no_photos">No photos</div>
-	{:else}
-		<div class="scroller">
-			{#each line_item.image_ids as project_image_id (project_image_id)}
-				<img class="thumbnail" src="/api/project_image/{project_image_id}/thumbnail" alt="" loading="lazy">
-			{/each}
-		</div>
+	{#if display_image_thumbnails}
+		{#if line_item.image_ids.length === 0}
+			<div class="no_photos">No photos</div>
+		{:else}
+			<div class="scroller">
+				{#each line_item.image_ids as project_image_id (project_image_id)}
+					<img class="thumbnail" src="/api/project_image/{project_image_id}/thumbnail" alt="" loading="lazy">
+				{/each}
+			</div>
+		{/if}
 	{/if}
 
 	<div class="scroller">
@@ -129,9 +141,9 @@
 
 <style>
 	.title {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		flex-grow: 1;
+		min-width: 0;
+		max-width: var(--wide_input);
 	}
 
 	select {

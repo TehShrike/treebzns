@@ -5,9 +5,9 @@ import { pick } from '#shared/pick.ts'
 export const new_line_item = ({ project_estimated_crew_size, line_item_count }: {
 	project_estimated_crew_size: bigint | null
 	line_item_count: number
-}): Pick<EstimateLineItemValues, 'title' | 'work_details' | 'estimated_crew_size' | 'estimated_hours'> => ({
+}): EstimateLineItemValues => ({
 	title: `Line item ${line_item_count + 1}`,
-	...pick(default_values.project_line_item, [`work_details`, `estimated_hours`]),
+	...pick(default_values.project_line_item, [`item_type_id`, `work_details`, `estimated_hours`, `client_optional`, `price`]),
 	estimated_crew_size: project_estimated_crew_size,
 })
 
