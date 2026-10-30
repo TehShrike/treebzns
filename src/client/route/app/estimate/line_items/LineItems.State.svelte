@@ -135,6 +135,10 @@
 	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
 </script>
 
+{#snippet total()}
+	<div class="total">Total ${form.total.toString()}</div>
+{/snippet}
+
 <FixedVerticalLayout>
 	{#snippet heading()}
 		<EstimateMap {asr} {project_id} line_items={loaded_line_items} current="edit_all" />
@@ -166,15 +170,18 @@
 			</div>
 		</header>
 
-		<label class="crew_size">
-			Estimate crew size
-			<IntegerInput
-				nullable={true}
-				min={1}
-				value_needs_to_be_saved={first_time_estimating || form.project.value_needs_to_be_saved(`estimated_crew_size`)}
-				bind:value={form.project.form_values.estimated_crew_size}
-			/>
-		</label>
+		<div class="crew_size_and_total">
+			<label class="crew_size">
+				Estimate crew size
+				<IntegerInput
+					nullable={true}
+					min={1}
+					value_needs_to_be_saved={first_time_estimating || form.project.value_needs_to_be_saved(`estimated_crew_size`)}
+					bind:value={form.project.form_values.estimated_crew_size}
+				/>
+			</label>
+			{@render total()}
+		</div>
 
 		{#await saver.pending_save_promise catch err}
 			<p class="error">{err.message}</p>
@@ -194,6 +201,9 @@
 						open_photo={project_image_id => open_photo(line_item, project_image_id)}
 					/>
 				{/each}
+			</div>
+			<div class="bottom_total">
+				{@render total()}
 			</div>
 		{/if}
 	</form>
@@ -229,8 +239,28 @@
 		white-space: pre-wrap;
 	}
 
+	.crew_size_and_total {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-end;
+		gap: var(--gap_unit);
+	}
+
 	.crew_size {
-		width: 6rem;
+		width: 10rem;
+	}
+
+	.bottom_total {
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	.total {
+		display: flex;
+		align-items: center;
+		min-height: var(--input-height);
+		font-weight: bold;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.error,

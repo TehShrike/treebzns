@@ -9,7 +9,7 @@ export type LineItemCalculation = {
 	line_item_total: FinancialNumber
 }
 
-type DistributivePick<T, K extends keyof T> = T extends unknown ? Pick<T, K> : never
+export type DistributivePick<T, K extends keyof T> = T extends unknown ? Pick<T, K> : never
 
 export type LineItemInput = DistributivePick<DbInvoiceLineItem, 'quantity' | 'price' | 'discount' | 'discount_rate' | 'taxable'>
 

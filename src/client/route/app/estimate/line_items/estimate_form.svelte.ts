@@ -2,10 +2,10 @@ import { untrack } from 'svelte'
 import tracked_record, { type DbValues } from '#lib/tracked_record.svelte.ts'
 import tracked_record_array from '#lib/tracked_record_array.ts'
 import assert from '#shared/assert.ts'
-import { for_each, map, zip_with } from '#shared/array.ts'
+import { for_each, map, reduce, zip_with } from '#shared/array.ts'
 import { pick } from '#shared/pick.ts'
 import default_values from '#shared/treebzns_db/default_values.ts'
-import type { FinancialNumber } from '#shared/fnum.ts'
+import fnum, { type FinancialNumber } from '#shared/fnum.ts'
 import type { EstimateProjectValues, UpdateEstimateArgument, UpdateEstimateResult } from '#shared/type/estimate.ts'
 import make_line_item, { make_hourly_rate_of, type LoadedLineItem } from '../line_item_form.svelte.ts'
 
@@ -55,6 +55,7 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 	})
 
 	const needs_to_be_saved = $derived(project.needs_to_be_saved || line_item_records.needs_to_be_saved)
+	const total = $derived(reduce(line_items, fnum(`0.00`), (sum, line_item) => sum.plus(line_item.price)))
 
 	const start_save = () => {
 		const project_save = project.start_save()
@@ -85,6 +86,7 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 		project,
 		line_items,
 		get needs_to_be_saved() { return needs_to_be_saved },
+		get total() { return total },
 		start_save,
 	}
 }
