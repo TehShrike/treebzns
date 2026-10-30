@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
-	import Layout from '../Layout.svelte'
+	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
 	import EstimateNavBar from '../EstimateNavBar.svelte'
 	import EstimateMap from '../EstimateMap.svelte'
 	import { select_line_items } from '../select_line_items.ts'
@@ -67,7 +67,7 @@
 	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
 </script>
 
-<Layout>
+<FixedVerticalLayout>
 	{#snippet heading()}
 		<EstimateMap {asr} {project_id} {line_items} current="notes" />
 	{/snippet}
@@ -106,7 +106,7 @@
 			</ul>
 		{/if}
 	</fieldset>
-</Layout>
+</FixedVerticalLayout>
 
 <style>
 	fieldset {

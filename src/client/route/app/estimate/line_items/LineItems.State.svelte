@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
-	import Layout from '../Layout.svelte'
+	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
 	import EstimateMap from '../EstimateMap.svelte'
 	import LinkThatLooksLikeAButton from '#component/LinkThatLooksLikeAButton.svelte'
 	import LineItemCard from './LineItemCard.svelte'
@@ -135,7 +135,7 @@
 	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
 </script>
 
-<Layout>
+<FixedVerticalLayout>
 	{#snippet heading()}
 		<EstimateMap {asr} {project_id} line_items={loaded_line_items} current="edit_all" />
 	{/snippet}
@@ -197,7 +197,7 @@
 			</div>
 		{/if}
 	</form>
-</Layout>
+</FixedVerticalLayout>
 
 <style>
 	.estimate {

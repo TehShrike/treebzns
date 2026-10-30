@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
-	import Layout from '../Layout.svelte'
+	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
 	import EstimateNavBar from '../EstimateNavBar.svelte'
 	import EstimateMap from '../EstimateMap.svelte'
 	import PhotoGallery from '#component/photo_gallery/PhotoGallery.svelte'
@@ -174,7 +174,7 @@
 	}
 </script>
 
-<Layout>
+<FixedVerticalLayout>
 	{#snippet heading()}
 		<EstimateMap {asr} {project_id} {line_items} current={current_index} line_item_mode="edit" {unsaved} />
 	{/snippet}
@@ -208,7 +208,7 @@
 		<button type="button" disabled={saver.saving || !form.needs_to_be_saved} onclick={() => form.line_item.revert()}>Discard changes</button>
 		<button type="button" disabled={saver.saving} onclick={go_to_camera}>{prefix}Go to camera</button>
 	{/snippet}
-</Layout>
+</FixedVerticalLayout>
 
 <style>
 	.line_item {

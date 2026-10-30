@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte'
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
-	import Layout from '../Layout.svelte'
+	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
 	import EstimateNavBar from '../EstimateNavBar.svelte'
 	import EstimateMap from '../EstimateMap.svelte'
 	import PhotoMarkup from '#component/photo_markup/PhotoMarkup.svelte'
@@ -116,7 +116,7 @@
 	}
 </script>
 
-<Layout fill>
+<FixedVerticalLayout fill>
 	{#snippet heading()}
 		<EstimateMap {asr} {project_id} {line_items} current={current_index} line_item_mode="edit" />
 	{/snippet}
@@ -136,7 +136,7 @@
 		<button type="button" disabled={busy} onclick={go_back}>Discard</button>
 		<button type="button" disabled={busy} onclick={save_photo}>💾 Save photo</button>
 	{/snippet}
-</Layout>
+</FixedVerticalLayout>
 
 <style>
 	.stage {

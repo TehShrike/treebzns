@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { untrack } from 'svelte'
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
-	import Layout from '../Layout.svelte'
+	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
 	import EstimateNavBar from '../EstimateNavBar.svelte'
 	import EstimateMap from '../EstimateMap.svelte'
 	import PhotoCamera from '#component/photo_camera/PhotoCamera.svelte'
@@ -119,7 +119,7 @@
 	}
 </script>
 
-<Layout fill>
+<FixedVerticalLayout fill>
 	{#snippet heading()}
 		<EstimateMap {asr} {project_id} {line_items} current={current_index} />
 	{/snippet}
@@ -152,7 +152,7 @@
 			<button type="button" disabled={busy} onclick={save_photo}>💾 Save photo</button>
 		{/if}
 	{/snippet}
-</Layout>
+</FixedVerticalLayout>
 
 <style>
 	.stage {
