@@ -35,6 +35,6 @@ export default async (request: Request, mysql: MysqlHelpersObject): Promise<Resp
 	return json_response({
 		body: { ok: true },
 		status: 200,
-		headers: get_session_cookie_headers({ session_identifier: '', days: -1 }),
+		headers: get_session_cookie_headers({ session_identifier: '', days: -1, host: new URL(request.url).host }),
 	})
 }

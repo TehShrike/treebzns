@@ -32,7 +32,7 @@ export const log_in_with_password = async <OkResponseBody = unknown>({
 	return json_response({
 		body: ok_response_body,
 		status: 200,
-		headers: get_session_cookie_headers({ session_identifier, days: 30 }),
+		headers: get_session_cookie_headers({ session_identifier, days: 30, host: new URL(request.url).host }),
 	})
 }
 

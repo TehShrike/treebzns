@@ -27,3 +27,6 @@ enabled = true
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = "6c4d2f438cc342c99416bc41f2d07115"
+
+[dev]
+host = "localhost"
