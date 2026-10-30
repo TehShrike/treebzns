@@ -6,6 +6,7 @@ import make_context from '#lib/make_context.ts'
 import type { Context } from '#lib/context.ts'
 import read_form_data from '#lib/read_form_data.ts'
 import { assert_valid_request, error_response, json_anything_response } from '#lib/response_helpers.ts'
+import assert from '#shared/assert.ts'
 
 import parse_project_image_upload, { type ProjectImageFiles } from './parse_project_image_upload.ts'
 import {
@@ -111,5 +112,16 @@ export default async (request: Request, mysql: MysqlHelpersObject, s3: S3Client)
 		await store_markup_upload({ s3, company_id, project_image_id, transaction, files: { ...files, original: files.original } })
 	}
 
-	return json_anything_response({ body: { project_image_id }, status: 200 })
+	const stored = await get_project_image({ project_image_id, select_builder })
+	assert(stored && stored.uploaded_at !== null, `project image ${project_image_id} has files after the upload`)
+
+	return json_anything_response({
+		body: {
+			project_image_id,
+			uploaded_at: stored.uploaded_at,
+			display_etag: stored.display_etag,
+			thumbnail_etag: stored.thumbnail_etag,
+		},
+		status: 200,
+	})
 }

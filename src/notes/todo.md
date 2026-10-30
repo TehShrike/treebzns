@@ -25,7 +25,6 @@
 
 - Allow editing line item discount_rate, discount, discount_description
 - Allow editing project-level discount (which disables line-item level discount)
-- Display totals at bottom of estimate
 - Upload images?
 - Allow changing sort
 - On large screens, images should be the left half, every other input should be on the right half, capped at something like 600px width

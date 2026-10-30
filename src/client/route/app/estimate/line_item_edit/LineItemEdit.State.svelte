@@ -71,7 +71,7 @@
 		name: `app.estimate.line_item_edit`,
 		route: `/line_item/:project_line_item_id/edit`,
 		param_validator: validate_line_item_params,
-		resolve: async ({ query, server, session, camera_service, estimate_line_item_mode }, { project_id, project_line_item_id }) => {
+		resolve: async ({ query, server, session, camera_service, estimate_line_item_mode, photo_upload_queue }, { project_id, project_line_item_id }) => {
 			estimate_line_item_mode.remember(`edit`)
 			const [{ line_items, current_index }, line_item, item_types, work_skills, logged_in_session] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
@@ -81,19 +81,14 @@
 				session.get_logged_in(),
 			])
 
-			const images = line_item === null ? [] : map(line_item.images, ({ project_image_id, display_etag, uploaded_at }): GalleryImage => ({
-				project_image_id,
-				src: uploaded_at === null ? null : project_image_url({ project_image_id, variant: `display`, etag: display_etag }),
-			}))
-
 			return {
 				server,
+				photo_upload_queue,
 				camera_service,
 				project_id,
 				line_items,
 				current_index,
 				line_item: line_item === null ? null : loaded_line_item(line_item),
-				images,
 				item_types,
 				work_skills,
 				round_to_nearest: logged_in_session.company.round_line_item_estimates_to_nearest,
@@ -105,13 +100,13 @@
 <script lang="ts">
 	const {
 		server,
+		photo_upload_queue,
 		camera_service,
 		project_id,
 		project,
 		line_items: loaded_line_items,
 		current_index: loaded_current_index,
 		line_item,
-		images,
 		item_types,
 		work_skills,
 		round_to_nearest,
@@ -131,6 +126,14 @@
 	}))
 
 	const saver = form_saver({ form, send: values => server.upsert_line_item(values) })
+
+	const images = $derived(map(form.line_item.images, (loaded): GalleryImage => {
+		const { project_image_id, display_etag, uploaded_at } = photo_upload_queue.uploaded_etags.get(loaded.project_image_id) ?? loaded
+		return {
+			project_image_id,
+			src: uploaded_at === null ? null : project_image_url({ project_image_id, variant: `display`, etag: display_etag }),
+		}
+	}))
 
 	const save_if_needed = async (): Promise<boolean> => {
 		if (!form.needs_to_be_saved) return true
@@ -195,7 +198,7 @@
 	<PhotoGallery {images} on_photo_click={image => open_photo(image.project_image_id)} />
 
 	<form class="line_item" onsubmit={on_submit}>
-		<LineItemCard line_item={form.line_item} first_time_estimating={false} {item_types} {work_skills} display_thumbnails={false} {open_photo} />
+		<LineItemCard line_item={form.line_item} {photo_upload_queue} first_time_estimating={false} {item_types} {work_skills} display_thumbnails={false} {open_photo} />
 	</form>
 
 	{#snippet status()}

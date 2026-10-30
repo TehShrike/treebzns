@@ -6,19 +6,23 @@
 	import IntegerInput from '#component/IntegerInput.svelte'
 	import { project_image_url } from '#lib/project_image_url.ts'
 	import type { LineItemForm } from '../line_item_form.svelte.ts'
+	import type { PhotoUploadQueue } from '#lib/photo_upload_queue.svelte.ts'
 	import type { ItemTypeRow } from '#lib/generic_queries/item_type.ts'
 	import type { WorkSkillRow } from '#lib/generic_queries/work_skill.ts'
 	import assert from '#shared/assert.ts'
 	import { map } from '#shared/array.ts'
 
-	const { line_item, first_time_estimating, item_types, work_skills, display_thumbnails, open_photo }: {
+	const { line_item, photo_upload_queue, first_time_estimating, item_types, work_skills, display_thumbnails, open_photo }: {
 		line_item: LineItemForm
+		photo_upload_queue: PhotoUploadQueue
 		first_time_estimating: boolean
 		item_types: readonly ItemTypeRow[]
 		work_skills: readonly WorkSkillRow[]
 		display_thumbnails: boolean
 		open_photo: (project_image_id: bigint) => void
 	} = $props()
+
+	const images = $derived(map(line_item.images, image => photo_upload_queue.uploaded_etags.get(image.project_image_id) ?? image))
 
 	const work_skill_by_id = $derived(new Map(map(work_skills, work_skill => [work_skill.work_skill_id, work_skill] as const)))
 
@@ -54,11 +58,11 @@
 	{/snippet}
 
 	{#if display_thumbnails}
-		{#if line_item.images.length === 0}
+		{#if images.length === 0}
 			<div class="no_photos">No photos</div>
 		{:else}
 			<div class="scroller">
-				{#each line_item.images as image, index (image.project_image_id)}
+				{#each images as image, index (image.project_image_id)}
 					{#if image.uploaded_at === null}
 						<div class="uploading">Uploading…</div>
 					{:else}

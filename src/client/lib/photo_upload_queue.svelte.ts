@@ -1,3 +1,4 @@
+import { SvelteMap } from 'svelte/reactivity'
 import { xhr_form_data } from './xhr_form_data.ts'
 import { create_promise_queue } from '#shared/promise_queue.ts'
 
@@ -12,6 +13,7 @@ export const create_photo_upload_queue = () => {
 	const queue = create_promise_queue()
 	let queued_count = $state(0)
 	let progress_percent = $state(0)
+	const uploaded_etags = new SvelteMap<bigint, Pick<DbProjectImage, 'project_image_id' | 'uploaded_at' | 'display_etag' | 'thumbnail_etag'>>()
 
 	const upload = async ({ project_image_id, original, display, thumbnail }: PhotoUploadRequest) => {
 		const form_data = new FormData()
@@ -20,13 +22,14 @@ export const create_photo_upload_queue = () => {
 		if (display) form_data.append(`display`, display, `display.jpg`)
 
 		progress_percent = 0
-		await xhr_form_data({
+		const uploaded = await xhr_form_data<Pick<DbProjectImage, 'project_image_id' | 'uploaded_at' | 'display_etag' | 'thumbnail_etag'>>({
 			url: `/api/project_image/${project_image_id}`,
 			form_data,
 			on_progress: ({ sent, total }) => {
 				progress_percent = Math.floor((sent * 100) / total)
 			},
 		})
+		uploaded_etags.set(project_image_id, uploaded)
 	}
 
 	const finish_one = () => {
@@ -38,6 +41,10 @@ export const create_photo_upload_queue = () => {
 		enqueue: (request: PhotoUploadRequest) => {
 			queued_count++
 			return queue.enqueue(() => upload(request)).finally(finish_one)
+		},
+		clear_uploaded_etags: () => uploaded_etags.clear(),
+		get uploaded_etags(): ReadonlyMap<bigint, Pick<DbProjectImage, 'project_image_id' | 'uploaded_at' | 'display_etag' | 'thumbnail_etag'>> {
+			return uploaded_etags
 		},
 		get queued_count() {
 			return queued_count

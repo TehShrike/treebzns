@@ -23,7 +23,7 @@
 		name: `app.estimate.line_items`,
 		route: `/line_items`,
 		param_validator: validate_estimate_params,
-		resolve: async ({ query, server, session, estimate_line_item_mode }, { project_id }) => {
+		resolve: async ({ query, server, session, estimate_line_item_mode, photo_upload_queue }, { project_id }) => {
 			const { estimate, item_types, work_skills, project_documents, logged_in_session } = await promise_all_object({
 				estimate: select_estimate(query, project_id),
 				item_types: select_item_types(query),
@@ -59,6 +59,7 @@
 
 			return {
 				server,
+				photo_upload_queue,
 				project_id,
 				project: estimate.project,
 				client: estimate.client,
@@ -79,6 +80,7 @@
 <script lang="ts">
 	const {
 		server,
+		photo_upload_queue,
 		project_id,
 		project,
 		client,
@@ -194,6 +196,7 @@
 				{#each form.line_items as line_item (line_item.stable_record_identifier)}
 					<LineItemCard
 						{line_item}
+						{photo_upload_queue}
 						{first_time_estimating}
 						{item_types}
 						{work_skills}

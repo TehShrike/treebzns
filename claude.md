@@ -33,7 +33,7 @@ When you need styles based on dynamic state, prefer data attributes rather than 
 
 ## Types and names
 
-Don't invent new names for subsets of schema types unless I give them to you, and even then, ask to make sure.  A subset of a Foo type from the schema types is still just a Foo as far as we're concerned, even if we only care about a couple properties at a time.  The same is true for variable names.
+Don't invent new names for subsets of schema types unless I give them to you, and even then, ask to make sure.  A subset of a Foo type from the schema types is a Foo as far as we're concerned, even if we only care about a couple properties at a time.  The same is true for variable names.  The name FooInput or FooArg may be acceptable, but not Input or Arg.
 
 ## Writing style
 

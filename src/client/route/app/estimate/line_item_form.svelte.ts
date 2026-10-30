@@ -21,13 +21,13 @@ import type {
 export type LoadedLineItemWorkSkill = DbValues<EstimateLineItemWorkSkillValues, 'project_line_item_work_skill_id'>
 
 export type LoadedLineItem = DbValues<EstimateLineItemValues, 'project_line_item_id'> & {
-	images: readonly Pick<DbProjectImage, 'project_image_id' | 'uploaded_at' | 'thumbnail_etag'>[]
+	images: readonly Pick<DbProjectImage, 'project_image_id' | 'uploaded_at' | 'display_etag' | 'thumbnail_etag'>[]
 	work_skills: readonly LoadedLineItemWorkSkill[]
 }
 
 export const loaded_line_item = ({ project_line_item: { work_details, ...project_line_item }, images, work_skills }: {
 	project_line_item: Pick<DbProjectLineItem, 'project_line_item_id' | keyof EstimateLineItemValues>
-	images: readonly Pick<DbProjectImage, 'project_image_id' | 'uploaded_at' | 'thumbnail_etag'>[]
+	images: readonly Pick<DbProjectImage, 'project_image_id' | 'uploaded_at' | 'display_etag' | 'thumbnail_etag'>[]
 	work_skills: readonly LoadedLineItemWorkSkill[]
 }): LoadedLineItem => ({
 	...project_line_item,

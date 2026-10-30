@@ -103,7 +103,7 @@
 		try {
 			const composed = await markup.compose()
 			await server.update_project_image({ project_image_id, strokes: composed.strokes })
-			await photo_upload_queue.enqueue({
+			photo_upload_queue.enqueue({
 				project_image_id,
 				original: null,
 				display: composed.display,
