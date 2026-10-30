@@ -5,7 +5,7 @@ import f3tch from '#shared/f3tch.ts'
 import assert from '#shared/assert.ts'
 import create_session from './session.ts'
 import type { AsrTransitionState } from './asr_transition_state.svelte.ts'
-import { create_photo_upload_queue } from './photo_upload_queue.ts'
+import { create_photo_upload_queue } from './photo_upload_queue.svelte.ts'
 import { create_camera_service } from './camera_service/camera_service.svelte.ts'
 import { create_estimate_line_item_mode } from './estimate_line_item_mode.ts'
 

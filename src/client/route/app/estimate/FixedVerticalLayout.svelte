@@ -40,7 +40,8 @@
 		gap: var(--gap_half);
 		padding: var(--gap_half);
 		box-sizing: border-box;
-		height: 100dvh;
+		flex-grow: 1;
+		min-height: 0;
 	}
 
 	.bar {
