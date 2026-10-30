@@ -14,26 +14,44 @@ export const stroke_validator: Validator<Stroke> = jv.object({
 	line_width: jv.is_number,
 })
 
+const uploaded = {
+	uploaded_at: is_temporal_instant,
+	original_object_key: jv.is_string,
+	display_object_key: jv.is_string,
+	thumbnail_object_key: jv.is_string,
+} as const
+
+const not_uploaded = {
+	uploaded_at: jv.is_null,
+	original_object_key: jv.is_null,
+	display_object_key: jv.is_null,
+	thumbnail_object_key: jv.is_null,
+} as const
+
 export const validator_object = {
 	project_image_id: jv.is_bigint,
 	company_id: jv.is_bigint,
 	project_id: jv.is_bigint,
-	original_object_key: jv.is_string,
 	original_etag: jv.is_string,
-	display_object_key: jv.is_string,
 	display_etag: jv.is_string,
-	thumbnail_object_key: jv.is_string,
 	thumbnail_etag: jv.is_string,
 	description: jv.is_string,
 	strokes: jv.nullable(jv.array(stroke_validator)),
 	visible_to_client: jv.is_boolean,
-	uploaded_at: jv.nullable(is_temporal_instant),
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 	arbostar_image_id: jv.nullable(jv.is_bigint),
 	upload_employee_id: jv.nullable(jv.is_bigint),
 }
 
-export const project_image_validator: Validator<DbProjectImage> = jv.object(validator_object)
+export const project_image_validator: Validator<DbProjectImage> = jv.one_of(
+	jv.object({ ...validator_object, ...uploaded }),
+	jv.object({ ...validator_object, ...not_uploaded }),
+)
 
-export const insertable_project_image_validator: Validator<DbInsertableProjectImage> = jv.object(omit(validator_object, ['project_image_id', 'created_at', 'updated_at']))
+const insertable_validator_object = omit(validator_object, ['project_image_id', 'created_at', 'updated_at'])
+
+export const insertable_project_image_validator: Validator<DbInsertableProjectImage> = jv.one_of(
+	jv.object({ ...insertable_validator_object, ...uploaded }),
+	jv.object({ ...insertable_validator_object, ...not_uploaded }),
+)

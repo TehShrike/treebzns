@@ -104,11 +104,11 @@ export const project_line_item_work_skill = {
 }
 
 export const project_image = {
-	original_object_key: ``,
+	original_object_key: null,
 	original_etag: ``,
-	display_object_key: ``,
+	display_object_key: null,
 	display_etag: ``,
-	thumbnail_object_key: ``,
+	thumbnail_object_key: null,
 	thumbnail_etag: ``,
 	description: ``,
 	strokes: null,

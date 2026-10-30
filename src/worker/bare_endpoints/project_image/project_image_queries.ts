@@ -1,3 +1,4 @@
+import type { Temporal } from '@js-temporal/polyfill'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import { fns } from '#shared/sql_request/mysql_function.ts'
 import type { TenantedSelectBuilder, TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
@@ -36,12 +37,19 @@ export const get_project_image_for_update = async ({
 	const row = await select_builder.get_first_row(select_builder
 		.from(`project_image`)
 		.where(q => q.comparison(`project_image.project_image_id`, `=`, { value: project_image_id }))
-		.select(() => [`project_image.uploaded_at`, `project_image.display_object_key`])
+		.select(() => [
+			`project_image.uploaded_at`,
+			`project_image.original_object_key`,
+			`project_image.original_etag`,
+			`project_image.display_object_key`,
+		])
 		.for_update()
 		.build())
 
 	return row === null ? null : row.project_image
 }
+
+type UploadedProjectImage = Extract<DbProjectImage, { uploaded_at: Temporal.Instant }>
 
 export const store_first_upload_files = async ({
 	project_image_id,
@@ -49,7 +57,7 @@ export const store_first_upload_files = async ({
 	write_helper,
 }: {
 	project_image_id: bigint
-	files: Pick<DbProjectImage, 'original_object_key' | 'original_etag' | 'display_object_key' | 'display_etag' | 'thumbnail_object_key' | 'thumbnail_etag'>
+	files: Pick<UploadedProjectImage, 'original_object_key' | 'original_etag' | 'display_object_key' | 'display_etag' | 'thumbnail_object_key' | 'thumbnail_etag'>
 	write_helper: TenantedWriteHelper
 }): Promise<void> => {
 	await write_helper.update({
@@ -69,7 +77,7 @@ export const store_markup_files = async ({
 	write_helper,
 }: {
 	project_image_id: bigint
-	files: Pick<DbProjectImage, 'display_object_key' | 'display_etag' | 'thumbnail_object_key' | 'thumbnail_etag'>
+	files: Pick<UploadedProjectImage, 'display_object_key' | 'display_etag' | 'thumbnail_object_key' | 'thumbnail_etag'>
 	write_helper: TenantedWriteHelper
 }): Promise<void> => {
 	await write_helper.update({

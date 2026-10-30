@@ -47,9 +47,9 @@ export type ExistingProjectImage = {
 	project_line_item_image_id: bigint
 	project_line_item_id: bigint
 	uploaded_at: Temporal.Instant | null
-	original_object_key: string
-	display_object_key: string
-	thumbnail_object_key: string
+	original_object_key: string | null
+	display_object_key: string | null
+	thumbnail_object_key: string | null
 }
 
 // The maps are keyed by number because the ArboStar export ids are JSON numbers.

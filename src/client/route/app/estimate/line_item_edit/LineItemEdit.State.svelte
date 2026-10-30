@@ -44,8 +44,6 @@
 					`project_line_item.client_optional`,
 					`project_line_item.price`,
 					`project_image.project_image_id`,
-					`project_image.display_object_key`,
-					`project_image.original_etag`,
 					`project_image.display_etag`,
 					`project_image.thumbnail_etag`,
 					`project_image.uploaded_at`,
@@ -83,13 +81,9 @@
 				session.get_logged_in(),
 			])
 
-			const images = line_item === null ? [] : map(line_item.images, ({ project_image_id, display_object_key, original_etag, display_etag, uploaded_at }): GalleryImage => ({
+			const images = line_item === null ? [] : map(line_item.images, ({ project_image_id, display_etag, uploaded_at }): GalleryImage => ({
 				project_image_id,
-				src: uploaded_at === null
-					? null
-					: display_object_key === ``
-						? project_image_url({ project_image_id, variant: `original`, etag: original_etag })
-						: project_image_url({ project_image_id, variant: `display`, etag: display_etag }),
+				src: uploaded_at === null ? null : project_image_url({ project_image_id, variant: `display`, etag: display_etag }),
 			}))
 
 			return {

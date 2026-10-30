@@ -43,9 +43,12 @@ const store_first_upload = async ({ s3, company_id, project_image_id, files, tra
 		await store_first_upload_files({
 			project_image_id,
 			files: {
-				...stored,
-				display_object_key: stored.display_object_key ?? ``,
-				display_etag: stored.display_etag ?? ``,
+				original_object_key: stored.original_object_key,
+				original_etag: stored.original_etag,
+				display_object_key: stored.display_object_key ?? stored.original_object_key,
+				display_etag: stored.display_etag ?? stored.original_etag,
+				thumbnail_object_key: stored.thumbnail_object_key,
+				thumbnail_etag: stored.thumbnail_etag,
 			},
 			write_helper,
 		})
@@ -60,23 +63,27 @@ const store_markup_upload = async ({ s3, company_id, project_image_id, files, tr
 	const stale_display_object_key = await transaction(async ({ select_builder, write_helper }) => {
 		const locked_project_image = await get_project_image_for_update({ project_image_id, select_builder })
 		assert_valid_request(locked_project_image, `Project image ${project_image_id} exists`)
-		assert_valid_request(locked_project_image.uploaded_at !== null, `Project image ${project_image_id} has files`)
+		const { uploaded_at, original_object_key, original_etag, display_object_key } = locked_project_image
+		assert_valid_request(
+			uploaded_at !== null && original_object_key !== null && display_object_key !== null,
+			`Project image ${project_image_id} has files`,
+		)
 
 		await store_markup_files({
 			project_image_id,
 			files: {
-				display_object_key: stored.display_object_key ?? ``,
-				display_etag: stored.display_etag ?? ``,
+				display_object_key: stored.display_object_key ?? original_object_key,
+				display_etag: stored.display_etag ?? original_etag,
 				thumbnail_object_key: stored.thumbnail_object_key,
 				thumbnail_etag: stored.thumbnail_etag,
 			},
 			write_helper,
 		})
 
-		return stored.display_object_key === null ? locked_project_image.display_object_key : ``
+		return stored.display_object_key === null && display_object_key !== original_object_key ? display_object_key : null
 	})
 
-	if (stale_display_object_key !== ``) {
+	if (stale_display_object_key !== null) {
 		await s3.delete_object({ key: stale_display_object_key })
 	}
 }

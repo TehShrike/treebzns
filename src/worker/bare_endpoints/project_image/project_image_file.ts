@@ -34,8 +34,8 @@ export default async (
 
 	const { select_builder } = make_context({ session, mysql })
 	const project_image = await get_project_image({ project_image_id: route.project_image_id, select_builder })
-	const object_key = project_image?.[`${route.variant}_object_key`] ?? ``
-	if (project_image === null || object_key === ``) {
+	const object_key = project_image?.[`${route.variant}_object_key`] ?? null
+	if (project_image === null || object_key === null) {
 		return error_response({ message: `Project image ${route.project_image_id} has no ${route.variant} file`, status: 404 })
 	}
 

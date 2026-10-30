@@ -25,6 +25,8 @@ Avoid importing from directories using ../ if it is possible to use a #dir/ impo
 
 `pnpm run test` to run automated tests and all type checks.  `pnpm run test:types` to check all types.
 
+Don't touch the todo.md file – if something in there is wrong or already done, list it to me directly for me to address.
+
 ## css
 
 When you need styles based on dynamic state, prefer data attributes rather than classes.  Don't use conditional classes in Svelte components.

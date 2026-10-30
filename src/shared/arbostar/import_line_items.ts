@@ -3,7 +3,7 @@ import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { ArbostarLineItem } from '#arbostar_export/line_items.d.ts'
 import escape_value from '#shared/sql_request/escape_value.ts'
 import assert from '#shared/assert.ts'
-import { map, filter, flat_map, reduce } from '#shared/array.ts'
+import { map, filter, filter_map, flat_map, reduce } from '#shared/array.ts'
 import { ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { normalize_crew_code } from './import_work_skills.ts'
@@ -189,10 +189,7 @@ export const import_line_items = async ({
 			const rows = stale_rows as unknown as [bigint, string | null, string | null, string | null][]
 			const line_item_ids = new Set(map(rows, row => String(row[0])))
 			const image_rows = filter(rows, row => row[1] !== null)
-			const object_keys = filter(
-				flat_map(image_rows, row => [row[1], row[2], row[3]] as string[]),
-				key => key !== '',
-			)
+			const object_keys = [...new Set(flat_map(image_rows, row => filter_map([row[1], row[2], row[3]], key => key)))]
 			await connection.query<ResultSetHeader>(
 				'DELETE project_line_item, project_line_item_image, project_image'
 				+ ' FROM project_line_item'

@@ -620,11 +620,11 @@ CREATE TABLE `project_image` (
   `project_image_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
   `project_id` int unsigned NOT NULL,
-  `original_object_key` varchar(1024) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `original_object_key` varchar(1024) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `original_etag` varchar(100) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `display_object_key` varchar(1024) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `display_object_key` varchar(1024) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `display_etag` varchar(100) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `thumbnail_object_key` varchar(1024) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `thumbnail_object_key` varchar(1024) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `thumbnail_etag` varchar(100) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `description` text COLLATE utf8mb4_general_ci NOT NULL,
   `strokes` json DEFAULT NULL,
@@ -636,7 +636,8 @@ CREATE TABLE `project_image` (
   `upload_employee_id` int unsigned DEFAULT NULL,
   PRIMARY KEY (`project_image_id`),
   UNIQUE KEY `uq_project_image_company_arbostar_image_id` (`company_id`,`arbostar_image_id`),
-  KEY `idx_project_image_project` (`project_id`)
+  KEY `idx_project_image_project` (`project_id`),
+  CONSTRAINT `chk_project_image_uploaded_files` CHECK ((((`uploaded_at` is null) and (`original_object_key` is null) and (`display_object_key` is null) and (`thumbnail_object_key` is null)) or ((`uploaded_at` is not null) and (`original_object_key` is not null) and (`display_object_key` is not null) and (`thumbnail_object_key` is not null))))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `project_line_item` (

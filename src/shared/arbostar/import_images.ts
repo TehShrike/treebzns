@@ -46,8 +46,8 @@ type ImageRow = {
 // images.js → project_image + project_line_item_image, update-or-insert by arbostar_image_id.
 // The object key carries the project_image_id, so the rows exist first (uploaded_at null), the
 // files upload outside any transaction, and a second transaction stores the keys. A photo whose
-// upload failed keeps its null uploaded_at and is retried on the next run. The display variant
-// is left empty, like an in-app photo with no markup.
+// upload failed keeps its null uploaded_at and is retried on the next run. The display is the
+// original, like an in-app photo with no markup.
 export const import_images = async ({
 	run_transaction,
 	context,
@@ -206,7 +206,15 @@ export const import_images = async ({
 				column: 'project_image_id',
 				rows: map(uploaded, ({ project_image_id, original_object_key, original_etag, thumbnail_object_key, thumbnail_etag }) => ({
 					value: project_image_id,
-					set: { original_object_key, original_etag, thumbnail_object_key, thumbnail_etag, uploaded_at: fns.utc_timestamp() },
+					set: {
+						original_object_key,
+						original_etag,
+						display_object_key: original_object_key,
+						display_etag: original_etag,
+						thumbnail_object_key,
+						thumbnail_etag,
+						uploaded_at: fns.utc_timestamp(),
+					},
 				})),
 				rows_per_batch: ROWS_PER_BATCH,
 			})
@@ -226,7 +234,7 @@ export const import_images = async ({
 }
 
 const object_keys_of = (row: ExistingProjectImage): string[] =>
-	filter([row.original_object_key, row.display_object_key, row.thumbnail_object_key], key => key !== '')
+	[...new Set(filter_map([row.original_object_key, row.display_object_key, row.thumbnail_object_key], key => key))]
 
 // Runs after the transaction that removed the rows has committed, so a crash leaves at worst
 // an orphan object, never a row pointing at a missing object.
