@@ -17,6 +17,9 @@ importers:
       abstract-state-router:
         specifier: ^8.0.6
         version: 8.0.6
+      better-emitter:
+        specifier: ^4.0.1
+        version: 4.0.1
       financial-number:
         specifier: ^5.0.0
         version: 5.0.0
@@ -857,6 +860,10 @@ packages:
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
+  better-emitter@4.0.1:
+    resolution: {integrity: sha512-zYW024hfcLp+6RupEfvYBVGiY9q43OzUFUbucyMY+cm7KPCgonPbG3v5TEOhwneJGHODe1aftYRNB9bZ0TNytA==}
+    engines: {node: '>=14.0.0'}
+
   blake3-wasm@2.1.5:
     resolution: {integrity: sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==}
 
@@ -1053,6 +1060,9 @@ packages:
   json-parse-even-better-errors@6.0.0:
     resolution: {integrity: sha512-2/8adwnK1/+Fdjyts4r6wSpfANWw8zdNhU9U/Llk59c6O+DjSisPWPykwoL8gZmocP9Dy64S7oie2g+Mia123A==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
+
+  key-master@4.0.0:
+    resolution: {integrity: sha512-yEO7Twi4tG9q/Y0WinAiMoeDHIGJTfB8/f8KwVbP9Sz74g+zn4CjIGWl9d3hn7TiLJQR4zd0s83jT/4m20HP3w==}
 
   kleur@4.1.5:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
@@ -1879,6 +1889,10 @@ snapshots:
 
   balanced-match@1.0.2: {}
 
+  better-emitter@4.0.1:
+    dependencies:
+      key-master: 4.0.0
+
   blake3-wasm@2.1.5: {}
 
   brace-expansion@1.1.14:
@@ -2096,6 +2110,8 @@ snapshots:
   jsbi@4.3.2: {}
 
   json-parse-even-better-errors@6.0.0: {}
+
+  key-master@4.0.0: {}
 
   kleur@4.1.5: {}
 

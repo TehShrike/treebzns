@@ -4,6 +4,7 @@ import make_svelte_state_renderer from 'svelte-state-renderer'
 
 import make_context, { type Context } from './lib/client_context.ts'
 import { asr_transition_state } from './lib/asr_transition_state.svelte.ts'
+import { create_asr_joinings_and_leavings, type AsrJoiningsAndLeavings } from './lib/asr_joinings_and_leavings.ts'
 import paths_and_states from './globbed_states.generated.ts'
 import assert_child_states_are_below_parents from './assert_child_states_are_below_parents.ts'
 import type { State } from './lib/client_type.ts'
@@ -60,7 +61,8 @@ const state_router = make_state_router(
 	document.getElementById(`app-target`)
 )
 
-const context = make_context(asr_transition_state(state_router))
+const state_joinings_and_leavings: AsrJoiningsAndLeavings<Context> = create_asr_joinings_and_leavings(state_router, () => context)
+const context = make_context(asr_transition_state(state_router), state_joinings_and_leavings)
 
 for_each(paths_and_states, (globbed_state) => {
 	add_state({ ...globbed_state.export.asr_state, Component: globbed_state.export.default })

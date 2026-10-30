@@ -84,6 +84,7 @@
 		"@js-temporal/polyfill": "^0.5.1",
 		"@tehshrike/json_anything": "^1.1.0",
 		"abstract-state-router": "^8.0.6",
+		"better-emitter": "^4.0.1",
 		"financial-number": "^5.0.0",
 		"mysql2": "^3.22.3",
 		"sql-escaper": "^1.3.3",
