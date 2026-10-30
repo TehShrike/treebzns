@@ -253,6 +253,10 @@ fieldset {
 	gap: var(--grouped-element-spacing);
 }
 
+legend {
+	width: fit-content;
+}
+
 .field-row {
 	display: flex;
 	flex-direction: row;
