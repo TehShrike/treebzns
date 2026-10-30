@@ -35,3 +35,10 @@
 
 	--default_border_radius: 2px;
 }
+
+@media (max-width: 800px), (max-height: 500px) {
+	:root {
+		--gap_unit: 8px;
+		--font_size_base: 14px;
+	}
+}

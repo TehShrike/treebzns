@@ -17,7 +17,7 @@
 	--link-blue: #0000ff;
 
 	/* Text */
-	--font-size: 15px;
+	--font-size: min(15px, var(--font_size_base));
 	--input-padding-block: 3px;
 	--input-line-height: 2;
 	--input-height: calc(var(--font-size) * var(--input-line-height) + 2 * var(--input-padding-block));
@@ -80,7 +80,7 @@
 
 body {
 	font-family: Arial;
-	font-size: 16px;
+	font-size: var(--font_size_base);
 	color: var(--text-color);
 }
 
