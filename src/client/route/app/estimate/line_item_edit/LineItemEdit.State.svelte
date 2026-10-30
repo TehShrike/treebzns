@@ -17,52 +17,15 @@
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
 	import { select_item_types } from '#lib/generic_queries/item_type.ts'
 	import { select_work_skills } from '#lib/generic_queries/work_skill.ts'
-	import query_builder from '#shared/sql_request/typed_query_builder.ts'
-	import group_joined_rows from '#shared/sql_request/group_joined_rows.ts'
-	import type { Schema } from '#schema/types.ts'
+	import { select_project_with_line_items } from '#lib/generic_queries/project.ts'
 	import assert from '#shared/assert.ts'
-	import { map } from '#shared/array.ts'
+	import { find, map } from '#shared/array.ts'
 	import { untrack } from 'svelte'
 
-	const select_line_item = async (query: ClientQueryFn, project_line_item_id: bigint) => {
-		const rows = await query(
-			query_builder<Schema>()
-				.from(`project_line_item`)
-				.left_join(`project_line_item_image`, q => q.comparison(`project_line_item_image.project_line_item_id`, `=`, `project_line_item.project_line_item_id`))
-				.left_join(`project_image`, q => q.comparison(`project_image.project_image_id`, `=`, `project_line_item_image.project_image_id`))
-				.left_join(`project_line_item_work_skill`, q => q.comparison(`project_line_item_work_skill.project_line_item_id`, `=`, `project_line_item.project_line_item_id`))
-				.where(q => q.comparison(`project_line_item.project_line_item_id`, `=`, { value: project_line_item_id }))
-				.order_by(`project_line_item_image.sort`, `ASC`)
-				.order_by(`project_line_item_work_skill.project_line_item_work_skill_id`, `ASC`)
-				.select(() => [
-					`project_line_item.project_line_item_id`,
-					`project_line_item.title`,
-					`project_line_item.item_type_id`,
-					`project_line_item.work_details`,
-					`project_line_item.estimated_crew_size`,
-					`project_line_item.estimated_hours`,
-					`project_line_item.client_optional`,
-					`project_line_item.price`,
-					`project_image.project_image_id`,
-					`project_image.display_etag`,
-					`project_image.thumbnail_etag`,
-					`project_image.uploaded_at`,
-					`project_line_item_work_skill.project_line_item_work_skill_id`,
-					`project_line_item_work_skill.work_skill_id`,
-					`project_line_item_work_skill.count`,
-				] as const)
-				.build(),
-		)
-
-		const [line_item] = group_joined_rows(rows, {
-			table: `project_line_item`,
-			key: `project_line_item_id`,
-			children: {
-				images: { table: `project_image`, key: `project_image_id` },
-				work_skills: { table: `project_line_item_work_skill`, key: `project_line_item_work_skill_id` },
-			},
-		})
-		assert(line_item, `line item ${project_line_item_id} exists`)
+	const select_line_item = async (query: ClientQueryFn, project_id: bigint, project_line_item_id: bigint) => {
+		const { line_items } = await select_project_with_line_items(query, project_id)
+		const line_item = find(line_items, ({ project_line_item }) => project_line_item.project_line_item_id === project_line_item_id)
+		assert(line_item, `line item ${project_line_item_id} belongs to project ${project_id}`)
 
 		return line_item
 	}
@@ -75,7 +38,7 @@
 			estimate_line_item_mode.remember(`edit`)
 			const [{ line_items, current_index }, line_item, item_types, work_skills, logged_in_session] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
-				project_line_item_id === `new` ? null : select_line_item(query, project_line_item_id),
+				project_line_item_id === `new` ? null : select_line_item(query, project_id, project_line_item_id),
 				select_item_types(query),
 				select_work_skills(query),
 				session.get_logged_in(),

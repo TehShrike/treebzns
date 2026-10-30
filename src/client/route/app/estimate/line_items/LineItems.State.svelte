@@ -10,13 +10,15 @@
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
 	import { line_item_state_name } from '../line_item_navigation.ts'
-	import { select_estimate } from './select_estimate.ts'
+	import { select_project_with_line_items } from '#lib/generic_queries/project.ts'
 	import { select_item_types } from '#lib/generic_queries/item_type.ts'
 	import { select_work_skills } from '#lib/generic_queries/work_skill.ts'
 	import { select_project_documents } from '#lib/generic_queries/project_document.ts'
 	import { promise_all_object } from '#shared/promise_all_object.ts'
 	import assert from '#shared/assert.ts'
-	import { every, filter, find, map } from '#shared/array.ts'
+	import { calculate_estimate } from '#shared/invoice/calculate_estimate.ts'
+	import { pick } from '#shared/pick.ts'
+	import { every, filter, find, map, zip_with } from '#shared/array.ts'
 	import { untrack } from 'svelte'
 
 	export const asr_state = state_type({
@@ -25,14 +27,12 @@
 		param_validator: validate_estimate_params,
 		resolve: async ({ query, server, session, estimate_line_item_mode, photo_upload_queue }, { project_id }) => {
 			const { estimate, item_types, work_skills, project_documents, logged_in_session } = await promise_all_object({
-				estimate: select_estimate(query, project_id),
+				estimate: select_project_with_line_items(query, project_id),
 				item_types: select_item_types(query),
 				work_skills: select_work_skills(query),
 				project_documents: select_project_documents(query),
 				logged_in_session: session.get_logged_in(),
 			})
-
-			assert(estimate, `project ${project_id} exists`)
 
 			const current_project_document = find(project_documents, document => document.project_document_id === estimate.project.project_document_id)
 			assert(current_project_document, `project ${project_id} has a project document`)
@@ -63,6 +63,7 @@
 				project_id,
 				project: estimate.project,
 				client: estimate.client,
+				line_items: estimate.line_items,
 				loaded_line_items,
 				first_time_estimating,
 				item_types,
@@ -84,6 +85,7 @@
 		project_id,
 		project,
 		client,
+		line_items,
 		loaded_line_items,
 		first_time_estimating,
 		item_types,
@@ -94,7 +96,17 @@
 		asr,
 	}: Resolved & { asr: StateAsr } = $props()
 
-	const form = untrack(() => make_estimate_form({ project, line_items: loaded_line_items, work_skills, round_to_nearest }))
+	const form = untrack(() => make_estimate_form({
+		project: pick(project, [`project_id`, `estimated_crew_size`, `project_document_id`]),
+		line_items: loaded_line_items,
+		work_skills,
+		round_to_nearest,
+	}))
+
+	const estimate = $derived(calculate_estimate(project, zip_with(line_items, form.line_items, ({ project_line_item }, line_item) => ({
+		...project_line_item,
+		price: line_item.price,
+	}))))
 
 	const saver = form_saver({ form, send: values => server.update_estimate(values) })
 
@@ -138,7 +150,7 @@
 </script>
 
 {#snippet total()}
-	<div class="total">Total ${form.total.toString()}</div>
+	<div class="total">Total ${estimate.total.toString()}</div>
 {/snippet}
 
 <FixedVerticalLayout>

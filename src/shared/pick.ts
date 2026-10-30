@@ -1,5 +1,7 @@
 import { for_each } from '#shared/array.ts'
 
+export type DistributivePick<T, K extends keyof T> = T extends unknown ? Pick<T, K> : never
+
 export const pick = <T extends object, K extends keyof T>(
 	obj: T,
 	select: readonly K[],

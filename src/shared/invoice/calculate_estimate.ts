@@ -1,14 +1,16 @@
 import fnum, { greatest_of, least_of } from '#shared/fnum.ts'
 import assert from '#shared/assert.ts'
 import { filter, some, reduce } from '#shared/array.ts'
-import { calculate_line_item, type DistributivePick } from './calculate_invoice.ts'
+import type { DistributivePick } from '#shared/pick.ts'
+import { calculate_line_item } from './calculate_invoice.ts'
+
+export type ProjectInput = DistributivePick<DbProject, 'discount_rate' | 'discount' | 'taxable' | 'tax_rate'>
+
+export type ProjectLineItemInput = DistributivePick<DbProjectLineItem, 'quantity' | 'price' | 'discount' | 'discount_rate' | 'taxable' | 'client_declined'>
 
 const zero = fnum('0.00')
 
-export const calculate_estimate = (
-	project: DistributivePick<DbProject, 'discount_rate' | 'discount' | 'taxable' | 'tax_rate'>,
-	line_items: readonly DistributivePick<DbProjectLineItem, 'quantity' | 'price' | 'discount' | 'discount_rate' | 'taxable' | 'client_declined'>[],
-) => {
+export const calculate_estimate = (project: ProjectInput, line_items: readonly ProjectLineItemInput[]) => {
 	const estimated_line_items = filter(line_items, line_item => !line_item.client_declined)
 
 	if (project.discount || project.discount_rate) {

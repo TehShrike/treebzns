@@ -34,6 +34,7 @@
 - editing line item title
 - allow editing project.notes_for_crew and project.notes_for_office
 - "save line item as template"?
+- cleanup: maybe we don't need asr_joinings_and_leavings
 
 Then think about "sending for proposal" at this stage of the design – a "send" button should mark the proposal as sent, show you the proposal page, and if you are logged in, give you an easy-to-copy url to send to the client.
 

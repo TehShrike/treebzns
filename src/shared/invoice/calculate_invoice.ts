@@ -2,14 +2,13 @@ import fnum, { greatest_of, least_of } from '#shared/fnum.ts'
 import type { FinancialNumber } from '#shared/fnum.ts'
 import assert from '#shared/assert.ts'
 import { some, reduce } from '#shared/array.ts'
+import type { DistributivePick } from '#shared/pick.ts'
 
 export type LineItemCalculation = {
 	line_item_gross: FinancialNumber
 	actual_line_item_discount: FinancialNumber
 	line_item_total: FinancialNumber
 }
-
-export type DistributivePick<T, K extends keyof T> = T extends unknown ? Pick<T, K> : never
 
 export type LineItemInput = DistributivePick<DbInvoiceLineItem, 'quantity' | 'price' | 'discount' | 'discount_rate' | 'taxable'>
 
