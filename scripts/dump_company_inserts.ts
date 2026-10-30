@@ -44,7 +44,7 @@ try {
 	type Column = { name: string; data_type: string }
 	const columns_by_table = new Map<string, Column[]>()
 	for_each(
-		filter(column_rows, row => !row.EXTRA.includes('GENERATED')),
+		filter(column_rows, row => !/\b(VIRTUAL|STORED) GENERATED\b/.test(row.EXTRA)),
 		row => {
 			const columns = columns_by_table.get(row.TABLE_NAME) ?? []
 			columns.push({ name: row.COLUMN_NAME, data_type: row.DATA_TYPE })

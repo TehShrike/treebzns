@@ -5,10 +5,10 @@
 //
 // The invoice list's "All outstanding" tab (status_ids[]=-1) hides Paid invoices, so we
 // union across every status id to include them. The rows carry no status, so the export
-// fetches each status tab on its own and records the tab that returned the row. The Overdue
-// tab returns nothing when filtered by its own id, so the outstanding invoices that no tab
-// returned are the Overdue ones. Auth comes from ./session.ts; output shape from
-// ./invoices.d.ts.
+// fetches each status tab on its own and records the tab that returned the row. Before
+// October 2026 the Overdue tab returned nothing when filtered by its own id, so the
+// outstanding invoices that no tab returned are the Overdue ones. Auth comes from
+// ./session.ts; output shape from ./invoices.d.ts.
 
 import assert from '#shared/assert.ts'
 import { filter, find, map } from '#shared/array.ts'
@@ -91,9 +91,10 @@ const { rows: invoices, statuses } = await fetch_all_rows_with_status<ArboStarIn
 const overdue = find(statuses, status => status.invoice_status_name === 'Overdue')
 assert(overdue, 'the invoice list has an Overdue status tab')
 const without_status = filter(invoices, invoice => invoice.status === null)
+const from_overdue_tab = filter(invoices, invoice => invoice.status === overdue)
 assert(
-	without_status.length === overdue.invoices_count,
-	`the invoices that no status tab returned are the ${String(overdue.invoices_count)} Overdue invoices — got ${without_status.length}`,
+	without_status.length + from_overdue_tab.length === overdue.invoices_count,
+	`the Overdue tab plus the invoices that no status tab returned are the ${String(overdue.invoices_count)} Overdue invoices — got ${from_overdue_tab.length} plus ${without_status.length}`,
 )
 const exported = map(invoices, invoice => to_export(invoice.status === null ? { ...invoice, status: overdue } : invoice))
 console.log(`Wrote ${exported.length} invoices -> ${write_output('invoices.js', exported)}`)
