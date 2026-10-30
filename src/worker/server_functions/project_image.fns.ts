@@ -1,11 +1,20 @@
 import jv from '#shared/json_validator.ts'
 import { sfn } from '#lib/server_functions_api.ts'
 import { insert_line_item_image } from './project_image_helper/line_item_image.ts'
-import { stroke_validator } from '#schema/validator/project_image.ts'
+import { stroke_validator, validator_object } from '#schema/validator/project_image.ts'
 
 const create_line_item_image_validator = jv.object({
 	project_line_item_id: jv.is_bigint,
 	strokes: jv.array(stroke_validator),
+})
+
+const update_project_image_validator = jv.object({
+	project_image_id: jv.is_bigint,
+	...jv.optional_shape({
+		strokes: validator_object.strokes,
+		description: validator_object.description,
+		visible_to_client: validator_object.visible_to_client,
+	}),
 })
 
 export const functions = {
@@ -25,5 +34,18 @@ export const functions = {
 
 			return { project_image_id }
 		}),
+	}),
+	update_project_image: sfn({
+		validator: update_project_image_validator,
+		fn: async (
+			{ project_image_id, ...changes },
+			{ write_helper },
+		): Promise<{ project_image_id: bigint }> => {
+			if (Object.keys(changes).length > 0) {
+				await write_helper.update({ table_name: `project_image`, column: `project_image_id`, value: project_image_id, set: changes })
+			}
+
+			return { project_image_id }
+		},
 	}),
 }

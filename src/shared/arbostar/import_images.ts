@@ -179,13 +179,13 @@ export const import_images = async ({
 				const project_image_id = project_image_id_by_arbostar_image_id.get(row.image.image_id)!
 				try {
 					const files = await read_arbostar_image_file_from_disk({ local_path: row.image.local_path, image_id: row.image.image_id })
-					const { original_object_key, thumbnail_object_key } = await upload_project_image_files_to_storage({
+					const { original_object_key, original_etag, thumbnail_object_key, thumbnail_etag } = await upload_project_image_files_to_storage({
 						s3,
 						company_id: context.company_id,
 						project_image_id,
 						files: { ...files, display: null },
 					})
-					return { project_image_id, original_object_key, thumbnail_object_key }
+					return { project_image_id, original_object_key, original_etag, thumbnail_object_key, thumbnail_etag }
 				} catch (error) {
 					failed += 1
 					log(`Upload of ArboStar image ${row.image.image_id} (${row.image.local_path}) failed: ${error instanceof Error ? error.message : String(error)}`)
@@ -204,9 +204,9 @@ export const import_images = async ({
 			await write_helper.bulk_update({
 				table_name: 'project_image',
 				column: 'project_image_id',
-				rows: map(uploaded, ({ project_image_id, original_object_key, thumbnail_object_key }) => ({
+				rows: map(uploaded, ({ project_image_id, original_object_key, original_etag, thumbnail_object_key, thumbnail_etag }) => ({
 					value: project_image_id,
-					set: { original_object_key, thumbnail_object_key, uploaded_at: fns.utc_timestamp() },
+					set: { original_object_key, original_etag, thumbnail_object_key, thumbnail_etag, uploaded_at: fns.utc_timestamp() },
 				})),
 				rows_per_batch: ROWS_PER_BATCH,
 			})

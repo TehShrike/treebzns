@@ -50,7 +50,7 @@ export const create_s3_client = ({ endpoint, ...credentials }: S3ClientOptions) 
 			key: string
 			body: Blob | Uint8Array<ArrayBuffer>
 			content_type: string
-		}): Promise<void> => {
+		}): Promise<{ etag: string }> => {
 			const response = await signed_fetch({
 				method: `PUT`,
 				key,
@@ -60,6 +60,7 @@ export const create_s3_client = ({ endpoint, ...credentials }: S3ClientOptions) 
 			})
 			if (!response.ok) throw await response_error(response, `PUT ${key}`)
 			await response.text()
+			return { etag: response.headers.get(`etag`) ?? `` }
 		},
 		get_object: async ({ key }: { key: string }): Promise<Response | null> => {
 			const response = await signed_fetch({ method: `GET`, key })

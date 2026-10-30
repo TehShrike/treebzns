@@ -22,6 +22,7 @@ const server_functions: {
 	update_estimate: (arg: UpdateEstimateArgument) => Promise<UpdateEstimateResult>
 	create_lead: (arg: CreateLeadArgument) => Promise<CreateLeadResult>
 	create_line_item_image: (arg: OptionalizeUndefinedKeys<{ readonly project_line_item_id: bigint; readonly strokes: Stroke[]; }>) => Promise<{ project_image_id: bigint; }>
+	update_project_image: (arg: OptionalizeUndefinedKeys<{ readonly strokes: Stroke[] | null | undefined; readonly description: string | undefined; readonly visible_to_client: boolean | undefined; readonly project_image_id: bigint; }>) => Promise<{ project_image_id: bigint; }>
 	query: (arg: SafeSelectQuery) => Promise<unknown[][]>
 	ping: (arg: OptionalizeUndefinedKeys<{ readonly timeout: 1000n | 2000n | 3000n; }>) => Promise<{ pong: boolean; user_id: bigint; }>
 } = {
@@ -33,6 +34,7 @@ const server_functions: {
 	update_estimate: call_server_function('update_estimate'),
 	create_lead: call_server_function('create_lead'),
 	create_line_item_image: call_server_function('create_line_item_image'),
+	update_project_image: call_server_function('update_project_image'),
 	query: call_server_function('query'),
 	ping: call_server_function('ping'),
 }

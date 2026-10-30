@@ -7,6 +7,8 @@ export type UndoStack<T> = {
 
 export const empty = <T>(): UndoStack<T> => ({ done: [], undone: [] })
 
+export const from_done = <T>(done: readonly T[]): UndoStack<T> => ({ done: [...done], undone: [] })
+
 export const can_undo = (stack: UndoStack<unknown>) => stack.done.length > 0
 
 export const can_redo = (stack: UndoStack<unknown>) => stack.undone.length > 0
@@ -34,6 +36,6 @@ export const redo = <T>(stack: UndoStack<T>): UndoStack<T> => {
 	}
 }
 
-const undo_stack = { empty, can_undo, can_redo, push, undo, redo }
+const undo_stack = { empty, from_done, can_undo, can_redo, push, undo, redo }
 
 export default undo_stack

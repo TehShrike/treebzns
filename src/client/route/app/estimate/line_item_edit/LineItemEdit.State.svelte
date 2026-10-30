@@ -6,6 +6,7 @@
 	import EstimateMap from '../EstimateMap.svelte'
 	import PhotoGallery from '#component/photo_gallery/PhotoGallery.svelte'
 	import type { GalleryImage } from '#component/photo_gallery/gallery_image.ts'
+	import { project_image_url } from '#lib/project_image_url.ts'
 	import LineItemCard from '../line_items/LineItemCard.svelte'
 	import make_line_item_edit_form from './line_item_edit_form.svelte.ts'
 	import { loaded_line_item } from '../line_item_form.svelte.ts'
@@ -44,6 +45,9 @@
 					`project_line_item.price`,
 					`project_image.project_image_id`,
 					`project_image.display_object_key`,
+					`project_image.original_etag`,
+					`project_image.display_etag`,
+					`project_image.thumbnail_etag`,
 					`project_image.uploaded_at`,
 					`project_line_item_work_skill.project_line_item_work_skill_id`,
 					`project_line_item_work_skill.work_skill_id`,
@@ -79,11 +83,13 @@
 				session.get_logged_in(),
 			])
 
-			const images = line_item === null ? [] : map(line_item.images, ({ project_image_id, display_object_key, uploaded_at }): GalleryImage => ({
+			const images = line_item === null ? [] : map(line_item.images, ({ project_image_id, display_object_key, original_etag, display_etag, uploaded_at }): GalleryImage => ({
 				project_image_id,
 				src: uploaded_at === null
 					? null
-					: `/api/project_image/${project_image_id}/${display_object_key === `` ? `original` : `display`}`,
+					: display_object_key === ``
+						? project_image_url({ project_image_id, variant: `original`, etag: original_etag })
+						: project_image_url({ project_image_id, variant: `display`, etag: display_etag }),
 			}))
 
 			return {
@@ -165,6 +171,13 @@
 		if (!(await save_if_needed())) return
 		asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id: form.line_item.db_id ?? `new` })
 	}
+
+	const open_photo = async (project_image_id: bigint) => {
+		if (!(await save_if_needed())) return
+		const project_line_item_id = form.line_item.db_id
+		assert(project_line_item_id !== null, `a line item with photos is in the database`)
+		asr.go(`app.estimate.line_item_photo`, { project_id, project_line_item_id, project_image_id })
+	}
 </script>
 
 <Layout>
@@ -185,10 +198,10 @@
 		/>
 	{/snippet}
 
-	<PhotoGallery {images} />
+	<PhotoGallery {images} on_photo_click={image => open_photo(image.project_image_id)} />
 
 	<form class="line_item" onsubmit={on_submit}>
-		<LineItemCard line_item={form.line_item} first_time_estimating={false} {item_types} {work_skills} display_image_thumbnails={false} />
+		<LineItemCard line_item={form.line_item} first_time_estimating={false} {item_types} {work_skills} display_thumbnails={false} {open_photo} />
 	</form>
 
 	{#snippet status()}

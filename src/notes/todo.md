@@ -8,15 +8,13 @@
 
 ### Check estimate process practically
 
-- In the editing view for a single line item, we should use exactly the same card component as the line_items page does
 - Add to the line item edit page
 	- Edit work skills
 	- Edit line type
-- The "Photos" button in the "Edit all" should say "Previous item", should take you to the last line item page – is it possible to know whether or not the last viewed line item was camera or edit?
 - When editing line item crew size: the project-level estimated crew should increase if the line item's crew is larger than the current maybe?
 - Guards to block navigating with unsaved changes
-- In the single line editing: display thumbnails by default, start loading the full image when it is swiped to/centered
 - Split line interface: click a "split" button, choose a new item type, have current/new fields for title/description/skills.
+- The `save_if_needed` pattern is unacceptable, we can't swallow errors.  Maybe add a report_errors(fn) function that takes an async function and wraps it in a try/catch that displays any error messages on the screen somewher.
 
 ### More notes on estimate editing
 
@@ -49,7 +47,9 @@ Then think about "sending for proposal" at this stage of the design – a "send"
 - some day, we will want to upload straight to Spaces from the browser.  Maybe even today?
 > Presigned PUT URLs, so the browser uploads straight to Spaces. The Worker handles no photo bytes at all. presign_url already supports PUT.
 > - Cost: the bucket needs a CORS rule, and a "finish" call is needed afterward. The JPEG check moves after the upload (a Range GET of the first 3 bytes, then delete the file if it fails). The presigned URL must be requested when the upload queue sends the photo, not when the photo is taken, or it can expire while the device is offline.
-- Image caching needs to be a little more central, a little better-defined than just `browser_response` and `cache_seconds` in project_image_file
+- Image caching needs to be a little more central, a little better-defined.  We have some hacky etags-in-querystrings in the image gallery right now
+- Is `store_markup_files` really necessary, is there no other image-saving function that can be used already
+- wtf is `if_none_match`
 
 ## Estimation
 

@@ -47,7 +47,7 @@ export default {
 			} else if (method === 'PUT' && project_image_upload_route.test(pathname)) {
 				return await run_with_connection(env, async mysql => project_image_upload(request, mysql, create_spaces_client(env)))
 			} else if (method === 'GET' && project_image_file_route.test(pathname)) {
-				return await run_with_connection(env, async mysql => project_image_file(request, mysql, create_spaces_client(env), ctx))
+				return await run_with_connection(env, async mysql => project_image_file(request, mysql, create_spaces_client(env)))
 			}
 		} catch (error) {
 			console.error(error)

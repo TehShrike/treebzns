@@ -3,19 +3,18 @@
 	import { for_each } from '#shared/array.ts'
 	import undo_stack from '#lib/undo_stack.ts'
 	import type { UndoStack } from '#lib/undo_stack.ts'
-	import type { CapturedPhoto } from '#component/photo_camera/captured_photo.ts'
 	import { client_to_image_point, contained_rect, line_width_for_size, size_within_long_edge } from './markup_geometry.ts'
 	import type { Stroke } from '#schema/type/project_image.d.ts'
 	import { draw_stroke, draw_stroke_segment } from './stroke_rendering.ts'
 
 	let { photo, color = `#d40000`, history = $bindable(undo_stack.empty<Stroke>()) }: {
-		photo: CapturedPhoto
+		photo: HTMLCanvasElement
 		color?: string
 		history?: UndoStack<Stroke>
 	} = $props()
 
-	const width = $derived(photo.canvas.width)
-	const height = $derived(photo.canvas.height)
+	const width = $derived(photo.width)
+	const height = $derived(photo.height)
 	const line_width = $derived(line_width_for_size({ width, height }))
 
 	let overlay_canvas: HTMLCanvasElement | undefined
@@ -38,7 +37,7 @@
 	}
 
 	const attach_base = (canvas: HTMLCanvasElement) => {
-		context_of(canvas).drawImage(photo.canvas, 0, 0)
+		context_of(canvas).drawImage(photo, 0, 0)
 	}
 
 	const attach_overlay = (canvas: HTMLCanvasElement) => {
@@ -119,9 +118,9 @@
 	export const compose = async (): Promise<{ display: Blob | null, thumbnail: Blob, strokes: Stroke[] }> => {
 		assert(overlay_canvas, `the overlay canvas is mounted`)
 
-		const composed = make_canvas(photo.canvas)
+		const composed = make_canvas(photo)
 		const composed_ctx = context_of(composed)
-		composed_ctx.drawImage(photo.canvas, 0, 0)
+		composed_ctx.drawImage(photo, 0, 0)
 		if (has_strokes()) {
 			composed_ctx.drawImage(overlay_canvas, 0, 0)
 		}

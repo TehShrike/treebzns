@@ -10,6 +10,7 @@ export const select_estimate = async (query: ClientQueryFn, project_id: bigint) 
 			.join(`client`, q => q.comparison(`client.client_id`, `=`, `project.client_id`))
 			.left_join(`project_line_item`, q => q.comparison(`project_line_item.project_id`, `=`, `project.project_id`))
 			.left_join(`project_line_item_image`, q => q.comparison(`project_line_item_image.project_line_item_id`, `=`, `project_line_item.project_line_item_id`))
+			.left_join(`project_image`, q => q.comparison(`project_image.project_image_id`, `=`, `project_line_item_image.project_image_id`))
 			.left_join(`project_line_item_work_skill`, q => q.comparison(`project_line_item_work_skill.project_line_item_id`, `=`, `project_line_item.project_line_item_id`))
 			.where(q => q.comparison(`project.project_id`, `=`, { value: project_id }))
 			.order_by(`project_line_item.sort`, `ASC`)
@@ -34,7 +35,9 @@ export const select_estimate = async (query: ClientQueryFn, project_id: bigint) 
 				`project_line_item.estimated_hours`,
 				`project_line_item.client_optional`,
 				`project_line_item.price`,
-				`project_line_item_image.project_image_id`,
+				`project_image.project_image_id`,
+				`project_image.uploaded_at`,
+				`project_image.thumbnail_etag`,
 				`project_line_item_work_skill.project_line_item_work_skill_id`,
 				`project_line_item_work_skill.work_skill_id`,
 				`project_line_item_work_skill.count`,
@@ -51,7 +54,7 @@ export const select_estimate = async (query: ClientQueryFn, project_id: bigint) 
 				table: `project_line_item`,
 				key: `project_line_item_id`,
 				children: {
-					images: { table: `project_line_item_image`, key: `project_image_id` },
+					images: { table: `project_image`, key: `project_image_id` },
 					work_skills: { table: `project_line_item_work_skill`, key: `project_line_item_work_skill_id` },
 				},
 			},

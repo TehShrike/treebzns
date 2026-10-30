@@ -138,7 +138,7 @@
 		{/if}
 		{#if mode === `marking` && photo}
 			<div class="markup">
-				<PhotoMarkup bind:this={markup} {photo} />
+				<PhotoMarkup bind:this={markup} photo={photo.canvas} />
 			</div>
 		{/if}
 	</div>

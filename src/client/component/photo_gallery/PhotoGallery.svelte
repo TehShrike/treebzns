@@ -1,9 +1,12 @@
-<script lang="ts">
+<script lang="ts" generics="T extends GalleryImage">
 	import type { Attachment } from 'svelte/attachments'
 	import assert from '#shared/assert.ts'
 	import type { GalleryImage } from './gallery_image.ts'
 
-	const { images }: { images: readonly GalleryImage[] } = $props()
+	const { images, on_photo_click }: {
+		images: readonly T[]
+		on_photo_click?: (image: T) => void
+	} = $props()
 
 	let scroller: HTMLElement | null = null
 	let at_start = $state(true)
@@ -48,8 +51,12 @@
 				<li class="slide">
 					{#if image.src === null}
 						<div class="uploading">Image uploading…</div>
-					{:else}
+					{:else if on_photo_click === undefined}
 						<img src={image.src} alt="Photo {index + 1}" loading="lazy">
+					{:else}
+						<button type="button" class="open_photo" onclick={() => on_photo_click(image)}>
+							<img src={image.src} alt="Photo {index + 1}" loading="lazy">
+						</button>
 					{/if}
 				</li>
 			{/each}
@@ -102,7 +109,19 @@
 		height: 100%;
 	}
 
+	.open_photo {
+		display: flex;
+		min-width: 0;
+		min-height: 0;
+		padding: 0;
+		border: none;
+		background: transparent;
+		box-shadow: none;
+	}
+
 	img {
+		width: 100%;
+		height: 100%;
 		object-fit: contain;
 	}
 

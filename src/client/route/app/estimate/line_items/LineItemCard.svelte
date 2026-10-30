@@ -4,18 +4,20 @@
 	import WideTextareaField from '#component/WideTextareaField.svelte'
 	import NumberInput from '#component/NumberInput.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
+	import { project_image_url } from '#lib/project_image_url.ts'
 	import type { LineItemForm } from '../line_item_form.svelte.ts'
 	import type { ItemTypeRow } from '#lib/generic_queries/item_type.ts'
 	import type { WorkSkillRow } from '#lib/generic_queries/work_skill.ts'
 	import assert from '#shared/assert.ts'
 	import { map } from '#shared/array.ts'
 
-	const { line_item, first_time_estimating, item_types, work_skills, display_image_thumbnails }: {
+	const { line_item, first_time_estimating, item_types, work_skills, display_thumbnails, open_photo }: {
 		line_item: LineItemForm
 		first_time_estimating: boolean
 		item_types: readonly ItemTypeRow[]
 		work_skills: readonly WorkSkillRow[]
-		display_image_thumbnails: boolean
+		display_thumbnails: boolean
+		open_photo: (project_image_id: bigint) => void
 	} = $props()
 
 	const work_skill_by_id = $derived(new Map(map(work_skills, work_skill => [work_skill.work_skill_id, work_skill] as const)))
@@ -51,13 +53,19 @@
 		</select>
 	{/snippet}
 
-	{#if display_image_thumbnails}
-		{#if line_item.image_ids.length === 0}
+	{#if display_thumbnails}
+		{#if line_item.images.length === 0}
 			<div class="no_photos">No photos</div>
 		{:else}
 			<div class="scroller">
-				{#each line_item.image_ids as project_image_id (project_image_id)}
-					<img class="thumbnail" src="/api/project_image/{project_image_id}/thumbnail" alt="" loading="lazy">
+				{#each line_item.images as image, index (image.project_image_id)}
+					{#if image.uploaded_at === null}
+						<div class="uploading">Uploading…</div>
+					{:else}
+						<button type="button" class="open_photo" aria-label="Edit photo {index + 1}" onclick={() => open_photo(image.project_image_id)}>
+							<img class="thumbnail" src={project_image_url({ project_image_id: image.project_image_id, variant: `thumbnail`, etag: image.thumbnail_etag })} alt="" loading="lazy">
+						</button>
+					{/if}
 				{/each}
 			</div>
 		{/if}
@@ -159,12 +167,33 @@
 		padding-bottom: 2px;
 	}
 
+	.open_photo {
+		display: flex;
+		flex-shrink: 0;
+		min-width: 0;
+		min-height: 0;
+		padding: 0;
+		border: none;
+		background: transparent;
+		box-shadow: none;
+	}
+
 	.thumbnail {
 		height: 6rem;
 		width: auto;
 		min-width: 4rem;
-		flex-shrink: 0;
 		object-fit: cover;
+		background: var(--accent_background);
+	}
+
+	.uploading {
+		display: flex;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		width: 6rem;
+		height: 6rem;
+		color: var(--text_color_light);
 		background: var(--accent_background);
 	}
 

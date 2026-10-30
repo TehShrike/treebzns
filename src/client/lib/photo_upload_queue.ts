@@ -3,7 +3,7 @@ import { create_promise_queue } from '#shared/promise_queue.ts'
 
 export type PhotoUploadRequest = {
 	project_image_id: bigint
-	original: Blob
+	original: Blob | null
 	display: Blob | null
 	thumbnail: Blob
 }
@@ -13,7 +13,7 @@ export const create_photo_upload_queue = () => {
 
 	const upload = async ({ project_image_id, original, display, thumbnail }: PhotoUploadRequest) => {
 		const form_data = new FormData()
-		form_data.append(`original`, original, `original.jpg`)
+		if (original) form_data.append(`original`, original, `original.jpg`)
 		form_data.append(`thumbnail`, thumbnail, `thumbnail.jpg`)
 		if (display) form_data.append(`display`, display, `display.jpg`)
 

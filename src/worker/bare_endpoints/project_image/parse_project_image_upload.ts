@@ -4,7 +4,7 @@ import { ResponseError } from '#lib/response_helpers.ts'
 export const max_part_bytes = 8 * 1024 * 1024
 
 export type ProjectImageFiles = {
-	original: Blob
+	original: Blob | null
 	thumbnail: Blob
 	display: Blob | null
 }
@@ -30,7 +30,7 @@ async function read_part(form_data: FormData, name: PartName, required: boolean)
 }
 
 const parse_project_image_upload = async (form_data: FormData): Promise<ProjectImageFiles> => {
-	const original = await read_part(form_data, `original`, true)
+	const original = await read_part(form_data, `original`, false)
 	const thumbnail = await read_part(form_data, `thumbnail`, true)
 	const display = await read_part(form_data, `display`, false)
 	return { original, thumbnail, display }

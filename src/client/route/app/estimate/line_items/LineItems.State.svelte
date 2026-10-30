@@ -6,7 +6,7 @@
 	import LineItemCard from './LineItemCard.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
 	import make_estimate_form from './estimate_form.svelte.ts'
-	import { loaded_line_item } from '../line_item_form.svelte.ts'
+	import { loaded_line_item, type LineItemForm } from '../line_item_form.svelte.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
 	import { line_item_state_name } from '../line_item_navigation.ts'
@@ -98,14 +98,18 @@
 
 	const go_back_to_leads = () => { asr.go(`app.menu.leads_to_estimate`) }
 
-	const save_and_close = async () => {
-		if (form.needs_to_be_saved) {
-			try {
-				await saver.save()
-			} catch {
-				return
-			}
+	const save_if_needed = async (): Promise<boolean> => {
+		if (!form.needs_to_be_saved) return true
+		try {
+			await saver.save()
+			return true
+		} catch {
+			return false
 		}
+	}
+
+	const save_and_close = async () => {
+		if (!(await save_if_needed())) return
 		go_back_to_leads()
 	}
 
@@ -113,6 +117,13 @@
 		assert(next_project_document, `the save as button shows only when there is a next project document`)
 		form.project.form_values.project_document_id = next_project_document.project_document_id
 		await save_and_close()
+	}
+
+	const open_photo = async (line_item: LineItemForm, project_image_id: bigint) => {
+		if (!(await save_if_needed())) return
+		const project_line_item_id = line_item.db_id
+		assert(project_line_item_id !== null, `a line item with photos is in the database`)
+		asr.go(`app.estimate.line_item_photo`, { project_id, project_line_item_id, project_image_id })
 	}
 
 	const last_line_item = $derived(loaded_line_items[loaded_line_items.length - 1] ?? null)
@@ -174,7 +185,14 @@
 		{:else}
 			<div class="cards">
 				{#each form.line_items as line_item (line_item.stable_record_identifier)}
-					<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills} display_image_thumbnails />
+					<LineItemCard
+						{line_item}
+						{first_time_estimating}
+						{item_types}
+						{work_skills}
+						display_thumbnails
+						open_photo={project_image_id => open_photo(line_item, project_image_id)}
+					/>
 				{/each}
 			</div>
 		{/if}
