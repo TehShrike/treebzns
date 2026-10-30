@@ -37,6 +37,9 @@
 	.layout {
 		display: flex;
 		flex-direction: column;
+		gap: var(--gap_half);
+		padding: var(--gap_half);
+		box-sizing: border-box;
 		height: 100dvh;
 	}
 
@@ -44,7 +47,6 @@
 		display: flex;
 		align-items: stretch;
 		gap: var(--gap_half);
-		padding: var(--gap_half);
 		flex-shrink: 0;
 	}
 
@@ -57,7 +59,6 @@
 	.status {
 		display: flex;
 		flex-direction: column;
-		padding: 0 var(--gap_half);
 		flex-shrink: 0;
 	}
 
@@ -66,7 +67,6 @@
 		flex-direction: column;
 		align-items: center;
 		gap: var(--gap_unit);
-		padding: var(--gap_unit);
 		flex-grow: 1;
 		min-height: 0;
 		overflow-y: auto;
@@ -75,7 +75,6 @@
 	.center[data-fill="true"] {
 		align-items: stretch;
 		gap: 0;
-		padding: 0;
 		overflow: hidden;
 	}
 

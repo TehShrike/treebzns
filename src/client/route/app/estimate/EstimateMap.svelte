@@ -70,7 +70,6 @@
 
 <style>
 	nav {
-		padding: var(--gap_half) var(--gap_half) 0;
 		flex-shrink: 0;
 	}
 

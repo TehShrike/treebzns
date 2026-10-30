@@ -142,12 +142,12 @@
 	.stage {
 		display: flex;
 		flex-direction: column;
+		gap: var(--gap_half);
 		min-height: 0;
 	}
 
 	h2 {
 		margin: 0;
-		padding: var(--gap_half);
 		font-size: var(--font_size_base);
 		flex-shrink: 0;
 	}

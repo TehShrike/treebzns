@@ -6,6 +6,12 @@
 - Check estimate process practically
 - Sync prod data
 
+### Very important for actual use
+
+- Need feedback on upload progress
+- Need handling for failed/cancelled uploads
+- Needs to work taking photos landscape (take up less vertical space in general)
+
 ### Check estimate process practically
 
 - The `save_if_needed` pattern is unacceptable, we can't swallow errors.  Maybe add a report_errors(fn) function that takes an async function and wraps it in a try/catch that displays any error messages on the screen somewher.

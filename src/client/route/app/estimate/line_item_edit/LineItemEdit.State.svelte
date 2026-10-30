@@ -218,7 +218,6 @@
 
 	.error {
 		margin: 0;
-		padding-bottom: var(--gap_half);
 		color: var(--attention_red);
 	}
 </style>
