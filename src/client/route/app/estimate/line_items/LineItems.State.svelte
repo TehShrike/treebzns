@@ -1,7 +1,6 @@
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
-	import EstimateMap from '../EstimateMap.svelte'
 	import LinkThatLooksLikeAButton from '#component/LinkThatLooksLikeAButton.svelte'
 	import LineItemCard from './LineItemCard.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
@@ -9,7 +8,6 @@
 	import { loaded_line_item, type LineItemForm } from '../line_item_form.svelte.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
-	import { line_item_state_name } from '../line_item_navigation.ts'
 	import { select_project_with_line_items } from '#lib/generic_queries/project.ts'
 	import { select_item_types } from '#lib/generic_queries/item_type.ts'
 	import { select_work_skills } from '#lib/generic_queries/work_skill.ts'
@@ -25,7 +23,7 @@
 		name: `app.estimate.line_items`,
 		route: `/line_items`,
 		param_validator: validate_estimate_params,
-		resolve: async ({ query, server, session, estimate_line_item_mode, photo_upload_queue }, { project_id }) => {
+		resolve: async ({ query, server, session, photo_upload_queue }, { project_id }) => {
 			const { estimate, item_types, work_skills, project_documents, logged_in_session } = await promise_all_object({
 				estimate: select_project_with_line_items(query, project_id),
 				item_types: select_item_types(query),
@@ -70,7 +68,6 @@
 				work_skills,
 				round_to_nearest: logged_in_session.company.round_line_item_estimates_to_nearest,
 				next_project_document,
-				line_item_mode: estimate_line_item_mode.last_viewed,
 			}
 		},
 	})
@@ -92,7 +89,6 @@
 		work_skills,
 		round_to_nearest,
 		next_project_document,
-		line_item_mode,
 		asr,
 	}: Resolved & { asr: StateAsr } = $props()
 
@@ -143,7 +139,7 @@
 	const last_line_item = $derived(loaded_line_items[loaded_line_items.length - 1] ?? null)
 	const previous_href = $derived(last_line_item === null
 		? asr.makePath(`app.estimate.notes`, { project_id })
-		: asr.makePath(line_item_state_name(line_item_mode), { project_id, project_line_item_id: last_line_item.project_line_item_id }))
+		: asr.makePath(`app.estimate.line_item_camera`, { project_id, project_line_item_id: last_line_item.project_line_item_id }))
 
 	const street = $derived(filter([project.address_line_1, project.address_line_2], Boolean).join(`, `))
 	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
@@ -154,10 +150,6 @@
 {/snippet}
 
 <FixedVerticalLayout>
-	{#snippet heading()}
-		<EstimateMap {asr} {project_id} line_items={loaded_line_items} current="edit_all" />
-	{/snippet}
-
 	{#snippet top()}
 		<LinkThatLooksLikeAButton href={previous_href}>{last_line_item === null ? `Notes` : `Previous item`}</LinkThatLooksLikeAButton>
 		<button type="button" class="default" disabled={saver.saving} onclick={save_and_close}>

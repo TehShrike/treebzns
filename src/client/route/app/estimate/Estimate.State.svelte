@@ -8,9 +8,8 @@
 		route: `/estimate/:project_id`,
 		default_child: `notes`,
 		param_validator: validate_estimate_params,
-		resolve: async ({ query, estimate_line_item_mode, photo_upload_queue }, { project_id }) => ({
+		resolve: async ({ query, photo_upload_queue }, { project_id }) => ({
 			project: Object.freeze(await select_project(query, project_id)),
-			estimate_line_item_mode,
 			photo_upload_queue,
 		}),
 	})
@@ -19,10 +18,9 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte'
 
-	const { estimate_line_item_mode, photo_upload_queue }: StateResolve<typeof asr_state> = $props()
+	const { photo_upload_queue }: StateResolve<typeof asr_state> = $props()
 
 	onDestroy(() => {
-		estimate_line_item_mode.clear()
 		photo_upload_queue.clear_uploaded_etags()
 	})
 </script>

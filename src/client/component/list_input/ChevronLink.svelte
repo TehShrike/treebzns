@@ -1,5 +1,5 @@
 <script lang="ts">
-	import RightChevron from '#component/RightChevron.svelte'
+	import RightChevronIcon from '#component/icon/RightChevronIcon.svelte'
 
 	const { href, label }: {
 		href: string
@@ -8,7 +8,7 @@
 </script>
 
 <a {href} aria-label={label} title={label}>
-	<RightChevron />
+	<RightChevronIcon />
 </a>
 
 <style>

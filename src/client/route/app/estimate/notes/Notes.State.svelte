@@ -2,8 +2,8 @@
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
-	import EstimateNavBar from '../EstimateNavBar.svelte'
-	import EstimateMap from '../EstimateMap.svelte'
+	import LinkThatLooksLikeAButton from '#component/LinkThatLooksLikeAButton.svelte'
+	import redirect_resolve_to from '#lib/redirect_resolve_to.ts'
 	import { select_line_items } from '../select_line_items.ts'
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
@@ -52,8 +52,11 @@
 				select_availability(query, project_id),
 				select_line_items(query, project_id),
 			])
+			if (line_items.length > 0) {
+				redirect_resolve_to({ name: `app.estimate.line_items`, params: { project_id } })
+			}
 
-			return { project_id, contact_name, availability, line_items }
+			return { project_id, contact_name, availability }
 		},
 	})
 
@@ -61,19 +64,15 @@
 </script>
 
 <script lang="ts">
-	const { project_id, project, contact_name, availability, line_items, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
+	const { project_id, project, contact_name, availability, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
 
 	const street = $derived(filter([project.address_line_1, project.address_line_2], Boolean).join(`, `))
 	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
 </script>
 
 <FixedVerticalLayout>
-	{#snippet heading()}
-		<EstimateMap {asr} {project_id} {line_items} current="notes" />
-	{/snippet}
-
 	{#snippet top()}
-		<EstimateNavBar {asr} {project_id} {line_items} current_index={null} />
+		<LinkThatLooksLikeAButton href={asr.makePath(`app.estimate.line_item_camera`, { project_id, project_line_item_id: `new` })} size={2}>New item</LinkThatLooksLikeAButton>
 	{/snippet}
 
 	<fieldset>
@@ -106,6 +105,8 @@
 			</ul>
 		{/if}
 	</fieldset>
+
+	<a class="all_projects" href={asr.makePath(`app.menu.leads_to_estimate`)}>All projects to estimate</a>
 </FixedVerticalLayout>
 
 <style>
@@ -130,5 +131,9 @@
 	.availability {
 		margin: 0;
 		padding-left: 1.25rem;
+	}
+
+	.all_projects {
+		font-size: 1.5rem;
 	}
 </style>

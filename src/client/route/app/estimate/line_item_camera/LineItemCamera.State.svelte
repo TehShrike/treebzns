@@ -2,10 +2,11 @@
 	import { untrack } from 'svelte'
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
-	import EstimateNavBar from '../EstimateNavBar.svelte'
-	import EstimateMap from '../EstimateMap.svelte'
+	import LineItemNavBar from '../LineItemNavBar.svelte'
+	import LineItemPhotoMarkup from '../line_item_photo/LineItemPhotoMarkup.svelte'
+	import EditIcon from '#component/icon/EditIcon.svelte'
 	import PhotoCamera from '#component/photo_camera/PhotoCamera.svelte'
-	import PhotoMarkup from '#component/photo_markup/PhotoMarkup.svelte'
+	import type PhotoMarkup from '#component/photo_markup/PhotoMarkup.svelte'
 	import type { CapturedPhoto } from '#component/photo_camera/captured_photo.ts'
 	import { validate_line_item_params } from '../line_item_params.ts'
 	import { select_line_items_at } from '../select_line_items.ts'
@@ -34,8 +35,7 @@
 		name: `app.estimate.line_item_camera`,
 		route: `/line_item/:project_line_item_id/camera`,
 		param_validator: validate_line_item_params,
-		resolve: async ({ query, server, photo_upload_queue, camera_service, estimate_line_item_mode }, { project_id, project_line_item_id }) => {
-			estimate_line_item_mode.remember(`camera`)
+		resolve: async ({ query, server, photo_upload_queue, camera_service }, { project_id, project_line_item_id }) => {
 			const [{ line_items, current_index, line_item }, photo_count] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
 				project_line_item_id === `new` ? 0n : select_photo_count(query, project_line_item_id),
@@ -57,9 +57,7 @@
 	const title = $derived(line_item === null ? new_item().title : line_item.title)
 
 	let camera: PhotoCamera | undefined = $state()
-	let markup: PhotoMarkup | undefined = $state()
 
-	let mode = $state<`live` | `marking`>(`live`)
 	let photo = $state.raw<CapturedPhoto | null>(null)
 	let capture_error = $state<string | null>(null)
 	let busy = $state(false)
@@ -70,7 +68,6 @@
 		try {
 			photo = await camera.capture()
 			capture_error = null
-			mode = `marking`
 		} catch (error) {
 			capture_error = error_message(error)
 		} finally {
@@ -80,7 +77,6 @@
 
 	const back_to_live = async () => {
 		photo = null
-		mode = `live`
 		await camera?.resume()
 	}
 
@@ -89,72 +85,83 @@
 		return project_line_item_id
 	}
 
-	const save_photo = async () => {
-		assert(markup, `the markup component is mounted while marking`)
+	const save_photo = async (compose: PhotoMarkup['compose']) => {
 		assert(photo, `a photo is held while marking`)
-		busy = true
-		try {
-			const { display, thumbnail, strokes } = await markup.compose()
-			const project_line_item_id = line_item?.project_line_item_id ?? await create_line_item()
-			const { project_image_id } = await server.create_line_item_image({ project_line_item_id, strokes })
-			photo_upload_queue.enqueue({
-				project_image_id,
-				original: photo.original,
-				display,
-				thumbnail,
-			})
-			if (line_item === null) {
-				asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id }, { replace: true })
-			} else {
-				photo_count++
-				await back_to_live()
-			}
-		} finally {
-			busy = false
+		const { display, thumbnail, strokes } = await compose()
+		const project_line_item_id = line_item?.project_line_item_id ?? await create_line_item()
+		const { project_image_id } = await server.create_line_item_image({ project_line_item_id, strokes })
+		photo_upload_queue.enqueue({
+			project_image_id,
+			original: photo.original,
+			display,
+			thumbnail,
+		})
+		if (line_item === null) {
+			asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id }, { replace: true })
+		} else {
+			photo_count++
+			await back_to_live()
 		}
-	}
-
-	const go_to_edit = () => {
-		asr.go(`app.estimate.line_item_edit`, { project_id, project_line_item_id: line_item?.project_line_item_id ?? `new` })
 	}
 </script>
 
-<FixedVerticalLayout fill>
-	{#snippet heading()}
-		<EstimateMap {asr} {project_id} {line_items} current={current_index} />
-	{/snippet}
+<div class="live" hidden={photo !== null}>
+	<FixedVerticalLayout fill>
+		{#snippet heading()}
+			<LineItemNavBar {asr} {project_id} {line_items} {current_index} />
+		{/snippet}
 
-	{#snippet top()}
-		<EstimateNavBar {asr} {project_id} {line_items} {current_index} on_done={camera_service.close_if_active} />
-	{/snippet}
+		{#snippet top()}
+			{#if line_item === null}
+				<a class="top_action" href={asr.makePath(`app.estimate.line_items`, { project_id })} onclick={camera_service.close_if_active}>Edit all items</a>
+			{:else}
+				<a class="top_action link-button" href={asr.makePath(`app.estimate.line_item_camera`, { project_id, project_line_item_id: `new` })}>Done with item</a>
+			{/if}
+		{/snippet}
 
-	<div class="stage">
-		<h2>{title} <span class="photo_count">({photo_count} {photo_count === 1n ? `photo` : `photos`})</span></h2>
-		<div class="camera" hidden={mode !== `live`}>
-			<PhotoCamera bind:this={camera} {camera_service} />
-		</div>
-		{#if capture_error !== null && mode === `live`}
-			<div class="capture_error">{capture_error}</div>
-		{/if}
-		{#if mode === `marking` && photo}
-			<div class="markup">
-				<PhotoMarkup bind:this={markup} photo={photo.canvas} />
+		<div class="stage">
+			<h2>
+				{title}
+				<a class="edit" href={asr.makePath(`app.estimate.line_item_edit`, { project_id, project_line_item_id: line_item?.project_line_item_id ?? `new` })} aria-label="Edit item">
+					<EditIcon />
+				</a>
+				<span class="photo_count">({photo_count} {photo_count === 1n ? `photo` : `photos`})</span>
+			</h2>
+			<div class="camera">
+				<PhotoCamera bind:this={camera} {camera_service} />
 			</div>
-		{/if}
-	</div>
+			{#if capture_error !== null}
+				<div class="capture_error">{capture_error}</div>
+			{/if}
+		</div>
 
-	{#snippet bottom()}
-		{#if mode === `live`}
-			<button type="button" disabled={busy} onclick={go_to_edit}>Edit item</button>
+		{#snippet bottom()}
 			<button type="button" disabled={busy} onclick={take_photo}>📸 Take photo</button>
-		{:else}
-			<button type="button" disabled={busy} onclick={back_to_live}>Discard</button>
-			<button type="button" disabled={busy} onclick={save_photo}>💾 Save photo</button>
-		{/if}
-	{/snippet}
-</FixedVerticalLayout>
+		{/snippet}
+	</FixedVerticalLayout>
+</div>
+
+{#if photo}
+	<LineItemPhotoMarkup {title} photo={photo.canvas} discard={back_to_live} save={save_photo} />
+{/if}
 
 <style>
+	.live {
+		display: contents;
+	}
+
+	.live[hidden] {
+		display: none;
+	}
+
+	.top_action {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 3rem;
+		font-size: 1.5rem;
+	}
+
 	.stage {
 		display: flex;
 		flex-direction: column;
@@ -163,25 +170,28 @@
 	}
 
 	h2 {
+		display: flex;
+		align-items: center;
+		gap: var(--gap_half);
 		margin: 0;
 		font-size: var(--font_size_base);
 		flex-shrink: 0;
+	}
+
+	.edit {
+		display: flex;
+		font-size: 1.5rem;
 	}
 
 	.photo_count {
 		font-weight: normal;
 	}
 
-	.camera,
-	.markup {
+	.camera {
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
 		min-height: 0;
-	}
-
-	.camera[hidden] {
-		display: none;
 	}
 
 	.capture_error {

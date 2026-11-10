@@ -8,7 +8,6 @@ import type { AsrTransitionState } from './asr_transition_state.svelte.ts'
 import type { AsrJoiningsAndLeavings } from './asr_joinings_and_leavings.ts'
 import { create_photo_upload_queue } from './photo_upload_queue.svelte.ts'
 import { create_camera_service } from './camera_service/camera_service.svelte.ts'
-import { create_estimate_line_item_mode } from './estimate_line_item_mode.ts'
 
 const make_context = (transition_state: AsrTransitionState, state_joinings_and_leavings: AsrJoiningsAndLeavings<Context>) => ({
 	server: server_functions,
@@ -17,7 +16,6 @@ const make_context = (transition_state: AsrTransitionState, state_joinings_and_l
 	client_cache: client_cache({query: client_query_fn, refresh_interval_ms: 2 * 60_000}),
 	photo_upload_queue: create_photo_upload_queue(),
 	camera_service: create_camera_service(),
-	estimate_line_item_mode: create_estimate_line_item_mode(),
 	transition_state,
 	state_joinings_and_leavings,
 } as const)

@@ -2,8 +2,6 @@
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
-	import EstimateNavBar from '../EstimateNavBar.svelte'
-	import EstimateMap from '../EstimateMap.svelte'
 	import PhotoGallery from '#component/photo_gallery/PhotoGallery.svelte'
 	import type { GalleryImage } from '#component/photo_gallery/gallery_image.ts'
 	import { project_image_url } from '#lib/project_image_url.ts'
@@ -13,7 +11,6 @@
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_line_item_params } from '../line_item_params.ts'
 	import { select_line_items_at } from '../select_line_items.ts'
-	import type { UnsavedChanges } from '../line_item_navigation.ts'
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
 	import { select_item_types } from '#lib/generic_queries/item_type.ts'
 	import { select_work_skills } from '#lib/generic_queries/work_skill.ts'
@@ -34,9 +31,8 @@
 		name: `app.estimate.line_item_edit`,
 		route: `/line_item/:project_line_item_id/edit`,
 		param_validator: validate_line_item_params,
-		resolve: async ({ query, server, session, camera_service, estimate_line_item_mode, photo_upload_queue }, { project_id, project_line_item_id }) => {
-			estimate_line_item_mode.remember(`edit`)
-			const [{ line_items, current_index }, line_item, item_types, work_skills, logged_in_session] = await Promise.all([
+		resolve: async ({ query, server, session, photo_upload_queue }, { project_id, project_line_item_id }) => {
+			const [{ line_items }, line_item, item_types, work_skills, logged_in_session] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
 				project_line_item_id === `new` ? null : select_line_item(query, project_id, project_line_item_id),
 				select_item_types(query),
@@ -47,10 +43,8 @@
 			return {
 				server,
 				photo_upload_queue,
-				camera_service,
 				project_id,
 				line_items,
-				current_index,
 				line_item: line_item === null ? null : loaded_line_item(line_item),
 				item_types,
 				work_skills,
@@ -64,11 +58,9 @@
 	const {
 		server,
 		photo_upload_queue,
-		camera_service,
 		project_id,
 		project,
-		line_items: loaded_line_items,
-		current_index: loaded_current_index,
+		line_items,
 		line_item,
 		item_types,
 		work_skills,
@@ -76,13 +68,12 @@
 		asr,
 	}: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
 
-	let line_items = $state.raw(untrack(() => loaded_line_items))
-	const current_index = $derived(line_item === null ? line_items.length : loaded_current_index)
+	const form_id = $props.id()
 
 	const form = untrack(() => make_line_item_edit_form({
 		project_id,
 		project_estimated_crew_size: project.estimated_crew_size,
-		line_item_count: loaded_line_items.length,
+		line_item_count: line_items.length,
 		values_in_db: line_item,
 		work_skills,
 		round_to_nearest,
@@ -108,28 +99,13 @@
 		}
 	}
 
-	const unsaved: UnsavedChanges = $derived({ needs_to_be_saved: form.needs_to_be_saved, saving: saver.saving, save: save_if_needed })
-	const prefix = $derived(form.needs_to_be_saved ? `💾 ` : ``)
+	const go_back = () => {
+		asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id: form.line_item.db_id ?? `new` }, { replace: true })
+	}
 
 	const on_submit = async (event: SubmitEvent) => {
 		event.preventDefault()
-		const adding = !form.line_item.record.saved_in_database
-		if (!(await save_if_needed()) || !adding) return
-		const project_line_item_id = form.line_item.db_id
-		assert(project_line_item_id !== null, `a saved line item has its database id`)
-		asr.go(`app.estimate.line_item_edit`, { project_id, project_line_item_id }, { replace: true })
-	}
-
-	const start_new_item = () => {
-		const saved = form.line_item.record.values_in_db
-		assert(saved, `the new line item is in the database before the next one starts`)
-		line_items = [...line_items, { project_line_item_id: saved.project_line_item_id, title: saved.title }]
-		form.start_new_item(line_items.length)
-	}
-
-	const go_to_camera = async () => {
-		if (!(await save_if_needed())) return
-		asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id: form.line_item.db_id ?? `new` })
+		if (await save_if_needed()) go_back()
 	}
 
 	const open_photo = async (project_image_id: bigint) => {
@@ -141,26 +117,13 @@
 </script>
 
 <FixedVerticalLayout>
-	{#snippet heading()}
-		<EstimateMap {asr} {project_id} {line_items} current={current_index} line_item_mode="edit" {unsaved} />
-	{/snippet}
-
 	{#snippet top()}
-		<EstimateNavBar
-			{asr}
-			{project_id}
-			{line_items}
-			{current_index}
-			mode="edit"
-			{unsaved}
-			{start_new_item}
-			on_done={camera_service.close_if_active}
-		/>
+		<button type="button" disabled={saver.saving} onclick={go_back}>Discard</button>
 	{/snippet}
 
 	<PhotoGallery {images} on_photo_click={image => open_photo(image.project_image_id)} />
 
-	<form class="line_item" onsubmit={on_submit}>
+	<form id={form_id} class="line_item" onsubmit={on_submit}>
 		<LineItemCard line_item={form.line_item} {photo_upload_queue} first_time_estimating={false} {item_types} {work_skills} display_thumbnails={false} {open_photo} />
 	</form>
 
@@ -171,8 +134,7 @@
 	{/snippet}
 
 	{#snippet bottom()}
-		<button type="button" disabled={saver.saving || !form.needs_to_be_saved} onclick={() => form.line_item.revert()}>Discard changes</button>
-		<button type="button" disabled={saver.saving} onclick={go_to_camera}>{prefix}Go to camera</button>
+		<button type="submit" form={form_id} disabled={saver.saving || !form.needs_to_be_saved}>Save</button>
 	{/snippet}
 </FixedVerticalLayout>
 

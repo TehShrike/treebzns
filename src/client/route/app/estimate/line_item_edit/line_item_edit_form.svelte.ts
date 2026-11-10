@@ -14,16 +14,12 @@ const make_line_item_edit_form = ({ project_id, project_estimated_crew_size, lin
 	work_skills: readonly { work_skill_id: bigint, hourly_rate: FinancialNumber }[]
 	round_to_nearest: FinancialNumber
 }) => {
-	const hourly_rate_of = make_hourly_rate_of(work_skills)
-
-	const make = (line_item_count: number, values_in_db: LoadedLineItem | null) => make_line_item({
+	const line_item = make_line_item({
 		default_values: new_line_item({ project_estimated_crew_size, line_item_count }),
 		values_in_db,
-		hourly_rate_of,
+		hourly_rate_of: make_hourly_rate_of(work_skills),
 		round_to_nearest,
 	})
-
-	let line_item = $state.raw(make(line_item_count, values_in_db))
 
 	const needs_to_be_saved = $derived(line_item.record.saved_in_database ? line_item.needs_to_be_saved : !line_item.is_empty)
 
@@ -46,15 +42,10 @@ const make_line_item_edit_form = ({ project_id, project_estimated_crew_size, lin
 		}
 	}
 
-	const start_new_item = (line_item_count: number) => {
-		line_item = make(line_item_count, null)
-	}
-
 	return {
-		get line_item() { return line_item },
+		line_item,
 		get needs_to_be_saved() { return needs_to_be_saved },
 		start_save,
-		start_new_item,
 	}
 }
 
