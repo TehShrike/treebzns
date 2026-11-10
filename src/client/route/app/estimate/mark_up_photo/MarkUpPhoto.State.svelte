@@ -3,11 +3,11 @@
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import type { AsrTransitionState } from '#lib/asr_transition_state.svelte.ts'
-	import LineItemPhotoMarkup from './LineItemPhotoMarkup.svelte'
+	import MarkUpPhoto from './MarkUpPhoto.svelte'
 	import type PhotoMarkup from '#component/photo_markup/PhotoMarkup.svelte'
 	import { canvas_from_blob } from '#component/photo_markup/canvas_from_blob.ts'
 	import undo_stack from '#lib/undo_stack.ts'
-	import { validate_line_item_photo_params } from '../line_item_params.ts'
+	import { validate_mark_up_photo_params } from '../line_item_params.ts'
 	import { select_line_items_at } from '../select_line_items.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
@@ -38,9 +38,9 @@
 	const leaving_edit_state = ({ current_state }: AsrTransitionState): boolean => current_state.name === `app.estimate.line_item_edit`
 
 	export const asr_state = state_type({
-		name: `app.estimate.line_item_photo`,
-		route: `/line_item/:project_line_item_id/photo/:project_image_id`,
-		param_validator: validate_line_item_photo_params,
+		name: `app.estimate.mark_up_photo`,
+		route: `/line_item/:project_line_item_id/mark_up_photo/:project_image_id`,
+		param_validator: validate_mark_up_photo_params,
 		resolve: async ({ query, server, photo_upload_queue, transition_state }, { project_id, project_line_item_id, project_image_id }) => {
 			const [{ line_item }, project_image, photo] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
@@ -106,4 +106,4 @@
 	}
 </script>
 
-<LineItemPhotoMarkup title={line_item.title} {photo} bind:history discard={go_back} save={save_photo} />
+<MarkUpPhoto title={line_item.title} {photo} bind:history discard={go_back} save={save_photo} />

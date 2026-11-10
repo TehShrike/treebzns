@@ -43,7 +43,7 @@
 	)
 
 	export const asr_state = state_type({
-		name: `app.estimate.notes`,
+		name: `app.estimate.overview`,
 		route: ``,
 		param_validator: validate_estimate_params,
 		resolve: async ({ query }, { project_id }) => {

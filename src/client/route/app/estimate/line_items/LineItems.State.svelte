@@ -133,12 +133,12 @@
 		if (!(await save_if_needed())) return
 		const project_line_item_id = line_item.db_id
 		assert(project_line_item_id !== null, `a line item with photos is in the database`)
-		asr.go(`app.estimate.line_item_photo`, { project_id, project_line_item_id, project_image_id })
+		asr.go(`app.estimate.mark_up_photo`,{ project_id, project_line_item_id, project_image_id })
 	}
 
 	const last_line_item = $derived(loaded_line_items[loaded_line_items.length - 1] ?? null)
 	const previous_href = $derived(last_line_item === null
-		? asr.makePath(`app.estimate.notes`, { project_id })
+		? asr.makePath(`app.estimate.overview`, { project_id })
 		: asr.makePath(`app.estimate.line_item_camera`, { project_id, project_line_item_id: last_line_item.project_line_item_id }))
 
 	const street = $derived(filter([project.address_line_1, project.address_line_2], Boolean).join(`, `))
@@ -151,7 +151,7 @@
 
 <FixedVerticalLayout>
 	{#snippet top()}
-		<LinkThatLooksLikeAButton href={previous_href}>{last_line_item === null ? `Notes` : `Previous item`}</LinkThatLooksLikeAButton>
+		<LinkThatLooksLikeAButton href={previous_href}>{last_line_item === null ? `Overview` : `Previous item`}</LinkThatLooksLikeAButton>
 		<button type="button" class="default" disabled={saver.saving} onclick={save_and_close}>
 			{#if form.needs_to_be_saved}
 				Save and close

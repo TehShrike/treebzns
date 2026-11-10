@@ -3,7 +3,7 @@
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
 	import LineItemNavBar from '../LineItemNavBar.svelte'
-	import LineItemPhotoMarkup from '../line_item_photo/LineItemPhotoMarkup.svelte'
+	import MarkUpPhoto from '../mark_up_photo/MarkUpPhoto.svelte'
 	import EditIcon from '#component/icon/EditIcon.svelte'
 	import PhotoCamera from '#component/photo_camera/PhotoCamera.svelte'
 	import type PhotoMarkup from '#component/photo_markup/PhotoMarkup.svelte'
@@ -142,7 +142,7 @@
 </div>
 
 {#if photo}
-	<LineItemPhotoMarkup {title} photo={photo.canvas} discard={back_to_live} save={save_photo} />
+	<MarkUpPhoto {title} photo={photo.canvas} discard={back_to_live} save={save_photo} />
 {/if}
 
 <style>

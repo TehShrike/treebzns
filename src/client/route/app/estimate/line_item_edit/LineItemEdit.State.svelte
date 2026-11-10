@@ -112,7 +112,7 @@
 		if (!(await save_if_needed())) return
 		const project_line_item_id = form.line_item.db_id
 		assert(project_line_item_id !== null, `a line item with photos is in the database`)
-		asr.go(`app.estimate.line_item_photo`, { project_id, project_line_item_id, project_image_id })
+		asr.go(`app.estimate.mark_up_photo`,{ project_id, project_line_item_id, project_image_id })
 	}
 </script>
 
