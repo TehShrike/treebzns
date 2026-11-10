@@ -1,16 +1,29 @@
 # TODO
 
-## This week
+## Caleb 2026-11-06
 
-- Make sure deployed code works in production
-- Check estimate process practically
-- Sync prod data
+- "Save proposal" at bottom by total
+- On edit item page: prev/next item buttons, and the save/done button takes you back to edit all items, probably
+- Edit all items: plus button in the photo thumbnail view that takes you to the photo mode for that item
+- Edit all items: plus button at the bottom that adds a new item (takes you to the single item view, or just adds it there in that view?  Probably adds it in that view)
+- Get rid of the minimap at the top
+- Have to at least try the item title input being inside the card, not in the heading
+- Move the item type out of the card heading into the card content
+
+## Notes from showing Andrew 2026-10-30
+
+- 2 decimals on estimate hours
+- can't drag and scroll work skill scroll bar if the finger moves off of the scroll path
+- line items should have a "primary" image that is the main one the customer sees with the line item
+- ask for MOAR cameras and maybe get the zoom one that Andrew wants?
 
 ### Very important for actual use
 
 - Need feedback on upload progress
 - Need handling for failed/cancelled uploads
 - Needs to work taking photos landscape (take up less vertical space in general)
+- Delete line items
+- Delete photos
 
 ### Check estimate process practically
 
