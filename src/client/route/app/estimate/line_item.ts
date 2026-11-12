@@ -2,6 +2,8 @@ import type { AddedEstimateLineItem, ChangedEstimateLineItem, EstimateLineItemVa
 import default_values from '#shared/treebzns_db/default_values.ts'
 import { pick } from '#shared/pick.ts'
 
+export const new_line_item_title_regex = /^Line item \d+$/
+
 export const new_line_item = ({ project_estimated_crew_size, line_item_count }: {
 	project_estimated_crew_size: bigint | null
 	line_item_count: number
