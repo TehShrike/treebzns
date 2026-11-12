@@ -3,6 +3,7 @@ import tracked_record, { type DbValues } from '#lib/tracked_record.svelte.ts'
 import tracked_record_array from '#lib/tracked_record_array.ts'
 import type { PendingSave } from '#lib/pending_save.ts'
 import assert from '#shared/assert.ts'
+import { assert_get } from '#shared/map.ts'
 import { filter, find, for_each, map, reduce } from '#shared/array.ts'
 import object_keys from '#shared/object_keys.ts'
 import { pick } from '#shared/pick.ts'
@@ -39,11 +40,7 @@ export const loaded_line_item = ({ project_line_item: { work_details, ...project
 export const make_hourly_rate_of = (work_skills: readonly { work_skill_id: bigint, hourly_rate: FinancialNumber }[]) => {
 	const work_skill_by_id = new Map(map(work_skills, work_skill => [work_skill.work_skill_id, work_skill] as const))
 
-	return (work_skill_id: bigint) => {
-		const work_skill = work_skill_by_id.get(work_skill_id)
-		assert(work_skill, `work skill ${work_skill_id} is one of the company's work skills`)
-		return work_skill.hourly_rate
-	}
+	return (work_skill_id: bigint) => assert_get(work_skill_by_id, work_skill_id).hourly_rate
 }
 
 type EstimateLineItemValuesWithoutPrice = Omit<EstimateLineItemValues, 'price'>

@@ -1,3 +1,5 @@
+import { assert_get } from '#shared/map.ts'
+
 type GlobbedStateModule = {
 	path: string
 	export: {
@@ -33,11 +35,7 @@ export default (states: GlobbedStateModule[]) => {
 			return false
 		}
 
-		const parent_path = state_name_to_directory_path.get(parent_state)
-
-		if (!parent_path) {
-			throw new Error(`Something ostensibly impossible has occurred`)
-		}
+		const parent_path = assert_get(state_name_to_directory_path, parent_state)
 
 		const child_state_directory = strip_file_name_from_end_of_path(path)
 		const parent_state_directory = strip_file_name_from_end_of_path(parent_path)

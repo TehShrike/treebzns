@@ -9,7 +9,7 @@
 	import { new_line_item_title_regex } from '../line_item.ts'
 	import type { ItemTypeRow } from '#lib/generic_queries/item_type.ts'
 	import type { WorkSkillRow } from '#lib/generic_queries/work_skill.ts'
-	import assert from '#shared/assert.ts'
+	import { assert_get } from '#shared/map.ts'
 	import { map } from '#shared/array.ts'
 
 	const { line_item, first_time_estimating, item_types, work_skills, photos }: {
@@ -22,19 +22,7 @@
 
 	const work_skill_by_id = $derived(new Map(map(work_skills, work_skill => [work_skill.work_skill_id, work_skill] as const)))
 
-	const short_name_of = (work_skill_id: bigint) => {
-		const work_skill = work_skill_by_id.get(work_skill_id)
-		assert(work_skill, `work skill ${work_skill_id} is one of the company's work skills`)
-		return work_skill.short_name
-	}
-
 	const item_type_by_id = $derived(new Map(map(item_types, item_type => [item_type.item_type_id, item_type] as const)))
-
-	const item_type_name_of = (item_type_id: bigint) => {
-		const item_type = item_type_by_id.get(item_type_id)
-		assert(item_type, `item type ${item_type_id} is one of the company's item types`)
-		return item_type.name
-	}
 
 	let previous_item_type_id = untrack(() => line_item.record.form_values.item_type_id)
 
@@ -46,9 +34,9 @@
 		}
 		untrack(() => {
 			const title_follows_item_type = new_line_item_title_regex.test(form_values.title)
-				|| (previous_item_type_id !== null && form_values.title === item_type_name_of(previous_item_type_id))
+				|| (previous_item_type_id !== null && form_values.title === assert_get(item_type_by_id, previous_item_type_id).name)
 			if (title_follows_item_type && item_type_id !== null) {
-				form_values.title = item_type_name_of(item_type_id)
+				form_values.title = assert_get(item_type_by_id, item_type_id).name
 			}
 		})
 		previous_item_type_id = item_type_id
@@ -97,7 +85,7 @@
 	{:else}
 		<div class="scroller">
 			{#each line_item.work_skills as line_item_work_skill (line_item_work_skill.stable_record_identifier)}
-				{@const short_name = short_name_of(line_item_work_skill.form_values.work_skill_id)}
+				{@const short_name = assert_get(work_skill_by_id, line_item_work_skill.form_values.work_skill_id).short_name}
 				{#each { length: Number(line_item_work_skill.form_values.count) }}
 					<RemovablePill label="Remove {short_name}" onclick={() => line_item.remove_work_skill(line_item_work_skill)}>
 						{short_name}

@@ -13,6 +13,7 @@ import type { ArbostarDecline } from '#arbostar_export/declines.d.ts'
 import type { ArbostarTax } from '#arbostar_export/taxes.d.ts'
 import { map, filter, filter_map, flat_map, every, some, for_each } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
+import { assert_get } from '#shared/map.ts'
 import arbostar_number_to_fnum from './arbostar_number_to_fnum.ts'
 import {
 	is_midnight_iso,
@@ -290,17 +291,13 @@ export const import_projects = async ({
 	const lead_source_id = (lead: ArbostarLead): bigint | null => {
 		const name = lead_source_name(lead)
 		if (name === null) return null
-		const id = lead_source_id_by_name.get(normalize_name(name))
-		assert(id !== undefined, `lead source "${name}" has a row`)
-		return id
+		return assert_get(lead_source_id_by_name, normalize_name(name))
 	}
 
 	const project_tax = (lead: ArbostarLead): ProjectTax => {
 		const entry = official_tax_by_lead_id.get(lead.lead_id) ?? null
 		if (entry === null) return NOT_TAXABLE
-		const row = tax_rate_row_by_name.get(entry.name)
-		assert(row, `tax rate "${entry.name}" has a row`)
-		return { taxable: true, ...row }
+		return { taxable: true, ...assert_get(tax_rate_row_by_name, entry.name) }
 	}
 
 	// The decision inputs the current-document tree and the history chain share, so the chain
