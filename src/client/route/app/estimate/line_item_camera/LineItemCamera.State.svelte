@@ -13,6 +13,7 @@
 	import { added_line_item, new_line_item } from '../line_item.ts'
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
+	import type { AsrTransitionState } from '#lib/asr_transition_state.svelte.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import assert from '#shared/assert.ts'
@@ -31,17 +32,29 @@
 		return row.project_line_item_image.photo_count
 	}
 
+	const leaving_line_items_state = ({ current_state }: AsrTransitionState): boolean => current_state.name === `app.estimate.line_items`
+
 	export const asr_state = state_type({
 		name: `app.estimate.line_item_camera`,
 		route: `/line_item/:project_line_item_id/camera`,
 		param_validator: validate_line_item_params,
-		resolve: async ({ query, server, photo_upload_queue, camera_service }, { project_id, project_line_item_id }) => {
+		resolve: async ({ query, server, photo_upload_queue, camera_service, transition_state }, { project_id, project_line_item_id }) => {
 			const [{ line_items, current_index, line_item }, photo_count] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
 				project_line_item_id === `new` ? 0n : select_photo_count(query, project_line_item_id),
 			])
 
-			return { server, photo_upload_queue, camera_service, project_id, line_items, current_index, line_item, photo_count }
+			return {
+				server,
+				photo_upload_queue,
+				camera_service,
+				project_id,
+				line_items,
+				current_index,
+				line_item,
+				photo_count,
+				opened_from_line_items: leaving_line_items_state(transition_state),
+			}
 		},
 	})
 
@@ -49,12 +62,13 @@
 </script>
 
 <script lang="ts">
-	const { server, photo_upload_queue, camera_service, project_id, project, line_items, current_index, line_item, photo_count: initial_photo_count, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
+	const { server, photo_upload_queue, camera_service, project_id, project, line_items, current_index, line_item, photo_count: initial_photo_count, opened_from_line_items, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
 
 	let photo_count = $state(untrack(() => initial_photo_count))
 
 	const new_item = () => new_line_item({ project_estimated_crew_size: project.estimated_crew_size, line_item_count: line_items.length })
 	const title = $derived(line_item === null ? new_item().title : line_item.title)
+	const line_items_href = $derived(asr.makePath(`app.estimate.line_items`, { project_id }))
 
 	let camera: PhotoCamera | undefined = $state()
 
@@ -113,7 +127,9 @@
 
 		{#snippet top()}
 			{#if line_item === null}
-				<a class="top_action" href={asr.makePath(`app.estimate.line_items`, { project_id })} onclick={camera_service.close_if_active}>Edit all items</a>
+				<a class="top_action" href={line_items_href} onclick={camera_service.close_if_active}>Edit all items</a>
+			{:else if opened_from_line_items}
+				<a class="top_action link-button" href={line_items_href} onclick={camera_service.close_if_active}>Done with item</a>
 			{:else}
 				<a class="top_action link-button" href={asr.makePath(`app.estimate.line_item_camera`, { project_id, project_line_item_id: `new` })}>Done with item</a>
 			{/if}

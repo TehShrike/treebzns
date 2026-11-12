@@ -124,7 +124,7 @@
 	<PhotoGallery {images} on_photo_click={image => open_photo(image.project_image_id)} />
 
 	<form id={form_id} class="line_item" onsubmit={on_submit}>
-		<LineItemCard line_item={form.line_item} {photo_upload_queue} first_time_estimating={false} {item_types} {work_skills} display_thumbnails={false} {open_photo} />
+		<LineItemCard line_item={form.line_item} first_time_estimating={false} {item_types} {work_skills} />
 	</form>
 
 	{#snippet status()}

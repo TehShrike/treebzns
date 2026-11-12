@@ -8,6 +8,7 @@ import default_values from '#shared/treebzns_db/default_values.ts'
 import type { FinancialNumber } from '#shared/fnum.ts'
 import type { EstimateProjectValues, UpdateEstimateArgument, UpdateEstimateResult } from '#shared/type/estimate.ts'
 import make_line_item, { make_hourly_rate_of, type LoadedLineItem } from '../line_item_form.svelte.ts'
+import { new_line_item } from '../line_item.ts'
 
 const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_items, work_skills, round_to_nearest }: {
 	project: DbValues<EstimateProjectValues, 'project_id'>
@@ -23,12 +24,12 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 
 	const hourly_rate_of = make_hourly_rate_of(work_skills)
 
-	const line_items = map(loaded_line_items, loaded_line_item => make_line_item({
+	let line_items = $state.raw(map(loaded_line_items, loaded_line_item => make_line_item({
 		default_values: { title: ``, ...pick(default_values.project_line_item, [`item_type_id`, `work_details`, `estimated_crew_size`, `estimated_hours`, `client_optional`, `price`]) },
 		values_in_db: loaded_line_item,
 		hourly_rate_of,
 		round_to_nearest,
-	}))
+	})))
 	const line_item_records = tracked_record_array({
 		records: () => line_items,
 		commit_changed: (changed, results) => {
@@ -81,11 +82,21 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 		}
 	}
 
+	const add_line_item = () => {
+		line_items = [...line_items, make_line_item({
+			default_values: new_line_item({ project_estimated_crew_size: project.form_values.estimated_crew_size, line_item_count: line_items.length }),
+			values_in_db: null,
+			hourly_rate_of,
+			round_to_nearest,
+		})]
+	}
+
 	return {
 		project,
-		line_items,
+		get line_items() { return line_items },
 		get needs_to_be_saved() { return needs_to_be_saved },
 		start_save,
+		add_line_item,
 	}
 }
 

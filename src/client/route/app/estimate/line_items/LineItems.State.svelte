@@ -1,8 +1,9 @@
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
-	import LinkThatLooksLikeAButton from '#component/LinkThatLooksLikeAButton.svelte'
+	import AddButton from '#component/AddButton.svelte'
 	import LineItemCard from './LineItemCard.svelte'
+	import LineItemThumbnails from './LineItemThumbnails.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
 	import make_estimate_form from './estimate_form.svelte.ts'
 	import { loaded_line_item, type LineItemForm } from '../line_item_form.svelte.ts'
@@ -16,7 +17,8 @@
 	import assert from '#shared/assert.ts'
 	import { calculate_estimate } from '#shared/invoice/calculate_estimate.ts'
 	import { pick } from '#shared/pick.ts'
-	import { every, filter, find, map, zip_with } from '#shared/array.ts'
+	import default_values from '#shared/treebzns_db/default_values.ts'
+	import { every, filter, find, map } from '#shared/array.ts'
 	import { untrack } from 'svelte'
 
 	export const asr_state = state_type({
@@ -99,8 +101,8 @@
 		round_to_nearest,
 	}))
 
-	const estimate = $derived(calculate_estimate(project, zip_with(line_items, form.line_items, ({ project_line_item }, line_item) => ({
-		...project_line_item,
+	const estimate = $derived(calculate_estimate(project, map(form.line_items, (line_item, index) => ({
+		...(line_items[index]?.project_line_item ?? default_values.project_line_item),
 		price: line_item.price,
 	}))))
 
@@ -136,10 +138,12 @@
 		asr.go(`app.estimate.mark_up_photo`,{ project_id, project_line_item_id, project_image_id })
 	}
 
-	const last_line_item = $derived(loaded_line_items[loaded_line_items.length - 1] ?? null)
-	const previous_href = $derived(last_line_item === null
-		? asr.makePath(`app.estimate.overview`, { project_id })
-		: asr.makePath(`app.estimate.line_item_camera`, { project_id, project_line_item_id: last_line_item.project_line_item_id }))
+	const add_photo = async (line_item: LineItemForm) => {
+		if (!(await save_if_needed())) return
+		const project_line_item_id = line_item.db_id
+		assert(project_line_item_id !== null, `a line item is in the database after the form saves`)
+		asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id })
+	}
 
 	const street = $derived(filter([project.address_line_1, project.address_line_2], Boolean).join(`, `))
 	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
@@ -151,7 +155,6 @@
 
 <FixedVerticalLayout>
 	{#snippet top()}
-		<LinkThatLooksLikeAButton href={previous_href}>{last_line_item === null ? `Overview` : `Previous item`}</LinkThatLooksLikeAButton>
 		<button type="button" class="default" disabled={saver.saving} onclick={save_and_close}>
 			{#if form.needs_to_be_saved}
 				Save and close
@@ -159,9 +162,6 @@
 				Close
 			{/if}
 		</button>
-		{#if next_project_document !== null}
-			<button type="button" disabled={saver.saving} onclick={save_as_next_project_document}>Save as {next_project_document.name}</button>
-		{/if}
 	{/snippet}
 
 	<form class="estimate" onsubmit={saver.on_submit}>
@@ -193,26 +193,29 @@
 			<p class="error">{err.message}</p>
 		{/await}
 
-		{#if form.line_items.length === 0}
-			<p class="no_line_items">No line items yet. Go back and add one.</p>
-		{:else}
-			<div class="cards">
-				{#each form.line_items as line_item (line_item.stable_record_identifier)}
-					<LineItemCard
-						{line_item}
-						{photo_upload_queue}
-						{first_time_estimating}
-						{item_types}
-						{work_skills}
-						display_thumbnails
-						open_photo={project_image_id => open_photo(line_item, project_image_id)}
-					/>
-				{/each}
+		<div class="cards">
+			{#each form.line_items as line_item (line_item.stable_record_identifier)}
+				<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills}>
+					{#snippet photos()}
+						<LineItemThumbnails
+							{line_item}
+							{photo_upload_queue}
+							open_photo={project_image_id => open_photo(line_item, project_image_id)}
+							add_photo={() => add_photo(line_item)}
+						/>
+					{/snippet}
+				</LineItemCard>
+			{/each}
+			<div class="add_line_item">
+				<AddButton label="Add line item" text="Add new item" onclick={form.add_line_item} />
 			</div>
-			<div class="bottom_total">
-				{@render total()}
-			</div>
-		{/if}
+		</div>
+		<div class="bottom_total">
+			{#if next_project_document !== null}
+				<button type="button" disabled={saver.saving} onclick={save_as_next_project_document}>Save as {next_project_document.name}</button>
+			{/if}
+			{@render total()}
+		</div>
 	</form>
 </FixedVerticalLayout>
 
@@ -260,6 +263,8 @@
 	.bottom_total {
 		display: flex;
 		justify-content: flex-end;
+		align-items: center;
+		gap: var(--gap_unit);
 	}
 
 	.total {
@@ -270,12 +275,8 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	.error,
-	.no_line_items {
-		margin: 0;
-	}
-
 	.error {
+		margin: 0;
 		color: var(--attention_red);
 	}
 
@@ -284,5 +285,9 @@
 		flex-direction: column;
 		align-items: stretch;
 		gap: var(--gap_unit);
+	}
+
+	.add_line_item {
+		height: 8rem;
 	}
 </style>
