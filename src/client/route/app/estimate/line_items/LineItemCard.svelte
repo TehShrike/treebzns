@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack, type Snippet } from 'svelte'
+	import type { Snippet } from 'svelte'
 	import WindowCard from '#component/WindowCard.svelte'
 	import RemovablePill from '#component/RemovablePill.svelte'
 	import WideTextareaField from '#component/WideTextareaField.svelte'
@@ -9,6 +9,7 @@
 	import { new_line_item_title_regex } from '../line_item.ts'
 	import type { ItemTypeRow } from '#lib/generic_queries/item_type.ts'
 	import type { WorkSkillRow } from '#lib/generic_queries/work_skill.ts'
+	import on_change from '#lib/on_change.svelte.ts'
 	import { assert_get } from '#shared/map.ts'
 	import { map } from '#shared/array.ts'
 
@@ -24,22 +25,19 @@
 
 	const item_type_by_id = $derived(new Map(map(item_types, item_type => [item_type.item_type_id, item_type] as const)))
 
-	let previous_item_type_id = untrack(() => line_item.record.form_values.item_type_id)
-
-	$effect(() => {
-		const { form_values } = line_item.record
-		const item_type_id = form_values.item_type_id
-		if (item_type_id === previous_item_type_id) {
+	on_change(() => line_item.record.form_values.item_type_id, (new_item_type_id, previous_item_type_id) => {
+		if (new_item_type_id === null) {
 			return
 		}
-		untrack(() => {
-			const title_follows_item_type = new_line_item_title_regex.test(form_values.title)
-				|| (previous_item_type_id !== null && form_values.title === assert_get(item_type_by_id, previous_item_type_id).name)
-			if (title_follows_item_type && item_type_id !== null) {
-				form_values.title = assert_get(item_type_by_id, item_type_id).name
-			}
-		})
-		previous_item_type_id = item_type_id
+
+		const { form_values } = line_item.record
+		const title_matches_previous_item_type = previous_item_type_id === null
+			? new_line_item_title_regex.test(form_values.title)
+			: form_values.title === assert_get(item_type_by_id, previous_item_type_id).name
+
+		if (title_matches_previous_item_type) {
+			form_values.title = assert_get(item_type_by_id, new_item_type_id).name
+		}
 	})
 </script>
 

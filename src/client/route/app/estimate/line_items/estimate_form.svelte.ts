@@ -1,4 +1,4 @@
-import { untrack } from 'svelte'
+import on_change from '#lib/on_change.svelte.ts'
 import tracked_record, { type DbValues } from '#lib/tracked_record.svelte.ts'
 import tracked_record_array from '#lib/tracked_record_array.ts'
 import assert from '#shared/assert.ts'
@@ -38,21 +38,12 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 		},
 	})
 
-	let crew_size_line_items_follow = loaded_project.estimated_crew_size
-
-	$effect(() => {
-		const crew_size = project.form_values.estimated_crew_size
-		if (crew_size === crew_size_line_items_follow) {
-			return
-		}
-		untrack(() => {
-			for_each(line_items, line_item => {
-				if (line_item.record.form_values.estimated_crew_size === crew_size_line_items_follow) {
-					line_item.record.form_values.estimated_crew_size = crew_size
-				}
-			})
+	on_change(() => project.form_values.estimated_crew_size, (crew_size, previous_crew_size) => {
+		for_each(line_items, line_item => {
+			if (line_item.record.form_values.estimated_crew_size === previous_crew_size) {
+				line_item.record.form_values.estimated_crew_size = crew_size
+			}
 		})
-		crew_size_line_items_follow = crew_size
 	})
 
 	const needs_to_be_saved = $derived(project.needs_to_be_saved || line_item_records.needs_to_be_saved)
