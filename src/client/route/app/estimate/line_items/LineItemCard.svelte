@@ -28,29 +28,32 @@
 	}
 </script>
 
-<WindowCard>
-	{#snippet title_bar()}
-		<input
-			type="text"
-			class="title"
-			maxlength="200"
-			autocomplete="off"
-			data-1p-ignore
-			aria-label="Title"
-			data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`title`)}
-			bind:value={line_item.record.form_values.title}
-		>
-		<select
-			aria-label="Line type"
-			data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`item_type_id`)}
-			bind:value={line_item.record.form_values.item_type_id}
-		>
-			<option value={null}>No type</option>
-			{#each item_types as item_type (item_type.item_type_id)}
-				<option value={item_type.item_type_id}>{item_type.name}</option>
-			{/each}
-		</select>
-	{/snippet}
+<WindowCard title={line_item.record.form_values.title}>
+	<div class="title_and_type">
+		<label>
+			Title
+			<input
+				type="text"
+				maxlength="200"
+				autocomplete="off"
+				data-1p-ignore
+				data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`title`)}
+				bind:value={line_item.record.form_values.title}
+			>
+		</label>
+		<label>
+			Type
+			<select
+				data-style-as-unsaved={first_time_estimating || line_item.record.value_needs_to_be_saved(`item_type_id`)}
+				bind:value={line_item.record.form_values.item_type_id}
+			>
+				<option value={null}>No type</option>
+				{#each item_types as item_type (item_type.item_type_id)}
+					<option value={item_type.item_type_id}>{item_type.name}</option>
+				{/each}
+			</select>
+		</label>
+	</div>
 
 	{@render photos?.()}
 
@@ -131,15 +134,11 @@
 </WindowCard>
 
 <style>
-	.title {
-		flex-grow: 1;
-		min-width: 0;
-		max-width: var(--wide_input);
-	}
-
-	select {
-		max-width: 60%;
-		font-weight: normal;
+	.title_and_type {
+		display: grid;
+		grid-template-columns: minmax(0, var(--wide_input)) minmax(0, max-content);
+		gap: var(--gap_half);
+		width: 100%;
 	}
 
 	.scroller {

@@ -1,18 +1,5 @@
 # TODO
 
-## Caleb 2026-11-06
-
-- Edit all items screen
-	- Move "Save proposal" bottom to bottom by total
-	- Remove "previous item" button
-	- Make "close" button full-width
-	- Photo thumbnail view should show a plus button that looks like an empty photo frame that takes you to the camera mode for that item to add a new photo.  Discard should take ybu back
-	- An "empty card" outline that is a button with a big plus inside it that adds a new item in that same view, an unsaved line item that will be saved when the save button is pressed
-	- Both plus buttons should have the same gray border with a gray plus button centered inside
-- "Edit item" card
-	- Have to at least try the item title input being inside the card, not in the heading
-	- Move the item type out of the card heading into the card content
-
 ## Notes from showing Andrew 2026-10-30
 
 - 2 decimals on estimate hours

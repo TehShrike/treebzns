@@ -2,7 +2,7 @@ Don't add comments unless something truly exceptional is happening that can't be
 
 When possible, use the functions in #shared/array.ts rather than built-in array functions or for of loop.  The ones in shared/array are more performant.
 
-CSS layout is the parent's job.  Never use self-placement properties (align-self, justify-self, place-self) on children — parents define how their children are laid out (display, flex-direction, align-items, justify-items, gap).  A child may size itself (e.g. width: fit-content) but not place itself.
+CSS layout is the parent's job.  Never use self-placement or properties such as align-self/justify-self/place-self on children — parents define how their children are laid out e.g. display/flex-direction/align-items/justify-items/gap.  A child may size itself if absolutely necessary (e.g. width: fit-content) though it is often preferable to let the parent handle that as well if possible.
 
 Assertion messages should say the thing that they are asserting, they should not be phrased as error messages.
 

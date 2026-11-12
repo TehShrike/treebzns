@@ -1,9 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
-	const { title, title_bar, href, status_bar, children }: {
-		title?: string
-		title_bar?: Snippet
+	const { title, href, status_bar, children }: {
+		title: string
 		href?: string
 		status_bar?: Snippet
 		children: Snippet
@@ -11,13 +10,7 @@
 </script>
 
 <svelte:element this={href === undefined ? `div` : `a`} class="window card" {href}>
-	<div class="title-bar">
-		{#if title_bar}
-			{@render title_bar()}
-		{:else}
-			{title}
-		{/if}
-	</div>
+	<div class="title-bar">{title}</div>
 	<div class="window-body">
 		{@render children()}
 	</div>
@@ -38,7 +31,7 @@
 	}
 
 	.title-bar {
-		gap: var(--gap_half);
+		min-height: 1lh;
 	}
 
 	.window-body {
