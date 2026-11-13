@@ -444,6 +444,10 @@ input[type="search"] {
 	line-height: var(--input-line-height);
 }
 
+input[type="number"]:not([readonly])::-webkit-inner-spin-button {
+	opacity: 1;
+}
+
 input[type="email"]:disabled,
 input[type="url"]:disabled,
 input[type="tel"]:disabled,

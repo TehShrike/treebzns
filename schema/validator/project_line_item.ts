@@ -16,7 +16,7 @@ export const validator_object = {
 	item_type_id: jv.nullable(jv.is_bigint),
 	line_item_template_id: jv.nullable(jv.is_bigint),
 	estimated_crew_size: jv.nullable(jv.is_bigint),
-	estimated_hours: jv.nullable(jv.is_bigint),
+	estimated_hours: jv.nullable(is_financial_number),
 	taxable: jv.is_boolean,
 	client_optional: jv.is_boolean,
 	client_declined: jv.is_boolean,

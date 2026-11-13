@@ -40,13 +40,13 @@ export const round_to_nearest = (amount: FinancialNumber, increment: FinancialNu
 }
 
 export const calculate_line_item_price = ({ estimated_hours, crew_size, hourly_rate, round_to_nearest: increment }: {
-	estimated_hours: bigint
+	estimated_hours: FinancialNumber
 	crew_size: bigint
 	hourly_rate: FinancialNumber
 	round_to_nearest: FinancialNumber
 }): FinancialNumber => {
-	assert(estimated_hours >= 0n, `estimated hours are not negative`)
+	assert(!estimated_hours.isNegative(), `estimated hours are not negative`)
 	assert(crew_size >= 1n, `a crew has at least one person`)
 	assert(!hourly_rate.isNegative(), `an hourly rate is not negative`)
-	return round_to_nearest(hourly_rate.times(estimated_hours * crew_size), increment)
+	return round_to_nearest(hourly_rate.times(estimated_hours).times(crew_size), increment)
 }

@@ -8,7 +8,7 @@ import { filter, find, for_each, map, reduce } from '#shared/array.ts'
 import object_keys from '#shared/object_keys.ts'
 import { pick } from '#shared/pick.ts'
 import default_values from '#shared/treebzns_db/default_values.ts'
-import type { FinancialNumber } from '#shared/fnum.ts'
+import { nullable_fnums_equal, type FinancialNumber } from '#shared/fnum.ts'
 import { average_hourly_rate, calculate_line_item_price } from '#shared/estimate/line_item_price.ts'
 import type {
 	AddedEstimateLineItem,
@@ -46,7 +46,7 @@ export const make_hourly_rate_of = (work_skills: readonly { work_skill_id: bigin
 type EstimateLineItemValuesWithoutPrice = Omit<EstimateLineItemValues, 'price'>
 
 export type PriceCalculation = {
-	calculated_hours: bigint | null
+	calculated_hours: FinancialNumber | null
 	hourly_rate: FinancialNumber | null
 	price: FinancialNumber | null
 }
@@ -69,6 +69,7 @@ const make_line_item = ({ default_values: { price: default_price, ...record_defa
 		default_values: record_default_values,
 		id_key: `project_line_item_id`,
 		values_in_db: values_in_db === null ? null : pick(values_in_db, [`project_line_item_id`, ...object_keys(record_default_values)]),
+		equality_checks: { estimated_hours: nullable_fnums_equal },
 	})
 	const loaded_work_skills = values_in_db === null ? [] : map(values_in_db.work_skills, work_skill => make_work_skill(work_skill.work_skill_id, work_skill))
 	const loaded_price = values_in_db === null ? null : values_in_db.price
@@ -86,7 +87,7 @@ const make_line_item = ({ default_values: { price: default_price, ...record_defa
 		const missing_hours_or_crew = estimated_hours === null || crew_size === null
 		const calculated_hours = missing_hours_or_crew
 			? null
-			: estimated_hours * crew_size
+			: estimated_hours.times(crew_size)
 
 		const price = missing_hours_or_crew || hourly_rate === null
 			? null

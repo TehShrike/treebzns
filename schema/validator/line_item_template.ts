@@ -6,7 +6,7 @@ export const validator_object = {
 	line_item_template_id: jv.is_bigint,
 	company_id: jv.is_bigint,
 	title: jv.is_string,
-	estimated_hours: jv.nullable(jv.is_bigint),
+	estimated_hours: jv.nullable(is_financial_number),
 	price: jv.nullable(is_financial_number),
 	arbostar_work_type_id: jv.nullable(jv.is_bigint),
 	created_at: is_temporal_instant,

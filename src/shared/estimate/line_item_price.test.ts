@@ -63,28 +63,58 @@ test('round_to_nearest: a non-positive increment is a bug', () => {
 
 test('calculate_line_item_price: hours times crew times rate, rounded to the increment', () => {
 	assert_fnum_equal(calculate_line_item_price({
-		estimated_hours: 8n,
+		estimated_hours: fnum(`8.00`),
 		crew_size: 3n,
 		hourly_rate: fnum(`115.00`),
 		round_to_nearest: fnum(`20.00`),
 	}), `2760.00`)
 	assert_fnum_equal(calculate_line_item_price({
-		estimated_hours: 7n,
+		estimated_hours: fnum(`7.00`),
 		crew_size: 1n,
 		hourly_rate: fnum(`115.00`),
 		round_to_nearest: fnum(`20.00`),
 	}), `800.00`)
 	assert_fnum_equal(calculate_line_item_price({
-		estimated_hours: 3n,
+		estimated_hours: fnum(`3.00`),
 		crew_size: 2n,
 		hourly_rate: fnum(`115.33`),
 		round_to_nearest: fnum(`20.00`),
 	}), `700.00`)
 })
 
+test('calculate_line_item_price: hours have two decimal places', () => {
+	assert_fnum_equal(calculate_line_item_price({
+		estimated_hours: fnum(`1.25`),
+		crew_size: 2n,
+		hourly_rate: fnum(`115.33`),
+		round_to_nearest: fnum(`0.01`),
+	}), `288.33`)
+	assert_fnum_equal(calculate_line_item_price({
+		estimated_hours: fnum(`1.50`),
+		crew_size: 1n,
+		hourly_rate: fnum(`115.33`),
+		round_to_nearest: fnum(`0.01`),
+	}), `173.00`)
+	assert_fnum_equal(calculate_line_item_price({
+		estimated_hours: fnum(`2.75`),
+		crew_size: 3n,
+		hourly_rate: fnum(`115.00`),
+		round_to_nearest: fnum(`20.00`),
+	}), `940.00`)
+})
+
+test('calculate_line_item_price: negative hours are a bug', () => {
+	assert.throws(() => calculate_line_item_price({
+		estimated_hours: fnum(`-0.25`),
+		crew_size: 1n,
+		hourly_rate: fnum(`115.00`),
+		round_to_nearest: fnum(`20.00`),
+	}), { message: `estimated hours are not negative` })
+})
+
 test('calculate_line_item_price: zero hours is a zero price', () => {
 	assert_fnum_equal(calculate_line_item_price({
-		estimated_hours: 0n,
+		estimated_hours: fnum(`0.00`),
 		crew_size: 2n,
 		hourly_rate: fnum(`115.00`),
 		round_to_nearest: fnum(`20.00`),
@@ -93,7 +123,7 @@ test('calculate_line_item_price: zero hours is a zero price', () => {
 
 test('calculate_line_item_price: a crew of nobody is a bug', () => {
 	assert.throws(() => calculate_line_item_price({
-		estimated_hours: 1n,
+		estimated_hours: fnum(`1.00`),
 		crew_size: 0n,
 		hourly_rate: fnum(`115.00`),
 		round_to_nearest: fnum(`20.00`),

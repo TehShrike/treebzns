@@ -20,7 +20,7 @@ const line_item_value_validators = {
 	item_type_id: jv.nullable(jv.is_bigint),
 	work_details: jv.is_string,
 	estimated_crew_size: jv.nullable(jv.is_bigint),
-	estimated_hours: jv.nullable(jv.is_bigint),
+	estimated_hours: jv.nullable(is_financial_number),
 	client_optional: jv.is_boolean,
 	price: is_financial_number,
 }

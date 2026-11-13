@@ -7,6 +7,7 @@ import { map, filter, filter_map, flat_map, reduce } from '#shared/array.ts'
 import { ROWS_PER_BATCH, join_lines, money, normalize_name } from './import_common.ts'
 import type { ArbostarImportContext } from './import_common.ts'
 import { normalize_crew_code } from './import_work_skills.ts'
+import arbostar_number_to_fnum from './arbostar_number_to_fnum.ts'
 import default_values from '#shared/treebzns_db/default_values.ts'
 
 export type ImportedLineItems = {
@@ -106,7 +107,7 @@ export const import_line_items = async ({
 			work_details: work_details === '' ? null : work_details,
 			item_type_id: item.service_name === null ? null : item_type_id_by_name.get(normalize_name(item.service_name))!,
 			estimated_crew_size: item.crew_role_ids.length === 0 ? default_values.project_line_item.estimated_crew_size : BigInt(item.crew_role_ids.length),
-			estimated_hours: item.man_hours === null ? default_values.project_line_item.estimated_hours : BigInt(Math.round(item.man_hours)),
+			estimated_hours: item.man_hours === null ? default_values.project_line_item.estimated_hours : arbostar_number_to_fnum(item.man_hours).changeDecimalPlaces(2),
 			taxable: !item.non_taxable,
 			client_optional: item.optional || item.status === 'Declined',
 			client_declined: item.status === 'Declined',
