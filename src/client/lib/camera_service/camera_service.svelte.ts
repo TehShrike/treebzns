@@ -1,5 +1,6 @@
 import { for_each } from '#shared/array.ts'
 import assert from '#shared/assert.ts'
+import { camera_zoom, type CameraZoom } from './camera_zoom.ts'
 import { rear_device_candidates, type CameraDevice } from './rear_devices.ts'
 import { detect_capture_method, type CaptureMethod } from './take_photo.ts'
 
@@ -17,6 +18,7 @@ export const create_camera_service = () => {
 	let stream = $state.raw<MediaStream | null>(null)
 	let devices = $state.raw<CameraDevice[]>([])
 	let current_device_id = $state<string | null>(null)
+	let zoom = $state.raw<CameraZoom | null>(null)
 
 	let active = false
 	let consumers = 0
@@ -34,6 +36,7 @@ export const create_camera_service = () => {
 		if (stream) {
 			stop_tracks(stream)
 			stream = null
+			zoom = null
 		}
 	}
 
@@ -58,6 +61,7 @@ export const create_camera_service = () => {
 			assert(track, `an opened camera stream has a video track`)
 			const settings = track.getSettings()
 			current_device_id = settings.deviceId ?? null
+			zoom = camera_zoom(track.getCapabilities().zoom, settings.zoom)
 			capture_method ??= detect_capture_method(track)
 
 			const all_devices = await navigator.mediaDevices.enumerateDevices()
@@ -139,6 +143,15 @@ export const create_camera_service = () => {
 		return use_result(open())
 	}
 
+	const set_zoom = async (stop: number) => {
+		const track = stream?.getVideoTracks()[0]
+		assert(track && zoom, `a camera stream that can zoom is open while its zoom is set`)
+		const { stops } = zoom
+		const this_open = open_count
+		await track.applyConstraints({ advanced: [{ zoom: stop }] })
+		if (this_open === open_count) zoom = { current: stop, stops }
+	}
+
 	return {
 		get stream() {
 			return stream
@@ -152,11 +165,15 @@ export const create_camera_service = () => {
 		get capture_method() {
 			return capture_method
 		},
+		get zoom() {
+			return zoom
+		},
 		start_using,
 		stop_using,
 		close,
 		close_if_active,
 		set_device,
+		set_zoom,
 	}
 }
 

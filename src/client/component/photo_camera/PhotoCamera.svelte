@@ -3,6 +3,7 @@
 	import type { Attachment } from 'svelte/attachments'
 	import assert from '#shared/assert.ts'
 	import type { CameraService, RetryOpen, UseResult } from '#lib/camera_service/camera_service.svelte.ts'
+	import { stop_above, stop_below } from '#lib/camera_service/camera_zoom.ts'
 	import type { CapturedPhoto } from './captured_photo.ts'
 	import { capture_still } from './capture_still.ts'
 
@@ -29,6 +30,11 @@
 
 	const set_device = async (device_id: string) => {
 		note_result(await camera_service.set_device(device_id))
+	}
+
+	const set_zoom = async (stop: number | undefined) => {
+		assert(stop !== undefined, `a zoom button is only enabled when its stop exists`)
+		await camera_service.set_zoom(stop)
 	}
 
 	const attach_video: Attachment<HTMLVideoElement> = node => {
@@ -73,20 +79,33 @@
 		<video {@attach attach_video} autoplay muted playsinline></video>
 	{/if}
 
-	{#if camera_service.devices.length > 1}
-		<div class="devices">
-			{#each camera_service.devices as device (device.device_id)}
-				<label>
-					<input
-						type="radio"
-						name={device_group_name}
-						value={device.device_id}
-						checked={device.device_id === camera_service.current_device_id}
-						onchange={() => set_device(device.device_id)}
-					/>
-					{device.label}
-				</label>
-			{/each}
+	{#if camera_service.devices.length > 1 || camera_service.zoom}
+		<div class="controls">
+			<div class="devices">
+				{#if camera_service.devices.length > 1}
+					{#each camera_service.devices as device (device.device_id)}
+						<label>
+							<input
+								type="radio"
+								name={device_group_name}
+								value={device.device_id}
+								checked={device.device_id === camera_service.current_device_id}
+								onchange={() => set_device(device.device_id)}
+							/>
+							{device.label}
+						</label>
+					{/each}
+				{/if}
+			</div>
+			{#if camera_service.zoom}
+				{@const lower_stop = stop_below(camera_service.zoom)}
+				{@const higher_stop = stop_above(camera_service.zoom)}
+				<div class="zoom">
+					<button type="button" aria-label="Zoom out" disabled={lower_stop === undefined} onclick={() => set_zoom(lower_stop)}>−</button>
+					<span>{camera_service.zoom.current}×</span>
+					<button type="button" aria-label="Zoom in" disabled={higher_stop === undefined} onclick={() => set_zoom(higher_stop)}>+</button>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -121,16 +140,29 @@
 		margin: 0;
 	}
 
+	.controls {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		align-items: center;
+		gap: var(--gap_unit);
+		padding: var(--gap_half);
+		flex-shrink: 0;
+	}
+
 	.devices {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
 		gap: var(--gap_half) var(--gap_unit);
-		padding: var(--gap_half);
-		flex-shrink: 0;
 	}
 
 	.devices label {
+		display: flex;
+		align-items: center;
+		gap: var(--gap_half);
+	}
+
+	.zoom {
 		display: flex;
 		align-items: center;
 		gap: var(--gap_half);
