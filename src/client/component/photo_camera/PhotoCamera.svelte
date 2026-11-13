@@ -101,9 +101,9 @@
 				{@const lower_stop = stop_below(camera_service.zoom)}
 				{@const higher_stop = stop_above(camera_service.zoom)}
 				<div class="zoom">
-					<button type="button" aria-label="Zoom out" disabled={lower_stop === undefined} onclick={() => set_zoom(lower_stop)}>−</button>
-					<span>{camera_service.zoom.current}×</span>
 					<button type="button" aria-label="Zoom in" disabled={higher_stop === undefined} onclick={() => set_zoom(higher_stop)}>+</button>
+					<span>{camera_service.zoom.current}×</span>
+					<button type="button" aria-label="Zoom out" disabled={lower_stop === undefined} onclick={() => set_zoom(lower_stop)}>−</button>
 				</div>
 			{/if}
 		</div>
@@ -164,7 +164,8 @@
 
 	.zoom {
 		display: flex;
-		align-items: center;
+		flex-direction: column;
 		gap: var(--gap_half);
+		text-align: center;
 	}
 </style>
