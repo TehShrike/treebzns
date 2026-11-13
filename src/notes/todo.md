@@ -2,12 +2,10 @@
 
 ## Notes from showing Andrew 2026-10-30
 
-- ⏳🤖 2 decimals on estimate hours
 - can't drag and scroll work skill scroll bar if the finger moves off of the scroll path
 - line items should have a "primary" image that is the main one the customer sees with the line item
 - ⏳🤖 ask for MOAR cameras and maybe get the zoom one that Andrew wants?
-	- maybe a zoom button will give us the telephoto lens
-- ⏳🤖 Change the number input to always show spinners
+	- zoom didn't work, trying special camera input
 
 ### Very important for actual use
 

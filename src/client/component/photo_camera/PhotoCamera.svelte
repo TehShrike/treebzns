@@ -3,15 +3,18 @@
 	import type { Attachment } from 'svelte/attachments'
 	import assert from '#shared/assert.ts'
 	import type { CameraService, RetryOpen, UseResult } from '#lib/camera_service/camera_service.svelte.ts'
-	import { stop_above, stop_below } from '#lib/camera_service/camera_zoom.ts'
 	import type { CapturedPhoto } from './captured_photo.ts'
-	import { capture_still } from './capture_still.ts'
+	import { capture_still, captured_photo_from_file } from './capture_still.ts'
 
-	const { camera_service }: { camera_service: CameraService } = $props()
+	const { camera_service, hold_photo }: {
+		camera_service: CameraService
+		hold_photo: (photo: Promise<CapturedPhoto>) => void
+	} = $props()
 
 	const device_group_name = $props.id()
 
 	let video: HTMLVideoElement | null = null
+	let camera_app_input: HTMLInputElement | null = null
 	let retry = $state<RetryOpen | null>(null)
 
 	const note_result = (result: UseResult) => {
@@ -32,9 +35,23 @@
 		note_result(await camera_service.set_device(device_id))
 	}
 
-	const set_zoom = async (stop: number | undefined) => {
-		assert(stop !== undefined, `a zoom button is only enabled when its stop exists`)
-		await camera_service.set_zoom(stop)
+	const capture_camera_app_input: Attachment<HTMLInputElement> = node => {
+		camera_app_input = node
+		return () => {
+			camera_app_input = null
+		}
+	}
+
+	const open_camera_app = () => {
+		assert(camera_app_input, `the camera app input is mounted while its button is shown`)
+		camera_app_input.click()
+	}
+
+	const hold_camera_app_photo = ({ currentTarget: input }: Event & { currentTarget: HTMLInputElement }) => {
+		const file = input.files?.[0]
+		assert(file, `the camera app input holds a file after it changes`)
+		input.value = ``
+		hold_photo(captured_photo_from_file(file))
 	}
 
 	const attach_video: Attachment<HTMLVideoElement> = node => {
@@ -79,35 +96,26 @@
 		<video {@attach attach_video} autoplay muted playsinline></video>
 	{/if}
 
-	{#if camera_service.devices.length > 1 || camera_service.zoom}
-		<div class="controls">
-			<div class="devices">
-				{#if camera_service.devices.length > 1}
-					{#each camera_service.devices as device (device.device_id)}
-						<label>
-							<input
-								type="radio"
-								name={device_group_name}
-								value={device.device_id}
-								checked={device.device_id === camera_service.current_device_id}
-								onchange={() => set_device(device.device_id)}
-							/>
-							{device.label}
-						</label>
-					{/each}
-				{/if}
-			</div>
-			{#if camera_service.zoom}
-				{@const lower_stop = stop_below(camera_service.zoom)}
-				{@const higher_stop = stop_above(camera_service.zoom)}
-				<div class="zoom">
-					<button type="button" aria-label="Zoom in" disabled={higher_stop === undefined} onclick={() => set_zoom(higher_stop)}>+</button>
-					<span>{camera_service.zoom.current}×</span>
-					<button type="button" aria-label="Zoom out" disabled={lower_stop === undefined} onclick={() => set_zoom(lower_stop)}>−</button>
-				</div>
+	<div class="controls">
+		<div class="devices">
+			{#if camera_service.devices.length > 1}
+				{#each camera_service.devices as device (device.device_id)}
+					<label>
+						<input
+							type="radio"
+							name={device_group_name}
+							value={device.device_id}
+							checked={device.device_id === camera_service.current_device_id}
+							onchange={() => set_device(device.device_id)}
+						/>
+						{device.label}
+					</label>
+				{/each}
 			{/if}
 		</div>
-	{/if}
+		<button type="button" onclick={open_camera_app}>Camera app</button>
+		<input {@attach capture_camera_app_input} type="file" accept="image/*" capture="environment" hidden onchange={hold_camera_app_photo} />
+	</div>
 </div>
 
 <style>
@@ -160,12 +168,5 @@
 		display: flex;
 		align-items: center;
 		gap: var(--gap_half);
-	}
-
-	.zoom {
-		display: flex;
-		flex-direction: column;
-		gap: var(--gap_half);
-		text-align: center;
 	}
 </style>

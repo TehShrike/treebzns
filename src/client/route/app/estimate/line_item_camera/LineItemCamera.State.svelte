@@ -76,17 +76,21 @@
 	let capture_error = $state<string | null>(null)
 	let busy = $state(false)
 
-	const take_photo = async () => {
-		assert(camera, `the camera is mounted while the screen is live`)
+	const hold_photo = async (captured_photo: Promise<CapturedPhoto>) => {
 		busy = true
 		try {
-			photo = await camera.capture()
+			photo = await captured_photo
 			capture_error = null
 		} catch (error) {
 			capture_error = error_message(error)
 		} finally {
 			busy = false
 		}
+	}
+
+	const take_photo = () => {
+		assert(camera, `the camera is mounted while the screen is live`)
+		return hold_photo(camera.capture())
 	}
 
 	const back_to_live = async () => {
@@ -144,7 +148,7 @@
 				<span class="photo_count">({photo_count} {photo_count === 1n ? `photo` : `photos`})</span>
 			</h2>
 			<div class="camera">
-				<PhotoCamera bind:this={camera} {camera_service} />
+				<PhotoCamera bind:this={camera} {camera_service} {hold_photo} />
 			</div>
 			{#if capture_error !== null}
 				<div class="capture_error">{capture_error}</div>

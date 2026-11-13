@@ -28,13 +28,14 @@ const draw_to_canvas = (source: ImageBitmap | HTMLVideoElement, source_width: nu
 	return canvas
 }
 
-const still_from_photo = async (track: MediaStreamTrack) => {
-	const photo = await take_photo(track)
-	const bitmap = await createImageBitmap(photo, { imageOrientation: `from-image` })
+const still_from_blob = async (blob: Blob) => {
+	const bitmap = await createImageBitmap(blob, { imageOrientation: `from-image` })
 	const canvas = draw_to_canvas(bitmap, bitmap.width, bitmap.height)
 	bitmap.close()
 	return canvas
 }
+
+const still_from_photo = async (track: MediaStreamTrack) => still_from_blob(await take_photo(track))
 
 const still_from_video_frame = (video: HTMLVideoElement) => {
 	if (video.videoWidth === 0 || video.videoHeight === 0) {
@@ -52,12 +53,17 @@ const still_from_photo_or_frame = async (track: MediaStreamTrack, video: HTMLVid
 	}
 }
 
+const captured_photo = async (canvas: HTMLCanvasElement): Promise<CapturedPhoto> => ({
+	canvas,
+	original: await encode_jpeg(canvas),
+})
+
 export const capture_still = async ({ method, track, video }: {
 	method: CaptureMethod
 	track: MediaStreamTrack
 	video: HTMLVideoElement
-}): Promise<CapturedPhoto> => {
-	const canvas = method === `take_photo` ? await still_from_photo_or_frame(track, video) : still_from_video_frame(video)
-	const original = await encode_jpeg(canvas)
-	return { canvas, original }
-}
+}): Promise<CapturedPhoto> => captured_photo(
+	method === `take_photo` ? await still_from_photo_or_frame(track, video) : still_from_video_frame(video)
+)
+
+export const captured_photo_from_file = async (file: File): Promise<CapturedPhoto> => captured_photo(await still_from_blob(file))
