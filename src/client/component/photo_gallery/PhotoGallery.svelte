@@ -1,6 +1,8 @@
 <script lang="ts" generics="T extends GalleryImage">
 	import type { Attachment } from 'svelte/attachments'
 	import assert from '#shared/assert.ts'
+	import LeftChevronIcon from '#component/icon/LeftChevronIcon.svelte'
+	import RightChevronIcon from '#component/icon/RightChevronIcon.svelte'
 	import type { GalleryImage } from './gallery_image.ts'
 
 	const { images, on_photo_click }: {
@@ -61,8 +63,14 @@
 				</li>
 			{/each}
 		</ol>
-		<button type="button" class="edge" data-edge="start" aria-label="Previous photo" hidden={at_start} onclick={() => scroll_slides(-1)}></button>
-		<button type="button" class="edge" data-edge="end" aria-label="Next photo" hidden={at_end} onclick={() => scroll_slides(1)}></button>
+		<div class="edges">
+			<button type="button" aria-label="Previous photo" data-hide={at_start} onclick={() => scroll_slides(-1)}>
+				<LeftChevronIcon />
+			</button>
+			<button type="button" aria-label="Next photo" data-hide={at_end} onclick={() => scroll_slides(1)}>
+				<RightChevronIcon />
+			</button>
+		</div>
 	</div>
 {/if}
 
@@ -132,28 +140,26 @@
 		color: var(--text_color_light);
 	}
 
-	.edge {
+	.edges {
 		position: absolute;
-		top: 0;
-		bottom: 0;
-		width: 80px;
-		min-width: 0;
-		min-height: 0;
-		padding: 0;
-		border: none;
-		background: transparent;
-		box-shadow: none;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 calc(var(--gap_half) + 8px);
+		pointer-events: none;
 	}
 
-	.edge[hidden] {
-		display: none;
+	.edges button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 45px;
+		min-height: 36px;
+		pointer-events: auto;
 	}
 
-	.edge[data-edge="start"] {
-		left: 0;
-	}
-
-	.edge[data-edge="end"] {
-		right: 0;
+	.edges button[data-hide="true"] {
+		visibility: hidden;
 	}
 </style>
