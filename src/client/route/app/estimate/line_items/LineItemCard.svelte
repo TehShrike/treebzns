@@ -13,11 +13,12 @@
 	import { assert_get } from '#shared/map.ts'
 	import { map } from '#shared/array.ts'
 
-	const { line_item, first_time_estimating, item_types, work_skills, photos }: {
+	const { line_item, first_time_estimating, item_types, work_skills, open_line_item, photos }: {
 		line_item: LineItemForm
 		first_time_estimating: boolean
 		item_types: readonly ItemTypeRow[]
 		work_skills: readonly WorkSkillRow[]
+		open_line_item?: () => void
 		photos?: Snippet
 	} = $props()
 
@@ -41,7 +42,7 @@
 	})
 </script>
 
-<WindowCard title={line_item.record.form_values.title}>
+<WindowCard title={line_item.record.form_values.title} on_title_click={open_line_item}>
 	<div class="title_and_type">
 		<label>
 			Title

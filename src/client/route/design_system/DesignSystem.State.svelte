@@ -497,7 +497,7 @@
 				title bar text as <code>title</code> and the body as children. Pass a
 				<code>status_bar</code> snippet to render a status bar. The snippet renders the
 				<code>status-bar-field</code> elements itself. Pass <code>href</code> to make the whole
-				card a link. The
+				card a link. Pass <code>on_title_click</code> to make the title bar a button. The
 				<code>Separator</code> component draws an etched line between body content. Its borders
 				make it read as a horizontal line in a column and a vertical line in a row, so the
 				parent's layout picks the orientation.

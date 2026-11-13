@@ -12,8 +12,8 @@
 	import { select_line_items_at } from '../select_line_items.ts'
 	import { added_line_item, new_line_item } from '../line_item.ts'
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
+	import { leaving_line_items_state } from '../leaving_line_items_state.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
-	import type { AsrTransitionState } from '#lib/asr_transition_state.svelte.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import assert from '#shared/assert.ts'
@@ -31,8 +31,6 @@
 		assert(row, `an aggregate query returns exactly one row`)
 		return row.project_line_item_image.photo_count
 	}
-
-	const leaving_line_items_state = ({ current_state }: AsrTransitionState): boolean => current_state.name === `app.estimate.line_items`
 
 	export const asr_state = state_type({
 		name: `app.estimate.line_item_camera`,

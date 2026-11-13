@@ -131,6 +131,13 @@
 		await save_and_close()
 	}
 
+	const open_line_item = async (line_item: LineItemForm) => {
+		if (!(await save_if_needed())) return
+		const project_line_item_id = line_item.db_id
+		assert(project_line_item_id !== null, `a line item is in the database after the form saves`)
+		asr.go(`app.estimate.line_item_edit`, { project_id, project_line_item_id })
+	}
+
 	const open_photo = async (line_item: LineItemForm, project_image_id: bigint) => {
 		if (!(await save_if_needed())) return
 		const project_line_item_id = line_item.db_id
@@ -195,7 +202,7 @@
 
 		<div class="cards">
 			{#each form.line_items as line_item (line_item.stable_record_identifier)}
-				<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills}>
+				<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills} open_line_item={() => open_line_item(line_item)}>
 					{#snippet photos()}
 						<LineItemThumbnails
 							{line_item}

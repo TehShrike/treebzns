@@ -1,11 +1,10 @@
 # TODO
 
+That `if (!(await save_if_needed())) return` pattern is so bad
+
 ## Notes from showing Andrew 2026-10-30
 
-- can't drag and scroll work skill scroll bar if the finger moves off of the scroll path
 - line items should have a "primary" image that is the main one the customer sees with the line item
-- ⏳🤖 ask for MOAR cameras and maybe get the zoom one that Andrew wants?
-	- zoom didn't work, trying special camera input
 
 ### Very important for actual use
 
