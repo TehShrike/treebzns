@@ -6,6 +6,25 @@ That `if (!(await save_if_needed())) return` pattern is so bad
 
 - line items should have a "primary" image that is the main one the customer sees with the line item
 
+## Notes with Andrew 2026-11-14
+
+- LLM-generated alternate proposals
+- Proposal items
+	- One tree or group of trees
+	- Can have any number of work line items
+	- Can have "alternates" – same tree/group, but completely different work, removal vs trim
+	- Photos and title are per proposal item, everything else in project line items is work order line items
+- Need internal notes and crew notes at the project level
+- Come up with a simpler version of work skills.  Only need climbing, groundsman, tech
+- Can maybe remove skills, hourly rate is per work type
+	- Trim: raise only, basic trim, thorough trim, structural pruning
+		- Same hourly rate, but some require different people to be sent
+	- Different equipment is more meaningful: pole saw, climbing equipment, bucket truck, backyard/spider lift/track lift
+		- Equipment is on work items, not proposal
+	- "two guys 8 hours with the track lift"
+	- "just raise"
+- Chat window should say estimators name
+
 ### Very important for actual use
 
 - Need feedback on upload progress
