@@ -2,13 +2,13 @@
 	import { untrack } from 'svelte'
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
-	import type { AsrTransitionState } from '#lib/asr_transition_state.svelte.ts'
 	import MarkUpPhoto from './MarkUpPhoto.svelte'
 	import type PhotoMarkup from '#component/photo_markup/PhotoMarkup.svelte'
 	import { canvas_from_blob } from '#component/photo_markup/canvas_from_blob.ts'
 	import undo_stack from '#lib/undo_stack.ts'
 	import { validate_mark_up_photo_params } from '../line_item_params.ts'
 	import { select_line_items_at } from '../select_line_items.ts'
+	import { last_estimate_state } from '../last_estimate_state.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
 	import type { Stroke } from '#schema/type/project_image.d.ts'
@@ -35,13 +35,12 @@
 		return canvas_from_blob(await response.blob())
 	}
 
-	const leaving_edit_state = ({ current_state }: AsrTransitionState): boolean => current_state.name === `app.estimate.line_item_edit`
-
 	export const asr_state = state_type({
 		name: `app.estimate.mark_up_photo`,
 		route: `/line_item/:project_line_item_id/mark_up_photo/:project_image_id`,
 		param_validator: validate_mark_up_photo_params,
 		resolve: async ({ query, server, photo_upload_queue, transition_state }, { project_id, project_line_item_id, project_image_id }) => {
+			const last_state = last_estimate_state(transition_state)
 			const [{ line_item }, project_image, photo] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
 				select_project_image(query, project_image_id),
@@ -53,12 +52,11 @@
 				server,
 				photo_upload_queue,
 				project_id,
-				project_line_item_id,
 				project_image_id,
 				line_item,
 				strokes: project_image.strokes ?? [],
 				photo,
-				opened_from_edit: leaving_edit_state(transition_state),
+				last_state,
 			}
 		},
 	})
@@ -69,12 +67,11 @@
 		server,
 		photo_upload_queue,
 		project_id,
-		project_line_item_id,
 		project_image_id,
 		line_item,
 		strokes,
 		photo,
-		opened_from_edit,
+		last_state,
 		asr,
 	}: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
 
@@ -84,11 +81,7 @@
 		done.length === strokes.length && every(zip_with(done, strokes, (a, b) => a === b), same => same)
 
 	const go_back = () => {
-		if (opened_from_edit) {
-			asr.go(`app.estimate.line_item_edit`, { project_id, project_line_item_id }, { replace: true })
-		} else {
-			asr.go(`app.estimate.line_items`, { project_id }, { replace: true })
-		}
+		last_state.go_back(asr, { name: `app.estimate.line_items`, params: { project_id } })
 	}
 
 	const save_photo = async (compose: PhotoMarkup['compose']) => {

@@ -12,7 +12,7 @@
 	import { select_line_items_at } from '../select_line_items.ts'
 	import { added_line_item, new_line_item } from '../line_item.ts'
 	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
-	import { leaving_line_items_state } from '../leaving_line_items_state.ts'
+	import { last_estimate_state } from '../last_estimate_state.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import query_builder from '#shared/sql_request/typed_query_builder.ts'
 	import type { Schema } from '#schema/types.ts'
@@ -37,6 +37,7 @@
 		route: `/line_item/:project_line_item_id/camera`,
 		param_validator: validate_line_item_params,
 		resolve: async ({ query, server, photo_upload_queue, camera_service, transition_state }, { project_id, project_line_item_id }) => {
+			const last_state = last_estimate_state(transition_state)
 			const [{ line_items, current_index, line_item }, photo_count] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
 				project_line_item_id === `new` ? 0n : select_photo_count(query, project_line_item_id),
@@ -51,7 +52,7 @@
 				current_index,
 				line_item,
 				photo_count,
-				opened_from_line_items: leaving_line_items_state(transition_state),
+				last_state,
 			}
 		},
 	})
@@ -60,13 +61,14 @@
 </script>
 
 <script lang="ts">
-	const { server, photo_upload_queue, camera_service, project_id, project, line_items, current_index, line_item, photo_count: initial_photo_count, opened_from_line_items, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
+	const { server, photo_upload_queue, camera_service, project_id, project, line_items, current_index, line_item, photo_count: initial_photo_count, last_state, asr }: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
 
 	let photo_count = $state(untrack(() => initial_photo_count))
 
 	const new_item = () => new_line_item({ project_estimated_crew_size: project.estimated_crew_size, line_item_count: line_items.length })
 	const title = $derived(line_item === null ? new_item().title : line_item.title)
 	const line_items_href = $derived(asr.makePath(`app.estimate.line_items`, { project_id }))
+	const opened_from_line_items = $derived(last_state.name === `app.estimate.line_items`)
 
 	let camera: PhotoCamera | undefined = $state()
 
