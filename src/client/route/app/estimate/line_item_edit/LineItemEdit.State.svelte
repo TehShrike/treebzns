@@ -2,6 +2,7 @@
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
+	import ErrorMessage from '#component/ErrorMessage.svelte'
 	import PhotoGallery from '#component/photo_gallery/PhotoGallery.svelte'
 	import type { GalleryImage } from '#component/photo_gallery/gallery_image.ts'
 	import { project_image_url } from '#lib/project_image_url.ts'
@@ -93,16 +94,6 @@
 		}
 	}))
 
-	const save_if_needed = async (): Promise<boolean> => {
-		if (!form.needs_to_be_saved) return true
-		try {
-			await saver.save()
-			return true
-		} catch {
-			return false
-		}
-	}
-
 	const go_back = () => {
 		last_state.go_back(asr, {
 			name: `app.estimate.line_item_camera`,
@@ -110,17 +101,16 @@
 		})
 	}
 
-	const on_submit = async (event: SubmitEvent) => {
+	const on_submit = (event: SubmitEvent) => {
 		event.preventDefault()
-		if (await save_if_needed()) go_back()
+		void saver.save_if_appropriate().then(go_back)
 	}
 
-	const open_photo = async (project_image_id: bigint) => {
-		if (!(await save_if_needed())) return
+	const open_photo = (project_image_id: bigint) => saver.save_if_appropriate().then(() => {
 		const project_line_item_id = form.line_item.db_id
 		assert(project_line_item_id !== null, `a line item with photos is in the database`)
 		asr.go(`app.estimate.mark_up_photo`,{ project_id, project_line_item_id, project_image_id })
-	}
+	})
 </script>
 
 <FixedVerticalLayout>
@@ -135,9 +125,9 @@
 	</form>
 
 	{#snippet status()}
-		{#await saver.pending_save_promise catch err}
-			<p class="error">{err.message}</p>
-		{/await}
+		<div class="save_error">
+			<ErrorMessage error={saver.error_message} />
+		</div>
 	{/snippet}
 
 	{#snippet bottom()}
@@ -151,8 +141,9 @@
 		max-width: 72rem;
 	}
 
-	.error {
-		margin: 0;
-		color: var(--attention_red);
+	.save_error {
+		display: flex;
+		flex-direction: column;
+		min-height: 1lh;
 	}
 </style>

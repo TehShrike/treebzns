@@ -1,6 +1,6 @@
 # TODO
 
-That `if (!(await save_if_needed())) return` pattern is so bad
+White background behind large links?
 
 ## Notes from showing Andrew 2026-10-30
 
@@ -35,7 +35,6 @@ That `if (!(await save_if_needed())) return` pattern is so bad
 
 ### Check estimate process practically
 
-- The `save_if_needed` pattern is unacceptable, we can't swallow errors.  Maybe add a report_errors(fn) function that takes an async function and wraps it in a try/catch that displays any error messages on the screen somewher.
 - Is `store_markup_files` really necessary, is there no other image-saving function that can be used already
 - wtf is `if_none_match`
 - When editing line item crew size: the project-level estimated crew should increase if the line item's crew is larger than the current maybe?

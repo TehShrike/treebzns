@@ -138,7 +138,7 @@ The screen does no reshaping, no conversion, and no validation. If submit needs 
 
 ### 4. Validate with the browser
 
-No hand-written checks in submit. Put `required` on the inputs. The form's submit does not fire until the browser is satisfied. Server errors arrive through `saver.pending_save_promise`. Render them with `{#await saver.pending_save_promise catch err}` and disable the submit button with `saver.saving`.
+No hand-written checks in submit. Put `required` on the inputs. The form's submit does not fire until the browser is satisfied. A failed save sets `saver.error_message` and rejects the promise that `saver.save()` returns. Render the message with `<ErrorMessage error={saver.error_message} />` from `#component/ErrorMessage.svelte` and disable the submit button with `saver.saving`. To leave the screen after a save, chain on the promise: `saver.save_if_appropriate().then(go_back)`.
 
 ### 5. Markup and styling
 

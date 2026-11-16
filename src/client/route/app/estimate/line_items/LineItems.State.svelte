@@ -2,6 +2,7 @@
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import FixedVerticalLayout from '../FixedVerticalLayout.svelte'
 	import AddButton from '#component/AddButton.svelte'
+	import ErrorMessage from '#component/ErrorMessage.svelte'
 	import LineItemCard from './LineItemCard.svelte'
 	import LineItemThumbnails from './LineItemThumbnails.svelte'
 	import IntegerInput from '#component/IntegerInput.svelte'
@@ -110,47 +111,31 @@
 
 	const go_back_to_leads = () => { asr.go(`app.menu.leads_to_estimate`) }
 
-	const save_if_needed = async (): Promise<boolean> => {
-		if (!form.needs_to_be_saved) return true
-		try {
-			await saver.save()
-			return true
-		} catch {
-			return false
-		}
-	}
+	const save_and_close = () => saver.save_if_appropriate().then(go_back_to_leads)
 
-	const save_and_close = async () => {
-		if (!(await save_if_needed())) return
-		go_back_to_leads()
-	}
-
-	const save_as_next_project_document = async () => {
+	const save_as_next_project_document = () => {
 		assert(next_project_document, `the save as button shows only when there is a next project document`)
 		form.project.form_values.project_document_id = next_project_document.project_document_id
-		await save_and_close()
+		return save_and_close()
 	}
 
-	const open_line_item = async (line_item: LineItemForm) => {
-		if (!(await save_if_needed())) return
+	const open_line_item = (line_item: LineItemForm) => saver.save_if_appropriate().then(() => {
 		const project_line_item_id = line_item.db_id
 		assert(project_line_item_id !== null, `a line item is in the database after the form saves`)
 		asr.go(`app.estimate.line_item_edit`, { project_id, project_line_item_id })
-	}
+	})
 
-	const open_photo = async (line_item: LineItemForm, project_image_id: bigint) => {
-		if (!(await save_if_needed())) return
+	const open_photo = (line_item: LineItemForm, project_image_id: bigint) => saver.save_if_appropriate().then(() => {
 		const project_line_item_id = line_item.db_id
 		assert(project_line_item_id !== null, `a line item with photos is in the database`)
 		asr.go(`app.estimate.mark_up_photo`,{ project_id, project_line_item_id, project_image_id })
-	}
+	})
 
-	const add_photo = async (line_item: LineItemForm) => {
-		if (!(await save_if_needed())) return
+	const add_photo = (line_item: LineItemForm) => saver.save_if_appropriate().then(() => {
 		const project_line_item_id = line_item.db_id
 		assert(project_line_item_id !== null, `a line item is in the database after the form saves`)
 		asr.go(`app.estimate.line_item_camera`, { project_id, project_line_item_id })
-	}
+	})
 
 	const street = $derived(filter([project.address_line_1, project.address_line_2], Boolean).join(`, `))
 	const city_state_zip = $derived(filter([project.city, project.state, project.zip], Boolean).join(` `))
@@ -162,13 +147,16 @@
 
 <FixedVerticalLayout>
 	{#snippet top()}
-		<button type="button" class="default" disabled={saver.saving} onclick={save_and_close}>
-			{#if form.needs_to_be_saved}
-				Save and close
-			{:else}
-				Close
-			{/if}
-		</button>
+		<div class="close">
+			<button type="button" class="default" disabled={saver.saving} onclick={save_and_close}>
+				{#if form.needs_to_be_saved}
+					Save and close
+				{:else}
+					Close
+				{/if}
+			</button>
+			<ErrorMessage error={saver.error_message} />
+		</div>
 	{/snippet}
 
 	<form class="estimate" onsubmit={saver.on_submit}>
@@ -196,10 +184,6 @@
 			{@render total()}
 		</div>
 
-		{#await saver.pending_save_promise catch err}
-			<p class="error">{err.message}</p>
-		{/await}
-
 		<div class="cards">
 			{#each form.line_items as line_item (line_item.stable_record_identifier)}
 				<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills} open_line_item={() => open_line_item(line_item)}>
@@ -223,10 +207,19 @@
 			{/if}
 			{@render total()}
 		</div>
+		<div class="bottom_save">
+			<button type="submit" class=default disabled={saver.saving || !form.needs_to_be_saved}>Save</button>
+		</div>
 	</form>
 </FixedVerticalLayout>
 
 <style>
+	.close {
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap_half);
+	}
+
 	.estimate {
 		width: 100%;
 		max-width: 72rem;
@@ -282,9 +275,9 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	.error {
-		margin: 0;
-		color: var(--attention_red);
+	.bottom_save {
+		display: flex;
+		justify-content: flex-end;
 	}
 
 	.cards {

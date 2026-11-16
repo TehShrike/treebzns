@@ -205,27 +205,30 @@ The form keeps `needs_to_be_saved`. It loses `values_to_save` and `update_db_val
 ### form_saver
 
 ```ts
-const save = () => {
-	const pending = form.start_save()
-	const sent = send(pending.values)
-		.catch(err => {
-			pending.discard()
-			throw new Error(error_message(err), { cause: err })
-		})
-		.then(result => { pending.commit(result) })
-	pending_save_promise = sent
+const save = async () => {
+	save_error_message = null
 	saving = true
-	const settle = () => { saving = false }
-	sent.then(settle, settle)
-	return sent
+	try {
+		const pending = form.start_save()
+		const result = await send(pending.values).catch((err: unknown) => {
+			pending.discard()
+			throw err
+		})
+		pending.commit(result)
+	} catch (err) {
+		save_error_message = error_message(err)
+		throw new Error(save_error_message, { cause: err })
+	} finally {
+		saving = false
+	}
 }
 ```
 
 `on_save` becomes `send`. It returns the server result and no longer updates the form. `Client.State.svelte` can still refresh the client cache inside `send`.
 
-`save` returns the promise and `pending_save_promise` holds it. The screens show the error with `{#await saver.pending_save_promise catch err}`, so there is no `save_error` field. The promise stays set after it rejects so the error stays on the page, which is why the buttons read the `saving` boolean rather than the promise.
+`form_saver` owns the error message. `saver.error_message` is null until a save fails, and the next save sets it back to null. The screens show it with `<ErrorMessage error={saver.error_message} />`. `save` also rejects, so a screen can chain `saver.save_if_appropriate().then(go_back)` and stay on the page when the save fails.
 
-`commit` runs on the same promise. A failed assert in `commit` rejects the save like any other failure, so the page shows it and `done` does not leave the screen. The only assert on that path checks that the server returned one id per added row, which belongs on the page.
+`commit` runs inside the same `try`. A failed assert in `commit` rejects the save like any other failure, so the page shows it and `done` does not leave the screen. The only assert on that path checks that the server returned one id per added row, which belongs on the page.
 
 ## The saving flag
 

@@ -90,6 +90,7 @@ const make_lead_form = (initial_estimator_employee_id: bigint | null) => {
 		set project(value) { project = value },
 		get availability() { return availability },
 		set availability(value) { availability = value },
+		needs_to_be_saved: true,
 		start_save,
 		set_client,
 		clear_client,

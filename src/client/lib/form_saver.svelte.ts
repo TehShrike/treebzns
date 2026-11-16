@@ -1,25 +1,28 @@
-const error_message = (err: any): string => err?.body?.message ?? err?.message ?? `Something went wrong`
+import error_message from '#lib/error_message.ts'
 
 const form_saver = <VALUES, RESULT>({ form, send }: {
-	form: { start_save: () => { values: VALUES, commit: (result: RESULT) => void, discard: () => void } }
+	form: { start_save: () => { values: VALUES, commit: (result: RESULT) => void, discard: () => void }, needs_to_be_saved: boolean }
 	send: (values: VALUES) => Promise<RESULT>
 }) => {
-	let pending_save_promise = $state.raw<Promise<void> | null>(null)
+	let save_error_message = $state<string | null>(null)
 	let saving = $state(false)
 
-	const save = () => {
-		const pending = form.start_save()
-		const sent = send(pending.values)
-			.catch((err: unknown) => {
-				pending.discard()
-				throw new Error(error_message(err), { cause: err })
-			})
-			.then(result => { pending.commit(result) })
-		pending_save_promise = sent
+	const save = async () => {
+		save_error_message = null
 		saving = true
-		const settle = () => { saving = false }
-		sent.then(settle, settle)
-		return sent
+		try {
+			const pending = form.start_save()
+			const result = await send(pending.values).catch((err: unknown) => {
+				pending.discard()
+				throw err
+			})
+			pending.commit(result)
+		} catch (err) {
+			save_error_message = error_message(err)
+			throw new Error(save_error_message, { cause: err })
+		} finally {
+			saving = false
+		}
 	}
 
 	const on_submit = (event: SubmitEvent) => {
@@ -28,9 +31,15 @@ const form_saver = <VALUES, RESULT>({ form, send }: {
 	}
 
 	return {
-		get pending_save_promise() { return pending_save_promise },
+		get error_message() { return save_error_message },
 		get saving() { return saving },
 		save,
+		save_if_appropriate: async () => {
+			if (!form.needs_to_be_saved) {
+				return
+			}
+			return save()
+		},
 		on_submit,
 	}
 }

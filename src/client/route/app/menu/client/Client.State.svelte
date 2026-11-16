@@ -3,6 +3,7 @@
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import AppScreen from '#component/AppScreen.svelte'
 	import ClientSearch from '#component/ClientSearch.svelte'
+	import ErrorMessage from '#component/ErrorMessage.svelte'
 	import type { SearchSelection } from '#component/client_search_selection.ts'
 	import FormLayout from '#component/FormLayout.svelte'
 	import FieldsetColumn from '#component/FieldsetColumn.svelte'
@@ -194,9 +195,7 @@
 		<button type="submit" form="client_form" class="default" disabled={saver.saving || !form.needs_to_be_saved}>Save</button>
 	</div>
 
-	{#await saver.pending_save_promise catch err}
-		<p class="error">{err.message}</p>
-	{/await}
+	<ErrorMessage error={saver.error_message} />
 
 	<form id="client_form" onsubmit={saver.on_submit}>
 		<FormLayout>
@@ -311,10 +310,3 @@
 		]}
 	/>
 </AppScreen>
-
-<style>
-	.error {
-		color: var(--attention_red);
-		margin: 0;
-	}
-</style>

@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import AppScreen from '#component/AppScreen.svelte'
+	import ErrorMessage from '#component/ErrorMessage.svelte'
 	import ClientSelector from './ClientSelector.svelte'
 	import AddressSelector from './AddressSelector.svelte'
 	import BillingAddressSelector from './BillingAddressSelector.svelte'
@@ -78,9 +79,7 @@
 
 		<ProjectSelector bind:project={lead.project} bind:availability={lead.availability} {lead_sources} {employees} />
 
-		{#await saver.pending_save_promise catch err}
-			<p class="error">{err.message}</p>
-		{/await}
+		<ErrorMessage error={saver.error_message} />
 
 		<div class="footer">
 			<button type="button" onclick={() => asr.go(`app.menu.home`)}>Cancel</button>
@@ -94,10 +93,5 @@
 		display: flex;
 		justify-content: flex-end;
 		gap: var(--gap_half);
-	}
-
-	.error {
-		color: var(--attention_red);
-		margin: 0;
 	}
 </style>
