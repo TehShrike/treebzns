@@ -97,7 +97,7 @@
 					{/if}
 				{/snippet}
 				<div class="body">
-					<div class="half location">
+					<div class="half">
 						<div>{row.client_contact.name}</div>
 						<div>{filter([row.project.address_line_1, row.project.address_line_2, row.project.city], Boolean).join(`, `)}</div>
 					</div>
@@ -133,11 +133,6 @@
 
 	.body > .half {
 		flex: 1 1 0;
-	}
-
-	.location {
-		display: flex;
-		flex-direction: column;
 	}
 
 	.lead-details {

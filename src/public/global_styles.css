@@ -6,6 +6,18 @@
 	gap: var(--gap_unit);
 }
 
+.flex_row {
+	display: flex;
+	flex-direction: row;
+	gap: var(--gap_unit);
+}
+
+.flex_column {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap_unit);
+}
+
 form {
 	display: flex;
 	flex-direction: column;

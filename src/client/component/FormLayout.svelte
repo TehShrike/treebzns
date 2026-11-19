@@ -33,25 +33,19 @@
 {/snippet}
 
 {#if outlined}
-	<fieldset class="form_layout">
+	<fieldset class="flex_column">
 		{#if legend}
 			<legend>{legend}</legend>
 		{/if}
 		{@render contents()}
 	</fieldset>
 {:else}
-	<div class="form_layout">
+	<div class="flex_column">
 		{@render contents()}
 	</div>
 {/if}
 
 <style>
-	.form_layout {
-		display: flex;
-		flex-direction: column;
-		gap: var(--gap_unit);
-	}
-
 	/* A grid (rather than flex-wrap) so the column count is computed once for the
 	   whole form: every field gets an identical width and partial rows leave
 	   empty trailing columns, instead of a short row stretching its fields wider

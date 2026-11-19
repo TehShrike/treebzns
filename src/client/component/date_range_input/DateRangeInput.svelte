@@ -110,7 +110,7 @@
 
 <svelte:window onmouseup={clear_any_mouse_down}></svelte:window>
 
-<div class="container">
+<div class="flex_row">
 	<Month
 		start={display_range.start}
 		end={display_range.end}
@@ -134,10 +134,3 @@
 		bind:visible_month={visible_end_month}
 	></Month>
 </div>
-
-<style>
-	.container {
-		display: flex;
-		gap: var(--gap_unit);
-	}
-</style>

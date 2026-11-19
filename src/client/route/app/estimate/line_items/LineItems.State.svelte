@@ -147,7 +147,7 @@
 
 <FixedVerticalLayout>
 	{#snippet top()}
-		<div class="close">
+		<div class="flex_column" style="gap: var(--gap_half)">
 			<button type="button" class="default" disabled={saver.saving} onclick={save_and_close}>
 				{#if form.needs_to_be_saved}
 					Save and close
@@ -160,7 +160,7 @@
 	{/snippet}
 
 	<form class="estimate" onsubmit={saver.on_submit}>
-		<header class="heading">
+		<header class="flex_column" style="gap: var(--gap_half)">
 			<h1>Estimate for {client.name}</h1>
 			<div class="lead_details">
 				<div>{street}</div>
@@ -171,7 +171,7 @@
 			</div>
 		</header>
 
-		<div class="crew_size_and_total">
+		<div class="flex_row crew_size_and_total">
 			<label class="crew_size">
 				Estimate crew size
 				<IntegerInput
@@ -184,7 +184,7 @@
 			{@render total()}
 		</div>
 
-		<div class="cards">
+		<div class="flex_column">
 			{#each form.line_items as line_item (line_item.stable_record_identifier)}
 				<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills} open_line_item={() => open_line_item(line_item)}>
 					{#snippet photos()}
@@ -201,34 +201,22 @@
 				<AddButton label="Add line item" text="Add new item" onclick={form.add_line_item} />
 			</div>
 		</div>
-		<div class="bottom_total">
+		<div class="flex_row bottom_total">
 			{#if next_project_document !== null}
 				<button type="button" disabled={saver.saving} onclick={save_as_next_project_document}>Save as {next_project_document.name}</button>
 			{/if}
 			{@render total()}
 		</div>
-		<div class="bottom_save">
+		<div class="flex_row" style="justify-content: flex-end">
 			<button type="submit" class=default disabled={saver.saving || !form.needs_to_be_saved}>Save</button>
 		</div>
 	</form>
 </FixedVerticalLayout>
 
 <style>
-	.close {
-		display: flex;
-		flex-direction: column;
-		gap: var(--gap_half);
-	}
-
 	.estimate {
 		width: 100%;
 		max-width: 72rem;
-	}
-
-	.heading {
-		display: flex;
-		flex-direction: column;
-		gap: var(--gap_half);
 	}
 
 	h1 {
@@ -238,8 +226,6 @@
 	}
 
 	.lead_details {
-		display: flex;
-		flex-direction: column;
 		font-size: 0.875rem;
 		color: var(--very_dark_gray);
 	}
@@ -250,10 +236,8 @@
 	}
 
 	.crew_size_and_total {
-		display: flex;
 		justify-content: space-between;
 		align-items: flex-end;
-		gap: var(--gap_unit);
 	}
 
 	.crew_size {
@@ -261,10 +245,8 @@
 	}
 
 	.bottom_total {
-		display: flex;
 		justify-content: flex-end;
 		align-items: center;
-		gap: var(--gap_unit);
 	}
 
 	.total {
@@ -273,18 +255,6 @@
 		min-height: var(--input-height);
 		font-weight: bold;
 		font-variant-numeric: tabular-nums;
-	}
-
-	.bottom_save {
-		display: flex;
-		justify-content: flex-end;
-	}
-
-	.cards {
-		display: flex;
-		flex-direction: column;
-		align-items: stretch;
-		gap: var(--gap_unit);
 	}
 
 	.add_line_item {

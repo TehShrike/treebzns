@@ -55,7 +55,7 @@
 		<button type="button" onclick={() => remove_window(index)}>Remove</button>
 	</div>
 {/each}
-<div class="row">
+<div class="flex_row">
 	<button type="button" onclick={add_window}>Add another window</button>
 </div>
 
@@ -64,11 +64,6 @@
 		display: grid;
 		grid-template-columns: 12rem 8rem 8rem 5rem;
 		align-items: end;
-		gap: var(--gap_half);
-	}
-
-	.row {
-		display: flex;
 		gap: var(--gap_half);
 	}
 </style>

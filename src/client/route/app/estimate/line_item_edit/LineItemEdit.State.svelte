@@ -142,8 +142,6 @@
 	}
 
 	.save_error {
-		display: flex;
-		flex-direction: column;
 		min-height: 1lh;
 	}
 </style>
