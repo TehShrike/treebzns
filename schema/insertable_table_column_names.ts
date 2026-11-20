@@ -70,7 +70,7 @@ export const client_tag = {
 
 export const clock_session = {
 	company_id: 'company_id',
-	project_id: 'project_id',
+	work_order_id: 'work_order_id',
 	crew_id: 'crew_id',
 	work_date: 'work_date',
 	supersedes_clock_session_id: 'supersedes_clock_session_id',
@@ -101,10 +101,10 @@ export const clock_session_employee_history = {
 	change_datetime: 'change_datetime',
 } as const
 
-export const clock_session_line_item = {
+export const clock_session_work_line_item = {
 	company_id: 'company_id',
 	clock_session_id: 'clock_session_id',
-	project_line_item_id: 'project_line_item_id',
+	project_work_line_item_id: 'project_work_line_item_id',
 } as const
 
 export const company = {
@@ -169,10 +169,11 @@ export const employee_software_role = {
 	software_role_id: 'software_role_id',
 } as const
 
-export const employee_work_skill = {
+export const equipment = {
 	company_id: 'company_id',
-	employee_id: 'employee_id',
-	work_skill_id: 'work_skill_id',
+	name: 'name',
+	short_name: 'short_name',
+	hourly_rate: 'hourly_rate',
 } as const
 
 export const estimate_availability = {
@@ -226,29 +227,9 @@ export const invoice_number = {
 	next_number: 'next_number',
 } as const
 
-export const item_type = {
-	company_id: 'company_id',
-	name: 'name',
-	taxable: 'taxable',
-} as const
-
 export const lead_source = {
 	company_id: 'company_id',
 	name: 'name',
-} as const
-
-export const line_item_template = {
-	company_id: 'company_id',
-	title: 'title',
-	estimated_hours: 'estimated_hours',
-	price: 'price',
-	arbostar_work_type_id: 'arbostar_work_type_id',
-} as const
-
-export const line_item_template_work_skill = {
-	company_id: 'company_id',
-	line_item_template_id: 'line_item_template_id',
-	work_skill_id: 'work_skill_id',
 } as const
 
 export const migration = {
@@ -339,28 +320,6 @@ export const project_client_approval = {
 	added_by_employee_id: 'added_by_employee_id',
 } as const
 
-export const project_crew = {
-	company_id: 'company_id',
-	project_id: 'project_id',
-	crew_id: 'crew_id',
-	work_date: 'work_date',
-	day_order: 'day_order',
-	start_time: 'start_time',
-	arbostar_schedule_event_id: 'arbostar_schedule_event_id',
-} as const
-
-export const project_crew_employee = {
-	company_id: 'company_id',
-	project_crew_id: 'project_crew_id',
-	employee_id: 'employee_id',
-} as const
-
-export const project_crew_project_line_item = {
-	company_id: 'company_id',
-	project_crew_id: 'project_crew_id',
-	project_line_item_id: 'project_line_item_id',
-} as const
-
 export const project_decline_reason = {
 	company_id: 'company_id',
 	reason: 'reason',
@@ -412,22 +371,14 @@ export const project_line_item = {
 	company_id: 'company_id',
 	project_id: 'project_id',
 	title: 'title',
-	work_details: 'work_details',
-	item_type_id: 'item_type_id',
-	line_item_template_id: 'line_item_template_id',
-	estimated_crew_size: 'estimated_crew_size',
-	estimated_hours: 'estimated_hours',
+	description: 'description',
 	taxable: 'taxable',
 	client_optional: 'client_optional',
 	client_declined: 'client_declined',
-	quantity: 'quantity',
 	price: 'price',
 	discount_rate: 'discount_rate',
-	discount: 'discount',
 	discount_description: 'discount_description',
 	sort: 'sort',
-	done_at: 'done_at',
-	done_by_employee_id: 'done_by_employee_id',
 	arbostar_line_item_id: 'arbostar_line_item_id',
 } as const
 
@@ -438,16 +389,31 @@ export const project_line_item_image = {
 	sort: 'sort',
 } as const
 
-export const project_line_item_work_skill = {
-	company_id: 'company_id',
-	project_line_item_id: 'project_line_item_id',
-	work_skill_id: 'work_skill_id',
-	count: 'count',
-} as const
-
 export const project_number = {
 	company_id: 'company_id',
 	next_number: 'next_number',
+} as const
+
+export const project_work_line_item = {
+	company_id: 'company_id',
+	project_line_item_id: 'project_line_item_id',
+	work_type_id: 'work_type_id',
+	work_details: 'work_details',
+	estimated_crew_size: 'estimated_crew_size',
+	estimated_hours: 'estimated_hours',
+	hourly_rate: 'hourly_rate',
+	price: 'price',
+	discount: 'discount',
+	sort: 'sort',
+	done_at: 'done_at',
+	done_by_employee_id: 'done_by_employee_id',
+} as const
+
+export const project_work_line_item_equipment = {
+	company_id: 'company_id',
+	project_work_line_item_id: 'project_work_line_item_id',
+	equipment_id: 'equipment_id',
+	count: 'count',
 } as const
 
 export const software_role = {
@@ -467,10 +433,32 @@ export const tax_rate = {
 	tax_rate: 'tax_rate',
 } as const
 
-export const work_skill = {
+export const work_order = {
+	company_id: 'company_id',
+	project_id: 'project_id',
+	crew_id: 'crew_id',
+	work_date: 'work_date',
+	day_order: 'day_order',
+	start_time: 'start_time',
+	arbostar_schedule_event_id: 'arbostar_schedule_event_id',
+} as const
+
+export const work_order_employee = {
+	company_id: 'company_id',
+	work_order_id: 'work_order_id',
+	employee_id: 'employee_id',
+} as const
+
+export const work_order_project_work_line_item = {
+	company_id: 'company_id',
+	work_order_id: 'work_order_id',
+	project_work_line_item_id: 'project_work_line_item_id',
+} as const
+
+export const work_type = {
 	company_id: 'company_id',
 	name: 'name',
-	short_name: 'short_name',
+	taxable: 'taxable',
 	hourly_rate: 'hourly_rate',
 } as const
 
@@ -484,7 +472,7 @@ const insertable_table_column_names = {
 	clock_session,
 	clock_session_employee,
 	clock_session_employee_history,
-	clock_session_line_item,
+	clock_session_work_line_item,
 	company,
 	crew,
 	crew_regular,
@@ -492,15 +480,12 @@ const insertable_table_column_names = {
 	employee,
 	employee_session,
 	employee_software_role,
-	employee_work_skill,
+	equipment,
 	estimate_availability,
 	invoice,
 	invoice_line_item,
 	invoice_number,
-	item_type,
 	lead_source,
-	line_item_template,
-	line_item_template_work_skill,
 	migration,
 	payment,
 	payment_invoice,
@@ -508,21 +493,22 @@ const insertable_table_column_names = {
 	permission,
 	project,
 	project_client_approval,
-	project_crew,
-	project_crew_employee,
-	project_crew_project_line_item,
 	project_decline_reason,
 	project_document,
 	project_document_history,
 	project_image,
 	project_line_item,
 	project_line_item_image,
-	project_line_item_work_skill,
 	project_number,
+	project_work_line_item,
+	project_work_line_item_equipment,
 	software_role,
 	software_role_permission,
 	tax_rate,
-	work_skill,
+	work_order,
+	work_order_employee,
+	work_order_project_work_line_item,
+	work_type,
 }
 
 export default insertable_table_column_names

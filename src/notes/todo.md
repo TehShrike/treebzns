@@ -25,6 +25,10 @@ White background behind large links?
 	- "just raise"
 - Chat window should say estimators name
 
+---
+
+project_document -> project_status?
+
 ### Very important for actual use
 
 - Need feedback on upload progress

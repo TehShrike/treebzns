@@ -10,7 +10,7 @@ export type Schema = {
 	clock_session: DbClockSession
 	clock_session_employee: DbClockSessionEmployee
 	clock_session_employee_history: DbClockSessionEmployeeHistory
-	clock_session_line_item: DbClockSessionLineItem
+	clock_session_work_line_item: DbClockSessionWorkLineItem
 	company: DbCompany
 	crew: DbCrew
 	crew_regular: DbCrewRegular
@@ -18,15 +18,12 @@ export type Schema = {
 	employee: DbEmployee
 	employee_session: DbEmployeeSession
 	employee_software_role: DbEmployeeSoftwareRole
-	employee_work_skill: DbEmployeeWorkSkill
+	equipment: DbEquipment
 	estimate_availability: DbEstimateAvailability
 	invoice: DbInvoice
 	invoice_line_item: DbInvoiceLineItem
 	invoice_number: DbInvoiceNumber
-	item_type: DbItemType
 	lead_source: DbLeadSource
-	line_item_template: DbLineItemTemplate
-	line_item_template_work_skill: DbLineItemTemplateWorkSkill
 	migration: DbMigration
 	payment: DbPayment
 	payment_invoice: DbPaymentInvoice
@@ -34,21 +31,22 @@ export type Schema = {
 	permission: DbPermission
 	project: DbProject
 	project_client_approval: DbProjectClientApproval
-	project_crew: DbProjectCrew
-	project_crew_employee: DbProjectCrewEmployee
-	project_crew_project_line_item: DbProjectCrewProjectLineItem
 	project_decline_reason: DbProjectDeclineReason
 	project_document: DbProjectDocument
 	project_document_history: DbProjectDocumentHistory
 	project_image: DbProjectImage
 	project_line_item: DbProjectLineItem
 	project_line_item_image: DbProjectLineItemImage
-	project_line_item_work_skill: DbProjectLineItemWorkSkill
 	project_number: DbProjectNumber
+	project_work_line_item: DbProjectWorkLineItem
+	project_work_line_item_equipment: DbProjectWorkLineItemEquipment
 	software_role: DbSoftwareRole
 	software_role_permission: DbSoftwareRolePermission
 	tax_rate: DbTaxRate
-	work_skill: DbWorkSkill
+	work_order: DbWorkOrder
+	work_order_employee: DbWorkOrderEmployee
+	work_order_project_work_line_item: DbWorkOrderProjectWorkLineItem
+	work_type: DbWorkType
 }
 
 export type InsertableSchema = {
@@ -61,7 +59,7 @@ export type InsertableSchema = {
 	clock_session: DbInsertableClockSession
 	clock_session_employee: DbInsertableClockSessionEmployee
 	clock_session_employee_history: DbInsertableClockSessionEmployeeHistory
-	clock_session_line_item: DbInsertableClockSessionLineItem
+	clock_session_work_line_item: DbInsertableClockSessionWorkLineItem
 	company: DbInsertableCompany
 	crew: DbInsertableCrew
 	crew_regular: DbInsertableCrewRegular
@@ -69,15 +67,12 @@ export type InsertableSchema = {
 	employee: DbInsertableEmployee
 	employee_session: DbInsertableEmployeeSession
 	employee_software_role: DbInsertableEmployeeSoftwareRole
-	employee_work_skill: DbInsertableEmployeeWorkSkill
+	equipment: DbInsertableEquipment
 	estimate_availability: DbInsertableEstimateAvailability
 	invoice: DbInsertableInvoice
 	invoice_line_item: DbInsertableInvoiceLineItem
 	invoice_number: DbInsertableInvoiceNumber
-	item_type: DbInsertableItemType
 	lead_source: DbInsertableLeadSource
-	line_item_template: DbInsertableLineItemTemplate
-	line_item_template_work_skill: DbInsertableLineItemTemplateWorkSkill
 	migration: DbInsertableMigration
 	payment: DbInsertablePayment
 	payment_invoice: DbInsertablePaymentInvoice
@@ -85,19 +80,20 @@ export type InsertableSchema = {
 	permission: DbInsertablePermission
 	project: DbInsertableProject
 	project_client_approval: DbInsertableProjectClientApproval
-	project_crew: DbInsertableProjectCrew
-	project_crew_employee: DbInsertableProjectCrewEmployee
-	project_crew_project_line_item: DbInsertableProjectCrewProjectLineItem
 	project_decline_reason: DbInsertableProjectDeclineReason
 	project_document: DbInsertableProjectDocument
 	project_document_history: DbInsertableProjectDocumentHistory
 	project_image: DbInsertableProjectImage
 	project_line_item: DbInsertableProjectLineItem
 	project_line_item_image: DbInsertableProjectLineItemImage
-	project_line_item_work_skill: DbInsertableProjectLineItemWorkSkill
 	project_number: DbInsertableProjectNumber
+	project_work_line_item: DbInsertableProjectWorkLineItem
+	project_work_line_item_equipment: DbInsertableProjectWorkLineItemEquipment
 	software_role: DbInsertableSoftwareRole
 	software_role_permission: DbInsertableSoftwareRolePermission
 	tax_rate: DbInsertableTaxRate
-	work_skill: DbInsertableWorkSkill
+	work_order: DbInsertableWorkOrder
+	work_order_employee: DbInsertableWorkOrderEmployee
+	work_order_project_work_line_item: DbInsertableWorkOrderProjectWorkLineItem
+	work_type: DbInsertableWorkType
 }

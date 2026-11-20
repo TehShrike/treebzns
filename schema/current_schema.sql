@@ -103,7 +103,7 @@ CREATE TABLE `client_tag` (
 CREATE TABLE `clock_session` (
   `clock_session_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
-  `project_id` int unsigned NOT NULL,
+  `work_order_id` int unsigned NOT NULL,
   `crew_id` int unsigned DEFAULT NULL,
   `work_date` date NOT NULL,
   `supersedes_clock_session_id` int unsigned DEFAULT NULL,
@@ -114,8 +114,8 @@ CREATE TABLE `clock_session` (
   PRIMARY KEY (`clock_session_id`),
   UNIQUE KEY `uq_clock_session_supersedes` (`supersedes_clock_session_id`),
   KEY `idx_clock_session_company_work_date` (`company_id`,`work_date`),
-  KEY `idx_clock_session_project` (`project_id`),
-  KEY `idx_clock_session_crew` (`crew_id`)
+  KEY `idx_clock_session_crew` (`crew_id`),
+  KEY `idx_clock_session_work_order` (`work_order_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `clock_session_employee` (
@@ -154,15 +154,15 @@ CREATE TABLE `clock_session_employee_history` (
   KEY `idx_cseh_company_change_date` (`company_id`,`change_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `clock_session_line_item` (
-  `clock_session_line_item_id` int unsigned NOT NULL AUTO_INCREMENT,
+CREATE TABLE `clock_session_work_line_item` (
+  `clock_session_work_line_item_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
   `clock_session_id` int unsigned NOT NULL,
-  `project_line_item_id` int unsigned NOT NULL,
+  `project_work_line_item_id` int unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`clock_session_line_item_id`),
-  UNIQUE KEY `uq_csli_session_line_item` (`clock_session_id`,`project_line_item_id`),
-  KEY `idx_csli_project_line_item` (`project_line_item_id`)
+  PRIMARY KEY (`clock_session_work_line_item_id`),
+  UNIQUE KEY `uq_cswli_session_work_line_item` (`clock_session_id`,`project_work_line_item_id`),
+  KEY `idx_cswli_project_work_line_item` (`project_work_line_item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `company` (
@@ -265,16 +265,16 @@ CREATE TABLE `employee_software_role` (
   KEY `idx_esr_software_role` (`software_role_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `employee_work_skill` (
-  `employee_work_skill_id` int unsigned NOT NULL AUTO_INCREMENT,
+CREATE TABLE `equipment` (
+  `equipment_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
-  `employee_id` int unsigned NOT NULL,
-  `work_skill_id` int unsigned NOT NULL,
+  `name` varchar(200) COLLATE utf8mb4_general_ci NOT NULL,
+  `short_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `hourly_rate` decimal(10,2) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`employee_work_skill_id`),
-  UNIQUE KEY `uq_employee_work_skill_employee_work_skill` (`employee_id`,`work_skill_id`),
-  KEY `idx_employee_work_skill_work_skill` (`work_skill_id`)
+  PRIMARY KEY (`equipment_id`),
+  UNIQUE KEY `uq_equipment_company_name` (`company_id`,`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `estimate_availability` (
@@ -352,17 +352,6 @@ CREATE TABLE `invoice_number` (
   UNIQUE KEY `uq_invoice_number_company` (`company_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `item_type` (
-  `item_type_id` int unsigned NOT NULL AUTO_INCREMENT,
-  `company_id` int unsigned NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `taxable` bit(1) NOT NULL DEFAULT b'0',
-  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`item_type_id`),
-  UNIQUE KEY `uq_item_type_company_name` (`company_id`,`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 CREATE TABLE `lead_source` (
   `lead_source_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
@@ -371,32 +360,6 @@ CREATE TABLE `lead_source` (
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   PRIMARY KEY (`lead_source_id`),
   UNIQUE KEY `uq_lead_source_company_name` (`company_id`,`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `line_item_template` (
-  `line_item_template_id` int unsigned NOT NULL AUTO_INCREMENT,
-  `company_id` int unsigned NOT NULL,
-  `title` varchar(200) COLLATE utf8mb4_general_ci NOT NULL,
-  `estimated_hours` decimal(10,2) DEFAULT NULL,
-  `price` decimal(10,2) DEFAULT NULL,
-  `arbostar_work_type_id` int unsigned DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`line_item_template_id`),
-  UNIQUE KEY `uq_line_item_template_company_title` (`company_id`,`title`),
-  UNIQUE KEY `uq_line_item_template_company_arbostar_work_type_id` (`company_id`,`arbostar_work_type_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `line_item_template_work_skill` (
-  `line_item_template_work_skill_id` int unsigned NOT NULL AUTO_INCREMENT,
-  `company_id` int unsigned NOT NULL,
-  `line_item_template_id` int unsigned NOT NULL,
-  `work_skill_id` int unsigned NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`line_item_template_work_skill_id`),
-  UNIQUE KEY `uq_litws_line_item_template_work_skill` (`line_item_template_id`,`work_skill_id`),
-  KEY `idx_litws_work_skill` (`work_skill_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `migration` (
@@ -530,47 +493,6 @@ CREATE TABLE `project_client_approval` (
   KEY `idx_pca_project` (`project_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `project_crew` (
-  `project_crew_id` int unsigned NOT NULL AUTO_INCREMENT,
-  `company_id` int unsigned NOT NULL,
-  `project_id` int unsigned NOT NULL,
-  `crew_id` int unsigned NOT NULL,
-  `work_date` date NOT NULL,
-  `day_order` tinyint unsigned DEFAULT NULL,
-  `start_time` time DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `arbostar_schedule_event_id` bigint unsigned DEFAULT NULL,
-  PRIMARY KEY (`project_crew_id`),
-  UNIQUE KEY `uq_project_crew_project_crew_work_date` (`project_id`,`crew_id`,`work_date`),
-  UNIQUE KEY `uq_project_crew_crew_work_date_day_order` (`crew_id`,`work_date`,`day_order`),
-  UNIQUE KEY `uq_project_crew_company_arbostar_schedule_event_id` (`company_id`,`arbostar_schedule_event_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `project_crew_employee` (
-  `project_crew_employee_id` int unsigned NOT NULL AUTO_INCREMENT,
-  `company_id` int unsigned NOT NULL,
-  `project_crew_id` int unsigned NOT NULL,
-  `employee_id` int unsigned NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`project_crew_employee_id`),
-  UNIQUE KEY `uq_project_crew_employee_project_crew_employee` (`project_crew_id`,`employee_id`),
-  KEY `idx_project_crew_employee_employee` (`employee_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `project_crew_project_line_item` (
-  `project_crew_project_line_item_id` int unsigned NOT NULL AUTO_INCREMENT,
-  `company_id` int unsigned NOT NULL,
-  `project_crew_id` int unsigned NOT NULL,
-  `project_line_item_id` int unsigned NOT NULL,
-  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`project_crew_project_line_item_id`),
-  UNIQUE KEY `uq_pcpli_project_crew_project_line_item` (`project_crew_id`,`project_line_item_id`),
-  KEY `idx_pcpli_project_line_item` (`project_line_item_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 CREATE TABLE `project_decline_reason` (
   `project_decline_reason_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
@@ -645,30 +567,20 @@ CREATE TABLE `project_line_item` (
   `company_id` int unsigned NOT NULL,
   `project_id` int unsigned NOT NULL,
   `title` varchar(200) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `work_details` text COLLATE utf8mb4_general_ci,
-  `item_type_id` int unsigned DEFAULT NULL,
-  `line_item_template_id` int unsigned DEFAULT NULL,
-  `estimated_crew_size` tinyint unsigned DEFAULT NULL,
-  `estimated_hours` decimal(10,2) DEFAULT NULL,
+  `description` text COLLATE utf8mb4_general_ci NOT NULL DEFAULT (_utf8mb4''),
   `taxable` bit(1) NOT NULL DEFAULT b'0',
   `client_optional` bit(1) NOT NULL DEFAULT b'0',
   `client_declined` bit(1) NOT NULL DEFAULT b'0',
-  `quantity` decimal(10,2) NOT NULL,
   `price` decimal(10,2) NOT NULL,
   `discount_rate` decimal(5,4) DEFAULT NULL,
-  `discount` decimal(10,2) DEFAULT NULL,
   `discount_description` varchar(200) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `sort` smallint unsigned NOT NULL,
-  `done_at` datetime DEFAULT NULL,
-  `done_by_employee_id` int unsigned DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `arbostar_line_item_id` int unsigned DEFAULT NULL,
   PRIMARY KEY (`project_line_item_id`),
   UNIQUE KEY `uq_project_line_item_company_arbostar_line_item_id` (`company_id`,`arbostar_line_item_id`),
-  KEY `idx_pli_project` (`project_id`),
-  KEY `idx_pli_item_type` (`item_type_id`),
-  KEY `idx_pli_line_item_template` (`line_item_template_id`)
+  KEY `idx_pli_project` (`project_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `project_line_item_image` (
@@ -684,19 +596,6 @@ CREATE TABLE `project_line_item_image` (
   KEY `idx_plii_line_item` (`project_line_item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `project_line_item_work_skill` (
-  `project_line_item_work_skill_id` int unsigned NOT NULL AUTO_INCREMENT,
-  `company_id` int unsigned NOT NULL,
-  `project_line_item_id` int unsigned NOT NULL,
-  `work_skill_id` int unsigned NOT NULL,
-  `count` smallint unsigned NOT NULL DEFAULT '1',
-  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`project_line_item_work_skill_id`),
-  UNIQUE KEY `uq_pliws_project_line_item_work_skill` (`project_line_item_id`,`work_skill_id`),
-  KEY `idx_pliws_work_skill` (`work_skill_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
 CREATE TABLE `project_number` (
   `project_number_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
@@ -705,6 +604,40 @@ CREATE TABLE `project_number` (
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   PRIMARY KEY (`project_number_id`),
   UNIQUE KEY `uq_project_number_company` (`company_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `project_work_line_item` (
+  `project_work_line_item_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `project_line_item_id` int unsigned NOT NULL,
+  `work_type_id` int unsigned DEFAULT NULL,
+  `work_details` text COLLATE utf8mb4_general_ci NOT NULL DEFAULT (_utf8mb4''),
+  `estimated_crew_size` tinyint unsigned DEFAULT NULL,
+  `estimated_hours` decimal(10,2) DEFAULT NULL,
+  `hourly_rate` decimal(10,2) DEFAULT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `discount` decimal(10,2) DEFAULT NULL,
+  `sort` smallint unsigned NOT NULL,
+  `done_at` datetime DEFAULT NULL,
+  `done_by_employee_id` int unsigned DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`project_work_line_item_id`),
+  KEY `idx_pwli_project_line_item` (`project_line_item_id`),
+  KEY `idx_pwli_work_type` (`work_type_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `project_work_line_item_equipment` (
+  `project_work_line_item_equipment_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `project_work_line_item_id` int unsigned NOT NULL,
+  `equipment_id` int unsigned NOT NULL,
+  `count` smallint unsigned NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`project_work_line_item_equipment_id`),
+  UNIQUE KEY `uq_pwlie_project_work_line_item_equipment` (`project_work_line_item_id`,`equipment_id`),
+  KEY `idx_pwlie_equipment` (`equipment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `software_role` (
@@ -738,14 +671,55 @@ CREATE TABLE `tax_rate` (
   UNIQUE KEY `uq_tax_rate_company_name` (`company_id`,`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `work_skill` (
-  `work_skill_id` int unsigned NOT NULL AUTO_INCREMENT,
+CREATE TABLE `work_order` (
+  `work_order_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
-  `name` varchar(200) COLLATE utf8mb4_general_ci NOT NULL,
-  `short_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
-  `hourly_rate` decimal(10,2) NOT NULL,
+  `project_id` int unsigned NOT NULL,
+  `crew_id` int unsigned NOT NULL,
+  `work_date` date NOT NULL,
+  `day_order` tinyint unsigned DEFAULT NULL,
+  `start_time` time DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`work_skill_id`),
-  KEY `idx_work_skill_company` (`company_id`)
+  `arbostar_schedule_event_id` bigint unsigned DEFAULT NULL,
+  PRIMARY KEY (`work_order_id`),
+  UNIQUE KEY `uq_work_order_project_crew_work_date` (`project_id`,`crew_id`,`work_date`),
+  UNIQUE KEY `uq_work_order_crew_work_date_day_order` (`crew_id`,`work_date`,`day_order`),
+  UNIQUE KEY `uq_work_order_company_arbostar_schedule_event_id` (`company_id`,`arbostar_schedule_event_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `work_order_employee` (
+  `work_order_employee_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `work_order_id` int unsigned NOT NULL,
+  `employee_id` int unsigned NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`work_order_employee_id`),
+  UNIQUE KEY `uq_work_order_employee_work_order_employee` (`work_order_id`,`employee_id`),
+  KEY `idx_work_order_employee_employee` (`employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `work_order_project_work_line_item` (
+  `work_order_project_work_line_item_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `work_order_id` int unsigned NOT NULL,
+  `project_work_line_item_id` int unsigned NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`work_order_project_work_line_item_id`),
+  UNIQUE KEY `uq_wopwli_work_order_project_work_line_item` (`work_order_id`,`project_work_line_item_id`),
+  KEY `idx_wopwli_project_work_line_item` (`project_work_line_item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `work_type` (
+  `work_type_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `taxable` bit(1) NOT NULL DEFAULT b'0',
+  `hourly_rate` decimal(10,2) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`work_type_id`),
+  UNIQUE KEY `uq_work_type_company_name` (`company_id`,`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

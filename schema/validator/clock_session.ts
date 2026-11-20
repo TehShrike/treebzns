@@ -5,7 +5,7 @@ import { is_temporal_instant, is_temporal_plain_date } from '#shared/value_valid
 export const validator_object = {
 	clock_session_id: jv.is_bigint,
 	company_id: jv.is_bigint,
-	project_id: jv.is_bigint,
+	work_order_id: jv.is_bigint,
 	crew_id: jv.nullable(jv.is_bigint),
 	work_date: is_temporal_plain_date,
 	supersedes_clock_session_id: jv.nullable(jv.is_bigint),
