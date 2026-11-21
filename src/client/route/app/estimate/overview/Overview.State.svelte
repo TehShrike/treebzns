@@ -106,7 +106,7 @@
 		{/if}
 	</fieldset>
 
-	<a class="all_projects" href={asr.makePath(`app.menu.leads_to_estimate`)}>All projects to estimate</a>
+	<a class="all_projects block_link" href={asr.makePath(`app.menu.leads_to_estimate`)}>All projects to estimate</a>
 </FixedVerticalLayout>
 
 <style>

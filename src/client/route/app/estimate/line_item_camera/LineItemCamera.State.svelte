@@ -131,7 +131,7 @@
 
 		{#snippet top()}
 			{#if line_item === null}
-				<a class="top_action" href={line_items_href} onclick={camera_service.close_if_active}>Edit all items</a>
+				<a class="top_action block_link" href={line_items_href} onclick={camera_service.close_if_active}>Edit all items</a>
 			{:else if opened_from_line_items}
 				<a class="top_action link-button" href={line_items_href} onclick={camera_service.close_if_active}>Done with item</a>
 			{:else}

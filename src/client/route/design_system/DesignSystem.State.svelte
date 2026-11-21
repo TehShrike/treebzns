@@ -184,6 +184,19 @@
 		</section>
 
 		<section class="component">
+			<h3 id="block-link">Block link</h3>
+
+			<p>
+				A link that sits directly on the page background can show its whole clickable area. Put the
+				class <code>block_link</code> on an <code>a</code> element to give it a white background.
+			</p>
+
+			<div class="example">
+				<a class="block_link" href="#block-link">I am a block link</a>
+			</div>
+		</section>
+
+		<section class="component">
 			<h3 id="checkbox">Checkbox</h3>
 			<blockquote>
 				A <em>check box</em> represents an independent or non-exclusive choice.

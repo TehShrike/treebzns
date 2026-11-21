@@ -17,12 +17,12 @@
 <nav>
 	<div>
 		{#if previous_line_item}
-			<a href={href(previous_line_item)}>Back: "{previous_line_item.title}"</a>
+			<a class="block_link" href={href(previous_line_item)}>Back: "{previous_line_item.title}"</a>
 		{/if}
 	</div>
 	<div>
 		{#if next_line_item}
-			<a href={href(next_line_item)}>Forward: "{next_line_item.title}"</a>
+			<a class="block_link" href={href(next_line_item)}>Forward: "{next_line_item.title}"</a>
 		{/if}
 	</div>
 </nav>
@@ -33,10 +33,15 @@
 		justify-content: space-between;
 		gap: var(--gap_unit);
 		flex-shrink: 0;
-		min-height: 1lh;
+		min-height: calc(1lh + 0.5em);
 	}
 
 	div {
+		display: flex;
+		min-width: 0;
+	}
+
+	a {
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
