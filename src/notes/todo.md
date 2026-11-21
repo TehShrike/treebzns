@@ -2,6 +2,10 @@
 
 White background behind large links?
 
+## Notes from showing Andrew 2026-10-30
+
+- line items should have a "primary" image that is the main one the customer sees with the line item
+
 ## "Stale text" after line item rewrite
 
 - src/notes/line_item_price_estimate_calculation.md:11 lists the rounding increment as a work item input. It now applies to the line item price only.
@@ -12,10 +16,6 @@ White background behind large links?
 - src/notes/todo.md:46 and :89 name item types and skills.
 - src/notes/todo.md:50 names a line item discount, which now lives on the work item.
 - src/notes/todo.md:58 line item titles are editable.
-
-## Notes from showing Andrew 2026-10-30
-
-- line items should have a "primary" image that is the main one the customer sees with the line item
 
 ## Notes with Andrew 2026-11-14
 
