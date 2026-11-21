@@ -6,7 +6,7 @@ const done = { done_at: is_temporal_instant, done_by_employee_id: jv.is_bigint }
 const not_done = { done_at: jv.is_null, done_by_employee_id: jv.is_null } as const
 
 export const validator_object = {
-	project_work_line_item_id: jv.is_bigint,
+	project_line_item_work_item_id: jv.is_bigint,
 	company_id: jv.is_bigint,
 	project_line_item_id: jv.is_bigint,
 	work_type_id: jv.nullable(jv.is_bigint),
@@ -21,14 +21,14 @@ export const validator_object = {
 	updated_at: is_temporal_instant,
 }
 
-export const project_work_line_item_validator: Validator<DbProjectWorkLineItem> = jv.one_of(
+export const project_line_item_work_item_validator: Validator<DbProjectLineItemWorkItem> = jv.one_of(
 	jv.object({ ...validator_object, ...done }),
 	jv.object({ ...validator_object, ...not_done }),
 )
 
-const insertable_validator_object = omit(validator_object, ['project_work_line_item_id', 'created_at', 'updated_at'])
+const insertable_validator_object = omit(validator_object, ['project_line_item_work_item_id', 'created_at', 'updated_at'])
 
-export const insertable_project_work_line_item_validator: Validator<DbInsertableProjectWorkLineItem> = jv.one_of(
+export const insertable_project_line_item_work_item_validator: Validator<DbInsertableProjectLineItemWorkItem> = jv.one_of(
 	jv.object({ ...insertable_validator_object, ...done }),
 	jv.object({ ...insertable_validator_object, ...not_done }),
 )

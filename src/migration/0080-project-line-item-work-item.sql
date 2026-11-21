@@ -1,0 +1,28 @@
+RENAME TABLE
+	project_work_line_item TO project_line_item_work_item,
+	project_work_line_item_equipment TO project_line_item_work_item_equipment,
+	work_order_project_work_line_item TO work_order_project_line_item_work_item,
+	clock_session_work_line_item TO clock_session_project_line_item_work_item;
+
+ALTER TABLE project_line_item_work_item
+	RENAME COLUMN project_work_line_item_id TO project_line_item_work_item_id,
+	RENAME INDEX idx_pwli_project_line_item TO idx_pliwi_project_line_item,
+	RENAME INDEX idx_pwli_work_type TO idx_pliwi_work_type;
+
+ALTER TABLE project_line_item_work_item_equipment
+	RENAME COLUMN project_work_line_item_equipment_id TO project_line_item_work_item_equipment_id,
+	RENAME COLUMN project_work_line_item_id TO project_line_item_work_item_id,
+	RENAME INDEX uq_pwlie_project_work_line_item_equipment TO uq_pliwie_project_line_item_work_item_equipment,
+	RENAME INDEX idx_pwlie_equipment TO idx_pliwie_equipment;
+
+ALTER TABLE work_order_project_line_item_work_item
+	RENAME COLUMN work_order_project_work_line_item_id TO work_order_project_line_item_work_item_id,
+	RENAME COLUMN project_work_line_item_id TO project_line_item_work_item_id,
+	RENAME INDEX uq_wopwli_work_order_project_work_line_item TO uq_wopliwi_work_order_project_line_item_work_item,
+	RENAME INDEX idx_wopwli_project_work_line_item TO idx_wopliwi_project_line_item_work_item;
+
+ALTER TABLE clock_session_project_line_item_work_item
+	RENAME COLUMN clock_session_work_line_item_id TO clock_session_project_line_item_work_item_id,
+	RENAME COLUMN project_work_line_item_id TO project_line_item_work_item_id,
+	RENAME INDEX uq_cswli_session_work_line_item TO uq_cspliwi_session_project_line_item_work_item,
+	RENAME INDEX idx_cswli_project_work_line_item TO idx_cspliwi_project_line_item_work_item;

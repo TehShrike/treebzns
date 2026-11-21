@@ -127,11 +127,11 @@ export const clock_session_employee_history = {
 	created_at: 'created_at',
 } as const
 
-export const clock_session_work_line_item = {
-	clock_session_work_line_item_id: 'clock_session_work_line_item_id',
+export const clock_session_project_line_item_work_item = {
+	clock_session_project_line_item_work_item_id: 'clock_session_project_line_item_work_item_id',
 	company_id: 'company_id',
 	clock_session_id: 'clock_session_id',
-	project_work_line_item_id: 'project_work_line_item_id',
+	project_line_item_work_item_id: 'project_line_item_work_item_id',
 	created_at: 'created_at',
 } as const
 
@@ -490,16 +490,8 @@ export const project_line_item_image = {
 	sort: 'sort',
 } as const
 
-export const project_number = {
-	project_number_id: 'project_number_id',
-	company_id: 'company_id',
-	next_number: 'next_number',
-	created_at: 'created_at',
-	updated_at: 'updated_at',
-} as const
-
-export const project_work_line_item = {
-	project_work_line_item_id: 'project_work_line_item_id',
+export const project_line_item_work_item = {
+	project_line_item_work_item_id: 'project_line_item_work_item_id',
 	company_id: 'company_id',
 	project_line_item_id: 'project_line_item_id',
 	work_type_id: 'work_type_id',
@@ -516,12 +508,20 @@ export const project_work_line_item = {
 	updated_at: 'updated_at',
 } as const
 
-export const project_work_line_item_equipment = {
-	project_work_line_item_equipment_id: 'project_work_line_item_equipment_id',
+export const project_line_item_work_item_equipment = {
+	project_line_item_work_item_equipment_id: 'project_line_item_work_item_equipment_id',
 	company_id: 'company_id',
-	project_work_line_item_id: 'project_work_line_item_id',
+	project_line_item_work_item_id: 'project_line_item_work_item_id',
 	equipment_id: 'equipment_id',
 	count: 'count',
+	created_at: 'created_at',
+	updated_at: 'updated_at',
+} as const
+
+export const project_number = {
+	project_number_id: 'project_number_id',
+	company_id: 'company_id',
+	next_number: 'next_number',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const
@@ -573,11 +573,11 @@ export const work_order_employee = {
 	updated_at: 'updated_at',
 } as const
 
-export const work_order_project_work_line_item = {
-	work_order_project_work_line_item_id: 'work_order_project_work_line_item_id',
+export const work_order_project_line_item_work_item = {
+	work_order_project_line_item_work_item_id: 'work_order_project_line_item_work_item_id',
 	company_id: 'company_id',
 	work_order_id: 'work_order_id',
-	project_work_line_item_id: 'project_work_line_item_id',
+	project_line_item_work_item_id: 'project_line_item_work_item_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 } as const
@@ -602,7 +602,7 @@ const all_table_column_names = {
 	clock_session,
 	clock_session_employee,
 	clock_session_employee_history,
-	clock_session_work_line_item,
+	clock_session_project_line_item_work_item,
 	company,
 	crew,
 	crew_regular,
@@ -629,15 +629,15 @@ const all_table_column_names = {
 	project_image,
 	project_line_item,
 	project_line_item_image,
+	project_line_item_work_item,
+	project_line_item_work_item_equipment,
 	project_number,
-	project_work_line_item,
-	project_work_line_item_equipment,
 	software_role,
 	software_role_permission,
 	tax_rate,
 	work_order,
 	work_order_employee,
-	work_order_project_work_line_item,
+	work_order_project_line_item_work_item,
 	work_type,
 }
 

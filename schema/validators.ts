@@ -9,7 +9,7 @@ import { client_tag_validator, insertable_client_tag_validator } from './validat
 import { clock_session_validator, insertable_clock_session_validator } from './validator/clock_session.ts'
 import { clock_session_employee_validator, insertable_clock_session_employee_validator } from './validator/clock_session_employee.ts'
 import { clock_session_employee_history_validator, insertable_clock_session_employee_history_validator } from './validator/clock_session_employee_history.ts'
-import { clock_session_work_line_item_validator, insertable_clock_session_work_line_item_validator } from './validator/clock_session_work_line_item.ts'
+import { clock_session_project_line_item_work_item_validator, insertable_clock_session_project_line_item_work_item_validator } from './validator/clock_session_project_line_item_work_item.ts'
 import { company_validator, insertable_company_validator } from './validator/company.ts'
 import { crew_validator, insertable_crew_validator } from './validator/crew.ts'
 import { crew_regular_validator, insertable_crew_regular_validator } from './validator/crew_regular.ts'
@@ -36,15 +36,15 @@ import { project_document_history_validator, insertable_project_document_history
 import { project_image_validator, insertable_project_image_validator } from './validator/project_image.ts'
 import { project_line_item_validator, insertable_project_line_item_validator } from './validator/project_line_item.ts'
 import { project_line_item_image_validator, insertable_project_line_item_image_validator } from './validator/project_line_item_image.ts'
+import { project_line_item_work_item_validator, insertable_project_line_item_work_item_validator } from './validator/project_line_item_work_item.ts'
+import { project_line_item_work_item_equipment_validator, insertable_project_line_item_work_item_equipment_validator } from './validator/project_line_item_work_item_equipment.ts'
 import { project_number_validator, insertable_project_number_validator } from './validator/project_number.ts'
-import { project_work_line_item_validator, insertable_project_work_line_item_validator } from './validator/project_work_line_item.ts'
-import { project_work_line_item_equipment_validator, insertable_project_work_line_item_equipment_validator } from './validator/project_work_line_item_equipment.ts'
 import { software_role_validator, insertable_software_role_validator } from './validator/software_role.ts'
 import { software_role_permission_validator, insertable_software_role_permission_validator } from './validator/software_role_permission.ts'
 import { tax_rate_validator, insertable_tax_rate_validator } from './validator/tax_rate.ts'
 import { work_order_validator, insertable_work_order_validator } from './validator/work_order.ts'
 import { work_order_employee_validator, insertable_work_order_employee_validator } from './validator/work_order_employee.ts'
-import { work_order_project_work_line_item_validator, insertable_work_order_project_work_line_item_validator } from './validator/work_order_project_work_line_item.ts'
+import { work_order_project_line_item_work_item_validator, insertable_work_order_project_line_item_work_item_validator } from './validator/work_order_project_line_item_work_item.ts'
 import { work_type_validator, insertable_work_type_validator } from './validator/work_type.ts'
 
 export const validators = {
@@ -57,7 +57,7 @@ export const validators = {
 	clock_session: clock_session_validator,
 	clock_session_employee: clock_session_employee_validator,
 	clock_session_employee_history: clock_session_employee_history_validator,
-	clock_session_work_line_item: clock_session_work_line_item_validator,
+	clock_session_project_line_item_work_item: clock_session_project_line_item_work_item_validator,
 	company: company_validator,
 	crew: crew_validator,
 	crew_regular: crew_regular_validator,
@@ -84,15 +84,15 @@ export const validators = {
 	project_image: project_image_validator,
 	project_line_item: project_line_item_validator,
 	project_line_item_image: project_line_item_image_validator,
+	project_line_item_work_item: project_line_item_work_item_validator,
+	project_line_item_work_item_equipment: project_line_item_work_item_equipment_validator,
 	project_number: project_number_validator,
-	project_work_line_item: project_work_line_item_validator,
-	project_work_line_item_equipment: project_work_line_item_equipment_validator,
 	software_role: software_role_validator,
 	software_role_permission: software_role_permission_validator,
 	tax_rate: tax_rate_validator,
 	work_order: work_order_validator,
 	work_order_employee: work_order_employee_validator,
-	work_order_project_work_line_item: work_order_project_work_line_item_validator,
+	work_order_project_line_item_work_item: work_order_project_line_item_work_item_validator,
 	work_type: work_type_validator,
 } satisfies { [TABLE in keyof Schema]: Validator<Schema[TABLE]> }
 
@@ -106,7 +106,7 @@ export const insertable_validators = {
 	clock_session: insertable_clock_session_validator,
 	clock_session_employee: insertable_clock_session_employee_validator,
 	clock_session_employee_history: insertable_clock_session_employee_history_validator,
-	clock_session_work_line_item: insertable_clock_session_work_line_item_validator,
+	clock_session_project_line_item_work_item: insertable_clock_session_project_line_item_work_item_validator,
 	company: insertable_company_validator,
 	crew: insertable_crew_validator,
 	crew_regular: insertable_crew_regular_validator,
@@ -133,14 +133,14 @@ export const insertable_validators = {
 	project_image: insertable_project_image_validator,
 	project_line_item: insertable_project_line_item_validator,
 	project_line_item_image: insertable_project_line_item_image_validator,
+	project_line_item_work_item: insertable_project_line_item_work_item_validator,
+	project_line_item_work_item_equipment: insertable_project_line_item_work_item_equipment_validator,
 	project_number: insertable_project_number_validator,
-	project_work_line_item: insertable_project_work_line_item_validator,
-	project_work_line_item_equipment: insertable_project_work_line_item_equipment_validator,
 	software_role: insertable_software_role_validator,
 	software_role_permission: insertable_software_role_permission_validator,
 	tax_rate: insertable_tax_rate_validator,
 	work_order: insertable_work_order_validator,
 	work_order_employee: insertable_work_order_employee_validator,
-	work_order_project_work_line_item: insertable_work_order_project_work_line_item_validator,
+	work_order_project_line_item_work_item: insertable_work_order_project_line_item_work_item_validator,
 	work_type: insertable_work_type_validator,
 } satisfies { [TABLE in keyof InsertableSchema]: Validator<InsertableSchema[TABLE]> }

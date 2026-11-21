@@ -154,15 +154,15 @@ CREATE TABLE `clock_session_employee_history` (
   KEY `idx_cseh_company_change_date` (`company_id`,`change_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `clock_session_work_line_item` (
-  `clock_session_work_line_item_id` int unsigned NOT NULL AUTO_INCREMENT,
+CREATE TABLE `clock_session_project_line_item_work_item` (
+  `clock_session_project_line_item_work_item_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
   `clock_session_id` int unsigned NOT NULL,
-  `project_work_line_item_id` int unsigned NOT NULL,
+  `project_line_item_work_item_id` int unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`clock_session_work_line_item_id`),
-  UNIQUE KEY `uq_cswli_session_work_line_item` (`clock_session_id`,`project_work_line_item_id`),
-  KEY `idx_cswli_project_work_line_item` (`project_work_line_item_id`)
+  PRIMARY KEY (`clock_session_project_line_item_work_item_id`),
+  UNIQUE KEY `uq_cspliwi_session_project_line_item_work_item` (`clock_session_id`,`project_line_item_work_item_id`),
+  KEY `idx_cspliwi_project_line_item_work_item` (`project_line_item_work_item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `company` (
@@ -596,18 +596,8 @@ CREATE TABLE `project_line_item_image` (
   KEY `idx_plii_line_item` (`project_line_item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `project_number` (
-  `project_number_id` int unsigned NOT NULL AUTO_INCREMENT,
-  `company_id` int unsigned NOT NULL,
-  `next_number` int unsigned NOT NULL DEFAULT '1',
-  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`project_number_id`),
-  UNIQUE KEY `uq_project_number_company` (`company_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `project_work_line_item` (
-  `project_work_line_item_id` int unsigned NOT NULL AUTO_INCREMENT,
+CREATE TABLE `project_line_item_work_item` (
+  `project_line_item_work_item_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
   `project_line_item_id` int unsigned NOT NULL,
   `work_type_id` int unsigned DEFAULT NULL,
@@ -622,22 +612,32 @@ CREATE TABLE `project_work_line_item` (
   `done_by_employee_id` int unsigned DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`project_work_line_item_id`),
-  KEY `idx_pwli_project_line_item` (`project_line_item_id`),
-  KEY `idx_pwli_work_type` (`work_type_id`)
+  PRIMARY KEY (`project_line_item_work_item_id`),
+  KEY `idx_pliwi_project_line_item` (`project_line_item_id`),
+  KEY `idx_pliwi_work_type` (`work_type_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `project_work_line_item_equipment` (
-  `project_work_line_item_equipment_id` int unsigned NOT NULL AUTO_INCREMENT,
+CREATE TABLE `project_line_item_work_item_equipment` (
+  `project_line_item_work_item_equipment_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
-  `project_work_line_item_id` int unsigned NOT NULL,
+  `project_line_item_work_item_id` int unsigned NOT NULL,
   `equipment_id` int unsigned NOT NULL,
   `count` smallint unsigned NOT NULL DEFAULT '1',
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`project_work_line_item_equipment_id`),
-  UNIQUE KEY `uq_pwlie_project_work_line_item_equipment` (`project_work_line_item_id`,`equipment_id`),
-  KEY `idx_pwlie_equipment` (`equipment_id`)
+  PRIMARY KEY (`project_line_item_work_item_equipment_id`),
+  UNIQUE KEY `uq_pliwie_project_line_item_work_item_equipment` (`project_line_item_work_item_id`,`equipment_id`),
+  KEY `idx_pliwie_equipment` (`equipment_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `project_number` (
+  `project_number_id` int unsigned NOT NULL AUTO_INCREMENT,
+  `company_id` int unsigned NOT NULL,
+  `next_number` int unsigned NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
+  PRIMARY KEY (`project_number_id`),
+  UNIQUE KEY `uq_project_number_company` (`company_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `software_role` (
@@ -700,16 +700,16 @@ CREATE TABLE `work_order_employee` (
   KEY `idx_work_order_employee_employee` (`employee_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE `work_order_project_work_line_item` (
-  `work_order_project_work_line_item_id` int unsigned NOT NULL AUTO_INCREMENT,
+CREATE TABLE `work_order_project_line_item_work_item` (
+  `work_order_project_line_item_work_item_id` int unsigned NOT NULL AUTO_INCREMENT,
   `company_id` int unsigned NOT NULL,
   `work_order_id` int unsigned NOT NULL,
-  `project_work_line_item_id` int unsigned NOT NULL,
+  `project_line_item_work_item_id` int unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
-  PRIMARY KEY (`work_order_project_work_line_item_id`),
-  UNIQUE KEY `uq_wopwli_work_order_project_work_line_item` (`work_order_id`,`project_work_line_item_id`),
-  KEY `idx_wopwli_project_work_line_item` (`project_work_line_item_id`)
+  PRIMARY KEY (`work_order_project_line_item_work_item_id`),
+  UNIQUE KEY `uq_wopliwi_work_order_project_line_item_work_item` (`work_order_id`,`project_line_item_work_item_id`),
+  KEY `idx_wopliwi_project_line_item_work_item` (`project_line_item_work_item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `work_type` (

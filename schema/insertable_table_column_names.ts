@@ -101,10 +101,10 @@ export const clock_session_employee_history = {
 	change_datetime: 'change_datetime',
 } as const
 
-export const clock_session_work_line_item = {
+export const clock_session_project_line_item_work_item = {
 	company_id: 'company_id',
 	clock_session_id: 'clock_session_id',
-	project_work_line_item_id: 'project_work_line_item_id',
+	project_line_item_work_item_id: 'project_line_item_work_item_id',
 } as const
 
 export const company = {
@@ -389,12 +389,7 @@ export const project_line_item_image = {
 	sort: 'sort',
 } as const
 
-export const project_number = {
-	company_id: 'company_id',
-	next_number: 'next_number',
-} as const
-
-export const project_work_line_item = {
+export const project_line_item_work_item = {
 	company_id: 'company_id',
 	project_line_item_id: 'project_line_item_id',
 	work_type_id: 'work_type_id',
@@ -409,11 +404,16 @@ export const project_work_line_item = {
 	done_by_employee_id: 'done_by_employee_id',
 } as const
 
-export const project_work_line_item_equipment = {
+export const project_line_item_work_item_equipment = {
 	company_id: 'company_id',
-	project_work_line_item_id: 'project_work_line_item_id',
+	project_line_item_work_item_id: 'project_line_item_work_item_id',
 	equipment_id: 'equipment_id',
 	count: 'count',
+} as const
+
+export const project_number = {
+	company_id: 'company_id',
+	next_number: 'next_number',
 } as const
 
 export const software_role = {
@@ -449,10 +449,10 @@ export const work_order_employee = {
 	employee_id: 'employee_id',
 } as const
 
-export const work_order_project_work_line_item = {
+export const work_order_project_line_item_work_item = {
 	company_id: 'company_id',
 	work_order_id: 'work_order_id',
-	project_work_line_item_id: 'project_work_line_item_id',
+	project_line_item_work_item_id: 'project_line_item_work_item_id',
 } as const
 
 export const work_type = {
@@ -472,7 +472,7 @@ const insertable_table_column_names = {
 	clock_session,
 	clock_session_employee,
 	clock_session_employee_history,
-	clock_session_work_line_item,
+	clock_session_project_line_item_work_item,
 	company,
 	crew,
 	crew_regular,
@@ -499,15 +499,15 @@ const insertable_table_column_names = {
 	project_image,
 	project_line_item,
 	project_line_item_image,
+	project_line_item_work_item,
+	project_line_item_work_item_equipment,
 	project_number,
-	project_work_line_item,
-	project_work_line_item_equipment,
 	software_role,
 	software_role_permission,
 	tax_rate,
 	work_order,
 	work_order_employee,
-	work_order_project_work_line_item,
+	work_order_project_line_item_work_item,
 	work_type,
 }
 
