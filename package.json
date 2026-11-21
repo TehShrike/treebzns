@@ -79,7 +79,7 @@
 		"watchlist": "^0.3.1",
 		"wrangler": "^4.88.0"
 	},
-	"packageManager": "pnpm@11.28.5+sha512.484563d30b4c2ad27cb48aa94ff2b302dbcebc8ff6bf28816c2589886e146ce7f76f354f3bc1a438e6f5e9768c302aa0a6f7add8232903cd4cf81426cbc14d9e",
+	"packageManager": "pnpm@12.21.0+sha512.66fd8278ee28935ce951792d34367ff3af5c432a2756445823029533835b8da529bbe0be5130afd56ed0713fb8789e47bad82d93bd5ae2fe54b15562d6276ef0",
 	"dependencies": {
 		"@js-temporal/polyfill": "^0.5.1",
 		"@tehshrike/json_anything": "^1.1.0",
