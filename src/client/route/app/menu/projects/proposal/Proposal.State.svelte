@@ -39,7 +39,6 @@
 				`project.city`,
 				`project.last_project_document_change_date`,
 				`project.subtotal`,
-				`project.estimated_crew_size`,
 				`project.sent_for_client_approval`,
 				`client.name`,
 				`client_contact.name`,
@@ -91,10 +90,6 @@
 	<div class="number">{row.project.subtotal ?? ``}</div>
 {/snippet}
 
-{#snippet crew_size_cell(row: ProjectRow)}
-	<div class="number">{row.project.estimated_crew_size ?? ``}</div>
-{/snippet}
-
 {#snippet sent_cell(row: ProjectRow)}
 	<div>
 		{#if row.project.sent_for_client_approval}
@@ -121,7 +116,6 @@
 		{ header: `Address`, cell: address_cell, width: `2fr` },
 		{ header: `Proposal date`, cell: proposal_date_cell, width: `8rem` },
 		{ header: `Subtotal`, cell: subtotal_cell, width: `7rem`, header_text_align: `right` },
-		{ header: `Crew size`, cell: crew_size_cell, width: `6rem`, header_text_align: `right` },
 		{ header: `Sent`, cell: sent_cell, width: `4rem` },
 		{ header: ``, cell: open_cell, width: `3rem` },
 	]}

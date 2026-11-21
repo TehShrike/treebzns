@@ -7,46 +7,49 @@ const MONEY_DECIMAL_PLACES = 2n
 
 const zero = fnum(`0.00`)
 
-const scale = (power: bigint) => 10n ** (power > 0n ? power : 0n)
-
-const divide_rounding_half_up = (dividend: FinancialNumber, divisor: bigint, decimal_places: bigint): FinancialNumber => {
-	assert(divisor > 0n, `the divisor is positive`)
-	assert(!dividend.isNegative(), `the dividend is not negative`)
-	const { value, decimal_places: dividend_decimal_places } = dividend.valueOf()
-	const numerator = value * scale(decimal_places - dividend_decimal_places)
-	const denominator = divisor * scale(dividend_decimal_places - decimal_places)
-	const quotient = numerator / denominator
-	const remainder = numerator % denominator
-	return fnum({ value: remainder * 2n >= denominator ? quotient + 1n : quotient, decimal_places })
+export const calculate_estimate_hourly_rate = ({ crew_size, work_type_hourly_rate, equipment }: {
+	crew_size: bigint
+	work_type_hourly_rate: FinancialNumber
+	equipment: readonly { hourly_rate: FinancialNumber, count: bigint }[]
+}): FinancialNumber => {
+	assert(crew_size >= 1n, `a crew has at least one person`)
+	assert(!work_type_hourly_rate.isNegative(), `a work type hourly rate is not negative`)
+	assert(every(equipment, ({ count }) => count >= 1n), `a work item equipment count is at least one`)
+	assert(every(equipment, ({ hourly_rate }) => !hourly_rate.isNegative()), `an equipment hourly rate is not negative`)
+	return reduce(
+		equipment,
+		work_type_hourly_rate.times(crew_size),
+		(total, { hourly_rate, count }) => total.plus(hourly_rate.times(count)),
+	).changeDecimalPlaces(MONEY_DECIMAL_PLACES)
 }
 
-export const average_hourly_rate = (work_skills: readonly { hourly_rate: FinancialNumber, count: bigint }[]): FinancialNumber | null => {
-	assert(every(work_skills, ({ count }) => count >= 1n), `a line item work skill count is at least one`)
-	if (work_skills.length === 0) {
-		return null
-	}
-	const person_count = reduce(work_skills, 0n, (total, { count }) => total + count)
-	const sum = reduce(work_skills, zero, (total, { hourly_rate, count }) => total.plus(hourly_rate.times(count)))
-	return divide_rounding_half_up(sum, person_count, MONEY_DECIMAL_PLACES)
+export const calculate_work_item_price = ({ estimated_hours, estimate_hourly_rate }: {
+	estimated_hours: FinancialNumber
+	estimate_hourly_rate: FinancialNumber
+}): FinancialNumber => {
+	assert(!estimated_hours.isNegative(), `estimated hours are not negative`)
+	assert(!estimate_hourly_rate.isNegative(), `an estimate hourly rate is not negative`)
+	return estimate_hourly_rate.times(estimated_hours).changeDecimalPlaces(MONEY_DECIMAL_PLACES)
 }
 
 export const round_to_nearest = (amount: FinancialNumber, increment: FinancialNumber): FinancialNumber => {
 	assert(increment.gt(`0`), `the rounding increment is positive`)
-	assert(!amount.isNegative(), `the amount is not negative`)
+	if (amount.isNegative()) {
+		return zero.minus(round_to_nearest(zero.minus(amount), increment))
+	}
 	const remainder = amount.mod(increment)
 	const rounded_down = amount.minus(remainder)
 	const rounded = remainder.times(`2`).gte(increment) ? rounded_down.plus(increment) : rounded_down
 	return rounded.changeDecimalPlaces(MONEY_DECIMAL_PLACES)
 }
 
-export const calculate_line_item_price = ({ estimated_hours, crew_size, hourly_rate, round_to_nearest: increment }: {
-	estimated_hours: FinancialNumber
-	crew_size: bigint
-	hourly_rate: FinancialNumber
+export const total_work_item_price = (work_item_prices: readonly FinancialNumber[]): FinancialNumber => reduce(
+	work_item_prices,
+	zero,
+	(total, price) => total.plus(price),
+)
+
+export const calculate_line_item_price = ({ work_item_prices, round_to_nearest: increment }: {
+	work_item_prices: readonly FinancialNumber[]
 	round_to_nearest: FinancialNumber
-}): FinancialNumber => {
-	assert(!estimated_hours.isNegative(), `estimated hours are not negative`)
-	assert(crew_size >= 1n, `a crew has at least one person`)
-	assert(!hourly_rate.isNegative(), `an hourly rate is not negative`)
-	return round_to_nearest(hourly_rate.times(estimated_hours).times(crew_size), increment)
-}
+}): FinancialNumber => round_to_nearest(total_work_item_price(work_item_prices), increment)

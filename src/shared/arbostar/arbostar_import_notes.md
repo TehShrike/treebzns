@@ -25,11 +25,15 @@ text at the end of `project.notes_for_office`.
 | Estimator | matched to an employee by normalized name (existing employees plus the imported users); unmatched names (e.g. ArboStar's "system system") are kept as an `Estimator:` line in `lead_details` |
 | Primary contact | ArboStar doesn't flag one, so each client's first contact gets `is_primary`. Verified well-founded: the client-row-level `cc_name`/`cc_phone`/`cc_email` columns exactly equal `contacts[0]`'s in all 1,463 clients of the July 2026 export, even for the 4 clients whose contacts arrays aren't `cc_id`-ordered — so first-is-primary mirrors ArboStar's own display order rather than being a guess |
 | Default project address | taken from the client row's own address columns (the only address source — ArboStar's profile-only "secondary address" has never had data and is not exported); `client.default_project_address_id` is fixed up after the address rows insert, per the schema's convention |
-| Payments | each ArboStar payment record (payments.js — real amounts and methods, not invoice-derived) becomes one `payment`, and ArboStar's own allocations (payment → estimate applications with real split amounts) become its `payment_project` rows — resolved to projects via each estimate's lead, collapsed to one row per (payment, project), reconciled (update/insert/delete) on re-import. Payment methods are natural-keyed by name per company like item types: the server-resolved labels (`pay_method_string` — Cash / Credit Card / Cheque…) are created on first use and reused after; no method recorded → `Unknown`. Payments that vanish from the export are counted, not deleted — usually an ArboStar-side deletion/refund worth a manual look |
+| Payments | each ArboStar payment record (payments.js — real amounts and methods, not invoice-derived) becomes one `payment`, and ArboStar's own allocations (payment → estimate applications with real split amounts) become its `payment_project` rows — resolved to projects via each estimate's lead, collapsed to one row per (payment, project), reconciled (update/insert/delete) on re-import. Payment methods are natural-keyed by name per company like work types: the server-resolved labels (`pay_method_string` — Cash / Credit Card / Cheque…) are created on first use and reused after; no method recorded → `Unknown`. Payments that vanish from the export are counted, not deleted — usually an ArboStar-side deletion/refund worth a manual look |
 | Project totals | `subtotal` / `tax_total` / `total`: from the lead's invoices when any exist (Σ `total_for_services` / Σ `tax` / Σ `total_including_tax` — the real discounts and tax); otherwise subtotal = the **non-declined line sum** (ArboStar's own current-state math — its work order `total_price` equals exactly that, while estimate `total_price` is a stale snapshot that usually still counts declined lines), tax_total = 0 (only invoices carry tax), total = subtotal. A lead with no line items has no quote yet — all three null |
-| Item types | one `item_type` per distinct line-item `service_name`; `taxable` from the first line item seen with that name |
-| Work skills | one `work_skill` per crew role (crew_roles.js); `hourly_rate` from `crew_rate` (the UI's "Cost Per Hour"). The name is `crew_full_name`, with the trailing digits of the code appended when present — CL0-CL3 all share the full name "Arborist Climber", so the digits keep them distinct ("Arborist Climber 0" … "Arborist Climber 3"). No ArboStar correlation column: the derived name is the natural key, and re-imports overwrite `hourly_rate`. Skills absent from the export are never deleted |
-| Line item work skills | each line's `crews` string (comma-joined crew role codes, e.g. `CL3, GM`) becomes one `project_line_item_work_skill` row per code, resolved through the crew role's `work_skill`. ArboStar is the source of truth: on every run the links of all ArboStar lines in imported projects are deleted and re-inserted, so a skill added in-app to an imported line does not survive a re-import. A code missing from crew_roles.js fails the import |
+| Work types | One `work_type` for each distinct line item `service_name`. `taxable` comes from the first line item seen with that name. `hourly_rate` is 100.00 on a new work type, the value migration 0081 gave existing rows. ArboStar has no rate for a service. A re-import never changes `taxable` or `hourly_rate` on a work type that exists |
+| Line items and work items | Each ArboStar line item makes one `project_line_item` and one `project_line_item_work_item` under it. The line item holds the title, `taxable`, `client_optional`, `client_declined`, `price`, and `sort`. The work item holds `work_type_id`, `work_details`, `estimated_crew_size`, `estimated_hours`, and `price`. A new work item gets an empty `product`, a null `estimate_hourly_rate`, and `sort` 0. The import never writes those three columns again |
+| Line item price | This schema has no quantity. The line item `price` and the work item `price` both hold quantity × price, rounded to 2 decimal places. The import rounds the ArboStar price and quantity to 2 decimal places before it multiplies. Migration 0076 did the same with the stored columns. A null quantity counts as 1 and a null price as 0 |
+| Line item discounts | The export has no discount on a line item. ArboStar discounts sit on the estimate and on the invoice. The import writes null to `project_line_item.discount_rate` and to `project_line_item_work_item.discount` on insert. A re-import leaves both columns and `discount_description` alone, so the app owns them |
+| Work items done | The import never writes `done_at` or `done_by_employee_id`. Both are null on insert and a re-import leaves them alone |
+| Work items split in the app | A line item with more than one work item was split in the app. The import cannot tell which work item the ArboStar values belong to. It updates the line item columns other than `price` and leaves every work item as it is. The summary counts these as `project_line_items_split_in_app`. A line item with no work item gets a new one |
+| Crew roles | The import does not use crew roles. `work_skill` and `project_line_item_work_skill` are gone from the schema, and ArboStar has no defined mapping to `equipment`. The import no longer reads crew_roles.js or the `crews` codes on a line item. The count of `crew_role_ids` still sets `estimated_crew_size` |
 | Client type | ArboStar's numeric `client_type` code becomes a label in `client.notes` (1 → Residential, 2 → Commercial; unknown codes kept raw). Notes-only for now — worth an explicit schema column eventually |
 
 ## ArboStar values that were NOT imported
@@ -57,7 +61,7 @@ nowhere to go.
 | Field | Fate |
 | --- | --- |
 | `emp_position` | dropped (no title/position column) |
-| `emp_yearly_rate` / `emp_hourly_rate` | dropped (pay lives on `work_skill.hourly_rate`, which isn't per-employee) |
+| `emp_yearly_rate` / `emp_hourly_rate` | dropped (the schema has no pay column for an employee) |
 | `active_status` | drives the import filter — only `'yes'` accounts import, everything else is ignored |
 | `active_employee` | dropped |
 | `user_type` (admin/user) | dropped (not mapped to `is_owner` or software roles; imported employees get `is_owner = 0`) |
@@ -147,14 +151,20 @@ A lead missing from lead_notes.js (it has no estimate, or its fetch failed) impo
 
 | Field | Fate |
 | --- | --- |
-| `size` / `species` / `reason` | → appended to `description` as text |
-| `man_hours` | → `estimated_hours`, rounded to two decimal places (the column's scale) |
-| `crew_role_ids` | → `estimated_crew_size`: one entry per crew slot, so the count is the crew size. A line with no slots gets 1, the column default |
+| `service_name` | → `project_line_item.title` and the work item's `work_type_id` |
+| `description` | → the work item's `work_details` |
+| `size` / `species` / `reason` | → appended to the work item's `work_details` as text |
+| `quantity` / `price` | → `price` on the line item and on the work item, as quantity × price rounded to 2 decimal places |
+| `man_hours` | → the work item's `estimated_hours`, rounded to two decimal places (the column's scale) |
+| `crew_role_ids` | → the work item's `estimated_crew_size`: one entry per crew slot, so the count is the crew size. A line with no slots gets null |
+| `crews` | dropped. The crew role codes fed `project_line_item_work_skill`, which is gone |
+| `equipment` / `tools` | dropped. Both are joined display names, and ArboStar has no defined mapping to the `equipment` table |
 | `cost` | dropped (no cost column — margin data is lost) |
 | `optional` | → `client_optional` (forced true on Declined lines — this schema only allows declining optional lines, and a declined line was never billed regardless of how it was offered) |
 | `status` | `Declined` → `client_declined`; otherwise dropped (`New` = still-undecided proposal, `Completed` = accepted/invoiced work — both import as not-declined) |
+| `status_changed_at` / `status_changed_by_user_id` / `completed_date` | dropped. The import does not set `done_at` or `done_by_employee_id` |
 | `is_fee` / `is_additional_work` | dropped |
-| `sort_order` | dropped (table has no sort column) |
+| `sort_order` | → `project_line_item.sort` |
 | `estimate_id` / `invoice_id` | dropped — every line attaches to the lead's single project, so which estimate/invoice a line belonged to is lost |
 
 ## Important current-schema columns that could NOT be populated
@@ -172,8 +182,8 @@ A lead missing from lead_notes.js (it has no estimate, or its fetch failed) impo
 | `project.notes_for_crew` | work orders only carry office notes |
 | `project.closed_at` / `project.closed_date` on Void and Expired/Thinking closes | the export has no No Go date (`lead_postpone_date` is set on every lead and usually equals the creation date) and no estimate status-change date |
 
-Whole tables that get nothing: `crew` / `crew_member`, `time_entry`, `estimate_availability`, `project_client_approval`, `project_document` (global
-codebook).
+Whole tables that get nothing: `equipment`, `project_line_item_work_item_equipment`, `clock_session` and its related tables,
+`estimate_availability`, `project_client_approval`, `project_document` (global codebook).
 
 ## Line item photos
 
@@ -200,10 +210,14 @@ Every imported row carries its ArboStar identity (migration 0016): `employee.arb
 The import is **idempotent**: re-running updates the ArboStar-derived columns of existing rows
 and inserts only what's new (see `claude_rerunnable_import_notes.md` for the design). Each
 entity phase runs in its own transaction; a crash between phases is recovered by re-running.
+A work item has no ArboStar id. A re-run finds it through its line item and updates that same work item.
 Line items that disappear from the export are deleted, but only within projects present in the
 current run — so a lead missing from a (possibly partial) export keeps its lines just like it
-keeps its project. A deleted line takes its photo links and imported photos (rows and objects) with
-it. Photos that disappear from `images.js` while their line stays are deleted too, but only within
+keeps its project. A deleted line takes its work item with it, along with the equipment and work order links of
+that work item. It also takes its photo links and imported photos (rows and objects). Two kinds
+of line stay after they disappear from the export. One has more than one work item. The other
+has a work item that a clock session points at. The summary counts both as
+`project_line_items_kept_no_longer_in_export`. Photos that disappear from `images.js` while their line stays are deleted too, but only within
 the leads the image export scanned (`scripts/arbostar/leads_to_download_images_for.ts`), since the export covers
 active leads only. Contacts are never deleted (decided July 2026: too dangerous against partial
 exports; ArboStar-side contact deletions will be reconciled deliberately if ever needed). Rows

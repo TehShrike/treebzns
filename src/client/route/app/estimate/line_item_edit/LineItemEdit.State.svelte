@@ -13,11 +13,11 @@
 	import { validate_line_item_params } from '../line_item_params.ts'
 	import { select_line_items_at } from '../select_line_items.ts'
 	import { last_estimate_state } from '../last_estimate_state.ts'
-	import { asr_state as estimate_asr_state } from '../Estimate.State.svelte'
-	import { select_item_types } from '#lib/generic_queries/item_type.ts'
-	import { select_work_skills } from '#lib/generic_queries/work_skill.ts'
+	import { select_work_types } from '#lib/generic_queries/work_type.ts'
+	import { select_equipment } from '#lib/generic_queries/equipment.ts'
 	import { select_project_with_line_items } from '#lib/generic_queries/project.ts'
 	import assert from '#shared/assert.ts'
+	import { select_work_item_ids_in_use } from '#shared/treebzns_db/work_item_relationships.ts'
 	import { find, map } from '#shared/array.ts'
 	import { untrack } from 'svelte'
 
@@ -26,7 +26,7 @@
 		const line_item = find(line_items, ({ project_line_item }) => project_line_item.project_line_item_id === project_line_item_id)
 		assert(line_item, `line item ${project_line_item_id} belongs to project ${project_id}`)
 
-		return line_item
+		return loaded_line_item(line_item)
 	}
 
 	export const asr_state = state_type({
@@ -35,22 +35,27 @@
 		param_validator: validate_line_item_params,
 		resolve: async ({ query, server, session, photo_upload_queue, transition_state }, { project_id, project_line_item_id }) => {
 			const last_state = last_estimate_state(transition_state)
-			const [{ line_items }, line_item, item_types, work_skills, logged_in_session] = await Promise.all([
+			const [{ line_items }, line_item, work_types, equipment, logged_in_session] = await Promise.all([
 				select_line_items_at(query, project_id, project_line_item_id),
 				project_line_item_id === `new` ? null : select_line_item(query, project_id, project_line_item_id),
-				select_item_types(query),
-				select_work_skills(query),
+				select_work_types(query),
+				select_equipment(query),
 				session.get_logged_in(),
 			])
+			const work_item_ids_in_use = await select_work_item_ids_in_use({
+				query_rows: query,
+				project_line_item_work_item_ids: line_item === null ? [] : map(line_item.work_items, work_item => work_item.project_line_item_work_item_id),
+			})
 
 			return {
 				server,
 				photo_upload_queue,
 				project_id,
 				line_items,
-				line_item: line_item === null ? null : loaded_line_item(line_item),
-				item_types,
-				work_skills,
+				line_item,
+				work_types,
+				equipment,
+				work_item_ids_in_use,
 				round_to_nearest: logged_in_session.company.round_line_item_estimates_to_nearest,
 				last_state,
 			}
@@ -63,24 +68,24 @@
 		server,
 		photo_upload_queue,
 		project_id,
-		project,
 		line_items,
 		line_item,
-		item_types,
-		work_skills,
+		work_types,
+		equipment,
+		work_item_ids_in_use,
 		round_to_nearest,
 		last_state,
 		asr,
-	}: StateResolve<typeof asr_state> & StateResolve<typeof estimate_asr_state> & { asr: StateAsr } = $props()
+	}: StateResolve<typeof asr_state> & { asr: StateAsr } = $props()
 
 	const form_id = $props.id()
 
 	const form = untrack(() => make_line_item_edit_form({
 		project_id,
-		project_estimated_crew_size: project.estimated_crew_size,
 		line_item_count: line_items.length,
 		values_in_db: line_item,
-		work_skills,
+		work_types,
+		equipment,
 		round_to_nearest,
 	}))
 
@@ -121,7 +126,7 @@
 	<PhotoGallery {images} on_photo_click={image => open_photo(image.project_image_id)} />
 
 	<form id={form_id} class="line_item" onsubmit={on_submit}>
-		<LineItemCard line_item={form.line_item} first_time_estimating={false} {item_types} {work_skills} />
+		<LineItemCard line_item={form.line_item} first_time_estimating={false} {work_types} {equipment} {work_item_ids_in_use} />
 	</form>
 
 	{#snippet status()}

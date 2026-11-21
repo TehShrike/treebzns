@@ -6,8 +6,8 @@ Do not put company_id in front of a globally-unique id column (any *_id that is 
 
 Lead with company_id only when the next column's values are shared across companies:
 
-- User-entered values in unique keys: names, titles, emails (e.g. `uq_line_item_template_company_title`).
-- Dates and flags (e.g. `idx_time_entry_company_work_date`, `idx_project_company_closed`).
+- User-entered values in unique keys: names, titles, emails (e.g. `uq_work_type_company_name`).
+- Dates and flags (e.g. `idx_clock_session_company_work_date`, `idx_project_company_closed`).
 - Global codebook ids.  `project_document` and `permission` have no company_id, so their ids repeat across companies (e.g. `idx_project_company_document`).
 - NULL.  NULL values span companies.  A nullable column queried with `IS NULL` per company needs the prefix (e.g. `idx_project_company_estimator` for "unassigned projects").
 

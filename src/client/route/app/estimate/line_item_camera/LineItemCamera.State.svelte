@@ -65,7 +65,7 @@
 
 	let photo_count = $state(untrack(() => initial_photo_count))
 
-	const new_item = () => new_line_item({ project_estimated_crew_size: project.estimated_crew_size, line_item_count: line_items.length })
+	const new_item = () => new_line_item({ line_item_count: line_items.length })
 	const title = $derived(line_item === null ? new_item().title : line_item.title)
 	const line_items_href = $derived(asr.makePath(`app.estimate.line_items`, { project_id }))
 	const opened_from_line_items = $derived(last_state.name === `app.estimate.line_items`)

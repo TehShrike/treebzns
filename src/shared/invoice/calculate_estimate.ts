@@ -1,21 +1,41 @@
 import fnum, { greatest_of, least_of } from '#shared/fnum.ts'
 import assert from '#shared/assert.ts'
-import { filter, some, reduce } from '#shared/array.ts'
+import { every, filter, some, reduce } from '#shared/array.ts'
 import type { DistributivePick } from '#shared/pick.ts'
-import { calculate_line_item } from './calculate_invoice.ts'
 
 export type ProjectInput = DistributivePick<DbProject, 'discount_rate' | 'discount' | 'taxable' | 'tax_rate'>
 
-export type ProjectLineItemInput = DistributivePick<DbProjectLineItem, 'quantity' | 'price' | 'discount' | 'discount_rate' | 'taxable' | 'client_declined'>
+export type ProjectLineItemInput = Pick<DbProjectLineItem, 'price' | 'discount_rate' | 'taxable' | 'client_declined'> & {
+	work_items: readonly Pick<DbProjectLineItemWorkItem, 'discount'>[]
+}
 
 const zero = fnum('0.00')
+
+const has_discount = (line_item: ProjectLineItemInput) => line_item.discount_rate !== null
+	|| some(line_item.work_items, work_item => work_item.discount !== null)
+
+const calculate_line_item = (line_item: ProjectLineItemInput) => {
+	assert(
+		line_item.discount_rate === null || every(line_item.work_items, work_item => work_item.discount === null),
+		'A line item has a discount rate or work item discounts, not both',
+	)
+
+	const actual_line_item_discount = line_item.discount_rate
+		? line_item.discount_rate.times(line_item.price).changeDecimalPlaces(2)
+		: reduce(line_item.work_items, zero, (total, work_item) => total.plus(work_item.discount ?? zero))
+
+	return {
+		actual_line_item_discount,
+		line_item_total: line_item.price.minus(actual_line_item_discount),
+	}
+}
 
 export const calculate_estimate = (project: ProjectInput, line_items: readonly ProjectLineItemInput[]) => {
 	const estimated_line_items = filter(line_items, line_item => !line_item.client_declined)
 
 	if (project.discount || project.discount_rate) {
 		assert(
-			!some(estimated_line_items, line_item => line_item.discount_rate !== null || line_item.discount !== null),
+			!some(estimated_line_items, has_discount),
 			'Line items do not have their own discounts when the project has a discount',
 		)
 	}

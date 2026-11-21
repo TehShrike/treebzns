@@ -2,6 +2,17 @@
 
 White background behind large links?
 
+## "Stale text" after line item rewrite
+
+- src/notes/line_item_price_estimate_calculation.md:11 lists the rounding increment as a work item input. It now applies to the line item price only.
+- src/notes/line_item_price_estimate_calculation.md:15 says the work item price rounds to the increment. It rounds to 0.01.
+- src/notes/project_calculation.md:1 points at invoice calculation for line items. Estimate line items now have no quantity, and the discount is a rate or the work item discounts.
+- src/notes/todo.md:18-19 the schema already removed work skills and put the hourly rate on the work type.
+- src/notes/todo.md:44 and :92 are about project crew size, which is dropped.
+- src/notes/todo.md:46 and :89 name item types and skills.
+- src/notes/todo.md:50 names a line item discount, which now lives on the work item.
+- src/notes/todo.md:58 line item titles are editable.
+
 ## Notes from showing Andrew 2026-10-30
 
 - line items should have a "primary" image that is the main one the customer sees with the line item
@@ -28,6 +39,8 @@ White background behind large links?
 ---
 
 project_document -> project_status?
+
+Add "product name" to work items?  Data list remembering previously used names for the work type?
 
 ### Very important for actual use
 

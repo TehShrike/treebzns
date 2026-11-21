@@ -1,11 +1,12 @@
 import { filter } from '#shared/array.ts'
 import type { RowKey } from './row_key.ts'
-import { plan_cleanup } from './editable_rows_logic.ts'
+import { filter_empty_rows } from './editable_rows_logic.ts'
 
-const editable_rows = <Row extends object>({ initial, make_empty_row, row_is_empty, get_key }: {
+const editable_rows = <Row extends object>({ initial, make_empty_row, row_is_empty, row_is_complete, get_key }: {
 	initial: readonly Row[]
 	make_empty_row: () => Row
 	row_is_empty: (row: Row) => boolean
+	row_is_complete?: (row: Row) => boolean
 	get_key: (row: Row) => RowKey
 }) => {
 	let rows = $state<Row[]>([...initial])
@@ -14,7 +15,7 @@ const editable_rows = <Row extends object>({ initial, make_empty_row, row_is_emp
 	const non_empty_rows = $derived(filter(rows, row => !row_is_empty(row)))
 
 	const remove_empty_rows = () => {
-		const { rows_to_keep } = plan_cleanup({ rows, row_is_empty, get_key, focused_row_key })
+		const { rows_to_keep } = filter_empty_rows({ rows, row_is_empty, row_is_complete, get_key, focused_row_key })
 
 		if (rows_to_keep.length !== rows.length) {
 			rows = rows_to_keep
@@ -22,7 +23,7 @@ const editable_rows = <Row extends object>({ initial, make_empty_row, row_is_emp
 	}
 
 	$effect(() => {
-		const { rows_to_keep, needs_new_empty_row } = plan_cleanup({ rows, row_is_empty, get_key, focused_row_key })
+		const { rows_to_keep, needs_new_empty_row } = filter_empty_rows({ rows, row_is_empty, row_is_complete, get_key, focused_row_key })
 
 		if (needs_new_empty_row) {
 			rows.push(make_empty_row())

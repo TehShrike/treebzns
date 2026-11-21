@@ -25,15 +25,12 @@ export const narrow_project = <K extends keyof DbProject>(project: { [P in K]: D
 	return project as DistributivePick<DbProject, K>
 }
 
-export const narrow_project_line_item = <K extends keyof DbProjectLineItem>(line_item: { [P in K]: DbProjectLineItem[P] }): DistributivePick<DbProjectLineItem, K> => {
-	const columns: Partial<Columns<DbProjectLineItem>> = line_item
+export const narrow_project_line_item_work_item = <K extends keyof DbProjectLineItemWorkItem>(work_item: { [P in K]: DbProjectLineItemWorkItem[P] }): DistributivePick<DbProjectLineItemWorkItem, K> => {
+	const columns: Partial<Columns<DbProjectLineItemWorkItem>> = work_item
 
 	if (`done_at` in columns && `done_by_employee_id` in columns) {
-		assert((columns.done_at === null) === (columns.done_by_employee_id === null), `a line item has a done_by_employee_id exactly when it has a done_at`)
-	}
-	if (`discount_rate` in columns && `discount` in columns) {
-		assert(columns.discount_rate === null || columns.discount === null, `a line item has a discount_rate or a discount, not both`)
+		assert((columns.done_at === null) === (columns.done_by_employee_id === null), `a work item has a done_by_employee_id exactly when it has a done_at`)
 	}
 
-	return line_item as DistributivePick<DbProjectLineItem, K>
+	return work_item as DistributivePick<DbProjectLineItemWorkItem, K>
 }

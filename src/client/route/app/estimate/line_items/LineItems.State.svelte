@@ -5,21 +5,21 @@
 	import ErrorMessage from '#component/ErrorMessage.svelte'
 	import LineItemCard from './LineItemCard.svelte'
 	import LineItemThumbnails from './LineItemThumbnails.svelte'
-	import IntegerInput from '#component/IntegerInput.svelte'
 	import make_estimate_form from './estimate_form.svelte.ts'
 	import { loaded_line_item, type LineItemForm } from '../line_item_form.svelte.ts'
 	import form_saver from '#lib/form_saver.svelte.ts'
 	import { validate_estimate_params } from '../estimate_params.ts'
 	import { select_project_with_line_items } from '#lib/generic_queries/project.ts'
-	import { select_item_types } from '#lib/generic_queries/item_type.ts'
-	import { select_work_skills } from '#lib/generic_queries/work_skill.ts'
+	import { select_work_types } from '#lib/generic_queries/work_type.ts'
+	import { select_equipment } from '#lib/generic_queries/equipment.ts'
 	import { select_project_documents } from '#lib/generic_queries/project_document.ts'
 	import { promise_all_object } from '#shared/promise_all_object.ts'
 	import assert from '#shared/assert.ts'
 	import { calculate_estimate } from '#shared/invoice/calculate_estimate.ts'
 	import { pick } from '#shared/pick.ts'
 	import default_values from '#shared/treebzns_db/default_values.ts'
-	import { every, filter, find, map } from '#shared/array.ts'
+	import { select_work_item_ids_in_use } from '#shared/treebzns_db/work_item_relationships.ts'
+	import { every, filter, find, flat_map, map } from '#shared/array.ts'
 	import { untrack } from 'svelte'
 
 	export const asr_state = state_type({
@@ -27,10 +27,10 @@
 		route: `/line_items`,
 		param_validator: validate_estimate_params,
 		resolve: async ({ query, server, session, photo_upload_queue }, { project_id }) => {
-			const { estimate, item_types, work_skills, project_documents, logged_in_session } = await promise_all_object({
+			const { estimate, work_types, equipment, project_documents, logged_in_session } = await promise_all_object({
 				estimate: select_project_with_line_items(query, project_id),
-				item_types: select_item_types(query),
-				work_skills: select_work_skills(query),
+				work_types: select_work_types(query),
+				equipment: select_equipment(query),
 				project_documents: select_project_documents(query),
 				logged_in_session: session.get_logged_in(),
 			})
@@ -47,16 +47,12 @@
 
 			const loaded_line_items = map(estimate.line_items, loaded_line_item)
 
-			const project_estimated_crew_size = estimate.project.estimated_crew_size
-			const first_time_estimating = every(loaded_line_items, line_item => (
-				line_item.item_type_id === null
-				&& line_item.work_details === ``
-				&& line_item.estimated_crew_size === project_estimated_crew_size
-				&& line_item.estimated_hours === null
-				&& !line_item.client_optional
-				&& line_item.price.equal(`0`)
-				&& line_item.work_skills.length === 0
-			))
+			const first_time_estimating = every(loaded_line_items, line_item => line_item.work_items.length === 0 && !line_item.client_optional)
+
+			const work_item_ids_in_use = await select_work_item_ids_in_use({
+				query_rows: query,
+				project_line_item_work_item_ids: flat_map(loaded_line_items, line_item => map(line_item.work_items, work_item => work_item.project_line_item_work_item_id)),
+			})
 
 			return {
 				server,
@@ -67,8 +63,9 @@
 				line_items: estimate.line_items,
 				loaded_line_items,
 				first_time_estimating,
-				item_types,
-				work_skills,
+				work_types,
+				equipment,
+				work_item_ids_in_use,
 				round_to_nearest: logged_in_session.company.round_line_item_estimates_to_nearest,
 				next_project_document,
 			}
@@ -88,23 +85,26 @@
 		line_items,
 		loaded_line_items,
 		first_time_estimating,
-		item_types,
-		work_skills,
+		work_types,
+		equipment,
+		work_item_ids_in_use,
 		round_to_nearest,
 		next_project_document,
 		asr,
 	}: Resolved & { asr: StateAsr } = $props()
 
 	const form = untrack(() => make_estimate_form({
-		project: pick(project, [`project_id`, `estimated_crew_size`, `project_document_id`]),
+		project: pick(project, [`project_id`, `project_document_id`]),
 		line_items: loaded_line_items,
-		work_skills,
+		work_types,
+		equipment,
 		round_to_nearest,
 	}))
 
 	const estimate = $derived(calculate_estimate(project, map(form.line_items, (line_item, index) => ({
 		...(line_items[index]?.project_line_item ?? default_values.project_line_item),
 		price: line_item.price,
+		work_items: line_item.work_item_rows.non_empty_rows,
 	}))))
 
 	const saver = form_saver({ form, send: values => server.update_estimate(values) })
@@ -171,22 +171,13 @@
 			</div>
 		</header>
 
-		<div class="flex_row crew_size_and_total">
-			<label class="crew_size">
-				Estimate crew size
-				<IntegerInput
-					nullable={true}
-					min={1}
-					value_needs_to_be_saved={first_time_estimating || form.project.value_needs_to_be_saved(`estimated_crew_size`)}
-					bind:value={form.project.form_values.estimated_crew_size}
-				/>
-			</label>
+		<div class="flex_row" style="justify-content: flex-end">
 			{@render total()}
 		</div>
 
 		<div class="flex_column">
 			{#each form.line_items as line_item (line_item.stable_record_identifier)}
-				<LineItemCard {line_item} {first_time_estimating} {item_types} {work_skills} open_line_item={() => open_line_item(line_item)}>
+				<LineItemCard {line_item} {first_time_estimating} {work_types} {equipment} {work_item_ids_in_use} open_line_item={() => open_line_item(line_item)}>
 					{#snippet photos()}
 						<LineItemThumbnails
 							{line_item}
@@ -233,15 +224,6 @@
 	.lead_text {
 		margin: var(--gap_half) 0 0;
 		white-space: pre-wrap;
-	}
-
-	.crew_size_and_total {
-		justify-content: space-between;
-		align-items: flex-end;
-	}
-
-	.crew_size {
-		width: 10rem;
 	}
 
 	.bottom_total {

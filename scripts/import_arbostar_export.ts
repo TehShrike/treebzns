@@ -23,7 +23,6 @@ import declines from '#arbostar_export/declines.js'
 import payments from '#arbostar_export/payments.js'
 import users from '#arbostar_export/users.js'
 import taxes from '#arbostar_export/taxes.js'
-import crew_roles from '#arbostar_export/crew_roles.js'
 import images from '#arbostar_export/images.js'
 
 const { values: args } = parseArgs({ options: { company_id: { type: 'string' } } })
@@ -57,7 +56,6 @@ try {
 			payments,
 			users,
 			taxes,
-			crew_roles,
 			images,
 		},
 		s3,

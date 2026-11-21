@@ -30,12 +30,9 @@ export type ExistingCorrelations = {
 	project_image_by_arbostar_image_id: Map<number, ExistingProjectImage>
 	// Keyed by normalize_name(name), matching the case-insensitive unique keys on
 	// (company_id, name).
-	item_type_id_by_name: Map<string, bigint>
+	work_type_id_by_name: Map<string, bigint>
 	payment_method_id_by_name: Map<string, bigint>
 	lead_source_id_by_name: Map<string, bigint>
-	// Also keyed by normalize_name(name) — work_skill has no unique key on name, but the
-	// import treats the (derived) name as the natural key.
-	work_skill_id_by_name: Map<string, bigint>
 	// The rate is kept as its DECIMAL(4,4) string ("0.0550") so importers can check that a
 	// name-matched row still carries the expected rate.
 	tax_rate_by_name: Map<string, { tax_rate_id: bigint; tax_rate: string }>
@@ -67,7 +64,7 @@ export const load_existing_correlations = async (
 	connection: Connection | Pool,
 	tenanted_select: TenantedSelect,
 ): Promise<ExistingCorrelations> => {
-	const { employees, clients, projects, invoices, payments, contacts, primary_contacts, line_items, project_images, item_types, payment_methods, tax_rates, work_skills, lead_sources } = await promise_all_object({
+	const { employees, clients, projects, invoices, payments, contacts, primary_contacts, line_items, project_images, work_types, payment_methods, tax_rates, lead_sources } = await promise_all_object({
 		employees: tenanted_select(connection, q => q
 			.from('employee')
 			.select(() => ['employee.employee_id', 'employee.arbostar_user_id'])),
@@ -107,18 +104,15 @@ export const load_existing_correlations = async (
 				'project_line_item_image.project_line_item_image_id',
 				'project_line_item_image.project_line_item_id',
 			])),
-		item_types: tenanted_select(connection, q => q
-			.from('item_type')
-			.select(() => ['item_type.item_type_id', 'item_type.name'])),
+		work_types: tenanted_select(connection, q => q
+			.from('work_type')
+			.select(() => ['work_type.work_type_id', 'work_type.name'])),
 		payment_methods: tenanted_select(connection, q => q
 			.from('payment_method')
 			.select(() => ['payment_method.payment_method_id', 'payment_method.name'])),
 		tax_rates: tenanted_select(connection, q => q
 			.from('tax_rate')
 			.select(() => ['tax_rate.tax_rate_id', 'tax_rate.name', 'tax_rate.tax_rate'])),
-		work_skills: tenanted_select(connection, q => q
-			.from('work_skill')
-			.select(() => ['work_skill.work_skill_id', 'work_skill.name'])),
 		lead_sources: tenanted_select(connection, q => q
 			.from('lead_source')
 			.select(() => ['lead_source.lead_source_id', 'lead_source.name'])),
@@ -191,9 +185,9 @@ export const load_existing_correlations = async (
 				thumbnail_object_key: row.project_image.thumbnail_object_key,
 			}] as const,
 		)),
-		item_type_id_by_name: new Map(map(
-			item_types,
-			row => [normalize_name(row.item_type.name), row.item_type.item_type_id] as const,
+		work_type_id_by_name: new Map(map(
+			work_types,
+			row => [normalize_name(row.work_type.name), row.work_type.work_type_id] as const,
 		)),
 		payment_method_id_by_name: new Map(map(
 			payment_methods,
@@ -205,10 +199,6 @@ export const load_existing_correlations = async (
 				normalize_name(row.tax_rate.name),
 				{ tax_rate_id: row.tax_rate.tax_rate_id, tax_rate: String(row.tax_rate.tax_rate) },
 			] as const,
-		)),
-		work_skill_id_by_name: new Map(map(
-			work_skills,
-			row => [normalize_name(row.work_skill.name), row.work_skill.work_skill_id] as const,
 		)),
 		lead_source_id_by_name: new Map(map(
 			lead_sources,

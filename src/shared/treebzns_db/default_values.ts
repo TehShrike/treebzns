@@ -61,7 +61,6 @@ export const project = {
 	emergency: false,
 	assigned_estimator_employee_id: null,
 	lead_details: ``,
-	estimated_crew_size: null,
 	needs_client_approval: false,
 	sent_for_client_approval: false,
 	taxable: false,
@@ -81,27 +80,31 @@ export const project = {
 } as const satisfies Partial<DbProject>
 
 export const project_line_item = {
-	item_type_id: null,
-	line_item_template_id: null,
-	work_details: ``,
-	estimated_crew_size: null,
-	estimated_hours: null,
 	taxable: false,
 	client_optional: false,
 	client_declined: false,
-	quantity: fnum(`1.00`),
 	price: fnum(`0.00`),
 	discount_rate: null,
-	discount: null,
 	discount_description: ``,
-	done_at: null,
-	done_by_employee_id: null,
 	arbostar_line_item_id: null,
 } as const satisfies Partial<DbProjectLineItem>
 
-export const project_line_item_work_skill = {
+export const project_line_item_work_item = {
+	work_type_id: null,
+	product: ``,
+	work_details: ``,
+	estimated_crew_size: null,
+	estimated_hours: null,
+	estimate_hourly_rate: null,
+	price: fnum(`0.00`),
+	discount: null,
+	done_at: null,
+	done_by_employee_id: null,
+} as const satisfies Partial<DbProjectLineItemWorkItem>
+
+export const project_line_item_work_item_equipment = {
 	count: 1n,
-}
+} as const satisfies Partial<DbProjectLineItemWorkItemEquipment>
 
 export const project_image = {
 	original_object_key: null,
@@ -135,7 +138,8 @@ const default_values = {
 	client_contact,
 	project,
 	project_line_item,
-	project_line_item_work_skill,
+	project_line_item_work_item,
+	project_line_item_work_item_equipment,
 	project_image,
 	invoice_line_item,
 }

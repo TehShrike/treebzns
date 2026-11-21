@@ -7,7 +7,7 @@ export const validator_object = {
 	company_id: jv.is_bigint,
 	name: jv.is_string,
 	taxable: jv.is_boolean,
-	hourly_rate: jv.nullable(is_financial_number),
+	hourly_rate: is_financial_number,
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,
 }

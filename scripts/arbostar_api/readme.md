@@ -97,12 +97,11 @@ These are the columns that the importer (`src/shared/arbostar/import_*.ts`) writ
 | `project.latitude`, `project.longitude` | Gain | Every API lead has coordinates. The importer sets neither column today. |
 | `project.lead_source_id` | Gain (small) | The API has `lead_source_details` on every lead. The site export has it only on leads with an estimate. This affects 1 "Other" lead today. |
 | `project_document_history.change_datetime` | Worse | The first row uses the lead creation time. The API gives only the day, so 2121 leads would move to local midnight. The Declined Proposal row loses its decline time. |
-| `project_line_item.estimated_hours` | Lose | From `man_hours`. 1857 of 4643 line items have a value. |
+| `project_line_item_work_item.estimated_hours` | Lose | From `man_hours`. 1857 of 4643 line items have a value. |
 | `project_line_item.client_optional` | Lose (part) | From `optional`. 2081 line items are optional. Declined line items still set it, because the API has the status. |
 | `project_line_item.sort`, `invoice_line_item.sort` | Lose | The API has no sort order. The array order may be the display order, but this is not verified. |
-| `project_line_item.done_at` | Gain (maybe) | 119 line items have a `date`, and 1773 have the status Completed. It is not verified that `date` is the completion day. The importer sets neither column today. |
-| `project_line_item_work_skill` (all columns) | Lose | From each line item's `crews` codes (2242 line items). The API has crew codes only on work orders (`crew_names`) and on schedule events. |
-| `work_skill.name`, `work_skill.hourly_rate` | Lose | From the Crew Roles page. The API has no role names or rates. |
+| `project_line_item_work_item.done_at` | Gain (maybe) | 119 line items have a `date`, and 1773 have the status Completed. It is not verified that `date` is the completion day. The importer sets neither column today. |
+| `project_line_item_work_item.estimated_crew_size` | Lose | From the count of each line item's `crew_role_ids`. The API has crew codes only on work orders (`crew_names`) and on schedule events. |
 | `invoice.tax_rate_id`, `invoice.tax_rate`, `invoice.taxable_subtotal` | Better | The API gives each invoice's rate and taxable sum. The importer now derives both. |
 | `invoice.due_date` | Better | The API gives the due date. The importer now computes it from `company.invoice_due_after_days`. It differs on 1 of 1006 invoices. |
 | `payment.merchant_fee` | Lose | 794 of 1317 payments have a fee. |
@@ -113,6 +112,6 @@ These are the columns that the importer (`src/shared/arbostar/import_*.ts`) writ
 | `employee.email` | Lose | New employees get `personal_email`. 4 of 5 active users have one. The API has only the login email (`user_email`). |
 | `employee.phone` | Lose | From `emp_phone` (5 of 5 active users). |
 | `tax_rate` (all columns) | Worse | The site export has the official tax list. The API gives only the rates used on estimates and invoices. Today that is only "Tax" at 0% and 5.5%. |
-| `item_type.taxable` | Better | The API gives the catalog item's `non_taxable` flag. The importer now copies it from the first line item that uses the item. |
+| `work_type.taxable` | Better | The API gives the catalog item's `non_taxable` flag. The importer now copies it from the first line item that uses the item. |
 
-Tables the importer does not fill today could also get API data. `crew`, `project_crew`, `project_crew_employee`, and `project_crew_project_line_item` could come from schedule events. Each event has a crew, the scheduled line item ids, and times. `clock_session` and its related tables could come from each event's field report (`jobs`) and from users' `employee_worked` time entries (3 rows so far). `company.name` could come from `brands.js`.
+`import_schedule_events.ts` fills `crew`, `work_order`, `work_order_employee`, and `work_order_project_line_item_work_item` from schedule events. Each event has a crew, the scheduled line item ids, and times. Tables the importer does not fill today could also get API data. `clock_session` and its related tables could come from each event's field report (`jobs`) and from users' `employee_worked` time entries (3 rows so far). `company.name` could come from `brands.js`.

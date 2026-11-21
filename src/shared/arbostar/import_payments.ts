@@ -62,7 +62,7 @@ const earliest_date = (dates: Array<string | null>): string | null => {
 
 // payments.js → payment (+ payment_method), update-or-insert. These are ArboStar's real
 // payment records — correlation is arbostar_payment_id. Payment methods are naturally keyed
-// by name per company, like item_type: existing ones are reused, unseen names are inserted.
+// by name per company, like work_type: existing ones are reused, unseen names are inserted.
 // payment.amount is the balance-affecting money: payment_amount minus tips. Each payment's
 // invoice allocations become the import-managed payment_invoice rows, reconciled in place —
 // updated, inserted, or deleted as ArboStar's allocations change. Estimate-only allocations

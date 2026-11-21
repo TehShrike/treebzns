@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import * as assert from 'node:assert'
 import fnum from '#shared/fnum.ts'
 import { Temporal } from '@js-temporal/polyfill'
-import { narrow_project, narrow_project_line_item } from './narrow_project.ts'
+import { narrow_project, narrow_project_line_item_work_item } from './narrow_project.ts'
 
 test('narrow_project: returns the same object when the columns agree', () => {
 	const project = {
@@ -40,16 +40,12 @@ test('narrow_project: rules that need a column that was not selected are skipped
 	assert.doesNotThrow(() => narrow_project({ discount_rate: fnum(`0.1`) }))
 })
 
-test('narrow_project_line_item: returns the same object when the columns agree', () => {
-	const line_item = { done_at: null, done_by_employee_id: null, discount_rate: fnum(`0.1`), discount: null }
-	assert.strictEqual(narrow_project_line_item(line_item), line_item)
+test('narrow_project_line_item_work_item: returns the same object when the columns agree', () => {
+	const work_item = { done_at: null, done_by_employee_id: null, price: fnum(`100.00`) }
+	assert.strictEqual(narrow_project_line_item_work_item(work_item), work_item)
 })
 
-test('narrow_project_line_item: done_at without done_by_employee_id throws, and the reverse', () => {
-	assert.throws(() => narrow_project_line_item({ done_at: Temporal.Instant.from(`2026-10-30T12:00:00Z`), done_by_employee_id: null }))
-	assert.throws(() => narrow_project_line_item({ done_at: null, done_by_employee_id: 1n }))
-})
-
-test('narrow_project_line_item: a line item with a discount_rate and a discount throws', () => {
-	assert.throws(() => narrow_project_line_item({ discount_rate: fnum(`0.1`), discount: fnum(`5.00`) }))
+test('narrow_project_line_item_work_item: done_at without done_by_employee_id throws, and the reverse', () => {
+	assert.throws(() => narrow_project_line_item_work_item({ done_at: Temporal.Instant.from(`2026-10-30T12:00:00Z`), done_by_employee_id: null }))
+	assert.throws(() => narrow_project_line_item_work_item({ done_at: null, done_by_employee_id: 1n }))
 })

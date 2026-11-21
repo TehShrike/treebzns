@@ -7,7 +7,6 @@ export const validator_object = {
 	company_id: jv.is_bigint,
 	project_id: jv.is_bigint,
 	title: jv.is_string,
-	description: jv.is_string,
 	taxable: jv.is_boolean,
 	client_optional: jv.is_boolean,
 	client_declined: jv.is_boolean,

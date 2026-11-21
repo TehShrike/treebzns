@@ -1,5 +1,5 @@
 import type { ClientQueryFn } from '#lib/client_query_fn.ts'
-import { narrow_project, narrow_project_line_item } from '#lib/narrow_project.ts'
+import { narrow_project, narrow_project_line_item_work_item } from '#lib/narrow_project.ts'
 import query_builder from '#shared/sql_request/typed_query_builder.ts'
 import group_joined_rows from '#shared/sql_request/group_joined_rows.ts'
 import type { Schema } from '#schema/types.ts'
@@ -24,7 +24,6 @@ const project_columns = [
 	`project.emergency`,
 	`project.assigned_estimator_employee_id`,
 	`project.lead_details`,
-	`project.estimated_crew_size`,
 	`project.created_by_employee_id`,
 	`project.created_at`,
 	`project.updated_at`,
@@ -76,24 +75,38 @@ const project_line_item_columns = [
 	`project_line_item.project_line_item_id`,
 	`project_line_item.project_id`,
 	`project_line_item.title`,
-	`project_line_item.work_details`,
-	`project_line_item.item_type_id`,
-	`project_line_item.line_item_template_id`,
-	`project_line_item.estimated_crew_size`,
-	`project_line_item.estimated_hours`,
 	`project_line_item.taxable`,
 	`project_line_item.client_optional`,
 	`project_line_item.client_declined`,
-	`project_line_item.quantity`,
 	`project_line_item.price`,
 	`project_line_item.discount_rate`,
-	`project_line_item.discount`,
 	`project_line_item.discount_description`,
 	`project_line_item.sort`,
-	`project_line_item.done_at`,
-	`project_line_item.done_by_employee_id`,
 	`project_line_item.created_at`,
 	`project_line_item.updated_at`,
+] as const
+
+const project_line_item_work_item_columns = [
+	`project_line_item_work_item.project_line_item_work_item_id`,
+	`project_line_item_work_item.work_type_id`,
+	`project_line_item_work_item.product`,
+	`project_line_item_work_item.work_details`,
+	`project_line_item_work_item.estimated_crew_size`,
+	`project_line_item_work_item.estimated_hours`,
+	`project_line_item_work_item.estimate_hourly_rate`,
+	`project_line_item_work_item.price`,
+	`project_line_item_work_item.discount`,
+	`project_line_item_work_item.sort`,
+	`project_line_item_work_item.done_at`,
+	`project_line_item_work_item.done_by_employee_id`,
+	`project_line_item_work_item.created_at`,
+	`project_line_item_work_item.updated_at`,
+] as const
+
+const project_line_item_work_item_equipment_columns = [
+	`project_line_item_work_item_equipment.project_line_item_work_item_equipment_id`,
+	`project_line_item_work_item_equipment.equipment_id`,
+	`project_line_item_work_item_equipment.count`,
 ] as const
 
 const project_image_columns = [
@@ -107,12 +120,6 @@ const project_image_columns = [
 	`project_image.upload_employee_id`,
 	`project_image.created_at`,
 	`project_image.updated_at`,
-] as const
-
-const project_line_item_work_skill_columns = [
-	`project_line_item_work_skill.project_line_item_work_skill_id`,
-	`project_line_item_work_skill.work_skill_id`,
-	`project_line_item_work_skill.count`,
 ] as const
 
 export const select_project = async (query: ClientQueryFn, project_id: bigint) => {
@@ -136,17 +143,21 @@ export const select_project_with_line_items = async (query: ClientQueryFn, proje
 			.left_join(`project_line_item`, q => q.comparison(`project_line_item.project_id`, `=`, `project.project_id`))
 			.left_join(`project_line_item_image`, q => q.comparison(`project_line_item_image.project_line_item_id`, `=`, `project_line_item.project_line_item_id`))
 			.left_join(`project_image`, q => q.comparison(`project_image.project_image_id`, `=`, `project_line_item_image.project_image_id`))
-			.left_join(`project_line_item_work_skill`, q => q.comparison(`project_line_item_work_skill.project_line_item_id`, `=`, `project_line_item.project_line_item_id`))
+			.left_join(`project_line_item_work_item`, q => q.comparison(`project_line_item_work_item.project_line_item_id`, `=`, `project_line_item.project_line_item_id`))
+			.left_join(`project_line_item_work_item_equipment`, q => q.comparison(`project_line_item_work_item_equipment.project_line_item_work_item_id`, `=`, `project_line_item_work_item.project_line_item_work_item_id`))
 			.where(q => q.comparison(`project.project_id`, `=`, { value: project_id }))
 			.order_by(`project_line_item.sort`, `ASC`)
 			.order_by(`project_line_item_image.sort`, `ASC`)
-			.order_by(`project_line_item_work_skill.project_line_item_work_skill_id`, `ASC`)
+			.order_by(`project_line_item_work_item.sort`, `ASC`)
+			.order_by(`project_line_item_work_item.project_line_item_work_item_id`, `ASC`)
+			.order_by(`project_line_item_work_item_equipment.project_line_item_work_item_equipment_id`, `ASC`)
 			.select(() => [
 				...project_columns,
 				...client_columns,
 				...project_line_item_columns,
 				...project_image_columns,
-				...project_line_item_work_skill_columns,
+				...project_line_item_work_item_columns,
+				...project_line_item_work_item_equipment_columns,
 			] as const)
 			.build(),
 	)
@@ -161,7 +172,13 @@ export const select_project_with_line_items = async (query: ClientQueryFn, proje
 				key: `project_line_item_id`,
 				children: {
 					images: { table: `project_image`, key: `project_image_id` },
-					work_skills: { table: `project_line_item_work_skill`, key: `project_line_item_work_skill_id` },
+					work_items: {
+						table: `project_line_item_work_item`,
+						key: `project_line_item_work_item_id`,
+						children: {
+							equipment: { table: `project_line_item_work_item_equipment`, key: `project_line_item_work_item_equipment_id` },
+						},
+					},
 				},
 			},
 		},
@@ -171,10 +188,13 @@ export const select_project_with_line_items = async (query: ClientQueryFn, proje
 	return {
 		project: narrow_project(grouped.project),
 		client: grouped.client,
-		line_items: map(grouped.line_items, ({ project_line_item, images, work_skills }) => ({
-			project_line_item: narrow_project_line_item(project_line_item),
+		line_items: map(grouped.line_items, ({ project_line_item, images, work_items }) => ({
+			project_line_item,
 			images,
-			work_skills,
+			work_items: map(work_items, ({ project_line_item_work_item, equipment }) => ({
+				project_line_item_work_item: narrow_project_line_item_work_item(project_line_item_work_item),
+				equipment,
+			})),
 		})),
 	}
 }
