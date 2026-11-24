@@ -1,5 +1,4 @@
 import sql from 'sql-tagged-template-literal'
-import type { Pool, PoolConnection } from 'mysql2/promise'
 
 import type { QueryPromise, Mysql } from './type.ts'
 import assert from '#shared/assert.ts'
@@ -54,20 +53,6 @@ const make_transaction_connection = <Connection extends Mysql>(
 
 	return transaction_connection
 }
-
-export const pool_connection = async<RESULT>(pool: Pool, fn: (connection: PoolConnection) => Promise<RESULT>): Promise<RESULT> => {
-	const connection = await pool.getConnection()
-	try {
-		return await fn(connection)
-	} finally {
-		connection.release()
-	}
-}
-
-export const pool_transaction = <RESULT>(
-	pool: Pool,
-	fn: (connection: TransactionConnection<PoolConnection>) => Promise<RESULT>,
-): Promise<RESULT> => pool_connection(pool, connection => transaction(connection, fn))
 
 export const transaction = async<Connection extends Mysql, RESULT>(
 	connection: Connection,

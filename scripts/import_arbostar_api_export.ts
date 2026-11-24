@@ -4,7 +4,8 @@
 import { parseArgs } from 'node:util'
 import assert from '#shared/assert.ts'
 import { for_each } from '#shared/array.ts'
-import { create_pool, require_mysql_env } from '#shared/mysql/connection.ts'
+import { require_mysql_env } from '#shared/mysql/connection.ts'
+import { create_pool } from '#shared/arbostar/helpers/create_pool.ts'
 import { import_schedule_events } from '#shared/arbostar/import_schedule_events.ts'
 import schedule_events from '#arbostar_api_export/schedule_events.js'
 

@@ -1,6 +1,6 @@
 import type { Pool } from 'mysql2/promise'
 import type { ArbostarApiScheduleEvent } from '#arbostar_api_export/schedule_events.d.ts'
-import { pool_transaction } from '#shared/mysql/helpers.ts'
+import { pool_transaction } from './helpers/pool_transaction.ts'
 import make_write_helper from '#shared/mysql/write_helper.ts'
 import assert from '#shared/assert.ts'
 import { map, filter, filter_map, flat_map, for_each } from '#shared/array.ts'

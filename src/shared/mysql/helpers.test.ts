@@ -1,11 +1,9 @@
 import { test } from 'node:test'
 import * as assert from 'node:assert'
-import type { Pool, PoolConnection } from 'mysql2/promise'
 
 import {
 	assert_active_transaction_connection,
 	is_active_transaction_connection,
-	pool_transaction,
 	transaction,
 } from './helpers.ts'
 import type { TransactionConnection } from './helpers.ts'
@@ -195,57 +193,5 @@ test('commit and rollback failures still expire the transaction wrapper', async 
 		assert.deepStrictEqual(sql_calls(calls), [ 'START TRANSACTION', 'ROLLBACK' ])
 		assert.ok(retained_connection)
 		assert.strictEqual(is_active_transaction_connection(retained_connection), false)
-	})
-})
-
-const make_fake_pool = ({ callback_fails = false } = {}) => {
-	const { calls, connection } = make_fake_connection()
-	let release_count = 0
-	const pool_connection = Object.assign(connection, {
-		release: () => { release_count += 1 },
-	}) as unknown as PoolConnection
-	const pool = {
-		getConnection: async () => pool_connection,
-	} as unknown as Pool
-
-	return {
-		calls,
-		callback_fails,
-		connection: pool_connection,
-		pool,
-		release_count: () => release_count,
-	}
-}
-
-test('pool_transaction passes a branded pooled connection and releases it after expiration', async t => {
-	await t.test('success', async () => {
-		const fake = make_fake_pool()
-		let retained_connection: TransactionConnection<PoolConnection> | undefined
-
-		await pool_transaction(fake.pool, async transaction_connection => {
-			retained_connection = transaction_connection
-			assert.strictEqual(is_active_transaction_connection(transaction_connection), true)
-			assert.strictEqual(fake.release_count(), 0)
-		})
-
-		assert.ok(retained_connection)
-		assert.strictEqual(is_active_transaction_connection(retained_connection), false)
-		assert.strictEqual(fake.release_count(), 1)
-		assert.deepStrictEqual(sql_calls(fake.calls), [ 'START TRANSACTION', 'COMMIT' ])
-	})
-
-	await t.test('failure', async () => {
-		const fake = make_fake_pool()
-		let retained_connection: TransactionConnection<PoolConnection> | undefined
-
-		await assert.rejects(pool_transaction(fake.pool, async transaction_connection => {
-			retained_connection = transaction_connection
-			throw new Error('pool callback failed')
-		}), /pool callback failed/)
-
-		assert.ok(retained_connection)
-		assert.strictEqual(is_active_transaction_connection(retained_connection), false)
-		assert.strictEqual(fake.release_count(), 1)
-		assert.deepStrictEqual(sql_calls(fake.calls), [ 'START TRANSACTION', 'ROLLBACK' ])
 	})
 })

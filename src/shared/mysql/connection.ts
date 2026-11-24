@@ -1,5 +1,5 @@
-import { createPool, createConnection } from 'mysql2/promise'
-import type { Pool, Connection, ConnectionOptions } from 'mysql2/promise'
+import { createConnection } from 'mysql2/promise'
+import type { Connection, ConnectionOptions } from 'mysql2/promise'
 import { Temporal } from '@js-temporal/polyfill'
 import fnum from '#shared/fnum.ts'
 
@@ -143,12 +143,6 @@ export const env_connection_options = (env: MysqlEnv): ConnectionOptions => ({
 		: {}),
 	disableEval: true,
 })
-
-export const create_pool = (env: MysqlEnv): Pool =>
-	createPool({
-		...env_connection_options(env),
-		...static_connection_options
-	})
 
 type HyperdriveBinding = {
 	host: string

@@ -23,3 +23,9 @@ test('mysql_function: is_mysql_function recognizes function chunks and nothing e
 	assert.strictEqual(is_mysql_function('UTC_TIMESTAMP()'), false)
 	assert.strictEqual(is_mysql_function(null), false)
 })
+
+test('mysql_function: greatest_of_column_and escapes the column identifier', () => {
+	const fn = fns.greatest_of_column_and('next_number', 1000n)
+	assert.strictEqual(is_mysql_function(fn), true)
+	assert.strictEqual(fn.sql, 'GREATEST(`next_number`, 1000)')
+})
