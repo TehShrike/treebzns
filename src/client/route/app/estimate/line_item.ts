@@ -4,7 +4,7 @@ import { pick } from '#shared/pick.ts'
 
 export const new_line_item = ({ line_item_count }: { line_item_count: number }): EstimateLineItemValues => ({
 	title: `Line item ${line_item_count + 1}`,
-	...pick(default_values.project_line_item, [`client_optional`]),
+	...pick(default_values.project_line_item, [`client_optional`, `primary_image_id`]),
 })
 
 export const added_line_item = (line_item: EstimateLineItemValues): AddedEstimateLineItem => ({

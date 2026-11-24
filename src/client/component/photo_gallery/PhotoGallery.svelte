@@ -5,10 +5,13 @@
 	import RightChevronIcon from '#component/icon/RightChevronIcon.svelte'
 	import type { GalleryImage } from './gallery_image.ts'
 
-	const { images, on_photo_click }: {
+	let { images, primary_image_id = $bindable(), on_photo_click }: {
 		images: readonly T[]
+		primary_image_id: bigint | null
 		on_photo_click?: (image: T) => void
 	} = $props()
+
+	const id = $props.id()
 
 	let scroller: HTMLElement | null = null
 	let at_start = $state(true)
@@ -60,6 +63,14 @@
 							<img src={image.src} alt="Photo {index + 1}" loading="lazy">
 						</button>
 					{/if}
+					<div class="primary">
+						<div class="primary_choice">
+							<label>
+								<input type="radio" name="{id}_primary" value={image.project_image_id} bind:group={primary_image_id}>
+								Primary
+							</label>
+						</div>
+					</div>
 				</li>
 			{/each}
 		</ol>
@@ -105,7 +116,8 @@
 	}
 
 	.slide {
-		display: flex;
+		display: grid;
+		grid-template: minmax(0, 1fr) / minmax(0, 1fr);
 		flex: 0 0 min(calc(100% - 2 * var(--peek)), var(--max_height));
 		aspect-ratio: 1;
 		scroll-snap-align: center;
@@ -113,8 +125,25 @@
 	}
 
 	.slide > * {
+		grid-area: 1 / 1;
 		width: 100%;
 		height: 100%;
+	}
+
+	.primary {
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+		box-sizing: border-box;
+		padding-bottom: var(--gap_half);
+		pointer-events: none;
+	}
+
+	.primary_choice {
+		display: flex;
+		padding: 0 var(--gap_half);
+		background: var(--white);
+		pointer-events: auto;
 	}
 
 	.open_photo {

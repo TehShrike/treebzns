@@ -3,6 +3,8 @@
 	import { state_type, type StateResolve } from '#lib/client_type.ts'
 	import type { ClientQueryFn } from '#lib/client_query_fn.ts'
 	import MarkUpPhoto from './MarkUpPhoto.svelte'
+	import make_mark_up_photo_form from './mark_up_photo_form.svelte.ts'
+	import form_saver from '#lib/form_saver.svelte.ts'
 	import type PhotoMarkup from '#component/photo_markup/PhotoMarkup.svelte'
 	import { canvas_from_blob } from '#component/photo_markup/canvas_from_blob.ts'
 	import undo_stack from '#lib/undo_stack.ts'
@@ -77,6 +79,10 @@
 
 	let history = $state.raw(untrack(() => undo_stack.from_done(strokes)))
 
+	const form = untrack(() => make_mark_up_photo_form({ project_id, line_item }))
+
+	const saver = form_saver({ form, send: values => server.upsert_line_item(values) })
+
 	const strokes_unchanged = (done: readonly Stroke[]) =>
 		done.length === strokes.length && every(zip_with(done, strokes, (a, b) => a === b), same => same)
 
@@ -85,6 +91,7 @@
 	}
 
 	const save_photo = async (compose: PhotoMarkup['compose']) => {
+		await saver.save_if_appropriate()
 		if (!strokes_unchanged(history.done)) {
 			const composed = await compose()
 			await server.update_project_image({ project_image_id, strokes: composed.strokes })
@@ -99,4 +106,12 @@
 	}
 </script>
 
-<MarkUpPhoto title={line_item.title} {photo} bind:history discard={go_back} save={save_photo} />
+<MarkUpPhoto
+	title={line_item.title}
+	{photo}
+	bind:history
+	{project_image_id}
+	bind:primary_image_id={form.line_item.form_values.primary_image_id}
+	discard={go_back}
+	save={save_photo}
+/>

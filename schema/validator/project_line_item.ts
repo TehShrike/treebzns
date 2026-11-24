@@ -14,6 +14,7 @@ export const validator_object = {
 	discount_rate: jv.nullable(is_financial_number),
 	discount_description: jv.is_string,
 	sort: jv.is_bigint,
+	primary_image_id: jv.nullable(jv.is_bigint),
 	arbostar_line_item_id: jv.nullable(jv.is_bigint),
 	created_at: is_temporal_instant,
 	updated_at: is_temporal_instant,

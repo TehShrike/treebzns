@@ -26,7 +26,7 @@ const make_estimate_form = ({ project: loaded_project, line_items: loaded_line_i
 	const hourly_rates = make_hourly_rates({ work_types, equipment })
 
 	let line_items = $state.raw(map(loaded_line_items, loaded_line_item => make_line_item({
-		default_values: { title: ``, ...pick(default_values.project_line_item, [`client_optional`]) },
+		default_values: { title: ``, ...pick(default_values.project_line_item, [`client_optional`, `primary_image_id`]) },
 		values_in_db: loaded_line_item,
 		hourly_rates,
 		round_to_nearest,

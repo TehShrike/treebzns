@@ -123,7 +123,7 @@
 		<button type="button" disabled={saver.saving} onclick={go_back}>Discard</button>
 	{/snippet}
 
-	<PhotoGallery {images} on_photo_click={image => open_photo(image.project_image_id)} />
+	<PhotoGallery {images} bind:primary_image_id={form.line_item.record.form_values.primary_image_id} on_photo_click={image => open_photo(image.project_image_id)} />
 
 	<form id={form_id} class="line_item" onsubmit={on_submit}>
 		<LineItemCard line_item={form.line_item} first_time_estimating={false} {work_types} {equipment} {work_item_ids_in_use} />

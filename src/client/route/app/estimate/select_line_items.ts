@@ -12,6 +12,7 @@ export const select_line_items = (query: ClientQueryFn, project_id: bigint) => q
 		.select(() => [
 			`project_line_item.project_line_item_id`,
 			`project_line_item.title`,
+			`project_line_item.primary_image_id`,
 		] as const)
 		.order_by(`project_line_item.sort`, `ASC`)
 		.build()

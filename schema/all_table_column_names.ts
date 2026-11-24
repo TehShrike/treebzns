@@ -473,6 +473,7 @@ export const project_line_item = {
 	discount_rate: 'discount_rate',
 	discount_description: 'discount_description',
 	sort: 'sort',
+	primary_image_id: 'primary_image_id',
 	created_at: 'created_at',
 	updated_at: 'updated_at',
 	arbostar_line_item_id: 'arbostar_line_item_id',

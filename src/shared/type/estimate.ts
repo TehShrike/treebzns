@@ -1,6 +1,6 @@
 export type EstimateProjectValues = Pick<DbProject, 'project_document_id'>
 
-export type EstimateLineItemValues = Pick<DbProjectLineItem, 'title' | 'client_optional'>
+export type EstimateLineItemValues = Pick<DbProjectLineItem, 'title' | 'client_optional' | 'primary_image_id'>
 
 export type EstimateLineItemWorkItemValues = Pick<DbProjectLineItemWorkItem, 'work_type_id' | 'product' | 'work_details' | 'estimated_crew_size' | 'estimated_hours' | 'price'>
 

@@ -202,6 +202,10 @@ The rows are written first (`uploaded_at` null), the files upload outside any tr
 transaction stores the object keys and `uploaded_at`. A photo whose upload failed keeps its null
 `uploaded_at` and is retried on the next run (`project_images_upload_failed` in the summary).
 
+The import keeps the primary image rule (`src/notes/project_image_rules.md`). A line item keeps its primary
+image while that photo stays on it. When the photo leaves the line item, the first photo by `sort` becomes
+the primary image. A line item with no photos left gets a null `primary_image_id`.
+
 ## Re-runnable: ArboStar ids are stored as correlations
 
 Every imported row carries its ArboStar identity (migration 0016): `employee.arbostar_user_id`,

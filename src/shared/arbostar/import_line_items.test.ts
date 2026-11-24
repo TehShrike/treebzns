@@ -125,8 +125,8 @@ test('import_line_items: a new line makes a work type at 100.00 an hour, a line 
 		"INSERT INTO `work_type` (`company_id`, `name`, `taxable`, `hourly_rate`) VALUES (7, 'Tree Removal', true, '100.00')",
 	])
 	assert.deepStrictEqual(writes_to('project_line_item'), [
-		'INSERT INTO `project_line_item` (`company_id`, `project_id`, `title`, `taxable`, `client_optional`, `client_declined`, `price`, `discount_rate`, `discount_description`, `sort`, `arbostar_line_item_id`)'
-		+ " VALUES (7, 10, 'Tree Removal', true, false, false, '300.50', NULL, '', 4, 501)",
+		'INSERT INTO `project_line_item` (`company_id`, `project_id`, `title`, `taxable`, `client_optional`, `client_declined`, `price`, `discount_rate`, `discount_description`, `sort`, `primary_image_id`, `arbostar_line_item_id`)'
+		+ " VALUES (7, 10, 'Tree Removal', true, false, false, '300.50', NULL, '', 4, NULL, 501)",
 	])
 	assert.deepStrictEqual(writes_to('project_line_item_work_item'), [
 		'INSERT INTO `project_line_item_work_item` (`company_id`, `project_line_item_id`, `work_type_id`, `product`, `work_details`, `estimated_crew_size`, `estimated_hours`, `estimate_hourly_rate`, `price`, `discount`, `sort`, `done_at`, `done_by_employee_id`)'

@@ -14,7 +14,7 @@ import type {
 	UpsertLineItemResult,
 } from '#shared/type/estimate.ts'
 import { filter_map, flat_map, map, map_async } from '#shared/array.ts'
-import { assert_line_items_in_project, insert_line_item, remove_line_items, update_line_item, upsert_line_item } from './estimate_helper/line_item.ts'
+import { assert_line_items_in_project, assert_primary_images_valid, insert_line_item, remove_line_items, update_line_item, upsert_line_item } from './estimate_helper/line_item.ts'
 import { update_project_document } from '#shared/treebzns_db/changes_with_history/project_document_history.ts'
 
 const ids_validator = jv.array(jv.is_bigint)
@@ -60,6 +60,7 @@ const changed_work_items_validator: Validator<ChangedEstimateLineItemWorkItem[]>
 const line_item_value_validators = {
 	title: jv.is_string,
 	client_optional: jv.is_boolean,
+	primary_image_id: jv.nullable(jv.is_bigint),
 }
 
 const added_line_item_validator: Validator<AddedEstimateLineItem> = jv.object({
@@ -122,6 +123,7 @@ const assert_input_ids_valid = async ({
 			project_line_item_ids: filter_map(line_items, line_item => line_item.project_line_item_id),
 			select_builder,
 		}),
+		assert_primary_images_valid({ line_items, select_builder }),
 		assert_db_ids_valid({
 			select_builder,
 			table_name: `project_line_item_work_item`,

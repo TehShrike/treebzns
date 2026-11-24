@@ -10,10 +10,12 @@
 	import type { Stroke } from '#schema/type/project_image.d.ts'
 	import assert from '#shared/assert.ts'
 
-	let { title, photo, history = $bindable(undo_stack.empty<Stroke>()), discard, save }: {
+	let { title, photo, history = $bindable(undo_stack.empty<Stroke>()), project_image_id, primary_image_id = $bindable(), discard, save }: {
 		title: string
 		photo: HTMLCanvasElement
 		history?: UndoStack<Stroke>
+		project_image_id?: bigint
+		primary_image_id?: bigint | null
 		discard: () => void
 		save: (compose: PhotoMarkup['compose']) => Promise<void>
 	} = $props()
@@ -44,6 +46,15 @@
 		<div class="markup">
 			<PhotoMarkup bind:this={markup} {photo} {color} bind:history />
 		</div>
+		{#if project_image_id !== undefined}
+			<div class="primary">
+				{#if primary_image_id === project_image_id}
+					<span>Primary image</span>
+				{:else}
+					<button type="button" disabled={busy} onclick={() => { primary_image_id = project_image_id }}>Make primary</button>
+				{/if}
+			</div>
+		{/if}
 	</div>
 
 	{#snippet bottom()}
@@ -70,5 +81,14 @@
 		flex-direction: column;
 		flex-grow: 1;
 		min-height: 0;
+	}
+
+	.primary {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		min-height: var(--input-height);
+		font-weight: bold;
 	}
 </style>

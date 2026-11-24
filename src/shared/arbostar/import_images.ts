@@ -1,9 +1,11 @@
-import type { PoolConnection } from 'mysql2/promise'
+import type { Connection, PoolConnection } from 'mysql2/promise'
 import type { ArbostarImage } from '#arbostar_export/images.d.ts'
 import type { S3Client } from '#shared/s3/s3_client.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import type { TransactionConnection } from '#shared/mysql/helpers.ts'
 import { upload_project_image_files_to_storage, type ProjectImageFileBody } from '#shared/project_image/upload_project_image_files_to_storage.ts'
+import { valid_primary_image_id } from '#shared/project_image/primary_image.ts'
+import group_joined_rows from '#shared/sql_request/group_joined_rows.ts'
 import { fns } from '#shared/sql_request/mysql_function.ts'
 import { filter, filter_map, flat_map, for_each, map, map_with_concurrency } from '#shared/array.ts'
 import { ROWS_PER_BATCH } from './import_common.ts'
@@ -41,6 +43,54 @@ type ImageRow = {
 	project_line_item_id: bigint
 	upload_employee_id: bigint | null
 	sort: bigint
+}
+
+export const update_primary_images = async ({
+	connection,
+	write_helper,
+	context,
+	project_line_item_ids,
+}: {
+	connection: Connection
+	write_helper: TenantedWriteHelper
+	context: Pick<ArbostarImportContext, 'tenanted_select'>
+	project_line_item_ids: readonly bigint[]
+}): Promise<void> => {
+	if (project_line_item_ids.length === 0) return
+
+	const rows = await context.tenanted_select(connection, q => q
+		.from('project_line_item')
+		.left_join('project_line_item_image', b => b.comparison('project_line_item_image.project_line_item_id', '=', 'project_line_item.project_line_item_id'))
+		.where(b => b.in('project_line_item.project_line_item_id', project_line_item_ids))
+		.order_by('project_line_item_image.sort', 'ASC')
+		.order_by('project_line_item_image.project_line_item_image_id', 'ASC')
+		.select(() => [
+			'project_line_item.project_line_item_id',
+			'project_line_item.primary_image_id',
+			'project_line_item_image.project_image_id',
+		] as const))
+	const line_items = group_joined_rows(rows, {
+		table: 'project_line_item',
+		key: 'project_line_item_id',
+		children: {
+			images: { table: 'project_line_item_image', key: 'project_image_id' },
+		},
+	})
+
+	await write_helper.bulk_update({
+		table_name: 'project_line_item',
+		column: 'project_line_item_id',
+		rows: filter_map(line_items, ({ project_line_item, images }) => {
+			const primary_image_id = valid_primary_image_id({
+				primary_image_id: project_line_item.primary_image_id,
+				project_image_ids_in_sort_order: map(images, image => image.project_image_id),
+			})
+			return primary_image_id === project_line_item.primary_image_id
+				? null
+				: { value: project_line_item.project_line_item_id, set: { primary_image_id } }
+		}),
+		rows_per_batch: ROWS_PER_BATCH,
+	})
 }
 
 // images.js → project_image + project_line_item_image, update-or-insert by arbostar_image_id.
@@ -160,6 +210,17 @@ export const import_images = async ({
 			await write_helper.delete({ table_name: 'project_line_item_image', column: 'project_image_id', values: stale_project_image_ids, values_per_batch: ROWS_PER_BATCH })
 			await write_helper.delete({ table_name: 'project_image', column: 'project_image_id', values: stale_project_image_ids, values_per_batch: ROWS_PER_BATCH })
 		}
+
+		await update_primary_images({
+			connection,
+			write_helper,
+			context,
+			project_line_item_ids: [...new Set([
+				...map(rows, row => row.project_line_item_id),
+				...map(existing_rows, row => context.existing.project_image_by_arbostar_image_id.get(row.image.image_id)!.project_line_item_id),
+				...map(stale, ([, row]) => row.project_line_item_id),
+			])],
+		})
 
 		return { project_image_id_by_arbostar_image_id }
 	})

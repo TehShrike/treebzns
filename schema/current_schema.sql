@@ -573,6 +573,7 @@ CREATE TABLE `project_line_item` (
   `discount_rate` decimal(5,4) DEFAULT NULL,
   `discount_description` varchar(200) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
   `sort` smallint unsigned NOT NULL,
+  `primary_image_id` int unsigned DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `updated_at` datetime NOT NULL DEFAULT (utc_timestamp()),
   `arbostar_line_item_id` int unsigned DEFAULT NULL,

@@ -1,11 +1,12 @@
 import assert from '#shared/assert.ts'
-import { every, map } from '#shared/array.ts'
+import { every, filter_map, for_each, map } from '#shared/array.ts'
 import type { FinancialNumber } from '#shared/fnum.ts'
 import type { TenantedSelectBuilder, TransactionTenantedSelectBuilder } from '#shared/treebzns_db/make_tenanted_select_builder.ts'
 import type { TenantedWriteHelper } from '#shared/mysql/write_helper.ts'
 import default_values from '#shared/treebzns_db/default_values.ts'
 import { pick } from '#shared/pick.ts'
 import { calculate_line_item_price, total_work_item_price } from '#shared/estimate/line_item_price.ts'
+import { assert_primary_image_valid } from '#shared/project_image/primary_image.ts'
 import type {
 	AddedEstimateLineItem,
 	AddedEstimateLineItemResult,
@@ -40,6 +41,40 @@ export const assert_line_items_in_project = async ({
 
 	assert(rows.length === unique_ids.length, `every line item id matches one row`)
 	assert(every(rows, row => row.project_line_item.project_id === project_id), `every line item belongs to project ${project_id}`)
+}
+
+export const assert_primary_images_valid = async ({
+	line_items,
+	select_builder,
+}: {
+	line_items: readonly (AddedEstimateLineItem | ChangedEstimateLineItem)[]
+	select_builder: TenantedSelectBuilder
+}) => {
+	assert(
+		every(line_items, line_item => line_item.project_line_item_id !== null || line_item.primary_image_id === null),
+		`a line item that is not in the database has no primary image`,
+	)
+
+	const line_items_with_new_primary_image = filter_map(line_items, ({ project_line_item_id, primary_image_id }) => project_line_item_id === null || primary_image_id === undefined
+		? null
+		: { project_line_item_id, primary_image_id })
+	if (line_items_with_new_primary_image.length === 0) {
+		return
+	}
+
+	const rows = await select_builder.get_rows(select_builder
+		.from(`project_line_item_image`)
+		.where(q => q.in(`project_line_item_image.project_line_item_id`, map(line_items_with_new_primary_image, line_item => line_item.project_line_item_id)))
+		.select(() => [`project_line_item_image.project_line_item_id`, `project_line_item_image.project_image_id`] as const)
+		.build())
+
+	for_each(line_items_with_new_primary_image, ({ project_line_item_id, primary_image_id }) => {
+		assert_primary_image_valid({
+			project_line_item_id,
+			primary_image_id,
+			project_image_ids: filter_map(rows, row => row.project_line_item_image.project_line_item_id === project_line_item_id ? row.project_line_item_image.project_image_id : null),
+		})
+	})
 }
 
 const get_max_sort = async ({

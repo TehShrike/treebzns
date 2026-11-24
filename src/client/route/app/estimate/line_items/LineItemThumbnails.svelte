@@ -13,14 +13,15 @@
 	} = $props()
 
 	const images = $derived(map(line_item.images, image => photo_upload_queue.uploaded_etags.get(image.project_image_id) ?? image))
+	const primary_image_id = $derived(line_item.record.form_values.primary_image_id)
 </script>
 
 <div class="scroller">
 	{#each images as image, index (image.project_image_id)}
 		{#if image.uploaded_at === null}
-			<div class="uploading">Uploading…</div>
+			<div class="uploading" data-primary={image.project_image_id === primary_image_id}>Uploading…</div>
 		{:else}
-			<button type="button" class="open_photo" aria-label="Edit photo {index + 1}" onclick={() => open_photo(image.project_image_id)}>
+			<button type="button" class="open_photo" data-primary={image.project_image_id === primary_image_id} aria-label="Edit photo {index + 1}" onclick={() => open_photo(image.project_image_id)}>
 				<img class="thumbnail" src={project_image_url({ project_image_id: image.project_image_id, variant: `thumbnail`, etag: image.thumbnail_etag })} alt="" loading="lazy">
 			</button>
 		{/if}
@@ -67,6 +68,11 @@
 		height: 6rem;
 		color: var(--text_color_light);
 		background: var(--accent_background);
+	}
+
+	.uploading[data-primary="true"], .open_photo[data-primary="true"] .thumbnail {
+		outline: 3px solid var(--text_color_normal);
+		outline-offset: -3px;
 	}
 
 	.add_photo {

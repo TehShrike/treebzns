@@ -82,6 +82,7 @@ const project_line_item_columns = [
 	`project_line_item.discount_rate`,
 	`project_line_item.discount_description`,
 	`project_line_item.sort`,
+	`project_line_item.primary_image_id`,
 	`project_line_item.created_at`,
 	`project_line_item.updated_at`,
 ] as const

@@ -86,6 +86,7 @@ export const project_line_item = {
 	price: fnum(`0.00`),
 	discount_rate: null,
 	discount_description: ``,
+	primary_image_id: null,
 	arbostar_line_item_id: null,
 } as const satisfies Partial<DbProjectLineItem>
 
