@@ -18,9 +18,10 @@
 
 	/* Text */
 	--font-size: min(15px, var(--font_size_base));
+	--input-font-size: 16px;
 	--input-padding-block: 3px;
-	--input-line-height: 2;
-	--input-height: calc(var(--font-size) * var(--input-line-height) + 2 * var(--input-padding-block));
+	--input-line-height: 1.75;
+	--input-height: calc(var(--input-font-size) * var(--input-line-height) + 2 * var(--input-padding-block));
 
 	/* Spacing */
 	--element-spacing: 8px;
@@ -100,6 +101,12 @@ li[role="tab"] {
 	font-family: Arial;
 	-webkit-font-smoothing: none;
 	font-size: var(--font-size);
+}
+
+input:where(:not([type="submit"], [type="reset"])),
+select,
+textarea {
+	font-size: var(--input-font-size);
 }
 
 h1 {

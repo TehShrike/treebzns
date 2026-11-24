@@ -48,6 +48,7 @@
 		min-width: 0;
 		padding: var(--cell_padding, 4px 8px);
 		font: inherit;
+		font-size: var(--input-font-size);
 		line-height: inherit;
 		grid-area: 1 / 1 / 2 / 2;
 	}

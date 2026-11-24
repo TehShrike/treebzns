@@ -159,6 +159,7 @@
 		box-shadow: none;
 		background: transparent;
 		font: inherit;
+		font-size: var(--input-font-size);
 		color: inherit;
 		line-height: inherit;
 	}

@@ -68,36 +68,15 @@
 
 <style>
 	.login {
-		font-family: sans-serif;
+		display: flex;
+		flex-direction: column;
+		gap: var(--gap_unit);
 		max-width: 480px;
 		margin: 4rem auto;
 		padding: 0 1rem;
 	}
 
-	label {
-		display: block;
-		margin-top: 0.75rem;
-		font-size: 0.9rem;
-	}
-
-	input {
-		display: block;
-		width: 100%;
-		box-sizing: border-box;
-		margin-top: 0.25rem;
-		padding: 0.4rem 0.5rem;
-		font-size: 1rem;
-	}
-
-	button {
-		margin-top: 1.5rem;
-		padding: 0.6rem 1.4rem;
-		font-size: 1rem;
-		cursor: pointer;
-	}
-
 	.result {
-		margin-top: 1rem;
 		padding: 0.75rem;
 		border-radius: 4px;
 	}
