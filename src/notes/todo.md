@@ -8,6 +8,15 @@ Estimation/proposal concepts that needs to exist in the schema:
 	- Choosing an existing work description should automatically populate the equipment configuration from the template
 - How to model work items being basic vs premium?
 	- How to model which line/work items were selected by the user?
+- project_document -> project_status?  Look at project_document concept again
+
+### Building estimates reasonably
+
+- Split line interface: click a "split" button, choose a new item type, have current/new fields for title/description/equipment.
+- Need handling for failed/cancelled uploads.  But what?  Maybe just error messages somewhere in the status bar
+- Needs to work taking photos landscape (take up less vertical space in general)
+- Delete line items/work items
+- Delete photos
 
 ## Notes with Andrew 2026-11-14
 
@@ -20,25 +29,6 @@ Estimation/proposal concepts that needs to exist in the schema:
 - Need internal notes and crew notes at the project level
 - Chat window should say estimators name
 - Equipment should be remembered per work description
-
----
-
-project_document -> project_status?
-
-Add "product name" to work items?  Data list remembering previously used names for the work type?
-
-### Very important for actual use
-
-- Need handling for failed/cancelled uploads
-- Helpful status/info messages?  Bottom status bar?
-- Needs to work taking photos landscape (take up less vertical space in general)
-- Delete line items
-- Delete photos
-
-### Check estimate process practically
-
-- Guards to block navigating with unsaved changes
-- Split line interface: click a "split" button, choose a new item type, have current/new fields for title/description/equipment.
 
 ### More notes on estimate editing
 
