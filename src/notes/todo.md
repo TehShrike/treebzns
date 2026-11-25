@@ -37,8 +37,6 @@ Add "product name" to work items?  Data list remembering previously used names f
 
 ### Check estimate process practically
 
-- Is `store_markup_files` really necessary, is there no other image-saving function that can be used already
-- wtf is `if_none_match`
 - Guards to block navigating with unsaved changes
 - Split line interface: click a "split" button, choose a new item type, have current/new fields for title/description/equipment.
 
