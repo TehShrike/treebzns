@@ -1,21 +1,13 @@
 # TODO
 
-White background behind large links?
+Estimation/proposal concepts that needs to exist in the schema:
 
-## Notes from showing Andrew 2026-10-30
-
-- line items should have a "primary" image that is the main one the customer sees with the line item
-
-## "Stale text" after line item rewrite
-
-- src/notes/line_item_price_estimate_calculation.md:11 lists the rounding increment as a work item input. It now applies to the line item price only.
-- src/notes/line_item_price_estimate_calculation.md:15 says the work item price rounds to the increment. It rounds to 0.01.
-- src/notes/project_calculation.md:1 points at invoice calculation for line items. Estimate line items now have no quantity, and the discount is a rate or the work item discounts.
-- src/notes/todo.md:18-19 the schema already removed work skills and put the hourly rate on the work type.
-- src/notes/todo.md:44 and :92 are about project crew size, which is dropped.
-- src/notes/todo.md:46 and :89 name item types and skills.
-- src/notes/todo.md:50 names a line item discount, which now lives on the work item.
-- src/notes/todo.md:58 line item titles are editable.
+- Work description – you should be able to type in a short descriptive string besides the work type, e.g. "Raise", and it should be saved with the equipment used.
+	- Should have a database record that the work item points at for historic data
+	- Whenever a new one is saved, all old items should be checked for "which configuration shows up on >50% of items with this work description" and then the template should be updated
+	- Choosing an existing work description should automatically populate the equipment configuration from the template
+- How to model work items being basic vs premium?
+	- How to model which line/work items were selected by the user?
 
 ## Notes with Andrew 2026-11-14
 
@@ -26,15 +18,8 @@ White background behind large links?
 	- Can have "alternates" – same tree/group, but completely different work, removal vs trim
 	- Photos and title are per proposal item, everything else in project line items is work order line items
 - Need internal notes and crew notes at the project level
-- Come up with a simpler version of work skills.  Only need climbing, groundsman, tech
-- Can maybe remove skills, hourly rate is per work type
-	- Trim: raise only, basic trim, thorough trim, structural pruning
-		- Same hourly rate, but some require different people to be sent
-	- Different equipment is more meaningful: pole saw, climbing equipment, bucket truck, backyard/spider lift/track lift
-		- Equipment is on work items, not proposal
-	- "two guys 8 hours with the track lift"
-	- "just raise"
 - Chat window should say estimators name
+- Equipment should be remembered per work description
 
 ---
 
@@ -44,8 +29,8 @@ Add "product name" to work items?  Data list remembering previously used names f
 
 ### Very important for actual use
 
-- Need feedback on upload progress
 - Need handling for failed/cancelled uploads
+- Helpful status/info messages?  Bottom status bar?
 - Needs to work taking photos landscape (take up less vertical space in general)
 - Delete line items
 - Delete photos
@@ -54,13 +39,12 @@ Add "product name" to work items?  Data list remembering previously used names f
 
 - Is `store_markup_files` really necessary, is there no other image-saving function that can be used already
 - wtf is `if_none_match`
-- When editing line item crew size: the project-level estimated crew should increase if the line item's crew is larger than the current maybe?
 - Guards to block navigating with unsaved changes
-- Split line interface: click a "split" button, choose a new item type, have current/new fields for title/description/skills.
+- Split line interface: click a "split" button, choose a new item type, have current/new fields for title/description/equipment.
 
 ### More notes on estimate editing
 
-- Allow editing line item discount_rate, discount, discount_description
+- Allow editing line/work item discount_rate, discount, discount_description
 - Allow editing project-level discount (which disables line-item level discount)
 - Upload images?
 - Allow changing sort
@@ -68,7 +52,6 @@ Add "product name" to work items?  Data list remembering previously used names f
 - issues on Safari: see screenshot in Dropbox 2026-10-19T11:34:24
 - expose photo property: visible_to_client
 - deleting line items
-- editing line item title
 - allow editing project.notes_for_crew and project.notes_for_office
 - "save line item as template"?
 - cleanup: maybe we don't need asr_joinings_and_leavings
@@ -101,8 +84,6 @@ https://discord.com/channels/@me/256500497706385409/1547412310069346334
 - Separate pictures into line items
 - Pick line item types, hours, description
 - List of photos gets shorter as you allocate photos to line items
-
-Project needs "estimated crew size"
 
 ## Create a lead
 
